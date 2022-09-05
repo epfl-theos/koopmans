@@ -50,56 +50,60 @@ class MLSettingsDict(SettingsDictWithChecks):
                     (str, list), 'alphas', None)
         ]
 
+        task = kwargs.pop('task')
+
         super().__init__(settings=valid_settings, **kwargs)
 
-        # TODO: Yannick: Sanitize inputs
+        if not task == 'convergence_ml':
+            assert isinstance(self['n_max'], int)
+            assert isinstance(self['l_max'], int)
+            assert isinstance(self['r_min'], float)
+            assert isinstance(self['r_max'], float)
 
-        # if not kwargs['task'] == 'convergence_ml':
-        #     assert isinstance(self['n_max'], int)
-        #     assert isinstance(self['l_max'], int)
-        #     assert isinstance(self['r_min'], float)
-        #     assert isinstance(self['r_max'], float)
+        # convert now each parameter to a list to be able to run the same checks irregardless of the task
 
-        # # convert now each parameter to a list to be able to run the same checks irregardless of the task
+        def convert_to_list(param, type):
+            if isinstance(param, type):  # if param is an int or a float convert it for the checks to a list
+                return [param]
+            else:  # if param is not an int or a float check that it is a list of ints / floats
+                assert(isinstance(param, list))
+                for value in param:
+                    assert(isinstance(value, type))
+                return param
 
-        # def convert_to_list(param, type):
-        #     if isinstance(param, type):  # if param is an int or a float convert it for the checks to a list
-        #         return [param]
-        #     else:  # if param is not an int or a float check that it is a list of ints / floats
-        #         assert(isinstance(param, list))
-        #         for value in param:
-        #             assert(isinstance(value, type))
-        #         return param
+        n_maxs = convert_to_list(self['n_max'], int)
+        l_maxs = convert_to_list(self['l_max'], int)
+        r_mins = convert_to_list(self['r_min'], float)
+        r_maxs = convert_to_list(self['r_max'], float)
 
-        # n_maxs = convert_to_list(self['n_max'], int)
-        # l_maxs = convert_to_list(self['l_max'], int)
-        # r_mins = convert_to_list(self['r_min'], float)
-        # r_maxs = convert_to_list(self['r_max'], float)
+        # check that each n_max, l_max, r_max and r_min are greater or equal to 0 and that r_min is smaller than r_max
+        for n_max in n_maxs:
+            if not n_max > 0:
+                raise ValueError(f"n_max has to be larger than zero. The provided value is n_max={n_max}")
+        for l_max in l_maxs:
+            if not l_max >= 0:
+                raise ValueError(f"l_max has to be equal or larger than zero. The provided value is l_max={l_max}")
+        for r_min in r_mins:
+            if not r_min >= 0:
+                raise ValueError(f"r_min has to be equal or larger than zero. The provided value is r_min={r_min}")
+            if r_min < 0.5:
+                utils.warn(
+                    f"Small values of r_min (<0.5) can lead to problems in the construction of the radial basis. The provided value is r_min={r_min}.")
+        for r_max in r_maxs:
+            if not any(r_min < r_max for r_min in r_mins):
+                raise ValueError(f"All provided values of r_min are larger or equal to r_max={r_max}.")
 
-        # # check that each n_max, l_max, r_max and r_min are greater or equal to 0 and that r_min is smaller than r_max
-        # for n_max in n_maxs:
-        #     if not n_max > 0:
-        #         raise ValueError(f"n_max has to be larger than zero. The provided value is n_max={n_max}")
-        # for l_max in l_maxs:
-        #     if not l_max >= 0:
-        #         raise ValueError(f"l_max has to be equal or larger than zero. The provided value is l_max={l_max}")
-        # for r_min in r_mins:
-        #     if not r_min >= 0:
-        #         raise ValueError(f"r_min has to be equal or larger than zero. The provided value is r_min={r_min}")
-        #     if r_min < 0.5:
-        #         utils.warn(
-        #             f"Small values of r_min (<0.5) can lead to problems in the construction of the radial basis. The provided value is r_min={r_min}.")
-        # for r_max in r_maxs:
-        #     if not any(r_min < r_max for r_min in r_mins):
-        #         raise ValueError(f"All provided values of r_min are larger or equal to r_max={r_max}.")
+        # for the convergence_ml task we want to have each parameter in a list form
+        if task == 'convergence_ml':
 
-        # # for the convergence_ml task we want to have each parameter in a list form
-        # if kwargs['task'] == 'convergence_ml':
+            implemented_quantities_of_interest = ['alphas', 'evs']
+            self['quantities_of_interest'] = convert_to_list(self['quantities_of_interest'], str)
 
-        #     implemented_quantities_of_interest = ['alphas', 'evs']
-        #     self['quantities_of_interest'] = convert_to_list(self['quantities_of_interest'], str)
+            for qoi in self['quantities_of_interest']:
+                if qoi not in implemented_quantities_of_interest:
+                    raise NotImplementedError(
+                        "Performing the convergence_analysis w.r.t. {qoi} has not yet been implement.")
 
-        #     for qoi in self['quantities_of_interest']:
-        #         if qoi not in implemented_quantities_of_interest:
-        #             raise NotImplementedError(
-        #                 "Performing the convergence_analysis w.r.t. {qoi} has not yet been implement.")
+        def __setitem__(self, key: str, value: Any):
+
+            return super().__setitem__(key, value)

@@ -7,7 +7,7 @@
 
  Koopmans spectral functional calculations with Quantum ESPRESSO
 
- v0.6-139-gc9993e3c, using qe-7.1 and ASE v146b737d9
+ v0.6-143-ge3383890, using qe-7.1 and ASE v146b737d9
 
  Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna
 
@@ -1249,7 +1249,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
     Running final/ki_final... done
   (n_max, l_max, r_min, r_max) = (6, 6, 1.0, 4.0)
 
- Adding snapshot 0 to the training data
+ Adding snapshot 1 to the training data
  ======================================
 
   Performing Koopmans calculation on snapshot 1 / 20
@@ -1260,34 +1260,34 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
 
     Wannierization
     ==============
-     Not running wannier/scf as it is already complete
-     Not running wannier/nscf as it is already complete
-     Not running wannier/occ/wann_preproc as it is already complete
-     Not running wannier/occ/pw2wan as it is already complete
-     Not running wannier/occ/wann as it is already complete
-     Not running wannier/emp/wann_preproc as it is already complete
-     Not running wannier/emp/pw2wan as it is already complete
-     Not running wannier/emp/wann as it is already complete
+     Running wannier/scf... done
+     Running wannier/nscf... done
+     Running wannier/occ/wann_preproc... done
+     Running wannier/occ/pw2wan... done
+     Running wannier/occ/wann... done
+     Running wannier/emp/wann_preproc... done
+     Running wannier/emp/pw2wan... done
+     Running wannier/emp/wann... done
 
     Folding to supercell
     --------------------
-     Not running occ/w2kcp as it is already complete
-     Not running emp/w2kcp as it is already complete
-    Not running init/dft_dummy as it is already complete
-    Not running init/dft_init as it is already complete
+     Running occ/w2kcp... done
+     Running emp/w2kcp... done
+    Running init/dft_dummy... done
+    Running init/dft_init... done
 
    Calculating screening parameters
    ================================
-    Not running calc_alpha/ki as it is already complete
-     Not running conversion binary->xml of real-space-densities as it is already complete
-     Not running computation of decomposition of real-space-density as it is already complete
+    Running calc_alpha/ki... done
+     Running conversion binary->xml of real-space-densities... done
+     Running computation of decomposition of real-space-density... done
      Running computation of power spectrum... done
 
    Orbital 1
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_1/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_1/dft_n-1... done
      
      predicted  screening parameter: 1.00000
      calculated screening parameter: 0.57472
@@ -1299,7 +1299,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_2/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_2/dft_n-1... done
      
      predicted  screening parameter: 1.00000
      calculated screening parameter: 0.56596
@@ -1311,7 +1311,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_3/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_3/dft_n-1... done
      
      predicted  screening parameter: 1.00000
      calculated screening parameter: 0.49968
@@ -1323,7 +1323,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_4/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_4/dft_n-1... done
      
      predicted  screening parameter: 1.00000
      calculated screening parameter: 0.49925
@@ -1335,9 +1335,9 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_5/pz_print as it is already complete
-    Not running calc_alpha/orbital_5/dft_n+1_dummy as it is already complete
-    Not running calc_alpha/orbital_5/dft_n+1 as it is already complete
+    Running calc_alpha/orbital_5/pz_print... done
+    Running calc_alpha/orbital_5/dft_n+1_dummy... done
+    Running calc_alpha/orbital_5/dft_n+1... done
      
      predicted  screening parameter: 1.00000
      calculated screening parameter: 0.56640
@@ -1349,9 +1349,9 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_6/pz_print as it is already complete
-    Not running calc_alpha/orbital_6/dft_n+1_dummy as it is already complete
-    Not running calc_alpha/orbital_6/dft_n+1 as it is already complete
+    Running calc_alpha/orbital_6/pz_print... done
+    Running calc_alpha/orbital_6/dft_n+1_dummy... done
+    Running calc_alpha/orbital_6/dft_n+1... done
      
      predicted  screening parameter: 1.00000
      calculated screening parameter: 0.54827
@@ -1376,7 +1376,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
 
    Final KI calculation
    ====================
-    Not running final/ki_final as it is already complete
+    Running final/ki_final... done
 
  Testing on the last 10 snapshot(s)
  ==================================
@@ -2141,7 +2141,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ====================
     Not running final/ki_final as it is already complete
 
- Adding snapshot 1 to the training data
+ Adding snapshot 2 to the training data
  ======================================
 
   Performing Koopmans calculation on snapshot 2 / 20
@@ -2152,34 +2152,34 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
 
     Wannierization
     ==============
-     Not running wannier/scf as it is already complete
-     Not running wannier/nscf as it is already complete
-     Not running wannier/occ/wann_preproc as it is already complete
-     Not running wannier/occ/pw2wan as it is already complete
-     Not running wannier/occ/wann as it is already complete
-     Not running wannier/emp/wann_preproc as it is already complete
-     Not running wannier/emp/pw2wan as it is already complete
-     Not running wannier/emp/wann as it is already complete
+     Running wannier/scf... done
+     Running wannier/nscf... done
+     Running wannier/occ/wann_preproc... done
+     Running wannier/occ/pw2wan... done
+     Running wannier/occ/wann... done
+     Running wannier/emp/wann_preproc... done
+     Running wannier/emp/pw2wan... done
+     Running wannier/emp/wann... done
 
     Folding to supercell
     --------------------
-     Not running occ/w2kcp as it is already complete
-     Not running emp/w2kcp as it is already complete
-    Not running init/dft_dummy as it is already complete
-    Not running init/dft_init as it is already complete
+     Running occ/w2kcp... done
+     Running emp/w2kcp... done
+    Running init/dft_dummy... done
+    Running init/dft_init... done
 
    Calculating screening parameters
    ================================
-    Not running calc_alpha/ki as it is already complete
-     Not running conversion binary->xml of real-space-densities as it is already complete
-     Not running computation of decomposition of real-space-density as it is already complete
+    Running calc_alpha/ki... done
+     Running conversion binary->xml of real-space-densities... done
+     Running computation of decomposition of real-space-density... done
      Running computation of power spectrum... done
 
    Orbital 1
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_1/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_1/dft_n-1... done
      
      predicted  screening parameter: 0.56622
      calculated screening parameter: 0.56934
@@ -2191,7 +2191,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_2/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_2/dft_n-1... done
      
      predicted  screening parameter: 0.57498
      calculated screening parameter: 0.58259
@@ -2203,7 +2203,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_3/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_3/dft_n-1... done
      
      predicted  screening parameter: 0.49615
      calculated screening parameter: 0.50836
@@ -2215,7 +2215,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_4/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_4/dft_n-1... done
      
      predicted  screening parameter: 0.49112
      calculated screening parameter: 0.50810
@@ -2227,9 +2227,9 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_5/pz_print as it is already complete
-    Not running calc_alpha/orbital_5/dft_n+1_dummy as it is already complete
-    Not running calc_alpha/orbital_5/dft_n+1 as it is already complete
+    Running calc_alpha/orbital_5/pz_print... done
+    Running calc_alpha/orbital_5/dft_n+1_dummy... done
+    Running calc_alpha/orbital_5/dft_n+1... done
      
      predicted  screening parameter: 0.52692
      calculated screening parameter: 0.51974
@@ -2241,9 +2241,9 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_6/pz_print as it is already complete
-    Not running calc_alpha/orbital_6/dft_n+1_dummy as it is already complete
-    Not running calc_alpha/orbital_6/dft_n+1 as it is already complete
+    Running calc_alpha/orbital_6/pz_print... done
+    Running calc_alpha/orbital_6/dft_n+1_dummy... done
+    Running calc_alpha/orbital_6/dft_n+1... done
      
      predicted  screening parameter: 0.59999
      calculated screening parameter: 0.57049
@@ -2268,7 +2268,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
 
    Final KI calculation
    ====================
-    Not running final/ki_final as it is already complete
+    Running final/ki_final... done
 
  Testing on the last 10 snapshot(s)
  ==================================
@@ -3033,7 +3033,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ====================
     Not running final/ki_final as it is already complete
 
- Adding snapshot 2 to the training data
+ Adding snapshot 3 to the training data
  ======================================
 
   Performing Koopmans calculation on snapshot 3 / 20
@@ -3044,34 +3044,34 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
 
     Wannierization
     ==============
-     Not running wannier/scf as it is already complete
-     Not running wannier/nscf as it is already complete
-     Not running wannier/occ/wann_preproc as it is already complete
-     Not running wannier/occ/pw2wan as it is already complete
-     Not running wannier/occ/wann as it is already complete
-     Not running wannier/emp/wann_preproc as it is already complete
-     Not running wannier/emp/pw2wan as it is already complete
-     Not running wannier/emp/wann as it is already complete
+     Running wannier/scf... done
+     Running wannier/nscf... done
+     Running wannier/occ/wann_preproc... done
+     Running wannier/occ/pw2wan... done
+     Running wannier/occ/wann... done
+     Running wannier/emp/wann_preproc... done
+     Running wannier/emp/pw2wan... done
+     Running wannier/emp/wann... done
 
     Folding to supercell
     --------------------
-     Not running occ/w2kcp as it is already complete
-     Not running emp/w2kcp as it is already complete
-    Not running init/dft_dummy as it is already complete
-    Not running init/dft_init as it is already complete
+     Running occ/w2kcp... done
+     Running emp/w2kcp... done
+    Running init/dft_dummy... done
+    Running init/dft_init... done
 
    Calculating screening parameters
    ================================
-    Not running calc_alpha/ki as it is already complete
-     Not running conversion binary->xml of real-space-densities as it is already complete
-     Not running computation of decomposition of real-space-density as it is already complete
+    Running calc_alpha/ki... done
+     Running conversion binary->xml of real-space-densities... done
+     Running computation of decomposition of real-space-density... done
      Running computation of power spectrum... done
 
    Orbital 1
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_1/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_1/dft_n-1... done
      
      predicted  screening parameter: 0.58883
      calculated screening parameter: 0.57877
@@ -3083,7 +3083,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_2/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_2/dft_n-1... done
      
      predicted  screening parameter: 0.54939
      calculated screening parameter: 0.55194
@@ -3095,7 +3095,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_3/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_3/dft_n-1... done
      
      predicted  screening parameter: 0.49960
      calculated screening parameter: 0.49250
@@ -3107,7 +3107,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_4/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_4/dft_n-1... done
      
      predicted  screening parameter: 0.50388
      calculated screening parameter: 0.49297
@@ -3119,9 +3119,9 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_5/pz_print as it is already complete
-    Not running calc_alpha/orbital_5/dft_n+1_dummy as it is already complete
-    Not running calc_alpha/orbital_5/dft_n+1 as it is already complete
+    Running calc_alpha/orbital_5/pz_print... done
+    Running calc_alpha/orbital_5/dft_n+1_dummy... done
+    Running calc_alpha/orbital_5/dft_n+1... done
      
      predicted  screening parameter: 0.59450
      calculated screening parameter: 0.58547
@@ -3133,9 +3133,9 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_6/pz_print as it is already complete
-    Not running calc_alpha/orbital_6/dft_n+1_dummy as it is already complete
-    Not running calc_alpha/orbital_6/dft_n+1 as it is already complete
+    Running calc_alpha/orbital_6/pz_print... done
+    Running calc_alpha/orbital_6/dft_n+1_dummy... done
+    Running calc_alpha/orbital_6/dft_n+1... done
      
      predicted  screening parameter: 0.53528
      calculated screening parameter: 0.41946
@@ -3160,7 +3160,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
 
    Final KI calculation
    ====================
-    Not running final/ki_final as it is already complete
+    Running final/ki_final... done
 
  Testing on the last 10 snapshot(s)
  ==================================
@@ -3925,7 +3925,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ====================
     Not running final/ki_final as it is already complete
 
- Adding snapshot 3 to the training data
+ Adding snapshot 4 to the training data
  ======================================
 
   Performing Koopmans calculation on snapshot 4 / 20
@@ -3936,34 +3936,34 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
 
     Wannierization
     ==============
-     Not running wannier/scf as it is already complete
-     Not running wannier/nscf as it is already complete
-     Not running wannier/occ/wann_preproc as it is already complete
-     Not running wannier/occ/pw2wan as it is already complete
-     Not running wannier/occ/wann as it is already complete
-     Not running wannier/emp/wann_preproc as it is already complete
-     Not running wannier/emp/pw2wan as it is already complete
-     Not running wannier/emp/wann as it is already complete
+     Running wannier/scf... done
+     Running wannier/nscf... done
+     Running wannier/occ/wann_preproc... done
+     Running wannier/occ/pw2wan... done
+     Running wannier/occ/wann... done
+     Running wannier/emp/wann_preproc... done
+     Running wannier/emp/pw2wan... done
+     Running wannier/emp/wann... done
 
     Folding to supercell
     --------------------
-     Not running occ/w2kcp as it is already complete
-     Not running emp/w2kcp as it is already complete
-    Not running init/dft_dummy as it is already complete
-    Not running init/dft_init as it is already complete
+     Running occ/w2kcp... done
+     Running emp/w2kcp... done
+    Running init/dft_dummy... done
+    Running init/dft_init... done
 
    Calculating screening parameters
    ================================
-    Not running calc_alpha/ki as it is already complete
-     Not running conversion binary->xml of real-space-densities as it is already complete
-     Not running computation of decomposition of real-space-density as it is already complete
+    Running calc_alpha/ki... done
+     Running conversion binary->xml of real-space-densities... done
+     Running computation of decomposition of real-space-density... done
      Running computation of power spectrum... done
 
    Orbital 1
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_1/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_1/dft_n-1... done
      
      predicted  screening parameter: 0.54654
      calculated screening parameter: 0.56550
@@ -3975,7 +3975,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_2/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_2/dft_n-1... done
      
      predicted  screening parameter: 0.57445
      calculated screening parameter: 0.58955
@@ -3987,7 +3987,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_3/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_3/dft_n-1... done
      
      predicted  screening parameter: 0.50125
      calculated screening parameter: 0.52331
@@ -3999,7 +3999,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_4/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_4/dft_n-1... done
      
      predicted  screening parameter: 0.50089
      calculated screening parameter: 0.52291
@@ -4011,9 +4011,9 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_5/pz_print as it is already complete
-    Not running calc_alpha/orbital_5/dft_n+1_dummy as it is already complete
-    Not running calc_alpha/orbital_5/dft_n+1 as it is already complete
+    Running calc_alpha/orbital_5/pz_print... done
+    Running calc_alpha/orbital_5/dft_n+1_dummy... done
+    Running calc_alpha/orbital_5/dft_n+1... done
      
      predicted  screening parameter: 0.49481
      calculated screening parameter: 0.45420
@@ -4025,9 +4025,9 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_6/pz_print as it is already complete
-    Not running calc_alpha/orbital_6/dft_n+1_dummy as it is already complete
-    Not running calc_alpha/orbital_6/dft_n+1 as it is already complete
+    Running calc_alpha/orbital_6/pz_print... done
+    Running calc_alpha/orbital_6/dft_n+1_dummy... done
+    Running calc_alpha/orbital_6/dft_n+1... done
      
      predicted  screening parameter: 0.57149
      calculated screening parameter: 0.56574
@@ -4052,7 +4052,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
 
    Final KI calculation
    ====================
-    Not running final/ki_final as it is already complete
+    Running final/ki_final... done
 
  Testing on the last 10 snapshot(s)
  ==================================
@@ -4817,7 +4817,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ====================
     Not running final/ki_final as it is already complete
 
- Adding snapshot 4 to the training data
+ Adding snapshot 5 to the training data
  ======================================
 
   Performing Koopmans calculation on snapshot 5 / 20
@@ -4828,34 +4828,34 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
 
     Wannierization
     ==============
-     Not running wannier/scf as it is already complete
-     Not running wannier/nscf as it is already complete
-     Not running wannier/occ/wann_preproc as it is already complete
-     Not running wannier/occ/pw2wan as it is already complete
-     Not running wannier/occ/wann as it is already complete
-     Not running wannier/emp/wann_preproc as it is already complete
-     Not running wannier/emp/pw2wan as it is already complete
-     Not running wannier/emp/wann as it is already complete
+     Running wannier/scf... done
+     Running wannier/nscf... done
+     Running wannier/occ/wann_preproc... done
+     Running wannier/occ/pw2wan... done
+     Running wannier/occ/wann... done
+     Running wannier/emp/wann_preproc... done
+     Running wannier/emp/pw2wan... done
+     Running wannier/emp/wann... done
 
     Folding to supercell
     --------------------
-     Not running occ/w2kcp as it is already complete
-     Not running emp/w2kcp as it is already complete
-    Not running init/dft_dummy as it is already complete
-    Not running init/dft_init as it is already complete
+     Running occ/w2kcp... done
+     Running emp/w2kcp... done
+    Running init/dft_dummy... done
+    Running init/dft_init... done
 
    Calculating screening parameters
    ================================
-    Not running calc_alpha/ki as it is already complete
-     Not running conversion binary->xml of real-space-densities as it is already complete
-     Not running computation of decomposition of real-space-density as it is already complete
+    Running calc_alpha/ki... done
+     Running conversion binary->xml of real-space-densities... done
+     Running computation of decomposition of real-space-density... done
      Running computation of power spectrum... done
 
    Orbital 1
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_1/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_1/dft_n-1... done
      
      predicted  screening parameter: 0.54992
      calculated screening parameter: 0.58304
@@ -4867,7 +4867,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_2/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_2/dft_n-1... done
      
      predicted  screening parameter: 0.59595
      calculated screening parameter: 0.59731
@@ -4879,7 +4879,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_3/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_3/dft_n-1... done
      
      predicted  screening parameter: 0.53437
      calculated screening parameter: 0.55934
@@ -4891,7 +4891,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_4/dft_n-1 as it is already complete
+    Running calc_alpha/orbital_4/dft_n-1... done
      
      predicted  screening parameter: 0.56854
      calculated screening parameter: 0.55853
@@ -4903,9 +4903,9 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_5/pz_print as it is already complete
-    Not running calc_alpha/orbital_5/dft_n+1_dummy as it is already complete
-    Not running calc_alpha/orbital_5/dft_n+1 as it is already complete
+    Running calc_alpha/orbital_5/pz_print... done
+    Running calc_alpha/orbital_5/dft_n+1_dummy... done
+    Running calc_alpha/orbital_5/dft_n+1... done
      
      predicted  screening parameter: 0.46404
      calculated screening parameter: 0.38295
@@ -4917,9 +4917,9 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ---------
      Predicting screening parameter
      The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio
-    Not running calc_alpha/orbital_6/pz_print as it is already complete
-    Not running calc_alpha/orbital_6/dft_n+1_dummy as it is already complete
-    Not running calc_alpha/orbital_6/dft_n+1 as it is already complete
+    Running calc_alpha/orbital_6/pz_print... done
+    Running calc_alpha/orbital_6/dft_n+1_dummy... done
+    Running calc_alpha/orbital_6/dft_n+1... done
      
      predicted  screening parameter: 0.44385
      calculated screening parameter: 0.44708
@@ -4944,7 +4944,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
 
    Final KI calculation
    ====================
-    Not running final/ki_final as it is already complete
+    Running final/ki_final... done
 
  Testing on the last 10 snapshot(s)
  ==================================
@@ -5709,7 +5709,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ====================
     Not running final/ki_final as it is already complete
 
- Adding snapshot 5 to the training data
+ Adding snapshot 6 to the training data
  ======================================
 
   Performing Koopmans calculation on snapshot 6 / 20
@@ -5720,27 +5720,27 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
 
     Wannierization
     ==============
-     Not running wannier/scf as it is already complete
-     Not running wannier/nscf as it is already complete
-     Not running wannier/occ/wann_preproc as it is already complete
-     Not running wannier/occ/pw2wan as it is already complete
-     Not running wannier/occ/wann as it is already complete
-     Not running wannier/emp/wann_preproc as it is already complete
-     Not running wannier/emp/pw2wan as it is already complete
-     Not running wannier/emp/wann as it is already complete
+     Running wannier/scf... done
+     Running wannier/nscf... done
+     Running wannier/occ/wann_preproc... done
+     Running wannier/occ/pw2wan... done
+     Running wannier/occ/wann... done
+     Running wannier/emp/wann_preproc... done
+     Running wannier/emp/pw2wan... done
+     Running wannier/emp/wann... done
 
     Folding to supercell
     --------------------
-     Not running occ/w2kcp as it is already complete
-     Not running emp/w2kcp as it is already complete
-    Not running init/dft_dummy as it is already complete
-    Not running init/dft_init as it is already complete
+     Running occ/w2kcp... done
+     Running emp/w2kcp... done
+    Running init/dft_dummy... done
+    Running init/dft_init... done
 
    Calculating screening parameters
    ================================
-    Not running calc_alpha/ki as it is already complete
-     Not running conversion binary->xml of real-space-densities as it is already complete
-     Not running computation of decomposition of real-space-density as it is already complete
+    Running calc_alpha/ki... done
+     Running conversion binary->xml of real-space-densities... done
+     Running computation of decomposition of real-space-density... done
      Running computation of power spectrum... done
 
    Orbital 1
@@ -6601,7 +6601,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ====================
     Not running final/ki_final as it is already complete
 
- Adding snapshot 6 to the training data
+ Adding snapshot 7 to the training data
  ======================================
 
   Performing Koopmans calculation on snapshot 7 / 20
@@ -6612,27 +6612,27 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
 
     Wannierization
     ==============
-     Not running wannier/scf as it is already complete
-     Not running wannier/nscf as it is already complete
-     Not running wannier/occ/wann_preproc as it is already complete
-     Not running wannier/occ/pw2wan as it is already complete
-     Not running wannier/occ/wann as it is already complete
-     Not running wannier/emp/wann_preproc as it is already complete
-     Not running wannier/emp/pw2wan as it is already complete
-     Not running wannier/emp/wann as it is already complete
+     Running wannier/scf... done
+     Running wannier/nscf... done
+     Running wannier/occ/wann_preproc... done
+     Running wannier/occ/pw2wan... done
+     Running wannier/occ/wann... done
+     Running wannier/emp/wann_preproc... done
+     Running wannier/emp/pw2wan... done
+     Running wannier/emp/wann... done
 
     Folding to supercell
     --------------------
-     Not running occ/w2kcp as it is already complete
-     Not running emp/w2kcp as it is already complete
-    Not running init/dft_dummy as it is already complete
-    Not running init/dft_init as it is already complete
+     Running occ/w2kcp... done
+     Running emp/w2kcp... done
+    Running init/dft_dummy... done
+    Running init/dft_init... done
 
    Calculating screening parameters
    ================================
-    Not running calc_alpha/ki as it is already complete
-     Not running conversion binary->xml of real-space-densities as it is already complete
-     Not running computation of decomposition of real-space-density as it is already complete
+    Running calc_alpha/ki... done
+     Running conversion binary->xml of real-space-densities... done
+     Running computation of decomposition of real-space-density... done
      Running computation of power spectrum... done
 
    Orbital 1
@@ -7493,7 +7493,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ====================
     Not running final/ki_final as it is already complete
 
- Adding snapshot 7 to the training data
+ Adding snapshot 8 to the training data
  ======================================
 
   Performing Koopmans calculation on snapshot 8 / 20
@@ -7504,27 +7504,27 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
 
     Wannierization
     ==============
-     Not running wannier/scf as it is already complete
-     Not running wannier/nscf as it is already complete
-     Not running wannier/occ/wann_preproc as it is already complete
-     Not running wannier/occ/pw2wan as it is already complete
-     Not running wannier/occ/wann as it is already complete
-     Not running wannier/emp/wann_preproc as it is already complete
-     Not running wannier/emp/pw2wan as it is already complete
-     Not running wannier/emp/wann as it is already complete
+     Running wannier/scf... done
+     Running wannier/nscf... done
+     Running wannier/occ/wann_preproc... done
+     Running wannier/occ/pw2wan... done
+     Running wannier/occ/wann... done
+     Running wannier/emp/wann_preproc... done
+     Running wannier/emp/pw2wan... done
+     Running wannier/emp/wann... done
 
     Folding to supercell
     --------------------
-     Not running occ/w2kcp as it is already complete
-     Not running emp/w2kcp as it is already complete
-    Not running init/dft_dummy as it is already complete
-    Not running init/dft_init as it is already complete
+     Running occ/w2kcp... done
+     Running emp/w2kcp... done
+    Running init/dft_dummy... done
+    Running init/dft_init... done
 
    Calculating screening parameters
    ================================
-    Not running calc_alpha/ki as it is already complete
-     Not running conversion binary->xml of real-space-densities as it is already complete
-     Not running computation of decomposition of real-space-density as it is already complete
+    Running calc_alpha/ki... done
+     Running conversion binary->xml of real-space-densities... done
+     Running computation of decomposition of real-space-density... done
      Running computation of power spectrum... done
 
    Orbital 1
@@ -8385,7 +8385,7 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ====================
     Not running final/ki_final as it is already complete
 
- Adding snapshot 8 to the training data
+ Adding snapshot 9 to the training data
  ======================================
 
   Performing Koopmans calculation on snapshot 9 / 20
@@ -8396,27 +8396,27 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
 
     Wannierization
     ==============
-     Not running wannier/scf as it is already complete
-     Not running wannier/nscf as it is already complete
-     Not running wannier/occ/wann_preproc as it is already complete
-     Not running wannier/occ/pw2wan as it is already complete
-     Not running wannier/occ/wann as it is already complete
-     Not running wannier/emp/wann_preproc as it is already complete
-     Not running wannier/emp/pw2wan as it is already complete
-     Not running wannier/emp/wann as it is already complete
+     Running wannier/scf... done
+     Running wannier/nscf... done
+     Running wannier/occ/wann_preproc... done
+     Running wannier/occ/pw2wan... done
+     Running wannier/occ/wann... done
+     Running wannier/emp/wann_preproc... done
+     Running wannier/emp/pw2wan... done
+     Running wannier/emp/wann... done
 
     Folding to supercell
     --------------------
-     Not running occ/w2kcp as it is already complete
-     Not running emp/w2kcp as it is already complete
-    Not running init/dft_dummy as it is already complete
-    Not running init/dft_init as it is already complete
+     Running occ/w2kcp... done
+     Running emp/w2kcp... done
+    Running init/dft_dummy... done
+    Running init/dft_init... done
 
    Calculating screening parameters
    ================================
-    Not running calc_alpha/ki as it is already complete
-     Not running conversion binary->xml of real-space-densities as it is already complete
-     Not running computation of decomposition of real-space-density as it is already complete
+    Running calc_alpha/ki... done
+     Running conversion binary->xml of real-space-densities... done
+     Running computation of decomposition of real-space-density... done
      Running computation of power spectrum... done
 
    Orbital 1
@@ -9277,8 +9277,8 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
    ====================
     Not running final/ki_final as it is already complete
 
- Adding snapshot 9 to the training data
- ======================================
+ Adding snapshot 10 to the training data
+ =======================================
 
   Performing Koopmans calculation on snapshot 10 / 20
   ===================================================
@@ -9288,27 +9288,27 @@ UserWarning: This system is not cubic and will therefore not have a uniform diel
 
     Wannierization
     ==============
-     Not running wannier/scf as it is already complete
-     Not running wannier/nscf as it is already complete
-     Not running wannier/occ/wann_preproc as it is already complete
-     Not running wannier/occ/pw2wan as it is already complete
-     Not running wannier/occ/wann as it is already complete
-     Not running wannier/emp/wann_preproc as it is already complete
-     Not running wannier/emp/pw2wan as it is already complete
-     Not running wannier/emp/wann as it is already complete
+     Running wannier/scf... done
+     Running wannier/nscf... done
+     Running wannier/occ/wann_preproc... done
+     Running wannier/occ/pw2wan... done
+     Running wannier/occ/wann... done
+     Running wannier/emp/wann_preproc... done
+     Running wannier/emp/pw2wan... done
+     Running wannier/emp/wann... done
 
     Folding to supercell
     --------------------
-     Not running occ/w2kcp as it is already complete
-     Not running emp/w2kcp as it is already complete
-    Not running init/dft_dummy as it is already complete
-    Not running init/dft_init as it is already complete
+     Running occ/w2kcp... done
+     Running emp/w2kcp... done
+    Running init/dft_dummy... done
+    Running init/dft_init... done
 
    Calculating screening parameters
    ================================
-    Not running calc_alpha/ki as it is already complete
-     Not running conversion binary->xml of real-space-densities as it is already complete
-     Not running computation of decomposition of real-space-density as it is already complete
+    Running calc_alpha/ki... done
+     Running conversion binary->xml of real-space-densities... done
+     Running computation of decomposition of real-space-density... done
      Running computation of power spectrum... done
 
    Orbital 1

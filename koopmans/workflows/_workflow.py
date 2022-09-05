@@ -143,10 +143,11 @@ class Workflow(ABC):
             if self.plotting.is_valid(key):
                 self.plotting[key] = value
 
-        self.ml = settings.MLSettingsDict(**ml)
+        self.ml = settings.MLSettingsDict(**ml, task=self.parameters.task)
         for key, value in kwargs.items():
             if self.ml.is_valid(key):
                 self.ml[key] = value
+
         # Initialize the MLModel
         if self.ml.use_ml:
             if self.ml.occ_and_emp_together:
@@ -890,14 +891,14 @@ class Workflow(ABC):
         else:
             raise ValueError('Please provide an "atoms" block in the json input file')
 
-        # Loading ml settings
-        kwargs['ml'] = settings.MLSettingsDict(**utils.parse_dict(bigdct.pop('ml', {})))
-
         # Loading plot settings
         kwargs['plotting'] = settings.PlotSettingsDict(**utils.parse_dict(bigdct.pop('plotting', {})))
 
         # Loading workflow settings
         parameters = settings.WorkflowSettingsDict(**utils.parse_dict(bigdct.pop('workflow', {})))
+
+        # Loading ml settings
+        kwargs['ml'] = settings.MLSettingsDict(**utils.parse_dict(bigdct.pop('ml', {})), task=parameters['task'])
 
         # Loading kpoints
         kpts = Kpoints(**utils.parse_dict(bigdct.pop('kpoints', {})), cell=atoms.cell)

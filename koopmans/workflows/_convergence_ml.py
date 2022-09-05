@@ -175,7 +175,7 @@ class ConvergenceMLWorkflow(Workflow):
 
                         # train the model on (1,...,number_of_training_snapshots) samples
                         for convergence_point in self.convergence_points:
-                            self.print(f'Adding snapshot {convergence_point} to the training data', style='heading')
+                            self.print(f'Adding snapshot {convergence_point+1} to the training data', style='heading')
 
                             # this is the snapshot we want to add to our training data
                             train_indices = [convergence_point]
