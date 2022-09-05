@@ -1,0 +1,159 @@
+{
+ "_parameters": {
+  "dis_froz_max": 1.0,
+  "bands_plot": false,
+  "projections": [
+   {
+    "site": "H",
+    "ang_mtm": "s"
+   }
+  ],
+  "num_wann": 2,
+  "num_bands": 8,
+  "exclude_bands": "1-4",
+  "mp_grid": [
+   1,
+   1,
+   1
+  ],
+  "kpoints": {
+   "__ndarray__": [
+    [
+     1,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     0.0,
+     0.0
+    ]
+   ]
+  },
+  "dis_num_iter": 5000,
+  "__koopmans_name__": "Wannier90SettingsDict",
+  "__koopmans_module__": "koopmans.settings._wannier90"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "int64",
+    [
+     8,
+     1,
+     1
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     2.9971817799999996,
+     3.16198319,
+     3.36510172,
+     3.30764719,
+     3.9486177899999997,
+     3.57657588,
+     3.5395539599999997,
+     2.8448946799999995,
+     2.56023537
+    ]
+   ]
+  },
+  "tags": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "int64",
+    [
+     0,
+     0,
+     0
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     6.8929,
+     0.0,
+     0.0,
+     0.0,
+     6.8929,
+     0.0,
+     0.0,
+     0.0,
+     6.8929
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     true,
+     true,
+     true
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "job done": true,
+  "convergence": true,
+  "Im/Re ratio": [],
+  "centers": [
+   [
+    -3.180148,
+    -2.054802,
+    -3.119452
+   ],
+   [
+    -3.042357,
+    2.570416,
+    2.127406
+   ]
+  ],
+  "spreads": [
+   3.0995815,
+   1.93488154
+  ]
+ },
+ "_directory": {
+  "__path__": "wannier/emp"
+ },
+ "prefix": "wann",
+ "name": "benchgenwannier90calculator",
+ "command": {
+  "_path": {
+   "__path__": "../../../../bin"
+  },
+  "executable": "wannier90.x",
+  "_flags": "",
+  "suffix": "PREFIX.win > PREFIX.wout 2>&1",
+  "__koopmans_name__": "Command",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "__koopmans_name__": "BenchGenWannier90Calculator",
+ "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+}

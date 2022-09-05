@@ -1,11 +1,13 @@
 """
 Written by Yannick Schubert Jul 2022
 """
+import copy
 import os
 from pathlib import Path
-from typing import Tuple
+from typing import Any, Dict, Tuple
 
 import numpy as np
+from deepdiff import DeepDiff
 from sklearn.metrics import mean_absolute_error as mae
 
 from koopmans import calculators, ml_utils, utils
@@ -15,14 +17,18 @@ from koopmans.settings import KoopmansCPSettingsDict
 from ._workflow import Workflow
 
 
-class MLFiitingWorkflow(Workflow):
+class MLFittingWorkflow(Workflow):
 
-    def __init__(self, calc_that_produced_orbital_densities, *args, **kwargs):
+    def __init__(self, calc_that_produced_orbital_densities=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Specify from which calculation we extract the real space densities. Currently only
         # the ki-calculation at the beginning of the alpha calculations is a valid option
-        self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
+        if calc_that_produced_orbital_densities is None:
+            raise ValueError(
+                "please provide this workflow with a calculation that produced the real space orbital densities.")
+        else:
+            self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
 
         # Define and create the different subdirectories for the outputs of the ML-workflow
         ml_dir = self.calc_that_produced_orbital_densities.directory / 'ml' / 'TMP'
@@ -50,6 +56,9 @@ class MLFiitingWorkflow(Workflow):
 
         for dir in self.dirs.values():
             utils.system_call(f'mkdir -p {dir}')
+
+        # normally this dictonary contains the power spectrum
+        self.input_vectors_for_ml: Dict[str, np.ndarray] = {}
 
         # initialize lists for the results of the prediction and the calculations
         self.predicted_alphas = []
@@ -104,6 +113,7 @@ class MLFiitingWorkflow(Workflow):
                 filled_str = 'emp'
             np.savetxt(self.dirs['SH'] / f"SH.orbital.{filled_str}.{band.index}.txt",
                        np.array([SH[band.spin][band.index-1]]))
+            self.input_vectors_for_ml[f"SH.orbital.{filled_str}.{band.index}"] = SH
 
         return
 
@@ -210,7 +220,8 @@ class MLFiitingWorkflow(Workflow):
 
         calculation_title = 'computation of power spectrum'
         self.print(f'Running {calculation_title}...', end='', flush=True)
-        ml_utils.compute_power(self.ml.n_max, self.ml.l_max, self.dirs, self.bands_to_extract)
+        ml_utils.compute_power(self.ml.n_max, self.ml.l_max, self.dirs,
+                               self.bands_to_extract, self.input_vectors_for_ml)
         self.print(f' done')
 
     def get_input_data(self, band) -> np.ndarray:
@@ -290,14 +301,17 @@ class MLFiitingWorkflow(Workflow):
             filled_str = 'occ'
         else:
             filled_str = 'emp'
-        return np.loadtxt(self.dirs['power'] / f"power_spectrum.orbital.{filled_str}.{band.index}.txt")
+        return self.input_vectors_for_ml[f"power_spectrum.orbital.{filled_str}.{band.index}"]
+
+        #np.loadtxt(self.dirs['power'] / f"power_spectrum.orbital.{filled_str}.{band.index}.txt")
 
     def load_SH(self, band: Band) -> np.ndarray:
         if band.filled:
             filled_str = 'occ'
         else:
             filled_str = 'emp'
-        return np.loadtxt(self.dirs['SH'] / f"SH.orbital.{filled_str}.{band.index}.txt")
+        return self.input_vectors_for_ml[f"SH.orbital.{filled_str}.{band.index}"]
+        # np.loadtxt(self.dirs['SH'] / f"SH.orbital.{filled_str}.{band.index}.txt")
 
     def use_prediction(self) -> bool:
         """
@@ -377,3 +391,11 @@ class MLFiitingWorkflow(Workflow):
             raise NotImplementedError('Need to check implementation')
         assert isinstance(band.index, int)
         return alphas[0][band.index-1], 0.0
+
+    @classmethod
+    def fromdict(cls, dct: Dict[str, Any], **kwargs) -> Workflow:
+        calc_that_produced_orbital_densities = dct.pop('calc_that_produced_orbital_densities')
+        return super(MLFittingWorkflow, cls).fromdict(dct, calc_that_produced_orbital_densities=calc_that_produced_orbital_densities)
+
+    def __eq__(self, other):
+        return DeepDiff(self, other) == {}

@@ -7,7 +7,7 @@ from ._dft import DFTBandsWorkflow, DFTCPWorkflow, DFTPhWorkflow, DFTPWWorkflow
 from ._folding import FoldToSupercellWorkflow
 from ._koopmans_dfpt import KoopmansDFPTWorkflow
 from ._koopmans_dscf import KoopmansDSCFWorkflow
-from ._ml import MLFiitingWorkflow
+from ._ml import MLFittingWorkflow
 from ._singlepoint import SinglepointWorkflow
 from ._trajectory import TrajectoryWorkflow
 from ._unfold_and_interp import (SingleUnfoldAndInterpolateWorkflow,

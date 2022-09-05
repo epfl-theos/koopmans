@@ -413,12 +413,11 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
                     else:
                         energies[-1][-1].append(float(splitline[-1]))
 
-        # TODO: Yannick
-        # if len(energies) > 0:
-        #     self.results['band structure'] = BandStructure(
-        #         path=self.parameters.kpath, energies=np.transpose(energies, (0, 2, 1)))
+        if len(energies) > 0:
+            self.results['band structure'] = BandStructure(
+                path=self.parameters.kpath, energies=np.transpose(energies, (0, 2, 1)))
 
-        # self.calc_dos()
+        self.calc_dos()
 
     def write_dos(self, directory=None) -> None:
         """

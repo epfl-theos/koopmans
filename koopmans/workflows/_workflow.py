@@ -506,7 +506,7 @@ class Workflow(ABC):
                                             'double-check your pseudopotential settings')
 
         # Make sanity checks for the ML model
-        if self.parameters.use_ml:
+        if self.ml.use_ml:
             if self.parameters.task not in ['trajectory', 'convergence_ml']:
                 raise NotImplementedError(
                     f'Using the ML-prediction for the {self.parameter.task}-task has not yet been implemented.')
@@ -523,8 +523,8 @@ class Workflow(ABC):
                 raise NotImplementedError(
                     f'Using the ML-prediction for using different init orbitals for empty states than for occupied states has not yet been implemented.')
             if self.parameters.spin_polarized:
-                utils.warn(f'Using the ML-prediction for spin-polarised systems has not yet been implemented.')
-            if not self.parameters.periodic:
+                utils.warn(f'Using the ML-prediction for spin-polarised systems has not yet been extensively tested.')
+            if not all(self.atoms.pbc):
                 utils.warn(f'Using the ML-prediction for non-periodic systems has not yet been extensively tested.')
             if self.parameters.orbital_groups:
                 utils.warn('Using orbital_groups has not yet been extensively tested.')
@@ -866,14 +866,15 @@ class Workflow(ABC):
         return dct
 
     @classmethod
-    def fromdict(cls, dct: Dict[str, Any]) -> Workflow:
+    def fromdict(cls, dct: Dict[str, Any], **kwargs) -> Workflow:
         wf = cls(atoms=dct.pop('atoms'),
                  parameters=dct.pop('parameters'),
                  calculator_parameters=dct.pop('calculator_parameters'),
                  pseudopotentials=dct.pop('_pseudopotentials'),
                  kpoints=dct.pop('kpoints'),
                  projections=dct.pop('projections'),
-                 autogenerate_settings=False)
+                 autogenerate_settings=False,
+                 **kwargs)
 
         for k, v in dct.items():
             setattr(wf, k, v)

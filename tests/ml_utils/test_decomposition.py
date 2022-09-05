@@ -42,7 +42,7 @@ def test_compute_decomposition(tmpdir, datadir, pytestconfig):
             'power': ml_dir / ('power_spectra_' + dir_suffix)
         }
         for dir in dirs.values():
-            utils.system_call(f'mkdir -p {dir}')
+            utils.system_call(f'mkdir -p {dir}')  # utils mkdir
 
         centers = np.array([[3.159166, -3.286943, -3.412441],
                             [3.332131,  3.005906,  2.967669],
@@ -63,7 +63,8 @@ def test_compute_decomposition(tmpdir, datadir, pytestconfig):
 
         ml_utils.precompute_parameters_of_radial_basis(n_max, l_max, r_min, r_max, dirs)
         ml_utils.compute_decomposition(n_max, l_max, r_min, r_max, r_cut, dirs, bands_to_extract, water, centers)
-        ml_utils.compute_power(n_max, l_max, dirs, bands_to_extract)
+        input_vectors_for_ml = {}
+        ml_utils.compute_power(n_max, l_max, dirs, bands_to_extract, input_vectors_for_ml)
 
         power = np.loadtxt(dirs['power'] / 'power_spectrum.orbital.occ.1.txt')
 

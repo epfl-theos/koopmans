@@ -40,6 +40,7 @@ def monkeypatch_bench(monkeypatch):
     monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', testing.BenchGenKoopmansScreenCalculator)
     monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', testing.BenchGenKoopmansHamCalculator)
     monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.BenchGenProjwfcCalculator)
+    monkeypatch.setattr('koopmans.workflows.MLFittingWorkflow', testing.BenchGenMLFittingWorkflow)
 
 
 def monkeypatch_mock(monkeypatch):
@@ -62,6 +63,7 @@ def monkeypatch_mock(monkeypatch):
     # Workflows
     monkeypatch.setattr('koopmans.workflows.KoopmansDSCFWorkflow', testing.MockKoopmansDSCFWorkflow)
     monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', testing.MockWannierizeWorkflow)
+    monkeypatch.setattr('koopmans.workflows.MLFittingWorkflow', testing.MockMLFittingWorkflow)
 
 
 def monkeypatch_check(monkeypatch):

@@ -152,7 +152,7 @@ class ConvergenceMLWorkflow(Workflow):
         self.ml.type_of_ml_model = type_of_ml_model
         self.ml.number_of_training_snapshots = number_of_training_snapshots
 
-        from_scratch = False  # we want to make sure that no snapshot is calculated afresh just because the final directory of the preceeding calculation was deleted
+        from_scratch = self.parameters.from_scratch
 
         with open(self.dirs['convergence'] / "result_grid_search.txt", "w") as fd:
             fd.write('n_max\tl_max\tr_min\tr_max\tMAE\n')
@@ -182,6 +182,7 @@ class ConvergenceMLWorkflow(Workflow):
 
                             # Train on this snapshot
                             twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots, indices=train_indices)
+                            # we want to make sure that no snapshot is calculated afresh just because the final directory of the preceeding calculation was deleted
                             twf.run(from_scratch=from_scratch)
 
                             # for the grid search we are only interested in the result after all training snapshots have been added
@@ -191,7 +192,7 @@ class ConvergenceMLWorkflow(Workflow):
                                 self.print(f'Testing on the last {len(self.test_indices)} snapshot(s)', style='heading')
                                 twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots, indices=self.test_indices,
                                                                     save_dir=self.dirs[f'convergence_{convergence_point}'], get_evs=get_evs)
-                                twf.run(from_scratch=from_scratch)
+                                twf.run(from_scratch=False)
 
                         # gather all the important results
                         self.get_result_dict()

@@ -18,7 +18,6 @@ from koopmans import calculators, utils
 from koopmans.bands import Band, Bands
 from koopmans.settings import KoopmansCPSettingsDict
 
-from ._ml import MLFiitingWorkflow
 from ._workflow import Workflow
 
 
@@ -537,7 +536,8 @@ class KoopmansDSCFWorkflow(Workflow):
 
             # Initialize the ML-model
             if self.ml.use_ml:
-                mlfit = MLFiitingWorkflow.fromparent(self, calc_that_produced_orbital_densities=trial_calc)
+                from koopmans.workflows import MLFittingWorkflow
+                mlfit = MLFittingWorkflow.fromparent(self, calc_that_produced_orbital_densities=trial_calc)
                 mlfit.run()
 
             # Loop over removing/adding an electron from/to each orbital

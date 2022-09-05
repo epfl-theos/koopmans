@@ -40,7 +40,7 @@ def compute_power_mat(coff_matrix: np.ndarray, n_max: int, l_max: int) -> np.nda
     return np.array(power)
 
 
-def compute_power(n_max: int, l_max: int, dirs: Dict[str, Path], bands: Bands):
+def compute_power(n_max: int, l_max: int, dirs: Dict[str, Path], bands: Bands, input_vectors_fo_ml: Dict[str, np.ndarray]):
     """
     Loads the coefficient vectors corresponding to the orbital and to the total density, computes the corresponding power spectrum and saves it to a file.
     """
@@ -57,3 +57,4 @@ def compute_power(n_max: int, l_max: int, dirs: Dict[str, Path], bands: Bands):
         coff_matrix = read_coeff_matrix(coff_orb, coff_tot, n_max, l_max)
         power_mat = compute_power_mat(coff_matrix, n_max, l_max)
         np.savetxt(dirs['power'] / f"power_spectrum.orbital.{filled_str}.{band.index}.txt", power_mat)
+        input_vectors_fo_ml[f"power_spectrum.orbital.{filled_str}.{band.index}"] = power_mat

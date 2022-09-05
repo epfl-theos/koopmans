@@ -16,7 +16,8 @@ from koopmans.calculators import (Calc, EnvironCalculator,
                                   Wann2KCCalculator, Wann2KCPCalculator,
                                   Wannier90Calculator)
 from koopmans.io import read_kwf as read_encoded_json
-from koopmans.workflows import KoopmansDSCFWorkflow, WannierizeWorkflow
+from koopmans.workflows import (KoopmansDSCFWorkflow, MLFittingWorkflow,
+                                WannierizeWorkflow)
 
 from ._utils import benchmark_filename, metadata_filename
 
@@ -236,3 +237,13 @@ class MockWannierizeWorkflow(MockWorkflow, WannierizeWorkflow):
 
     def extend_wannier_u_dis_file(self, block: List[projections.ProjectionBlock], prefix: str = 'wann'):
         raise NotImplementedError()
+
+
+class MockMLFittingWorkflow(MLFittingWorkflow):
+    def _run(self):
+        fname = metadata_filename(self.calc_that_produced_orbital_densities)
+        fname = fname.with_name(fname.name.replace('calc_alpha-ki_metadata.json', 'input_vectors_for_ml.json'))
+        with open(fname, 'r') as fd:
+            run_results = read_encoded_json(fd)
+
+        self.input_vectors_for_ml = run_results['input_vectors_for_ml']

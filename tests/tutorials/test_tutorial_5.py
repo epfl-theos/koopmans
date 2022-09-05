@@ -12,7 +12,7 @@ tutorial_dir = base_directory / 'tutorials' / 'tutorial_5'
 
 
 @pytest.mark.tutorials
-def test_run(tutorial_patch):
+def test_run_trajectory(tutorial_patch):
     with chdir(tutorial_dir):
-        wf = read('h2o_convergence_ml.json')
+        wf = read('h2o_trajectory_ml.json')
         wf.run()
