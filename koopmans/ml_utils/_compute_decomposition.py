@@ -13,8 +13,8 @@ from koopmans.ml_utils import _basis_functions as basis
 from koopmans.ml_utils import debugging
 
 # Possibilities for Debugging
-Debug = True  # if True, pmore information about the decomposition is printed to a file
-write_to_xsf = True  # if True, the original and reconstructed densities are printed to xsf-files which can be plotted with xcrysden
+Debug = False  # if True, pmore information about the decomposition is printed to a file
+write_to_xsf = False  # if True, the original and reconstructed densities are printed to xsf-files which can be plotted with xcrysden
 
 # Functions for the basis functions
 
@@ -260,7 +260,7 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
         debug_out = dirs['ml'] / 'orbitals_to_power_spectra_debug.out'
     if write_to_xsf:
         dir_xsf = dirs['ml'] / 'xsf'
-        utils.system_call(f'mkdir -p {dir_xsf}')
+        dir_xsf.mkdir(parents=True, exist_ok=True)
         dirs.update({'xsf': dir_xsf})
 
     norm_const = 1/(units.Bohr)**3  # normalization of the densities

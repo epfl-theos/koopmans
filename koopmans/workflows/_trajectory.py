@@ -1,5 +1,6 @@
 
 
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -14,40 +15,7 @@ from ._workflow import Workflow
 
 class TrajectoryWorkflow(Workflow):
 
-    # def __init__(self, atoms=None, indices=None, save_dir=None, get_evs=False, *args, **kwargs):
-    #     snapshots: List[Atoms] = kwargs.pop('snapshots', [])
-    #     if 'atoms' not in kwargs and atoms is None and snapshots != []:
-    #         kwargs['atoms'] = snapshots[0]
-    #     elif atoms is not None:
-    #         kwargs['atoms'] = atoms
-
-    #     super().__init__(*args, **kwargs)
-
-    #     self.snapshots = snapshots
-    #     self.number_of_snapshots = len(self.snapshots)
-    #     self.indices: Optional[List[int]] = indices
-    #     self.save_dir: Optional[Path] = save_dir
-    #     self.get_evs: Optional[bool] = get_evs
-    #     self.all_alphas = {}
-
     def __init__(self, snapshots: List[Atoms], indices: Optional[List[int]] = None, save_dir: Optional[Path] = None, get_evs: bool = False, overwrite_atoms: bool = True, *args, **kwargs):
-        # snapshots: List[Atoms] = kwargs.pop('snapshots', [])
-        # if 'atoms' not in kwargs and atoms is None and snapshots != []:
-        #     kwargs['atoms'] = snapshots[0]
-        # elif atoms is not None:
-        #     kwargs['atoms'] = atoms
-
-        # if snapshots is None:
-        #     try:
-        #         snapshots_file = kwargs['atoms']['atomic_positions'].pop('snapshots', [])
-        #         if snapshots_file is not None:
-        #             snapshots = io.read(snapshots_file, index=':')
-        #             if isinstance(snapshots, Atoms):
-        #                 snapshots = [snapshots]
-        #             kwargs['atoms']['atomic_positions'] = utils.construct_atomic_positions_block(snapshots[0])
-        #     except:
-        #         raise ValueError(
-        #             f'To calculate a trajectory, please provide a xyz-file containing the atomic positions of the snapshots in the atomic_positions block.')
 
         if overwrite_atoms:
             if isinstance(snapshots, Atoms):
@@ -128,7 +96,7 @@ class TrajectoryWorkflow(Workflow):
             # delete the final directory to make sure that the final calcualtion is rerun.
             if self.get_evs:
                 from_scratch = self.parameters.from_scratch
-                utils.system_call(f'rm -rf {subdirectory}/final')
+                shutil.rmtree(Path(subdirectory) / 'final', ignore_errors=True)
 
             # initialize and run the DSCF workflow
             # workflow = KoopmansDSCFWorkflow(**self.wf_kwargs)

@@ -507,6 +507,7 @@ class Workflow(ABC):
 
         # Make sanity checks for the ML model
         if self.ml.use_ml:
+            utils.warn("Predicting screening parameters with machine-learning is an experimental feature; proceed with caution")
             if self.parameters.task not in ['trajectory', 'convergence_ml']:
                 raise NotImplementedError(
                     f'Using the ML-prediction for the {self.parameter.task}-task has not yet been implemented.')

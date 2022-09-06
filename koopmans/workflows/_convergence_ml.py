@@ -1,4 +1,5 @@
 import pickle
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -18,15 +19,6 @@ from ._workflow import Workflow
 
 
 class ConvergenceMLWorkflow(Workflow):
-
-    # def __init__(self, *args, **kwargs):
-    #     self.snapshots: List[Atoms] = kwargs.pop('snapshots', [])
-    #     number_of_training_snapshots = kwargs.get('number_of_training_snapshots', 0)
-    #     self.number_of_snapshots = len(self.snapshots)
-    #     self.convergence_points = list(range(0, number_of_training_snapshots))
-    #     self.test_indices = list(range(number_of_training_snapshots,
-    #                                    self.number_of_snapshots))
-    #     super().__init__(*args, **kwargs)
 
     def __init__(self, snapshots: List[Atoms], * args, **kwargs):
 
@@ -94,7 +86,7 @@ class ConvergenceMLWorkflow(Workflow):
         all new folders needed for the convergence analysis.
         '''
         convergence_dir = Path.cwd() / 'convergence_analysis'
-        utils.system_call(f'rm -rf {convergence_dir}')
+        shutil.rmtree(convergence_dir, ignore_errors=True)
         self.dirs = {
             'convergence': convergence_dir,  # parent convergence_directory
             'convergence_true': convergence_dir / 'true',  # directory where we store the ab-initio results
@@ -113,7 +105,7 @@ class ConvergenceMLWorkflow(Workflow):
 
         # create all directories
         for dir in self.dirs.values():
-            utils.system_call(f'mkdir -p {dir}')
+            dir.mkdir(parents=True, exist_ok=True)
 
     def _run(self) -> None:
         """
@@ -199,7 +191,7 @@ class ConvergenceMLWorkflow(Workflow):
                             continue
 
                         self.print(
-                            f"(n_max, l_max, r_min, r_max) = ({self.ml.n_max}, {self.ml.l_max}, {self.ml.r_min}, {self.ml.r_max})")
+                            f"Running the calculation with (n_max, l_max, r_min, r_max) = ({self.ml.n_max}, {self.ml.l_max}, {self.ml.r_min}, {self.ml.r_max})")
 
                         # Reset the MLModel for every new combination of (n_max, l_max, r_min, r_max)
                         if self.ml.occ_and_emp_together:

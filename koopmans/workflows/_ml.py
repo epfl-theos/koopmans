@@ -55,7 +55,7 @@ class MLFittingWorkflow(Workflow):
                 f"{self.ml.input_data_for_ml_model} is currently not implemented as a valid input for the ml model.")
 
         for dir in self.dirs.values():
-            utils.system_call(f'mkdir -p {dir}')
+            dir.mkdir(parents=True, exist_ok=True)
 
         # normally this dictonary contains the power spectrum
         self.input_vectors_for_ml: Dict[str, np.ndarray] = {}
