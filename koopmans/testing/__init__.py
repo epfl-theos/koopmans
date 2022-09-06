@@ -1,8 +1,8 @@
 from ._check import (CheckEnvironCalculator, CheckKoopmansCPCalculator,
                      CheckKoopmansHamCalculator, CheckKoopmansScreenCalculator,
-                     CheckPhCalculator, CheckProjwfcCalculator,
-                     CheckPW2WannierCalculator, CheckPWCalculator,
-                     CheckUnfoldAndInterpolateCalculator,
+                     CheckMLFittingWorkflow, CheckPhCalculator,
+                     CheckProjwfcCalculator, CheckPW2WannierCalculator,
+                     CheckPWCalculator, CheckUnfoldAndInterpolateCalculator,
                      CheckWann2KCCalculator, CheckWann2KCPCalculator,
                      CheckWannier90Calculator, compare)
 from ._generate_benchmarks import (BenchGenEnvironCalculator,
@@ -26,13 +26,15 @@ from ._mock import (MockEnvironCalculator, MockKoopmansCPCalculator,
                     MockUnfoldAndInterpolateCalculator, MockWann2KCCalculator,
                     MockWann2KCPCalculator, MockWannier90Calculator,
                     MockWannierizeWorkflow)
-from ._stumble import (StumblingConvergenceWorkflow, StumblingDeltaSCFWorkflow,
+from ._stumble import (StumblingConvergenceMLWorkflow,
+                       StumblingConvergenceWorkflow, StumblingDeltaSCFWorkflow,
                        StumblingDFTCPWorkflow, StumblingDFTPhWorkflow,
                        StumblingDFTPWWorkflow,
                        StumblingFoldToSupercellWorkflow,
                        StumblingKoopmansDFPTWorkflow,
                        StumblingKoopmansDSCFWorkflow,
                        StumblingSinglepointWorkflow,
+                       StumblingTrajectoryWorkflow,
                        StumblingUnfoldAndInterpolateWorkflow,
                        StumblingWannierizeWorkflow)
 from ._utils import benchmark_filename

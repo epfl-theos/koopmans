@@ -7,7 +7,7 @@ from sklearn.metrics import mean_absolute_error, r2_score
 
 from ase import Atoms, io
 from koopmans import utils
-from koopmans.ml_utils import MLModel
+from koopmans.ml_utils import MLModel, precompute_parameters_of_radial_basis
 from koopmans.ml_utils._plotting_routines import (plot_calculated_vs_predicted,
                                                   plot_convergence,
                                                   plot_error_histogram)
@@ -140,17 +140,20 @@ class ConvergenceMLWorkflow(Workflow):
 
         # get the ab-initio result for the test_indices
         self.print(f'Obtaining ab-initio results for the last {len(self.test_indices)} snapshot(s)', style='heading')
-        # make sure that we compute these snapshots ab-initio and don't use the ml-predicted alpha values
-        number_of_training_snapshots = self.ml.number_of_training_snapshots
-        self.ml.number_of_training_snapshots = self.number_of_snapshots+1
-        # set the ml_model to a simple model such that not much time is wasted for computing the decomposition
-        type_of_ml_model = self.ml.type_of_ml_model
-        self.ml.type_of_ml_model = 'mean'
+        # # make sure that we compute these snapshots ab-initio and don't use the ml-predicted alpha values
+        # number_of_training_snapshots = self.ml.number_of_training_snapshots
+        # self.ml.number_of_training_snapshots = self.number_of_snapshots+1
+        use_ml = self.ml.use_ml
+        self.ml.use_ml = False
+        # # set the ml_model to a simple model such that not much time is wasted for computing the decomposition
+        # type_of_ml_model = self.ml.type_of_ml_model
+        # self.ml.type_of_ml_model = 'mean'
         twf = TrajectoryWorkflow.fromparent(
             self, snapshots=self.snapshots, indices=self.test_indices, save_dir=self.dirs['convergence_true'], get_evs=get_evs)
         twf.run()
-        self.ml.type_of_ml_model = type_of_ml_model
-        self.ml.number_of_training_snapshots = number_of_training_snapshots
+        # self.ml.type_of_ml_model = type_of_ml_model
+        self.ml.use_ml = use_ml
+        # self.ml.number_of_training_snapshots = number_of_training_snapshots
 
         from_scratch = self.parameters.from_scratch
 
@@ -161,8 +164,17 @@ class ConvergenceMLWorkflow(Workflow):
                 for self.ml.r_min in r_mins:
                     for self.ml.r_max in r_maxs:
                         # Skip this combination if r_max<r_min
-                        if self.ml.r_max <= self.ml.r_min or [self.ml.n_max, self.ml.l_max, self.ml.r_min, self.ml.r_max] == [8, 8, 0.5, 2.0]:
+                        # or [self.ml.n_max, self.ml.l_max, self.ml.r_min, self.ml.r_max] == [8, 8, 0.5, 2.0]:
+                        if self.ml.r_max <= self.ml.r_min:  # skip this set of parameters if r_max<=r_min
                             continue
+                        try:
+                            precompute_parameters_of_radial_basis(
+                                self.ml.n_max, self.ml.l_max, self.ml.r_min, self.ml.r_max)
+                        except:  # skip this set of parameters if it is not possible to find the coefficients of the radial basis function
+                            utils.warn(
+                                f"Failed to precompute the radial basis. You might want to try a larger r_min, e.g. r_min=1.0.")
+                            continue
+
                         self.print(
                             f"(n_max, l_max, r_min, r_max) = ({self.ml.n_max}, {self.ml.l_max}, {self.ml.r_min}, {self.ml.r_max})")
 

@@ -143,7 +143,7 @@ class Workflow(ABC):
             if self.plotting.is_valid(key):
                 self.plotting[key] = value
 
-        self.ml = settings.MLSettingsDict(**ml, task=self.parameters.task)
+        self.ml = settings.MLSettingsDict(**ml)  # , task=self.parameters.task)
         for key, value in kwargs.items():
             if self.ml.is_valid(key):
                 self.ml[key] = value
@@ -925,7 +925,7 @@ class Workflow(ABC):
         parameters = settings.WorkflowSettingsDict(**utils.parse_dict(bigdct.pop('workflow', {})))
 
         # Loading ml settings
-        kwargs['ml'] = settings.MLSettingsDict(**utils.parse_dict(bigdct.pop('ml', {})), task=parameters['task'])
+        kwargs['ml'] = settings.MLSettingsDict(**utils.parse_dict(bigdct.pop('ml', {})))  # , task=parameters['task'])
 
         # Loading kpoints
         kpts = Kpoints(**utils.parse_dict(bigdct.pop('kpoints', {})), cell=atoms.cell)

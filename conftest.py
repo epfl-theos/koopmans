@@ -82,6 +82,7 @@ def monkeypatch_check(monkeypatch):
     monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', testing.CheckKoopmansScreenCalculator)
     monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', testing.CheckKoopmansHamCalculator)
     monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.CheckProjwfcCalculator)
+    monkeypatch.setattr('koopmans.workflows.MLFittingWorkflow', testing.CheckMLFittingWorkflow)
 
 
 def monkeypatch_stumble(monkeypatch):
@@ -97,6 +98,10 @@ def monkeypatch_stumble(monkeypatch):
     monkeypatch.setattr('koopmans.workflows.KoopmansDFPTWorkflow', testing.StumblingKoopmansDFPTWorkflow)
     monkeypatch.setattr('koopmans.workflows.UnfoldAndInterpolateWorkflow',
                         testing.StumblingUnfoldAndInterpolateWorkflow)
+    monkeypatch.setattr('koopmans.workflows.TrajectoryWorkflow',
+                        testing.StumblingTrajectoryWorkflow)
+    monkeypatch.setattr('koopmans.workflows.ConvergenceMLWorkflow',
+                        testing.StumblingConvergenceMLWorkflow)
     # When running with stumble mode, we want to check our results against the benchmarks by using CheckCalcs
     monkeypatch_check(monkeypatch)
 

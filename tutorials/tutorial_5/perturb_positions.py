@@ -18,4 +18,5 @@ for i in range(20):
     trajectory.append(new_perturbed_h2o)
 
 io.write('snapshots.gif', trajectory, interval=500, rotation='-100y,-10x')
-io.write('snapshots.xyz', trajectory)
+io.write('tutorial_5a/snapshots.xyz', trajectory)
+io.write('tutorial_5b/snapshots.xyz', trajectory)

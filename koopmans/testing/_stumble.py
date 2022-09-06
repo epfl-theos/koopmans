@@ -111,3 +111,11 @@ class StumblingKoopmansDFPTWorkflow(StumblingWorkflow, workflows.KoopmansDFPTWor
 
 class StumblingUnfoldAndInterpolateWorkflow(StumblingWorkflow, workflows.UnfoldAndInterpolateWorkflow):
     pass
+
+
+class StumblingTrajectoryWorkflow(StumblingWorkflow, workflows.TrajectoryWorkflow):
+    pass
+
+
+class StumblingConvergenceMLWorkflow(StumblingWorkflow, workflows.ConvergenceMLWorkflow):
+    pass

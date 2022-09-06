@@ -29,6 +29,7 @@ class TrajectoryWorkflow(Workflow):
         self.indices: Optional[List[int]] = indices
         self.save_dir: Optional[Path] = save_dir
         self.get_evs: Optional[bool] = get_evs
+        self.all_alphas = {}
 
     @ classmethod
     def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}):
@@ -99,8 +100,9 @@ class TrajectoryWorkflow(Workflow):
                 self.parameters.from_scratch = from_scratch
 
             # if necessary, save the results (e.g. for the convergence analysis)
+            alphas = self.bands.alphas
+            self.all_alphas[f'snapshot_{i+1}'] = alphas
             if self.save_dir is not None:
-                alphas = self.bands.alphas
                 np.savetxt(self.save_dir / f"alphas_snapshot_{i+1}.txt", alphas)
                 if self.get_evs:
                     final_calculator = calculators.KoopmansCPCalculator

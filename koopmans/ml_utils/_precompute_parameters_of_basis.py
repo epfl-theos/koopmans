@@ -65,7 +65,7 @@ def compute_beta(n_max: int, l: int, alphas: np.ndarray) -> np.ndarray:
     return beta
 
 
-def precompute_parameters_of_radial_basis(n_max: int, l_max: int, r_min_thr: float, r_max_thr: float, dirs: Dict[str, Path]):
+def precompute_parameters_of_radial_basis(n_max: int, l_max: int, r_min_thr: float, r_max_thr: float, dirs: Dict[str, Path] = None):
     """
     Precomputes the alphas and betas needed to define the basis functions (as in Hilmanen et al 2020).
     """
@@ -75,7 +75,7 @@ def precompute_parameters_of_radial_basis(n_max: int, l_max: int, r_min_thr: flo
 
     r_thrs = np.linspace(r_min_thr, r_max_thr, n_max)
 
-    if Debug:
+    if Debug and dirs is not None:
         debug_out = dirs['ml'] / 'orbitals_to_power_spectra_debug.out'
         with open(debug_out, 'a') as file:
             file.write(f"r_thrs = {r_thrs}\n")
@@ -89,12 +89,17 @@ def precompute_parameters_of_radial_basis(n_max: int, l_max: int, r_min_thr: flo
             betas[:, :, l] = compute_beta(n_max, l, alphas)
     except:
         raise ValueError(
-            f"Failed to precompute the radial basis. You might want to try a larger r_min, e.g. r_min=0.5.")
+            f"Failed to precompute the radial basis. You might want to try a larger r_min, e.g. r_min=1.0.")
 
-    betas.tofile(dirs['betas'] / ('betas_' + '_'.join(str(x)
-                                                      for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
-    alphas.tofile(dirs['alphas'] / ('alphas_' + '_'.join(str(x)
-                                                         for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
+    if np.isnan(betas).any() or np.isnan(alphas).any():
+        raise ValueError(
+            f"Failed to precompute the radial basis. You might want to try a larger r_min, e.g. r_min=1.0.")
+
+    if dirs is not None:
+        betas.tofile(dirs['betas'] / ('betas_' + '_'.join(str(x)
+                                                          for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
+        alphas.tofile(dirs['alphas'] / ('alphas_' + '_'.join(str(x)
+                                                             for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
 
     # r = np.linspace(0, 4, 1000)
     # for l in range(l_max):

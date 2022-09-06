@@ -340,7 +340,8 @@ class CheckProjwfcCalculator(CheckCalc, ProjwfcCalculator):
     pass
 
 
-class CheckMLFittingWorklfow(MLFittingWorkflow):
+class CheckMLFittingWorkflow(MLFittingWorkflow):
+
     def _run(self):
         # TODO Yannick
         # check the MLparameters
@@ -354,4 +355,11 @@ class CheckMLFittingWorklfow(MLFittingWorkflow):
 
         # check the ml results
         input_vectors_for_ml = self.input_vectors_for_ml
-        compare(input_vectors_for_ml, ref_input_vectors_for_ml, 'input vectors for the machine learning model')
+
+        for key, key_ref in zip(input_vectors_for_ml, ref_input_vectors_for_ml):
+            compare(input_vectors_for_ml[key], ref_input_vectors_for_ml[key_ref],
+                    'input vectors for the machine learning model')
+
+        with open("/home/yshubert/code/koopmans/tests/tmp/Yannick.txt", "a") as myfile:
+            myfile.write("Yannick\n")
+        pass

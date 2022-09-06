@@ -500,7 +500,7 @@ class KoopmansDSCFWorkflow(Workflow):
             # Do a KI/KIPZ calculation with the updated alpha values
             restart_from_wannier_pwscf = True if self.parameters.init_orbitals in [
                 'mlwfs', 'projwfs'] and not self._restart_from_old_ki and i_sc == 1 else None
-            if self.ml.use_ml:
+            if self.ml.input_data_for_ml_model == 'orbital_density':
                 print_real_space_density = True
             else:
                 print_real_space_density = False
