@@ -7,7 +7,7 @@ from typing import List, Union
 import numpy as np
 
 from ase.atoms import Atoms
-from koopmans import projections, utils
+from koopmans import calculators, projections, utils
 from koopmans.calculators import (Calc, EnvironCalculator,
                                   KoopmansCPCalculator, KoopmansHamCalculator,
                                   KoopmansScreenCalculator, PhCalculator,
@@ -16,8 +16,8 @@ from koopmans.calculators import (Calc, EnvironCalculator,
                                   Wann2KCCalculator, Wann2KCPCalculator,
                                   Wannier90Calculator)
 from koopmans.io import read_kwf as read_encoded_json
-from koopmans.workflows import (KoopmansDSCFWorkflow, MLFittingWorkflow,
-                                WannierizeWorkflow)
+from koopmans.workflows import (ConvergenceMLWorkflow, KoopmansDSCFWorkflow,
+                                MLFittingWorkflow, WannierizeWorkflow)
 
 from ._utils import benchmark_filename, metadata_filename
 
@@ -198,14 +198,12 @@ class MockWorkflow:
         matches = [c for c in self.calculations if c.directory == directory and c.prefix == prefix]
 
         # Copy that calculation into the record of all calculations
-        if len(matches) == 1:
+        if len(matches) > 0:
             # Fetch the results from the match
             calc.results = matches[0].results
             self.calculations.append(calc)
-        elif len(matches) == 0:
-            raise ValueError(f'Could not find a calculator matching {calc.directory}/{calc.prefix}')
         else:
-            raise ValueError(f'Found multiple calculators for {calc.directory}/{calc.prefix}')
+            raise ValueError(f'Could not find a calculator matching {calc.directory}/{calc.prefix}')
 
         return calc.is_complete()
 
@@ -240,6 +238,7 @@ class MockWannierizeWorkflow(MockWorkflow, WannierizeWorkflow):
 
 
 class MockMLFittingWorkflow(MLFittingWorkflow):
+
     def _run(self):
         fname = metadata_filename(self.calc_that_produced_orbital_densities)
         fname = fname.with_name(fname.name.replace('calc_alpha-ki_metadata.json', 'input_vectors_for_ml.json'))

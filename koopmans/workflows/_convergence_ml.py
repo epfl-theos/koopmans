@@ -6,7 +6,8 @@ import numpy as np
 from sklearn.metrics import mean_absolute_error, r2_score
 
 from ase import Atoms, io
-from koopmans import utils
+from koopmans import calculators, utils
+from koopmans.calculators import Calc
 from koopmans.ml_utils import MLModel, precompute_parameters_of_radial_basis
 from koopmans.ml_utils._plotting_routines import (plot_calculated_vs_predicted,
                                                   plot_convergence,
@@ -18,14 +19,29 @@ from ._workflow import Workflow
 
 class ConvergenceMLWorkflow(Workflow):
 
-    def __init__(self, *args, **kwargs):
-        self.snapshots: List[Atoms] = kwargs.pop('snapshots', [])
-        number_of_training_snapshots = kwargs.get('number_of_training_snapshots', 0)
-        self.number_of_snapshots = len(self.snapshots)
-        self.convergence_points = list(range(0, number_of_training_snapshots))
-        self.test_indices = list(range(number_of_training_snapshots,
-                                       self.number_of_snapshots))
+    # def __init__(self, *args, **kwargs):
+    #     self.snapshots: List[Atoms] = kwargs.pop('snapshots', [])
+    #     number_of_training_snapshots = kwargs.get('number_of_training_snapshots', 0)
+    #     self.number_of_snapshots = len(self.snapshots)
+    #     self.convergence_points = list(range(0, number_of_training_snapshots))
+    #     self.test_indices = list(range(number_of_training_snapshots,
+    #                                    self.number_of_snapshots))
+    #     super().__init__(*args, **kwargs)
+
+    def __init__(self, snapshots: List[Atoms], * args, **kwargs):
+
+        if isinstance(snapshots, Atoms):
+            kwargs['atoms'] = snapshots
+        else:
+            kwargs['atoms'] = snapshots[0]
+
         super().__init__(*args, **kwargs)
+
+        self.snapshots = snapshots
+        self.number_of_snapshots = len(self.snapshots)
+        self.convergence_points = list(range(0, self.ml.number_of_training_snapshots))
+        self.test_indices = list(range(self.ml.number_of_training_snapshots,
+                                       self.number_of_snapshots))
 
     @ classmethod
     def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}):
@@ -55,6 +71,13 @@ class ConvergenceMLWorkflow(Workflow):
 
         return wf
 
+    def toinputjson(self) -> Dict[str, Dict[str, Any]]:
+        bigdct = super().toinputjson()
+        snapshots_file = "snapshots.json"
+        io.write(snapshots_file, self.snapshots)
+        bigdct['atoms']['atomic_positions'] = {"snapshots": snapshots_file}
+        return bigdct
+
     def todict(self):
 
         dct = dict(self.__dict__)
@@ -65,7 +88,7 @@ class ConvergenceMLWorkflow(Workflow):
 
         return dct
 
-    def inititalize_directories(self, grid_search_mode):
+    def inititalize_directories(self, grid_search_mode: bool):
         '''
         Delete the old folder of the convergence analysis and initialize
         all new folders needed for the convergence analysis.
@@ -149,7 +172,7 @@ class ConvergenceMLWorkflow(Workflow):
         # type_of_ml_model = self.ml.type_of_ml_model
         # self.ml.type_of_ml_model = 'mean'
         twf = TrajectoryWorkflow.fromparent(
-            self, snapshots=self.snapshots, indices=self.test_indices, save_dir=self.dirs['convergence_true'], get_evs=get_evs)
+            self, snapshots=self.snapshots, indices=self.test_indices, save_dir=self.dirs['convergence_true'], get_evs=get_evs, overwrite_atoms=False)
         twf.run()
         # self.ml.type_of_ml_model = type_of_ml_model
         self.ml.use_ml = use_ml
@@ -193,7 +216,8 @@ class ConvergenceMLWorkflow(Workflow):
                             train_indices = [convergence_point]
 
                             # Train on this snapshot
-                            twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots, indices=train_indices)
+                            twf = TrajectoryWorkflow.fromparent(
+                                self, snapshots=self.snapshots, indices=train_indices, overwrite_atoms=False)
                             # we want to make sure that no snapshot is calculated afresh just because the final directory of the preceeding calculation was deleted
                             twf.run(from_scratch=from_scratch)
 
@@ -203,7 +227,7 @@ class ConvergenceMLWorkflow(Workflow):
                                 # Test the model (and recalculate the final calculation in case we are interested in eigenvalues) and save the results
                                 self.print(f'Testing on the last {len(self.test_indices)} snapshot(s)', style='heading')
                                 twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots, indices=self.test_indices,
-                                                                    save_dir=self.dirs[f'convergence_{convergence_point}'], get_evs=get_evs)
+                                                                    save_dir=self.dirs[f'convergence_{convergence_point}'], get_evs=get_evs, overwrite_atoms=False)
                                 twf.run(from_scratch=False)
 
                         # gather all the important results
@@ -263,8 +287,8 @@ class ConvergenceMLWorkflow(Workflow):
                         for statistic in statistics:
                             self.result_dict[spin_id][qoi][metric][statistic][i] = statistics[statistic](tmp_array)
 
-        with open(self.dirs['convergence_final_results'] / 'result_dict.pkl', 'wb') as handle:
-            pickle.dump(result_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        # with open(self.dirs['convergence_final_results'] / 'result_dict.pkl', 'wb') as handle:
+        #     pickle.dump(result_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def make_convergence_analysis_plots(self):
         """
@@ -292,3 +316,7 @@ class ConvergenceMLWorkflow(Workflow):
                     res = self.result_dict[spin_id][qoi][metric]
                     plot_convergence(self.convergence_points, res['mean'], res['stdd'], qoi, metric,
                                      spin, self.dirs['convergence_final_results'] / f"{spin_id}_{qoi}_{metric}_convergence")
+
+    def find_matches(self, calcs: List[calculators.Calc], directory: Path, prefix: str) -> List[calculators.Calc]:
+        assert(False)
+        return [c for c in calcs if c.directory == directory and c.prefix == prefix]
