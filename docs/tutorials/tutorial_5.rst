@@ -1,7 +1,7 @@
 .. _tutorial_5:
 
 Tutorial 5: using machine learning to predict the screening parameters of water molecules
-=======================================================================================
+=========================================================================================
 In this tutorial, we will train a machine learning model to predict the screening parameters of water molecules directly from their orbital densities. 
 To create a trajectory with 20 different atomic configurations, we run a 
 :download:`python script <../../tutorials/tutorial_5/perturb_positions.py>` that applies random noise to the unperturbed atomic positions of a water molecule. The resulting atomic positions are saved in a :download:`xyz-file <../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.json>` and visualized below
@@ -68,30 +68,30 @@ The output file for the convergence analysis
 You should see that the workflow first computes the screening parameters ab-initio for the last 10 snapshots.
 
 .. literalinclude:: ../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.out
-  :lines: 18-19
+  :lines: 18-20
   :language: text
   :lineno-start: 18
 
 Next, snapshot 1 is added to the training data. 
 
 .. literalinclude:: ../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.out
-  :lines: 1252-1296
+  :lines: 733-734
   :language: text
-  :lineno-start: 1252
+  :lineno-start: 733
 
 After having trained the machine learning model on the orbitals of the first snapshot we use the trained model to predict the screening parameters of the last 10 snapshots and compare our results to the results from the ab initio computation.
 
 .. literalinclude:: ../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.out
-  :lines: 1381-1418
+  :lines: 862-863
   :language: text
-  :lineno-start: 1381
+  :lineno-start: 862
 
 Next, we add snapshot 2 to the training data. 
 
 .. literalinclude:: ../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.out
-  :lines: 2144-2145
+  :lines: 1625-1626
   :language: text
-  :lineno-start: 2144
+  :lineno-start: 1625
 
 Our model is now trained on the orbitals of 2 snapshots. We use this model again to predict the screening parameters of the last 10 snapshots and compare the results to the ab initio computation. 
 We repeat this procedure until we have added all 10 snapshots to the training data. Then we can have a look at the convergence of the mean absolute error of the predicted screening parameters:
@@ -140,13 +140,13 @@ The output file for the machine learning workflow
 You should see that we compute the screening parameters of the first 5 snapshots ab initio and add the results to our training data
 
 .. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.out
-  :lines: 49-59
+  :lines: 49-60
   :language: text
   :lineno-start: 49
 
 Then we use the trained model to predict the screening parameters of the remaining snapshots 
 
 .. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.out
-  :lines: 679-682
+  :lines: 680-683
   :language: text
-  :lineno-start: 679
+  :lineno-start: 680
