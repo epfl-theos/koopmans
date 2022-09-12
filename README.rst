@@ -10,13 +10,14 @@ Directories
 -----------
 This repository contains...
 
-| ``ase/`` a fork of ASE that manages reading and writing of ``Quantum ESPRESSO``
 | ``bin/`` executables (N.B. this directory does not need to be added to ``$PATH``)  
+| ``docs/`` documentation (see https://koopmans-functionals.org/)  
+| ``koopmans/`` source code of the workflow manager
 | ``quantum_espresso/`` modified versions of ``Quantum ESPRESSO`` that contain implementations of the Koopmans functionals 
 | ``pseudos/`` pseudopotentials
 | ``requirements/`` python dependencies
 | ``tests/`` test suite  
-| ``workflows/`` source code of the workflow manager
+| ``tutorials/`` tutorials  
 
 Installation
 ------------
@@ -75,7 +76,7 @@ Finally, install the python workflow manager, either via ``make workflow``, or
 .. code-block:: bash
 
    python3 -m pip install --upgrade pip
-   python3 -m pip install -e . -e ase/
+   python3 -m pip install -e .
 
 Running
 -------
