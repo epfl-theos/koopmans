@@ -9,3 +9,4 @@ pybtex>=0.24
 spglib>=1.9
 upf-to-json>=0.9.5
 hypothesis>=6.0.0
+ase-koopmans==0.1.0

@@ -43,6 +43,7 @@ from ase.spacegroup import symmetrize
 from ase.spectrum.band_structure import BandStructure
 from ase.spectrum.doscollection import GridDOSCollection
 from ase.spectrum.dosdata import GridDOSData
+
 from koopmans import calculators, settings, utils
 from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
@@ -1310,7 +1311,6 @@ def get_version(module):
 def header():
 
     koopmans_version = get_version(os.path.dirname(__file__))
-    ase_version = get_version(ase)
     qe_version = get_version((calculators.bin_directory / 'pw.x').resolve().parents[2])
 
     header = [r"  _",
@@ -1322,7 +1322,7 @@ def header():
               "",
               " Koopmans spectral functional calculations with Quantum ESPRESSO",
               "",
-              f" {koopmans_version}, using {qe_version} and ASE v{ase_version}",
+              f" {koopmans_version}, using {qe_version} and ase-koopmans v{ase.__version__}",
               "",
               " Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna",
               ""]
