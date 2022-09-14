@@ -105,7 +105,11 @@ In order to run the code in parallel, define the environment variables ``PARA_PR
 Pseudopotentials
 ^^^^^^^^^^^^^^^^
 
-``koopmans`` ships with several pre-existing pseudopotential libraries -- simply select the one you want to use using the ``pseudo_library`` keyword.
+Currently, Koopmans functionals only works with norm-conserving pseudopotentials. We suggest to use Optimized norm-conserving Vanderbilt (ONCV) 
+pseudopotentials :cite:`Hamann2013` and in particular the SG15 library :cite:`Schlipf2015`, available for download 
+`here <http://www.quantum-simulation.org/potentials/sg15_oncv/index.htm>`_, or the pseudoDOJO library :cite:`vanSetten2018`, 
+available for download `here <http://www.pseudo-dojo.org/index.html>`_. For convenience ``koopmans`` ships these pseudopotential 
+libraries and you can simply select the one you want to use using the ``pseudo_library`` keyword.
 
 If you prefer to use your own pseudopotentials, add them to ``koopmans/pseudopotentials`` in the subdirectory ``<my_pseudos>/<functional>``, where ``<my_pseudos>`` is a name of your choosing and ``<functional>`` is the functional used to generate your pseudopotentials. You can then direct ``koopmans`` to use these pseudopotentials by setting the keywords ``pseudo_library`` and ``base_functional`` to ``<my_pseudos>`` and ``<functional>`` respectively.
 
