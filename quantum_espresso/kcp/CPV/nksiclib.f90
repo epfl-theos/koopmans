@@ -7497,10 +7497,8 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
       !
       ! compute ionic center of mass
       !
-      CALL ions_cofmass(taus, pmass, na, nsp, rs)
+      CALL ions_cofmass(taus, pmass, na, nsp, r0)
       ! and use it as reference position
-      r0=0.d0 ! FIXME: NsC not sre why rhis was commented out. Need to check what we need here (15/09/2022)
-      !                For now this is fine to avoid NaN when compiling with gfortran 2017
       !
       call compute_dipole( nnrx, 1, orb_rhor(1,1), r0, wfc_centers(1:4, mybnd1, myspin1), &
                                                        wfc_spreads(mybnd1, myspin1, 1))
