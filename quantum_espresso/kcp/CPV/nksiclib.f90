@@ -7487,7 +7487,7 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
    !INTERNAL VARIABLES
    !
    INTEGER :: myspin1, myspin2, mybnd1, mybnd2
-   REAL(DP):: r0(3), rs(3)
+   REAL(DP):: r0(3)
    REAL(DP), external :: ddot
 
    !
@@ -7497,9 +7497,8 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
       !
       ! compute ionic center of mass
       !
-      CALL ions_cofmass(taus, pmass, na, nsp, rs)
+      CALL ions_cofmass(taus, pmass, na, nsp, r0)
       ! and use it as reference position
-      !r0=0.d0
       !
       call compute_dipole( nnrx, 1, orb_rhor(1,1), r0, wfc_centers(1:4, mybnd1, myspin1), &
                                                        wfc_spreads(mybnd1, myspin1, 1))
