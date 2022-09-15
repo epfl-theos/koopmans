@@ -7487,7 +7487,7 @@ SUBROUTINE compute_nksic_centers(nnrx, nx, nudx, nbsp, nspin, iupdwn, &
    !INTERNAL VARIABLES
    !
    INTEGER :: myspin1, myspin2, mybnd1, mybnd2
-   REAL(DP):: r0(3), rs(3)
+   REAL(DP):: r0(3)
    REAL(DP), external :: ddot
 
    !
