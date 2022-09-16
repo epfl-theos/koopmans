@@ -293,10 +293,6 @@ class WannierizeWorkflow(Workflow):
             if self._force_nspin2 and not self.parameters.spin_polarized:
                 calc.parameters.spin_component = 'up'
 
-        # Use a unified tmp directory
-        if 'outdir' in calc.parameters.valid:
-            calc.parameters.outdir = Path('wannier/TMP').resolve()
-
         return calc
 
     def merge_wannier_files(self, block: List[projections.ProjectionBlock], prefix: str = 'wann'):

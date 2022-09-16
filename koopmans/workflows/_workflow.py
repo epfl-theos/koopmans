@@ -340,6 +340,8 @@ class Workflow(ABC):
         self.print_preamble()
 
         if not self.parent:
+            if self.parameters.from_scratch:
+                self._remove_tmpdirs()
             self._run_sanity_checks()
 
         if self.parent:
@@ -1287,6 +1289,16 @@ class Workflow(ABC):
         # Close the figure
         plt.close()
 
+    def _remove_tmpdirs(self):
+        '''
+        Removes tmpdirs
+        '''
+
+        all_outdirs = [calc.parameters.get('outdir', None) for calc in self.calculations]
+        outdirs = set([o.resolve() for o in all_outdirs if o is not None and o.resolve().exists()])
+        for outdir in outdirs:
+            shutil.rmtree(outdir)
+
     def _teardown(self):
         '''
         Performs final tasks before the workflow completes
@@ -1294,10 +1306,7 @@ class Workflow(ABC):
 
         # Removing tmpdirs
         if not self.parameters.keep_tmpdirs:
-            all_outdirs = [calc.parameters.get('outdir', None) for calc in self.calculations]
-            outdirs = set([o.resolve() for o in all_outdirs if o is not None and o.resolve().exists()])
-            for outdir in outdirs:
-                shutil.rmtree(outdir)
+            self._remove_tmpdirs()
 
 
 def get_version(module):

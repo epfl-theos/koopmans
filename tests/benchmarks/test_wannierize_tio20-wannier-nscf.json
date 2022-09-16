@@ -1,6 +1,9 @@
 {
  "_parameters": {
   "calculation": "nscf",
+  "outdir": {
+   "__path__": "../TMP"
+  },
   "conv_thr": 9.600000000000001e-08,
   "nbnd": 34,
   "tot_charge": 0,

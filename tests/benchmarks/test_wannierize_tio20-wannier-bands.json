@@ -1,6 +1,9 @@
 {
  "_parameters": {
   "calculation": "bands",
+  "outdir": {
+   "__path__": "../TMP"
+  },
   "prefix": "kc_bands",
   "conv_thr": 9.600000000000001e-08,
   "nbnd": 34,

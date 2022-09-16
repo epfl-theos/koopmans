@@ -1,7 +1,7 @@
 {
  "_parameters": {
   "outdir": {
-   "__path__": "../wannier/TMP"
+   "__path__": "../TMP"
   },
   "prefix": "kc_bands",
   "filpdos": "koopmans_workflow",

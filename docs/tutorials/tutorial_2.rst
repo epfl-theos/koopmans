@@ -192,8 +192,8 @@ Having transformed into a supercell, the calculation of the screening parameters
 The code is doing this because of what we provided for the ``orbital_groups`` in the input file:
 
 .. literalinclude:: ../../tutorials/tutorial_2/si.json
-  :lines: 10-12
-  :lineno-start: 10
+  :lines: 9-11
+  :lineno-start: 9
   :emphasize-lines: 2
 
 which tells the code to use the same parameter for orbitals belonging to the same group. In this instance we are calculating a single screening parameter for all four filled orbitals, and a single screening parameter for the empty orbitals.
