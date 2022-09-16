@@ -14,6 +14,46 @@ To create a trajectory with 20 different atomic configurations, we run a
 Our goal in this tutorial is to perform 
 Koopmans calculations on each of these 20 snapshots using a machine learning model to predict the screening parameters.  
 
+Running a machine learning workflow
+------------------------------------------
+
+From the previous section (or from the results of similar systems) we know now, that 5 training snapshots (or 30 training orbitals) are sufficient to train our model for this system. 
+Normally, we want to save computational time by computing the screening parameters only for the first 5 snapshots ab initio and not for all of them. This is the goal of this section.
+
+The input file for the machine learning workflow
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The corresponding :download:`input file <../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.json>` differs from the previous input file only in the ``"task"`` keyword
+
+.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.json
+  :lines: 2-4
+  :linenos:
+  :emphasize-lines: 2
+
+and the ``"number_of_training_snapshots"``
+
+.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.json
+  :lines: 12-22
+  :linenos:
+  :emphasize-lines: 8
+
+The output file for the machine learning workflow
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You should see that we compute the screening parameters of the first 5 snapshots ab initio and add the results to our training data
+
+.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.out
+  :lines: 49-60
+  :language: text
+  :lineno-start: 49
+
+Then we use the trained model to predict the screening parameters of the remaining snapshots 
+
+.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.out
+  :lines: 680-683
+  :language: text
+  :lineno-start: 680
+
 
 Running a convergence analysis
 ------------------------------
@@ -111,42 +151,3 @@ and (if we additionally had specified ``"evs"`` in the ``"quantities_of_interest
 We can see that we converged to a reasonable accuracy after about 5 training snapshots (which corresponds to 20 occupied and 10 empty orbitals).
 
 
-Running a machine learning workflow
-------------------------------------------
-
-From the previous section (or from the results of similar systems) we know now, that 5 training snapshots (or 30 training orbitals) are sufficient to train our model for this system. 
-Normally, we want to save computational time by computing the screening parameters only for the first 5 snapshots ab initio and not for all of them. This is the goal of this section.
-
-The input file for the machine learning workflow
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The corresponding :download:`input file <../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.json>` differs from the previous input file only in the ``"task"`` keyword
-
-.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.json
-  :lines: 2-4
-  :linenos:
-  :emphasize-lines: 2
-
-and the ``"number_of_training_snapshots"``
-
-.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.json
-  :lines: 12-22
-  :linenos:
-  :emphasize-lines: 8
-
-The output file for the machine learning workflow
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-You should see that we compute the screening parameters of the first 5 snapshots ab initio and add the results to our training data
-
-.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.out
-  :lines: 49-60
-  :language: text
-  :lineno-start: 49
-
-Then we use the trained model to predict the screening parameters of the remaining snapshots 
-
-.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.out
-  :lines: 680-683
-  :language: text
-  :lineno-start: 680
