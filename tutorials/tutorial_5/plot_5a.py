@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt  # nopep8
 def make_bar_diagrams(gaps_predicted):
 
     # Creating the figure
-    _, ax = plt.subplots()
+    _, ax = plt.subplots(figsize=(7.5, 7.5))
 
     y_1 = gaps_predicted
     x_axis = np.arange(len(y_1))
