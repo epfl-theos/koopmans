@@ -18,7 +18,8 @@
         "r_max": 4.0,
         "number_of_training_snapshots": 10,
         "quantities_of_interest": [
-            "alphas"
+            "alphas",
+            "evs"
         ]
     },
     "atoms": {
