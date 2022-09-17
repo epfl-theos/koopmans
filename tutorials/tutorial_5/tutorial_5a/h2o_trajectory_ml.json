@@ -16,10 +16,7 @@
         "l_max": 6,
         "r_min": 1.0,
         "r_max": 4.0,
-        "number_of_training_snapshots": 5,
-        "quantities_of_interest": [
-            "alphas"
-        ]
+        "number_of_training_snapshots": 5
     },
     "atoms": {
         "atomic_positions": {
