@@ -9,15 +9,15 @@ matplotlib.use('Agg')  # nopep8
 import matplotlib.pyplot as plt  # nopep8
 
 
-def make_bar_diagrams(gaps_predicted):
+def make_bar_diagrams(HOMOs_pred):
 
     # Creating the figure
     _, ax = plt.subplots(figsize=(15.0, 7.5))
-    y_1 = gaps_predicted
+    y_1 = -HOMOs_pred
     x_axis = np.arange(len(y_1))
     x_labels = x_axis+10
     ax.bar(x_axis-0.2, y_1, 0.4, label='predicted')
-    ax.set_ylabel('LUMO-HOMO in eV')
+    ax.set_ylabel('IP in eV')
     ax.set_xlabel('snapshot number')
     ax.set_xticks(x_axis, x_labels)
     ax.set_ylim(0, 15)
@@ -35,10 +35,9 @@ if __name__ == '__main__':
     # get all the final calculations (one final calculation per snapshot)
     final_calculations = [c for c in wf['calculations'] if c.prefix == 'ki_final']
 
-    # from the final calculations we can extract the HOMO and LUMO energies
-    homos_predicted = np.array([final_calculation.results['homo_energy']
-                               for final_calculation in final_calculations[num_train_snapshots:num_train_snapshots+num_test_snapshots]])
-    lumos_predicted = np.array([final_calculation.results['lumo_energy']
-                               for final_calculation in final_calculations[num_train_snapshots:num_train_snapshots+num_test_snapshots]])
+    # from the final calculations we can extract the HOMO energies
+    HOMOs_pred = np.array([final_calculation.results['homo_energy']
+                           for final_calculation in final_calculations[num_train_snapshots:num_train_snapshots+num_test_snapshots]])
 
-    make_bar_diagrams(lumos_predicted-homos_predicted)
+    # plot the bar diagram of the HOMO energies (=-IPs)
+    make_bar_diagrams(HOMOs_pred)
