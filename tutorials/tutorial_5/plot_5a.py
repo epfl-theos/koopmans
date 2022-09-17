@@ -12,20 +12,16 @@ import matplotlib.pyplot as plt  # nopep8
 def make_bar_diagrams(gaps_predicted):
 
     # Creating the figure
-    _, ax = plt.subplots(figsize=(7.5, 7.5))
-
+    _, ax = plt.subplots(figsize=(15.0, 7.5))
     y_1 = gaps_predicted
     x_axis = np.arange(len(y_1))
-    x_labels = x_axis+1
-
+    x_labels = x_axis+10
     ax.bar(x_axis-0.2, y_1, 0.4, label='predicted')
-    # ax.bar(x_axis+0.2, y_2, 0.4, label='calculated')
     ax.set_ylabel('LUMO-HOMO in eV')
     ax.set_xlabel('snapshot number')
     ax.set_xticks(x_axis, x_labels)
     ax.set_ylim(0, 15)
     ax.legend()
-
     plt.savefig('bar_diagram_predicted.png', facecolor=(1, 1, 1, 0))
 
 
