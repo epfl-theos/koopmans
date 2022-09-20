@@ -4,3 +4,6 @@
 [submodule "quantum_espresso/kcp"]
 	path = quantum_espresso/kcp
 	url = ../koopmans-kcp.git
+[submodule "quantum_espresso/utils"]
+	path = quantum_espresso/utils
+	url = ../koopmans-qe-utils.git
