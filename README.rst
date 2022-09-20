@@ -24,7 +24,7 @@ Installation
 
 Quick installation
 ^^^^^^^^^^^^^^^^^^
-For a quick installation one can simply run ``make install``
+For a quick installation one can simply run ``make; sudo make install``
 
 Detailed installation
 ^^^^^^^^^^^^^^^^^^^^^
@@ -67,6 +67,17 @@ Then you need to compile the copies of ``Quantum ESPRESSO``. To do this, run
    make espresso MPIF90=<mpif90>
 
 where ``<mpif90>`` should be replaced by the name of your chosen MPI Fortran90 compiler e.g. ``MPIF90=mpiifort``. The code should automatically detect and link the requisite libraries. (If this fails you may need to manually compile the two versions of ``Quantum ESPRESSO`` contained in the ``quantum_espresso/`` directory.)
+
+Adding Quantum ESPRESSO to your path
+""""""""""""""""""""""""""""""""""""
+
+To add all of the Quantum ESPRESSO binaries to your path, run
+
+.. code-block:: bash
+
+   sudo make install
+
+By default the binaries will be added to ``usr/bin``. You can override this default by appending ``PREFIX=/path/to/bin/`` to the above command.
 
 Installing the workflow manager
 """""""""""""""""""""""""""""""
