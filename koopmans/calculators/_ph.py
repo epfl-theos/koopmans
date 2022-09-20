@@ -11,13 +11,13 @@ Written by Marija Stojkovic  May 2022
 import os
 
 import numpy as np
-
 from ase import Atoms
 from ase.calculators.espresso import EspressoPh
+
 from koopmans.commands import ParallelCommand
 from koopmans.settings import PhSettingsDict
 
-from ._utils import CalculatorABC, CalculatorExt, bin_directory
+from ._utils import CalculatorABC, CalculatorExt
 
 
 class PhCalculator(CalculatorExt, EspressoPh, CalculatorABC):
@@ -32,8 +32,7 @@ class PhCalculator(CalculatorExt, EspressoPh, CalculatorABC):
         EspressoPh.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 
-        self.command = ParallelCommand(
-            f'{bin_directory}{os.path.sep}ph.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out} 2>&1')
+        self.command = ParallelCommand(f'ph.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out} 2>&1')
 
     def is_converged(self):
         return True

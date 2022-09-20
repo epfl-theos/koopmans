@@ -11,16 +11,16 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np
-
 from ase import Atoms
 from ase.calculators.espresso import Projwfc
 from ase.spectrum.doscollection import GridDOSCollection
 from ase.spectrum.dosdata import GridDOSData
+
 from koopmans import pseudopotentials
 from koopmans.commands import Command, ParallelCommand
 from koopmans.settings import ProjwfcSettingsDict
 
-from ._utils import CalculatorABC, CalculatorExt, bin_directory
+from ._utils import CalculatorABC, CalculatorExt
 
 
 class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
@@ -37,8 +37,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         CalculatorExt.__init__(self, *args, **kwargs)
 
         if not isinstance(self.command, Command):
-            self.command = ParallelCommand(os.environ.get(
-                'ASE_PROJWFC_COMMAND', str(bin_directory) + os.path.sep + self.command))
+            self.command = ParallelCommand(os.environ.get('ASE_PROJWFC_COMMAND', self.command))
 
         # We need pseudopotentials and pseudo dir in order to work out the number of valence electrons for each
         # element, and therefore what pDOS files to expect. We also need spin-polarized to know if the pDOS files will

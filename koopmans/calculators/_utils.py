@@ -26,18 +26,15 @@ from abc import ABC, abstractmethod, abstractproperty
 from pathlib import Path
 from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
 
-import numpy as np
-from numpy import typing as npt
-
 import ase.io as ase_io
+import numpy as np
 from ase import Atoms
 from ase.calculators.calculator import CalculationFailed, Calculator
 from ase.dft.kpoints import BandPath
 from ase.spectrum.band_structure import BandStructure
-from koopmans import settings, utils
+from numpy import typing as npt
 
-# Directories of the various QE calculators
-bin_directory = Path(__file__).parents[2] / 'bin'
+from koopmans import settings, utils
 
 
 def sanitize_filenames(filenames: Union[str, Path, List[str], List[Path]], ext_in: str, ext_out: str) -> List[Path]:
@@ -185,7 +182,7 @@ class CalculatorExt():
             executable_with_path = utils.find_executable(self.command.executable)
             if executable_with_path is None:
                 raise OSError(f'{self.command.executable} is not installed')
-            self.command.path = executable_with_path.rsplit('/', 1)[0] + '/'
+            self.command.path = executable_with_path.parent
         else:
             if not (self.command.path / self.command.executable).is_file():
                 raise OSError(f'{self.command.executable} is not installed')

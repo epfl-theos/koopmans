@@ -11,7 +11,7 @@ from ._pw import PWCalculator
 from ._pw2wannier import PW2WannierCalculator
 from ._ui import UnfoldAndInterpolateCalculator
 from ._utils import (CalculatorCanEnforceSpinSym, CalculatorExt,
-                     ReturnsBandStructure, bin_directory)
+                     ReturnsBandStructure)
 from ._wann2kc import Wann2KCCalculator
 from ._wann2kcp import Wann2KCPCalculator
 from ._wannier90 import Wannier90Calculator

@@ -1309,18 +1309,8 @@ class Workflow(ABC):
             self._remove_tmpdirs()
 
 
-def get_version(module):
-    if isinstance(module, ModuleType):
-        module = module.__path__[0]
-    with utils.chdir(module):
-        version_label = subprocess.check_output(["git", "describe", "--always", "--tags"]).strip()
-    return version_label.decode("utf-8")
-
-
 def header():
-
-    koopmans_version = get_version(os.path.dirname(__file__))
-    qe_version = get_version((calculators.bin_directory / 'pw.x').resolve().parents[2])
+    from koopmans import __version__
 
     header = [r"  _",
               r" | | _____   ___  _ __  _ __ ___   __ _ _ __  ___",
@@ -1331,10 +1321,9 @@ def header():
               "",
               " Koopmans spectral functional calculations with Quantum ESPRESSO",
               "",
-              f" {koopmans_version}, using {qe_version} and ase-koopmans v{ase.__version__}",
+              f" version {__version__}",
               "",
-              " Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna",
-              ""]
+              " Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna"]
     return '\n'.join(header)
 
 

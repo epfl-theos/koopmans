@@ -9,13 +9,13 @@ Written by Edward Linscott Feb 2021
 import os
 
 import numpy as np
-
 from ase import Atoms
 from ase.calculators.espresso import KoopmansScreen
+
 from koopmans import settings, utils
 from koopmans.commands import ParallelCommandWithPostfix
 
-from ._utils import CalculatorABC, KCWannCalculator, bin_directory
+from ._utils import CalculatorABC, KCWannCalculator
 
 
 class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
@@ -32,8 +32,7 @@ class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
         KCWannCalculator.__init__(self, *args, **kwargs)
         super().__init__(*args, **kwargs)
 
-        self.command = ParallelCommandWithPostfix(
-            f'{bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out} 2>&1')
+        self.command = ParallelCommandWithPostfix(f'kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out} 2>&1')
 
     def calculate(self):
         # Check eps infinity

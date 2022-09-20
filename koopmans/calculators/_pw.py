@@ -9,17 +9,16 @@ Written by Edward Linscott Sep 2020
 import os
 
 import numpy as np
-
 from ase import Atoms
 from ase.calculators.espresso import Espresso
 from ase.dft.kpoints import BandPath
+
 from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.commands import Command, ParallelCommandWithPostfix
 from koopmans.pseudopotentials import nelec_from_pseudos
 from koopmans.settings import PWSettingsDict
 
-from ._utils import (CalculatorABC, CalculatorExt, ReturnsBandStructure,
-                     bin_directory)
+from ._utils import CalculatorABC, CalculatorExt, ReturnsBandStructure
 
 
 class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC):
@@ -37,7 +36,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
 
         if not isinstance(self.command, Command):
             self.command = ParallelCommandWithPostfix(os.environ.get(
-                'ASE_ESPRESSO_COMMAND', str(bin_directory) + os.path.sep + self.command))
+                'ASE_ESPRESSO_COMMAND', self.command))
 
     def calculate(self):
         # Update ibrav and celldms

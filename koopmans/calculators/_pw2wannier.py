@@ -10,10 +10,11 @@ import os
 
 from ase import Atoms
 from ase.calculators.espresso import PW2Wannier
+
 from koopmans.commands import ParallelCommand
 from koopmans.settings import PW2WannierSettingsDict
 
-from ._utils import CalculatorABC, CalculatorExt, bin_directory
+from ._utils import CalculatorABC, CalculatorExt
 
 
 class PW2WannierCalculator(CalculatorExt, PW2Wannier, CalculatorABC):
@@ -28,8 +29,7 @@ class PW2WannierCalculator(CalculatorExt, PW2Wannier, CalculatorABC):
         PW2Wannier.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
 
-        self.command = ParallelCommand(os.environ.get('ASE_PW2WANNIER_COMMAND',
-                                                      str(bin_directory) + os.path.sep + self.command))
+        self.command = ParallelCommand(os.environ.get('ASE_PW2WANNIER_COMMAND', self.command))
 
     def is_converged(self):
         return True

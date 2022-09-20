@@ -7,11 +7,11 @@ Written by Edward Linscott May 2020
 '''
 
 import contextlib
-from glob import glob
 import os
-from pathlib import Path
 import subprocess
-from typing import Union
+from glob import glob
+from pathlib import Path
+from typing import Optional, Union
 
 
 def system_call(command: str, check_ierr: bool = True):
@@ -106,7 +106,7 @@ def set_env(**environ):
         os.environ.update(old_environ)
 
 
-def find_executable(program: Union[Path, str]):
+def find_executable(program: Union[Path, str]) -> Optional[Path]:
     if isinstance(program, str):
         program = Path(program)
 
@@ -115,13 +115,14 @@ def find_executable(program: Union[Path, str]):
         return fpath.is_file() and os.access(fpath, os.X_OK)
 
     fpath = program.parent
+
     if fpath.samefile('.'):
-        if is_exe(program):
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            exe_file = Path(path) / program
-            if is_exe(exe_file):
-                return exe_file
+        if is_exe(Path(fpath) / program):
+            return Path(fpath) / program
+
+    for path in os.environ["PATH"].split(os.pathsep):
+        exe_file = Path(path) / program
+        if is_exe(exe_file):
+            return exe_file
 
     return None

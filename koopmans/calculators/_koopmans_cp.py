@@ -17,18 +17,17 @@ from pathlib import Path
 from typing import Any, List, Optional, Union
 
 import numpy as np
-from pandas.core.series import Series
-from scipy.linalg import block_diag
-
 from ase import Atoms
 from ase.calculators.espresso import Espresso_kcp
 from ase.io.espresso import cell_to_ibrav
+from pandas.core.series import Series
+from scipy.linalg import block_diag
+
 from koopmans import bands, pseudopotentials, settings, utils
 from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.commands import ParallelCommand
 
-from ._utils import (CalculatorABC, CalculatorCanEnforceSpinSym, CalculatorExt,
-                     bin_directory)
+from ._utils import CalculatorABC, CalculatorCanEnforceSpinSym, CalculatorExt
 
 
 def allowed(nr: int) -> bool:
@@ -108,8 +107,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 self.parameters.neldw = self.parameters.nelec // 2
 
         if not isinstance(self.command, ParallelCommand):
-            self.command = ParallelCommand(os.environ.get(
-                'ASE_ESPRESSO_KCP_COMMAND', str(bin_directory) + os.path.sep + self.command))
+            self.command = ParallelCommand(os.environ.get('ASE_ESPRESSO_KCP_COMMAND', self.command))
 
         if alphas is not None:
             self.alphas = alphas

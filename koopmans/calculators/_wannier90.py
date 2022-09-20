@@ -9,15 +9,15 @@ Written by Edward Linscott Sep 2020
 import os
 
 import numpy as np
-
 from ase import Atoms
 from ase.calculators.wannier90 import Wannier90
 from ase.dft.kpoints import BandPath
+
 from koopmans.commands import Command
 from koopmans.settings import Wannier90SettingsDict
 from koopmans.utils import CalculatorNotConvergedWarning, warn
 
-from ._utils import CalculatorABC, CalculatorExt, bin_directory
+from ._utils import CalculatorABC, CalculatorExt
 
 
 class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):
@@ -33,8 +33,7 @@ class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):
         CalculatorExt.__init__(self, *args, **kwargs)
 
         # Set up the command for running this calculator
-        self.command = Command(os.environ.get('ASE_WANNIER90_COMMAND',
-                                              str(bin_directory) + os.path.sep + self.command))
+        self.command = Command(os.environ.get('ASE_WANNIER90_COMMAND', self.command))
 
     def is_converged(self):
         return self.results['convergence']

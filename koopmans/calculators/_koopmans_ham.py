@@ -10,15 +10,14 @@ import os
 from typing import List, Optional
 
 import numpy as np
-
 from ase import Atoms
 from ase.calculators.espresso import KoopmansHam
 from ase.dft.kpoints import BandPath
+
 from koopmans import settings, utils
 from koopmans.commands import ParallelCommand
 
-from ._utils import (CalculatorABC, KCWannCalculator, ReturnsBandStructure,
-                     bin_directory)
+from ._utils import CalculatorABC, KCWannCalculator, ReturnsBandStructure
 
 
 class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure, CalculatorABC):
@@ -34,8 +33,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
         KoopmansHam.__init__(self, atoms=atoms)
         KCWannCalculator.__init__(self, *args, **kwargs)
 
-        self.command = ParallelCommand(
-            f'{bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out} 2>&1')
+        self.command = ParallelCommand(f'kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out} 2>&1')
 
         # Store the alphas
         self.alphas = alphas

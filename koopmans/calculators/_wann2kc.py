@@ -10,10 +10,11 @@ import os
 
 from ase import Atoms
 from ase.calculators.espresso import Wann2KC
+
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.settings import Wann2KCSettingsDict
 
-from ._utils import CalculatorABC, KCWannCalculator, bin_directory
+from ._utils import CalculatorABC, KCWannCalculator
 
 
 class Wann2KCCalculator(KCWannCalculator, Wann2KC, CalculatorABC):
@@ -29,8 +30,7 @@ class Wann2KCCalculator(KCWannCalculator, Wann2KC, CalculatorABC):
         Wann2KC.__init__(self, atoms=atoms)
         KCWannCalculator.__init__(self, *args, **kwargs)
 
-        self.command = ParallelCommandWithPostfix(
-            f'{bin_directory}{os.path.sep}kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out} 2>&1')
+        self.command = ParallelCommandWithPostfix(f'kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out} 2>&1')
 
     def is_converged(self):
         return True
