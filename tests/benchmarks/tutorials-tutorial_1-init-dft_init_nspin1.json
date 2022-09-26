@@ -1036,7 +1036,7 @@
  "command": {
   "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "../../bin"
+   "__path__": "../../../../../../usr/local/bin"
   },
   "executable": "kcp.x",
   "_flags": "",
@@ -1077,5 +1077,5 @@
  ],
  "kpts": null,
  "__koopmans_name__": "BenchGenKoopmansCPCalculator",
- "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+ "__koopmans_module__": "tests.patches._generate_benchmarks"
 }

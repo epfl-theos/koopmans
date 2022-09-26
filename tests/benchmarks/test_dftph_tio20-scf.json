@@ -149,7 +149,7 @@
   "postfix": "",
   "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "../../../bin"
+   "__path__": "../../../../../../../usr/local/bin"
   },
   "executable": "pw.x",
   "_flags": "",
@@ -426,5 +426,5 @@
   }
  ],
  "__koopmans_name__": "BenchGenPWCalculator",
- "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+ "__koopmans_module__": "tests.patches._generate_benchmarks"
 }

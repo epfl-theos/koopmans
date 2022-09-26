@@ -28480,5 +28480,5 @@
  ],
  "command": null,
  "__koopmans_name__": "BenchGenUnfoldAndInterpolateCalculator",
- "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+ "__koopmans_module__": "tests.patches._generate_benchmarks"
 }

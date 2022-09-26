@@ -12,8 +12,8 @@
   "neldw": 4,
   "ecutwfc": 20.0,
   "pseudopotentials": {
-   "O": "O_ONCV_PBE-1.2.upf",
-   "H": "H_ONCV_PBE-1.2.upf"
+   "H": "H_ONCV_PBE-1.2.upf",
+   "O": "O_ONCV_PBE-1.2.upf"
   },
   "pseudo_dir": {
    "__path__": "../../../../../../../pseudos/sg15_v1.2/pbe"
@@ -404,7 +404,7 @@
  "command": {
   "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "../../../../bin"
+   "__path__": "../../../../../../../../usr/local/bin"
   },
   "executable": "kcp.x",
   "_flags": "",
@@ -451,5 +451,5 @@
  "fixed_band": null,
  "kpts": null,
  "__koopmans_name__": "BenchGenKoopmansCPCalculator",
- "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+ "__koopmans_module__": "tests.patches._generate_benchmarks"
 }

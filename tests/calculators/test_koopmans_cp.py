@@ -9,7 +9,6 @@ from koopmans import settings, utils, workflows
 from koopmans.calculators._koopmans_cp import (allowed,
                                                convert_flat_alphas_for_kcp,
                                                good_fft)
-from koopmans.testing import benchmark_filename
 
 
 def test_convert_flat_alphas_for_kcp():
