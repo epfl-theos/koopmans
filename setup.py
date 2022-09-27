@@ -14,9 +14,6 @@ with open('koopmans/__init__.py', 'r') as f:
 with open('requirements/requirements.txt', 'r') as f:
     requirements = [line.strip() for line in f.readlines()]
 
-with open('requirements/test_requirements.txt', 'r') as f:
-    requirements += [line.strip() for line in f.readlines()]
-
 extra_requirements: Dict[str, str] = dict(all=[])
 req_files = glob('requirements/*.txt')
 for _file in req_files:
