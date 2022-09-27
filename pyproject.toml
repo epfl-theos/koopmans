@@ -44,6 +44,15 @@ test = [
     "pytest>=5.4",
     "pytest-cov>=2.9",
 ]
+docs = [
+sphinx>=3.0
+sphinxcontrib-bibtex>=2.1.4
+sphinx_toolbox>=2.5.0
+sphinx_rtd_theme>=1.0.0
+recommonmark>=0.7.1
+numpydoc>=1.4.0
+sphinx-pyproject>=0.1.0
+]
 
 [project.scripts]
 koopmans = "koopmans.cli.main:main"
