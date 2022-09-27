@@ -3,7 +3,7 @@ import shutil
 import numpy as np
 import pytest
 
-from koopmans import base_directory, utils, workflows
+from koopmans import utils, workflows
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.io import write_kwf as write_encoded_json
 from tests import patches

@@ -2,10 +2,11 @@ import os
 from pathlib import Path
 from typing import Set, Tuple
 
-from koopmans import base_directory, calculators
+from koopmans import calculators
 
 
 def benchmark_filename(calc: calculators.CalculatorExt) -> Path:
+    base_directory = Path(__path__).parents[2]
     benchmark_dir = base_directory / 'tests' / 'benchmarks'
     if base_directory / 'tests' / 'tmp' in calc.directory.parents:
         parent = base_directory / 'tests' / 'tmp'

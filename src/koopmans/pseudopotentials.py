@@ -33,7 +33,7 @@ class Pseudopotential:
     cutoff_rho: Optional[float] = None
 
 
-pseudos_directory = Path(__file__).parents[2] / 'pseudos'
+pseudos_directory = Path('pseudos')
 
 # A database containing all the available pseudopotentials
 pseudo_database: List[Pseudopotential] = []
@@ -78,7 +78,7 @@ for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rgl
         citations.append('vanSetten2018')
 
     pseudo_database.append(Pseudopotential(name, element, pseudo_file.parent,
-                           functional, library, kind, citations, **kwargs))
+                                           functional, library, kind, citations, **kwargs))
 
 
 def pseudos_library_directory(pseudo_library: str, base_functional: str) -> Path:

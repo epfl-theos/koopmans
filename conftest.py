@@ -5,7 +5,6 @@ from ase import Atoms
 from ase.build import bulk, molecule
 from ase.spacegroup import crystal
 
-from koopmans import base_directory
 from koopmans.kpoints import Kpoints
 from koopmans.projections import ProjectionBlocks
 from tests import patches
@@ -23,7 +22,7 @@ def pytest_addoption(parser):
 @pytest.fixture
 def datadir():
     # Returns the directory where various reference QE files are stored
-    return base_directory / 'tests' / 'data'
+    return Path(__path__[0]) / 'tests' / 'data'
 
 
 @pytest.fixture

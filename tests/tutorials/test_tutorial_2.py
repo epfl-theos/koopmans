@@ -1,10 +1,10 @@
 import pytest
 
-from koopmans import base_directory
 from koopmans.io import read
 from koopmans.utils import chdir
+from pathlib import Path
 
-tutorial_dir = base_directory / 'tutorials' / 'tutorial_2'
+tutorial_dir = Path(__path__[0]).parents[2] / 'tutorials' / 'tutorial_2'
 
 
 @pytest.mark.tutorials

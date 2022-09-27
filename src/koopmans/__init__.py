@@ -8,4 +8,3 @@ else:
     import importlib_metadata as metadata
 
 __version__ = metadata.version('koopmans')
-base_directory = Path(__path__[0]).parents[1]

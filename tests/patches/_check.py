@@ -121,8 +121,8 @@ class CheckCalc:
 
     @property
     def _calcname(self) -> Path:
-        calcname: Path = (self.directory / self.prefix).relative_to(base_directory  # type: ignore[attr-defined]
-                                                                    / 'tests' / 'tmp')
+        # type: ignore[attr-defined]
+        calcname: Path = (self.directory / self.prefix).relative_to(__path__ + '../../tests/tmp')
         return calcname.relative_to(calcname.parts[0])
 
     def _check_results(self, benchmark: Calc):
