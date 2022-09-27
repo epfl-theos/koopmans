@@ -1,2 +1,2 @@
-include docs/refs.bib
-graft pseudos/
+graft src/koopmans/pseudopotentials
+include src/koopmans/references.bib
