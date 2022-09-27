@@ -143,7 +143,7 @@ class DFTBandsWorkflow(DFTWorkflow):
     def new_calculator(self,
                        calc_type: str,
                        *args,
-                       **kwargs) -> T:
+                       **kwargs) -> T:   # type: ignore[type-var]
         calc: T = super().new_calculator(calc_type, *args, **kwargs)
         if calc_type == 'projwfc':
             assert isinstance(calc, calculators.ProjwfcCalculator)
