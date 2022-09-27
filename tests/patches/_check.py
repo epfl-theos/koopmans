@@ -10,7 +10,7 @@ from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
 from ase.spectrum.doscollection import GridDOSCollection
 
-from koopmans import base_directory, utils
+from koopmans import utils
 from koopmans.calculators import (Calc, EnvironCalculator,
                                   KoopmansCPCalculator, KoopmansHamCalculator,
                                   KoopmansScreenCalculator, PhCalculator,

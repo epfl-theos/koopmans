@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, Dict
 
 import pytest
@@ -22,7 +23,7 @@ def pytest_addoption(parser):
 @pytest.fixture
 def datadir():
     # Returns the directory where various reference QE files are stored
-    return Path(__path__[0]) / 'tests' / 'data'
+    return Path(__file__).parent / 'tests' / 'data'
 
 
 @pytest.fixture

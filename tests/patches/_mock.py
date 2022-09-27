@@ -62,7 +62,7 @@ class MockCalc:
                 if isinstance(ref_val, np.ndarray):
                     ref_val = ref_val.tolist()
 
-                if val != ref_val:
+                if val != ref_val and key != 'pseudo_dir':
                     raise ValueError(f'Error in {self.prefix}: {key} differs ({val} != {ref_val})')
 
         # Compare the atoms and the cell

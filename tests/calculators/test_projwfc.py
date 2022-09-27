@@ -1,9 +1,10 @@
 import shutil
+from pathlib import Path
 
 import pytest
 
-from pathlib import Path
-from koopmans import __path__ as koopmans_src, utils, workflows
+from koopmans import __path__ as koopmans_src
+from koopmans import utils, workflows
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.io import write_kwf as write_encoded_json
 from tests import patches
@@ -17,7 +18,7 @@ def test_generate_dos(silicon, tmp_path, datadir, pytestconfig):
             name='si', **silicon)
 
         calc = wf.new_calculator('projwfc')
-        calc.pseudo_dir = Path(koopmans_src[0]) / 'pseudos' / 'pseudo_dojo_standard' / 'pbesol'
+        calc.pseudo_dir = Path(koopmans_src[0]) / 'pseudopotentials/pseudo_dojo_standard/pbesol'
 
         # Copy over pdos files
         for f in (datadir / 'projwfc').glob('*.pdos*'):
