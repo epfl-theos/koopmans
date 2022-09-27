@@ -511,7 +511,7 @@ class Workflow(ABC):
                        calc_type: str,
                        directory: Optional[Path] = None,
                        kpts: Optional[Union[List[int], BandPath]] = None,
-                       **kwargs) -> T:
+                       **kwargs) -> T:  # type: ignore[type-var]
 
         calc_class: Type[T]
 
