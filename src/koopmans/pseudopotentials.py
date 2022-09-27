@@ -16,9 +16,8 @@ from itertools import chain
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from upf_to_json import upf_to_json
-
 from ase import Atoms
+from upf_to_json import upf_to_json
 
 
 @dataclass

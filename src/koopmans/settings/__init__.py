@@ -12,8 +12,8 @@ from ._koopmans_screen import KoopmansScreenSettingsDict
 from ._ph import PhSettingsDict
 from ._plot import PlotSettingsDict
 from ._projwfc import ProjwfcSettingsDict
-from ._pw2wannier import PW2WannierSettingsDict
 from ._pw import PWSettingsDict
+from ._pw2wannier import PW2WannierSettingsDict
 from ._ui import UnfoldAndInterpolateSettingsDict
 from ._utils import Setting, SettingsDict, SettingsDictWithChecks
 from ._wann2kc import Wann2KCSettingsDict

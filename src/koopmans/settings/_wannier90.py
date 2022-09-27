@@ -1,7 +1,6 @@
 from typing import Any
 
 import numpy as np
-
 from ase.dft.kpoints import BandPath
 from ase.io.wannier90 import construct_kpoint_path, proj_string_to_dict
 

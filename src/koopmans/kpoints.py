@@ -11,7 +11,6 @@ import copy
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
-
 from ase.cell import Cell
 from ase.dft.kpoints import BandPath, kpoint_convert, resolve_kpt_path_string
 

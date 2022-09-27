@@ -12,7 +12,7 @@ This repository contains...
 
 | ``bin/`` executables (N.B. this directory does not need to be added to ``$PATH``)  
 | ``docs/`` documentation (see https://koopmans-functionals.org/)  
-| ``koopmans/`` source code of the workflow manager
+| ``src/`` source code
 | ``quantum_espresso/`` modified versions of ``Quantum ESPRESSO`` that contain implementations of the Koopmans functionals 
 | ``pseudos/`` pseudopotentials
 | ``requirements/`` python dependencies
@@ -77,7 +77,7 @@ To add all of the Quantum ESPRESSO binaries to your path, run
 
    sudo make install
 
-By default the binaries will be added to ``usr/bin``. You can override this default by appending ``PREFIX=/path/to/bin/`` to the above command.
+By default the binaries will be added to ``/usr/local/bin``. You can override this default by appending ``PREFIX=/path/to/bin/`` to the above command.
 
 Installing the workflow manager
 """""""""""""""""""""""""""""""

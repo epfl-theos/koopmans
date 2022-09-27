@@ -14,8 +14,8 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
-
 from ase.spectrum.band_structure import BandStructure
+
 from koopmans import calculators, utils
 
 from ._workflow import Workflow

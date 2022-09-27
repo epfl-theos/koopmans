@@ -12,8 +12,8 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 import numpy as np
-
 from ase.dft import DOS
+
 from koopmans import calculators, utils
 from koopmans.bands import Band, Bands
 from koopmans.settings import KoopmansCPSettingsDict

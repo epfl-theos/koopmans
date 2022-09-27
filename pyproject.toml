@@ -48,9 +48,6 @@ test = [
 [project.scripts]
 koopmans = "koopmans.cli.main:main"
 
-[tool.setuptools]
-py-modules = ["koopmans"]
-
 [tool.mypy]
 ignore_missing_imports = true
 

@@ -13,8 +13,9 @@ from importlib import import_module
 from pathlib import Path
 from typing import TextIO, Union
 
-import koopmans.workflows as workflows
 from ase.io import jsonio as ase_json
+
+import koopmans.workflows as workflows
 
 
 class KoopmansEncoder(ase_json.MyEncoder):

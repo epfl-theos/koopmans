@@ -10,7 +10,6 @@ for use as the Atoms object associated with a UI calculator
 from typing import Optional
 
 import numpy as np
-
 from ase import Atoms
 from ase.cell import Cell
 
