@@ -10,25 +10,20 @@ import os
 import sys
 
 import sphinx_rtd_theme
+from sphinx_pyproject import SphinxConfig
+
+import koopmans
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import koopmans
 
 sys.path.insert(0, os.path.abspath('../src'))
 
-
 # -- Project information -----------------------------------------------------
-
-project = 'koopmans'
-copyright = '2020, Edward Linscott, Riccardo De Gennaro, and Nicola Colonna'
-author = 'Edward Linscott, Riccardo De Gennaro, and Nicola Colonna'
+config = SphinxConfig("../pyproject.toml", globalns=globals())
 language = None
-
-version = koopmans.__version__
-release = version
 
 # -- General configuration ---------------------------------------------------
 
