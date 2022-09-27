@@ -27,3 +27,5 @@ postproc/
 wannier/
 screening/
 hamiltonian/
+build/
+dist/
