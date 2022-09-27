@@ -33,7 +33,7 @@ class Pseudopotential:
     cutoff_rho: Optional[float] = None
 
 
-pseudos_directory = Path('pseudos')
+pseudos_directory = Path('pseudopotentials')
 
 # A database containing all the available pseudopotentials
 pseudo_database: List[Pseudopotential] = []

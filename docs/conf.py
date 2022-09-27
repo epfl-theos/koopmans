@@ -35,7 +35,7 @@ language = "en"
 extensions = ['recommonmark', 'sphinx.ext.mathjax', 'sphinx.ext.autosectionlabel',
               'sphinxcontrib.bibtex', 'sphinx_toolbox.collapse', 'sphinx.ext.autodoc',
               'numpydoc', 'sphinx.ext.autosummary']
-bibtex_bibfiles = ['refs.bib']
+bibtex_bibfiles = ['../src/koopmans/references.bib']
 autosectionlabel_prefix_document = True
 
 # Add any paths that contain templates here, relative to this directory.

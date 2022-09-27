@@ -123,7 +123,7 @@ Currently, Koopmans functionals only works with norm-conserving pseudopotentials
 
 For convenience, ``koopmans`` already ships with both of these pseudopotential libraries and you can simply select the one you want to use using the ``pseudo_library`` keyword.
 
-If you prefer to use your own pseudopotentials, add them to ``koopmans/pseudopotentials`` in the subdirectory ``<my_pseudos>/<functional>``, where ``<my_pseudos>`` is a name of your choosing and ``<functional>`` is the functional used to generate your pseudopotentials. You can then direct ``koopmans`` to use these pseudopotentials by setting the keywords ``pseudo_library`` and ``base_functional`` to ``<my_pseudos>`` and ``<functional>`` respectively.
+If you prefer to use your own pseudopotentials, add them to ``src/koopmans/pseudopotentials/<my_pseudos>/<functional>``, where ``<my_pseudos>`` is a name of your choosing and ``<functional>`` is the functional used to generate your pseudopotentials. You can then direct ``koopmans`` to use these pseudopotentials by setting the keywords ``pseudo_library`` and ``base_functional`` to ``<my_pseudos>`` and ``<functional>`` respectively.
 
 Alternatively, you can direct the code to always use your personal pseudopotentials directory by defining the variable
 
