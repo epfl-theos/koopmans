@@ -13,11 +13,11 @@
    2
   ],
   "pseudopotentials": {
-   "As": "As_ONCV_PBE-1.0.upf",
-   "Ga": "Ga_ONCV_PBE-1.0.upf"
+   "Ga": "Ga_ONCV_PBE-1.0.upf",
+   "As": "As_ONCV_PBE-1.0.upf"
   },
   "pseudo_dir": {
-   "__path__": "../../../../../pseudos/sg15_v1.0/pbe"
+   "__path__": "../../../../../src/koopmans/pseudopotentials/sg15_v1.0/pbe"
   },
   "gamma_only": false,
   "koffset": [

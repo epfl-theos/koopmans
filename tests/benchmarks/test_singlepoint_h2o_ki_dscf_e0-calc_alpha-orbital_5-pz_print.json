@@ -13,11 +13,11 @@
   "ecutwfc": 20.0,
   "nbnd": 5,
   "pseudopotentials": {
-   "H": "H_ONCV_PBE-1.2.upf",
-   "O": "O_ONCV_PBE-1.2.upf"
+   "O": "O_ONCV_PBE-1.2.upf",
+   "H": "H_ONCV_PBE-1.2.upf"
   },
   "pseudo_dir": {
-   "__path__": "../../../../../pseudos/sg15_v1.2/pbe"
+   "__path__": "../../../../../src/koopmans/pseudopotentials/sg15_v1.2/pbe"
   },
   "ndw": 64,
   "ndr": 60,

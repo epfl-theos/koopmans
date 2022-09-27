@@ -15,7 +15,7 @@
    "Si": "Si.upf"
   },
   "pseudo_dir": {
-   "__path__": "../../../../pseudos/pseudo_dojo_standard_v0.4.1/pbe"
+   "__path__": "../../../../src/koopmans/pseudopotentials/pseudo_dojo_standard_v0.4.1/pbe"
   },
   "ndw": 50,
   "ndr": 50,

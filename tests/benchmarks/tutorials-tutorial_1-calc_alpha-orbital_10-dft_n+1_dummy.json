@@ -16,7 +16,7 @@
    "O": "O_ONCV_PBE-1.2.upf"
   },
   "pseudo_dir": {
-   "__path__": "../../../../pseudos/sg15_v1.2/pbe"
+   "__path__": "../../../../src/koopmans/pseudopotentials/sg15_v1.2/pbe"
   },
   "ndw": 65,
   "ndr": 65,

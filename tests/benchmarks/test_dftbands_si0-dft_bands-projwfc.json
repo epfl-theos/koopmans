@@ -22103,7 +22103,7 @@
   "Si": "Si.upf"
  },
  "pseudo_dir": {
-  "__path__": "../../../../pseudos/pseudo_dojo_standard_v0.4.1/pbesol"
+  "__path__": "../../../../src/koopmans/pseudopotentials/pseudo_dojo_standard_v0.4.1/pbesol"
  },
  "spin_polarized": false,
  "__koopmans_name__": "BenchGenProjwfcCalculator",
