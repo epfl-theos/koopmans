@@ -6,16 +6,18 @@
 
 # -- Path setup --------------------------------------------------------------
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
 import os
 import sys
 
 import sphinx_rtd_theme
 
-sys.path.insert(0, os.path.abspath('../'))
+# If extensions (or modules to document with autodoc) are in another directory,
+# add these directories to sys.path here. If the directory is relative to the
+# documentation root, use os.path.abspath to make it absolute, like shown here.
+#
+import koopmans
+
+sys.path.insert(0, os.path.abspath('../src'))
 
 
 # -- Project information -----------------------------------------------------
@@ -24,10 +26,8 @@ project = 'koopmans'
 copyright = '2020, Edward Linscott, Riccardo De Gennaro, and Nicola Colonna'
 author = 'Edward Linscott, Riccardo De Gennaro, and Nicola Colonna'
 language = None
-with open('../koopmans/__init__.py', 'r') as f:
-    # The full version, including alpha/beta/rc tags
-    [version_line] = [l for l in f.readlines() if l.startswith('__version__')]
-version = version_line.split('=')[-1].strip(" '")
+
+version = koopmans.__version__
 release = version
 
 # -- General configuration ---------------------------------------------------
