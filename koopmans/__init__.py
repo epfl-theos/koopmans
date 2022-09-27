@@ -1,5 +1,11 @@
 'koopmans: a package for performing and automating Koopmans functional calculations'
+import sys
 from pathlib import Path
 
-__version__ = '1.0.0-beta.3'
+if sys.version_info >= (3, 8):
+    from importlib import metadata
+else:
+    import importlib_metadata as metadata
+
+__version__ = metadata.version('koopmans')
 base_directory = Path(__path__[0]).parent
