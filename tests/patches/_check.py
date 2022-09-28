@@ -10,7 +10,7 @@ from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
 from ase.spectrum.doscollection import GridDOSCollection
 
-from koopmans import utils
+from koopmans import pseudopotentials, utils
 from koopmans.calculators import (Calc, EnvironCalculator,
                                   KoopmansCPCalculator, KoopmansHamCalculator,
                                   KoopmansScreenCalculator, PhCalculator,
@@ -191,6 +191,12 @@ class CheckCalc:
 
                 if isinstance(ref_val, np.ndarray):
                     ref_val = ref_val.tolist()
+
+                if key == 'pseudo_dir':
+                    # If using the central pseudo directory, only compare the relative paths
+                    if pseudopotentials.pseudos_directory in val.parents:
+                        val = Path('koopmans/pseudopotentials') / val.relative_to(pseudopotentials.pseudos_directory)
+                        ref_val = Path(*ref_val.parts[-len(val.parts):])
 
                 if val != ref_val:
                     raise ValueError(f'Error in {self.prefix}: {key} differs ({val} != {ref_val})')

@@ -148,8 +148,13 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
         # Make sure that pseudo libraries shortcuts (e.g. "sg15") are converted to the explicit version
         # (e.g. "sg15_v1.2")
         if key == 'pseudo_library':
-            full_path = pseudopotentials.pseudos_directory / value
-            if full_path.is_symlink():
-                value = Path(os.path.realpath(full_path)).name
+            if value == 'sg15':
+                value = 'sg15_v1.2'
+            elif value == 'sg15_relativistic':
+                value = 'sg15_relativistic_v1.0'
+            elif value == 'pseudo_dojo_standard':
+                value = 'pseudo_dojo_standard_v0.4.1'
+            elif value == 'pseudo_dojo_stringent':
+                value = 'pseudo_dojo_stringent_v0.4.1'
 
         return super().__setitem__(key, value)
