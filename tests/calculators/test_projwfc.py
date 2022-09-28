@@ -18,7 +18,7 @@ def test_generate_dos(silicon, tmp_path, datadir, pytestconfig):
             name='si', **silicon)
 
         calc = wf.new_calculator('projwfc')
-        calc.pseudo_dir = Path(koopmans_src[0]) / 'pseudopotentials/pseudo_dojo_standard/pbesol'
+        calc.pseudo_dir = Path(koopmans_src[0]) / 'pseudopotentials/pseudo_dojo_standard_v0.4.1/pbesol'
 
         # Copy over pdos files
         for f in (datadir / 'projwfc').glob('*.pdos*'):
