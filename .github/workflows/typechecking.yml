@@ -33,4 +33,4 @@ jobs:
               pip install mypy
          - name: Run mypy
            run: |
-              mypy koopmans/ --ignore-missing-imports
+              mypy src/koopmans/ --ignore-missing-imports

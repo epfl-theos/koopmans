@@ -104,7 +104,7 @@
         k(    6) = (  -0.5000000  -0.5000000  -0.7796610), wk =   0.2500000
 
      PseudoPot. # 1 for Ti read from file:
-     /home/elinscott/code/koopmans/pseudos/pseudo_dojo_standard_v0.4.1/pbesol/Ti.upf
+     /home/elinscott/code/koopmans/src/koopmans/pseudopotentials/pseudo_dojo_standard_v0.4.1/pbesol/Ti.upf
      MD5 check sum: c7cef475492d2ee3d0561e3a3e59fcd4
      Pseudo is Norm-conserving + core correction, Zval = 12.0
      Generated using ONCVPSP code by D. R. Hamann
@@ -117,7 +117,7 @@
                 l(6) =   2
 
      PseudoPot. # 2 for O  read from file:
-     /home/elinscott/code/koopmans/pseudos/pseudo_dojo_standard_v0.4.1/pbesol/O.upf
+     /home/elinscott/code/koopmans/src/koopmans/pseudopotentials/pseudo_dojo_standard_v0.4.1/pbesol/O.upf
      MD5 check sum: f226cbcd508cec715ff87a8f75a1dfba
      Pseudo is Norm-conserving + core correction, Zval =  6.0
      Generated using ONCVPSP code by D. R. Hamann

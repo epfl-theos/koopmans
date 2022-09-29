@@ -1,12 +1,12 @@
 import shutil
+from pathlib import Path
 
 import pytest
 
-from koopmans import base_directory
-from koopmans.io import read, write_json
+from koopmans.io import read
 from koopmans.utils import chdir
 
-tutorial_dir = base_directory / 'tutorials' / 'tutorial_3'
+tutorial_dir = Path(__file__).parents[2] / 'tutorials' / 'tutorial_3'
 
 
 @pytest.mark.tutorials

@@ -14,5 +14,5 @@ Installing
 
 .. include:: ../README.rst
     :start-line: 23
-    :end-line: 78
+    :end-line: 91
 

@@ -24,12 +24,12 @@
    ----------------------------------
 
    Reading pseudopotential for specie #  1 from file :
-   /home/elinscott/code/koopmans/pseudos/sg15_v1.2/pbe/O_ONCV_PBE-1.2.upf
+   /home/elinscott/code/koopmans/src/koopmans/pseudopotentials/sg15_v1.2/pbe/O_ONCV_PBE-1.2.upf
    file type is 20: UPF
  read_nonlocal
 
    Reading pseudopotential for specie #  2 from file :
-   /home/elinscott/code/koopmans/pseudos/sg15_v1.2/pbe/H_ONCV_PBE-1.2.upf
+   /home/elinscott/code/koopmans/src/koopmans/pseudopotentials/sg15_v1.2/pbe/H_ONCV_PBE-1.2.upf
    file type is 20: UPF
  read_nonlocal
 

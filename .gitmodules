@@ -1,3 +1,9 @@
 [submodule "quantum_espresso/q-e"]
 	path = quantum_espresso/q-e
 	url = https://gitlab.com/QEF/q-e.git
+[submodule "quantum_espresso/kcp"]
+	path = quantum_espresso/kcp
+	url = ../koopmans-kcp.git
+[submodule "quantum_espresso/utils"]
+	path = quantum_espresso/utils
+	url = ../koopmans-qe-utils.git

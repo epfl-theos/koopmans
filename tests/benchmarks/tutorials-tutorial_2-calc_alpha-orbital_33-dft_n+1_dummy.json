@@ -15,7 +15,7 @@
    "Si": "Si.upf"
   },
   "pseudo_dir": {
-   "__path__": "../../../../pseudos/pseudo_dojo_standard_v0.4.1/lda"
+   "__path__": "../../../../src/koopmans/pseudopotentials/pseudo_dojo_standard_v0.4.1/lda"
   },
   "ndw": 65,
   "ndr": 65,
@@ -5077,7 +5077,7 @@
  "command": {
   "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "../../bin"
+   "__path__": "../../../../../../usr/local/bin"
   },
   "executable": "kcp.x",
   "_flags": "",
@@ -5360,5 +5360,5 @@
  "fixed_band": null,
  "kpts": null,
  "__koopmans_name__": "BenchGenKoopmansCPCalculator",
- "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+ "__koopmans_module__": "tests.patches._generate_benchmarks"
 }

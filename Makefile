@@ -1,7 +1,10 @@
 # List of available tasks
-.PHONY: help install submodules configure_4 configure_7 configure espresso_4 espresso_7 espresso_utils espresso workflow tests clean clean_espresso clean_tests benchmarks
+.PHONY: help install submodules configure_4 configure_7 configure espresso_4 espresso_7 espresso_utils espresso espresso_4_install espresso_7_install espresso_utils_install espresso_install workflow tests clean clean_espresso clean_tests benchmarks
 
 MPIF90 = "mpif90"
+PREFIX ?= /usr/local
+
+default: submodules espresso workflow
 
 help:
 	@echo '  _                                                '
@@ -14,8 +17,9 @@ help:
 	@echo ' For performing Koopmans spectral functional calculations with Quantum ESPRESSO'
 	@echo ' See README.rst for more information'
 	@echo ''
-	@echo ' To install'
-	@echo ' > make install'
+	@echo ' To install everything'
+	@echo ' > make'
+	@echo ' > sudo make install'
 	@echo ' (For more details, see README.rst)'
 	@echo ''
 	@echo ' To run the test suite'
@@ -24,8 +28,6 @@ help:
 	@echo ' To clean the repository (removing compilations of QE and all test outputs)'
 	@echo ' > make clean'
 	@echo ''
-
-install: submodules espresso workflow
 
 submodules:
 	git submodule init
@@ -40,15 +42,26 @@ configure_7:
 configure: configure_4 configure_7
 
 espresso_4:
-	@(cd quantum_espresso/kcp; $(MAKE) kcp)
+	@(cd quantum_espresso/kcp && $(MAKE) kcp)
+
+espresso_4_install:
+	@(cd quantum_espresso/kcp && $(MAKE) install PREFIX=$(PREFIX))
 
 espresso_7:
-	@(cd quantum_espresso/q-e; $(MAKE) pw kcw ph)
+	@(cd quantum_espresso/q-e && $(MAKE) pw kcw ph)
+
+espresso_7_install:
+	@(cd quantum_espresso/q-e && $(MAKE) install PREFIX=$(PREFIX))
 
 espresso_utils:
-	@(cd quantum_espresso/utils; $(MAKE) all)
+	@(cd quantum_espresso/utils && $(MAKE) all)
+
+espresso_utils_install:
+	@(cd quantum_espresso/utils && $(MAKE) install PREFIX=$(PREFIX))
 
 espresso: configure_4 espresso_4 configure_7 espresso_7 espresso_utils
+
+install: espresso_4_install espresso_7_install espresso_utils_install
 
 workflow:
 	python3 -m pip install --upgrade pip
@@ -67,5 +80,5 @@ tests:
 clean_tests:
 	rm -rf tests/tmp
 
-benchmark:
-	python3 -m pytest --generate_benchmark
+benchmarks:
+	python3 -m pytest tests/ --generate_benchmark

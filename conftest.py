@@ -1,13 +1,14 @@
+from pathlib import Path
 from typing import Any, Dict
 
 import pytest
-
 from ase import Atoms
 from ase.build import bulk, molecule
 from ase.spacegroup import crystal
-from koopmans import base_directory, testing
+
 from koopmans.kpoints import Kpoints
 from koopmans.projections import ProjectionBlocks
+from tests import patches
 
 
 def pytest_addoption(parser):
@@ -22,81 +23,7 @@ def pytest_addoption(parser):
 @pytest.fixture
 def datadir():
     # Returns the directory where various reference QE files are stored
-    return base_directory / 'tests' / 'data'
-
-
-def monkeypatch_bench(monkeypatch):
-    # After each calculation is run, store the results in a json (one json per calculation)
-    monkeypatch.setattr('koopmans.calculators.Wannier90Calculator', testing.BenchGenWannier90Calculator)
-    monkeypatch.setattr('koopmans.calculators.PW2WannierCalculator', testing.BenchGenPW2WannierCalculator)
-    monkeypatch.setattr('koopmans.calculators.Wann2KCPCalculator', testing.BenchGenWann2KCPCalculator)
-    monkeypatch.setattr('koopmans.calculators.PhCalculator', testing.BenchGenPhCalculator)
-    monkeypatch.setattr('koopmans.calculators.PWCalculator', testing.BenchGenPWCalculator)
-    monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.BenchGenKoopmansCPCalculator)
-    monkeypatch.setattr('koopmans.calculators.EnvironCalculator', testing.BenchGenEnvironCalculator)
-    monkeypatch.setattr('koopmans.calculators.UnfoldAndInterpolateCalculator',
-                        testing.BenchGenUnfoldAndInterpolateCalculator)
-    monkeypatch.setattr('koopmans.calculators.Wann2KCCalculator', testing.BenchGenWann2KCCalculator)
-    monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', testing.BenchGenKoopmansScreenCalculator)
-    monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', testing.BenchGenKoopmansHamCalculator)
-    monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.BenchGenProjwfcCalculator)
-
-
-def monkeypatch_mock(monkeypatch):
-    # Replace calculators with mock versions that obtain results from the database
-    monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.MockKoopmansCPCalculator)
-    monkeypatch.setattr('koopmans.calculators.Wannier90Calculator', testing.MockWannier90Calculator)
-    monkeypatch.setattr('koopmans.calculators.PW2WannierCalculator', testing.MockPW2WannierCalculator)
-    monkeypatch.setattr('koopmans.calculators.Wann2KCPCalculator', testing.MockWann2KCPCalculator)
-    monkeypatch.setattr('koopmans.calculators.PhCalculator', testing.MockPhCalculator)
-    monkeypatch.setattr('koopmans.calculators.PWCalculator', testing.MockPWCalculator)
-    monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.MockKoopmansCPCalculator)
-    monkeypatch.setattr('koopmans.calculators.EnvironCalculator', testing.MockEnvironCalculator)
-    monkeypatch.setattr('koopmans.calculators.UnfoldAndInterpolateCalculator',
-                        testing.MockUnfoldAndInterpolateCalculator)
-    monkeypatch.setattr('koopmans.calculators.Wann2KCCalculator', testing.MockWann2KCCalculator)
-    monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', testing.MockKoopmansScreenCalculator)
-    monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', testing.MockKoopmansHamCalculator)
-    monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.MockProjwfcCalculator)
-
-    # Workflows
-    monkeypatch.setattr('koopmans.workflows.KoopmansDSCFWorkflow', testing.MockKoopmansDSCFWorkflow)
-    monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', testing.MockWannierizeWorkflow)
-
-
-def monkeypatch_check(monkeypatch):
-    # Replace calculators with versions that double-check their results against
-    monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.CheckKoopmansCPCalculator)
-    monkeypatch.setattr('koopmans.calculators.Wannier90Calculator', testing.CheckWannier90Calculator)
-    monkeypatch.setattr('koopmans.calculators.PW2WannierCalculator', testing.CheckPW2WannierCalculator)
-    monkeypatch.setattr('koopmans.calculators.Wann2KCPCalculator', testing.CheckWann2KCPCalculator)
-    monkeypatch.setattr('koopmans.calculators.PhCalculator', testing.CheckPhCalculator)
-    monkeypatch.setattr('koopmans.calculators.PWCalculator', testing.CheckPWCalculator)
-    monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', testing.CheckKoopmansCPCalculator)
-    monkeypatch.setattr('koopmans.calculators.EnvironCalculator', testing.CheckEnvironCalculator)
-    monkeypatch.setattr('koopmans.calculators.UnfoldAndInterpolateCalculator',
-                        testing.CheckUnfoldAndInterpolateCalculator)
-    monkeypatch.setattr('koopmans.calculators.Wann2KCCalculator', testing.CheckWann2KCCalculator)
-    monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', testing.CheckKoopmansScreenCalculator)
-    monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', testing.CheckKoopmansHamCalculator)
-    monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', testing.CheckProjwfcCalculator)
-
-
-def monkeypatch_stumble(monkeypatch):
-    monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', testing.StumblingWannierizeWorkflow)
-    monkeypatch.setattr('koopmans.workflows.KoopmansDSCFWorkflow', testing.StumblingKoopmansDSCFWorkflow)
-    monkeypatch.setattr('koopmans.workflows.SinglepointWorkflow', testing.StumblingSinglepointWorkflow)
-    monkeypatch.setattr('koopmans.workflows.ConvergenceWorkflow', testing.StumblingConvergenceWorkflow)
-    monkeypatch.setattr('koopmans.workflows.FoldToSupercellWorkflow', testing.StumblingFoldToSupercellWorkflow)
-    monkeypatch.setattr('koopmans.workflows.DFTCPWorkflow', testing.StumblingDFTCPWorkflow)
-    monkeypatch.setattr('koopmans.workflows.DFTPhWorkflow', testing.StumblingDFTPhWorkflow)
-    monkeypatch.setattr('koopmans.workflows.DFTPWWorkflow', testing.StumblingDFTPWWorkflow)
-    monkeypatch.setattr('koopmans.workflows.DeltaSCFWorkflow', testing.StumblingDeltaSCFWorkflow)
-    monkeypatch.setattr('koopmans.workflows.KoopmansDFPTWorkflow', testing.StumblingKoopmansDFPTWorkflow)
-    monkeypatch.setattr('koopmans.workflows.UnfoldAndInterpolateWorkflow',
-                        testing.StumblingUnfoldAndInterpolateWorkflow)
-    # When running with stumble mode, we want to check our results against the benchmarks by using CheckCalcs
-    monkeypatch_check(monkeypatch)
+    return Path(__file__).parent / 'tests' / 'data'
 
 
 @pytest.fixture
@@ -104,13 +31,13 @@ def tutorial_patch(monkeypatch, pytestconfig):
     # For the tutorials...
     if pytestconfig.getoption('generate_benchmark'):
         # when generating benchmarks, use BenchCalcs
-        monkeypatch_bench(monkeypatch)
+        patches.monkeypatch_bench(monkeypatch)
     elif pytestconfig.getoption('stumble'):
         # when testing recovery from a crash, use StumblingWorkflows
-        monkeypatch_stumble(monkeypatch)
+        patches.monkeypatch_stumble(monkeypatch)
     else:
         # we use MockCalcs when running our tests on github, OR if the user is running locally
-        monkeypatch_mock(monkeypatch)
+        patches.monkeypatch_mock(monkeypatch)
 
 
 @pytest.fixture
@@ -118,13 +45,13 @@ def workflow_patch(monkeypatch, pytestconfig):
     # For tests involving the workflow...
     if pytestconfig.getoption('generate_benchmark'):
         # when generating benchmarks, use BenchCalcs
-        monkeypatch_bench(monkeypatch)
+        patches.monkeypatch_bench(monkeypatch)
     elif pytestconfig.getoption('stumble'):
         # when testing recovery from a crash, use StumblingWorkflows
-        monkeypatch_stumble(monkeypatch)
+        patches.monkeypatch_stumble(monkeypatch)
     else:
         # we use MockCalcs when running our tests on github, OR if the user is running locally
-        monkeypatch_mock(monkeypatch)
+        patches.monkeypatch_mock(monkeypatch)
 
 
 @pytest.fixture
@@ -132,10 +59,10 @@ def ui_patch(monkeypatch, pytestconfig):
     # For tests involving the UI python routines only...
     if pytestconfig.getoption('generate_benchmark'):
         # when generating benchmarks, use BenchCalcs
-        monkeypatch_bench(monkeypatch)
+        patches.monkeypatch_bench(monkeypatch)
     elif pytestconfig.getoption('stumble'):
         # when testing recovery from a crash, use StumblingWorkflows
-        monkeypatch_stumble(monkeypatch)
+        patches.monkeypatch_stumble(monkeypatch)
     else:
         # we can run the calculations directly when running our tests on github, OR if the user is running locally
         pass
@@ -146,16 +73,16 @@ def espresso_patch(monkeypatch, pytestconfig):
     # For tests involving Quantum ESPRESSO...
     if pytestconfig.getoption('generate_benchmark'):
         # when generating benchmarks, use BenchCalcs
-        monkeypatch_bench(monkeypatch)
+        patches.monkeypatch_bench(monkeypatch)
     elif pytestconfig.getoption('stumble'):
         # when testing recovery from a crash, use StumblingWorkflows
-        monkeypatch_stumble(monkeypatch)
+        patches.monkeypatch_stumble(monkeypatch)
     elif pytestconfig.getoption('ci'):
         # when running our tests on github, these tests shold not be called!
         raise ValueError('These tests cannot be run with --ci')
     else:
         # when the user is running locally, use CheckCalcs
-        monkeypatch_check(monkeypatch)
+        patches.monkeypatch_check(monkeypatch)
 
 
 @pytest.fixture
