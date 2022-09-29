@@ -34,7 +34,10 @@ and fetch their results e.g.
 
   total_energy = final_calc.results['energy']
 
+Parallelism
+^^^^^^^^^^^
+
 .. include:: ../README.rst
-    :start-line: 101
+    :start-line: 103
     :end-line: 129
 
