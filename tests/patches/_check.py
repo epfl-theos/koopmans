@@ -1,3 +1,4 @@
+from bdb import set_trace
 import itertools
 import json
 from abc import ABC, abstractmethod
@@ -122,7 +123,7 @@ class CheckCalc:
     @property
     def _calcname(self) -> Path:
         # type: ignore[attr-defined]
-        calcname: Path = (self.directory / self.prefix).relative_to(Path(__file__).parent + '../../tests/tmp')
+        calcname: Path = (self.directory / self.prefix).relative_to((Path(__file__).parent / '../../tests/tmp').resolve())
         return calcname.relative_to(calcname.parts[0])
 
     def _check_results(self, benchmark: Calc):
