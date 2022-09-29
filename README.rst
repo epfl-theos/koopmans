@@ -97,11 +97,7 @@ Calculations are run with the command
 
    koopmans <seed>.json
 
-where <seed>.json is the ``koopmans`` input file. For a description of the contents of this file, refer to the documentation (`available online <https://koopmans-docs.readthedocs.io>`_). The keywords of ``koopmans`` keywords can be readily listed by running
-
-.. code-block:: bash
-   
-   koopmans --help
+where <seed>.json is the ``koopmans`` input file. For more details, refer to the `online documentation <https://koopmans-docs.readthedocs.io>`_.
 
 Parallelism
 ^^^^^^^^^^^
@@ -116,10 +112,10 @@ In order to run the code in parallel, define the environment variables ``PARA_PR
 Pseudopotentials
 ^^^^^^^^^^^^^^^^
 
-Currently, Koopmans functionals only works with norm-conserving pseudopotentials. We suggest you use optimized norm-conserving Vanderbilt (ONCV) pseudopotentials :cite:`Hamann2013`, such as
+Currently, Koopmans functionals only works with norm-conserving pseudopotentials. We suggest you use optimized norm-conserving Vanderbilt pseudopotentials, such as
 
-- the `SG15 library <http://www.quantum-simulation.org/potentials/sg15_oncv/index.htm>`_ :cite:`Schlipf2015`
-- the `Pseudo Dojo library <http://www.pseudo-dojo.org/index.html>`_ :cite:`vanSetten2018`
+- the `SG15 library <http://www.quantum-simulation.org/potentials/sg15_oncv/index.htm>`_
+- the `Pseudo Dojo library <http://www.pseudo-dojo.org/index.html>`_
 
 For convenience, ``koopmans`` already ships with both of these pseudopotential libraries and you can simply select the one you want to use using the ``pseudo_library`` keyword.
 
