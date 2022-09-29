@@ -77,7 +77,7 @@ To add all of the Quantum ESPRESSO binaries to your path, run
 
    sudo make install
 
-By default the binaries will be added to ``/usr/local/bin``. You can override this default by appending ``PREFIX=/path/to/bin/`` to the above command.
+By default this will copy the Quantum ESPRESSO binaries to ``/usr/local/bin``. This requires sudo privileges. If you do not have sudo privileges, you can either (a) install the codes in a different location by running ``make install PREFIX=/path/to/bin/`` (in which case ``/path/to/bin/`` should be on your path) or (b) appending ``bin/`` from the current directory to your path.
 
 Installing the workflow manager
 """""""""""""""""""""""""""""""
