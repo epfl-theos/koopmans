@@ -35,6 +35,6 @@ and fetch their results e.g.
   total_energy = final_calc.results['energy']
 
 .. include:: ../README.rst
-    :start-line: 102
+    :start-line: 101
     :end-line: 129
 
