@@ -20,7 +20,6 @@ class PWSettingsDict(IbravDict, SettingsDict):
                          defaults={'calculation': 'scf', 'outdir': './TMP/', 'prefix': 'kc',
                                    'conv_thr': '2.0e-9*nelec', 'verbosity': 'high'},
                          are_paths=['outdir', 'pseudo_dir'],
-                         to_not_parse=['assume_isolated'],
                          **flattened_kwargs)
 
     def is_valid(self, name: str) -> bool:

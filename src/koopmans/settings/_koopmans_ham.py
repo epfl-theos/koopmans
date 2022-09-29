@@ -12,7 +12,6 @@ class KoopmansHamSettingsDict(SettingsDict):
                          defaults={'calculation': 'ham', 'do_bands': True, 'use_ws_distance': True, 'write_hr': True,
                                    'l_alpha_corr': False, **kc_wann_defaults},
                          are_paths=['outdir', 'pseudo_dir'],
-                         to_not_parse=['assume_isolated'],
                          **kwargs)
 
     @property

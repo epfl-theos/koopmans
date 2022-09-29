@@ -47,7 +47,6 @@ class KoopmansCPSettingsDict(IbravDict, SettingsDict):
         super().__init__(valid=[k for sublist in kcp_keys.values() for k in sublist],
                          defaults=defaults,
                          are_paths=['outdir', 'pseudo_dir'],
-                         to_not_parse=['assume_isolated'],
                          **flattened_kwargs)
 
     @property

@@ -19,7 +19,6 @@ class Wannier90SettingsDict(SettingsDict):
                                 'translation_centre_frac'],
                          defaults={'num_iter': 10000, 'conv_tol': 1.e-10, 'conv_window': 5,
                                    'write_hr': True, 'guiding_centres': True, 'gamma_only': False},
-                         to_not_parse=['exclude_bands', 'wannier_plot_list'],
                          **kwargs)
 
     def update(self, *args, **kwargs) -> None:
