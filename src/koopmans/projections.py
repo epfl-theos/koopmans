@@ -10,33 +10,27 @@ class ProjectionBlock(object):
     # This simple object contains the projections, filling, and spin corresponding to a block of bands
     def __init__(self,
                  projections: List[Union[str, Dict[str, Any]]],
-                 filled: bool,
                  spin: Optional[str] = None,
                  directory: Optional[Path] = None,
-                 merge_directory: Optional[Path] = None,
                  num_wann: Optional[int] = None,
                  num_bands: Optional[int] = None,
-                 exclude_bands: Optional[str] = None,
-                 calc_type: Optional[str] = None,
-                 to_merge: Optional[bool] = None):
+                 include_bands: Optional[List[int]] = None,
+                 exclude_bands: Optional[str] = None):
 
         self.projections = []
         for proj in projections:
             if isinstance(proj, str):
                 proj = proj_string_to_dict(proj)
             self.projections.append(proj)
-        self.filled = filled
         self.spin = spin
         self.directory = directory
-        self.merge_directory = merge_directory
         self.num_wann = num_wann
         self.num_bands = num_bands
+        self.include_bands = include_bands
         self.exclude_bands = exclude_bands
-        self.calc_type = calc_type
-        self.to_merge = to_merge
 
     def __repr__(self) -> str:
-        out = f'ProjectionBlock({[self.projections]}, filled={self.filled}'
+        out = f'ProjectionBlock({[self.projections]}'
         if self.spin is not None:
             out += f', spin={self.spin}'
         return out + ')'
@@ -91,13 +85,9 @@ class ProjectionBlocks(object):
         self._blocks = blocks
         self._atoms = atoms
         # This BandBlocks object must keep track of how many bands we have not belonging to any block
-        if len(blocks) > 0:
-            self._n_bands_below = {spin: 0 for spin in set([b.spin for b in blocks])}
-            self._n_bands_above = {spin: 0 for spin in set([b.spin for b in blocks])}
-        else:
-            # By default, assume spin-unpolarized
-            self._n_bands_below = {None: 0}
-            self._n_bands_above = {None: 0}
+        self.exclude_bands = {None: [], 'up': [], 'down': []}
+        self.num_extra_bands = {None: 0, 'up': 0, 'down': 0}
+        self._num_elecs = {}
 
     def __repr__(self):
         out = 'ProjectionBlocks('
@@ -120,6 +110,24 @@ class ProjectionBlocks(object):
             return self.__dict__ == other.__dict__
         return False
 
+    def divisions(self, spin: Optional[str]) -> List[int]:
+        # This algorithm works out the size of individual "blocks" in the set of bands
+        divs: List[int] = []
+        excl_bands = set(self.exclude_bands[spin])
+        for block in self.get_subset(spin):
+            block_size = num_wann_from_projections(block.projections, self._atoms)
+            for excl_band in sorted(excl_bands):
+                if sum(divs) == excl_band - 1:
+                    excl_bands.remove(excl_band)
+                    divs.append(1)
+                elif excl_band > sum(divs) and excl_band <= sum(divs) + block_size:
+                    raise ValueError('The Wannier90 excluded bands are mixed with a block of projections. '
+                                     'Please redefine excluded_bands such that the remaining included bands are '
+                                     'commensurate with the provided projections')
+            divs.append(block_size)
+        assert len(excl_bands) == 0
+        return divs
+
     @property
     def blocks(self):
         # Before returning all the blocks, add more global information such as exclude_bands
@@ -129,17 +137,19 @@ class ProjectionBlocks(object):
                 continue
             is_last = [False for _ in subset]
             is_last[-1] = True
-            wann_counter = self._n_bands_below[spin] + 1
-            for b, include_above in zip(subset, is_last):
+            wann_counter = 1
+            for iblock, (b, include_above) in enumerate(zip(subset, is_last)):
                 # Construct num_wann
                 b.num_wann = num_wann_from_projections(b.projections, self._atoms)
 
                 # Construct num_bands
                 b.num_bands = b.num_wann
                 if include_above:
-                    b.num_bands += self._n_bands_above[spin]
+                    b.num_bands += self.num_extra_bands[spin]
 
                 # Construct exclude_bands
+                while wann_counter in self.exclude_bands[spin]:
+                    wann_counter += 1
                 band_indices = range(wann_counter, wann_counter + b.num_wann)
                 wann_counter += b.num_wann
                 if include_above:
@@ -148,28 +158,21 @@ class ProjectionBlocks(object):
                 else:
                     upper_bound = self.num_bands(spin=spin)
                 to_exclude = [i for i in range(1, upper_bound + 1) if i not in band_indices]
+                b.include_bands = list(band_indices)
                 if len(to_exclude) > 0:
                     b.exclude_bands = list_to_formatted_str(to_exclude)
 
-                # Construct the calc_type
-                if b.filled:
-                    label = 'occ'
-                else:
-                    label = 'emp'
-                if b.spin is not None:
-                    label += '_' + spin
-                b.calc_type = 'w90_' + label
-
-                # Construct directory and info for merging
+                # Construct directory
+                label = f'block_{iblock + 1}'
+                if spin:
+                    label = f'spin_{spin}_{label}'
                 b.directory = Path(label)
 
-                subset = self.get_subset(occ=b.filled, spin=b.spin)
-                if len(subset) > 1:
-                    b.to_merge = True
-                    b.merge_directory = b.directory
-                    b.directory = Path(label + f'_block{subset.index(b) + 1}')
-                else:
-                    b.to_merge = False
+                # Construct calc_type
+                b.calc_type = 'w90'
+                if b.spin:
+                    b.calc_type += f'_{b.spin}'
+
         return self._blocks
 
     def __iter__(self):
@@ -177,51 +180,35 @@ class ProjectionBlocks(object):
             yield b
 
     @classmethod
-    def fromprojections(cls,
-                        list_of_projections: List[List[Union[str, Dict[str, Any]]]],
-                        fillings: List[bool],
-                        spins: List[Union[str, None]],
-                        atoms: Atoms):
+    def fromlist(cls,
+                 list_of_projections: List[List[Union[str, Dict[str, Any]]]],
+                 spins: List[Union[str, None]],
+                 atoms: Atoms):
 
-        # Make sure to store all filled blocks before any empty blocks
         blocks: List[ProjectionBlock] = []
-        for filled in [True, False]:
-            blocks += [ProjectionBlock(p, f, s)
-                       for p, f, s in zip(list_of_projections, fillings, spins) if f is filled and len(p) > 0]
+        blocks += [ProjectionBlock(p, s) for p, s in zip(list_of_projections, spins) if len(p) > 0]
 
         return cls(blocks, atoms)
 
-    def add_bands(self, num: int, above: bool = False, spin: Optional[str] = None):
-        if num < 0:
-            raise ValueError('num must be > 0')
-        if above:
-            self._n_bands_above[spin] += num
-        else:
-            self._n_bands_below[spin] += num
+    def get_subset(self, spin: Optional[str] = 'both') -> List[ProjectionBlock]:
+        return [b for b in self._blocks if (spin == 'both' or b.spin == spin)]
 
-    def to_merge(self):
-        for occ in [True, False]:
-            for spin in [None, 'up', 'down']:
-                subset = self.get_subset(occ=occ, spin=spin)
-                if len(subset) > 1:
-                    yield subset
+    def num_wann(self, spin: Optional[str] = 'both') -> int:
+        return sum([num_wann_from_projections(b.projections, self._atoms) for b in self.get_subset(spin)])
 
-    def get_subset(self, occ: Optional[bool] = None, spin: Optional[str] = 'both'):
-        return [b for b in self._blocks if (occ is None or b.filled == occ) and (spin == 'both' or b.spin == spin)]
-
-    def num_wann(self, occ: Optional[bool] = None, spin: Optional[str] = 'both'):
-        return sum([num_wann_from_projections(b.projections, self._atoms) for b in self.get_subset(occ, spin)])
-
-    def num_bands(self, occ: Optional[bool] = None, spin: Optional[str] = None):
-        nbands = self.num_wann(occ, spin)
-        try:
-            if (occ is True or occ is None):
-                nbands += self._n_bands_below[spin]
-            if (occ is False or occ is None):
-                nbands += self._n_bands_above[spin]
-        except KeyError:
-            raise ValueError('num_bands does not support summing over all spins')
+    def num_bands(self, spin: Optional[str] = None) -> int:
+        nbands = self.num_wann(spin)
+        nbands += len(self.exclude_bands[spin])
+        nbands += self.num_extra_bands[spin]
         return nbands
+
+    @property
+    def num_elecs(self):
+        return self._num_elecs
+
+    @num_elecs.setter
+    def num_elecs(self, value: Dict[Optional[str], int]):
+        self._num_elecs = value
 
     def todict(self) -> dict:
         dct: Dict[str, Any] = {k: v for k, v in self.__dict__.items()}
@@ -237,3 +224,27 @@ class ProjectionBlocks(object):
                 raise AttributeError(k)
             setattr(new_bandblock, k, v)
         return new_bandblock
+
+    @property
+    def to_merge(self) -> Dict[Path, List[ProjectionBlock]]:
+        # Group the blocks by their correspondence to occupied/empty bands, and by their spin
+        dct = {}
+        for block in self.blocks:
+            try:
+                nelec = self.num_elecs[block.spin]
+            except KeyError:
+                raise AssertionError('Initialize ProjectionBlocks.num_elecs before calling ProjectionBlocks.to_merge()')
+            if max(block.include_bands) <= nelec:
+                label = 'occ'
+            elif min(block.include_bands) > nelec:
+                label = 'emp'
+            else:
+                raise ValueError('Block spans both occupied and empty manifolds')
+            if block.spin:
+                label += f'_{block.spin}'
+            directory = Path(label)
+            if directory in dct:
+                dct[directory].append(block)
+            else:
+                dct[directory] = [block]
+        return dct

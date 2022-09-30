@@ -139,15 +139,12 @@ class Workflow(ABC):
             proj_list: List[List[Any]]
             spins: List[Optional[str]]
             if self.parameters.spin_polarized:
-                proj_list = [[], [], [], []]
-                fillings = [True, True, False, False]
-                spins = ['up', 'down', 'up', 'down']
-            else:
                 proj_list = [[], []]
-                fillings = [True, False]
-                spins = [None, None]
-            self.projections = ProjectionBlocks.fromprojections(
-                proj_list, fillings=fillings, spins=spins, atoms=self.atoms)
+                spins = ['up', 'down']
+            else:
+                proj_list = [[]]
+                spins = [None]
+            self.projections = ProjectionBlocks.fromlist(proj_list, spins=spins, atoms=self.atoms)
         else:
             self.projections = projections
 
@@ -310,6 +307,14 @@ class Workflow(ABC):
             # if not a calculator, workflow, or plotting keyword, raise an error
             if not match and not self.parameters.is_valid(key) and not self.plotting.is_valid(key):
                 raise ValueError(f'{key} is not a valid setting')
+
+        # Adding excluded_bands info to self.projections
+        if self.projections:
+            for spin in ['up', 'down', None]:
+                label = 'w90'
+                if spin:
+                    label += f'_{spin}'
+                self.projections.exclude_bands[spin] = self.calculator_parameters[label].get('exclude_bands', [])
 
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
@@ -890,23 +895,14 @@ class Workflow(ABC):
         # Loading calculator-specific settings
         calcdict = bigdct.pop('calculator_parameters', {})
 
-        # First, extract the nested w90 subdictionaries
+        # First, extract the w90 subdictionaries
         if 'w90' in calcdict:
-            for filling in ['occ', 'emp']:
-                for spin in ['up', 'down']:
-                    # Add any keywords in the filling:spin subsubdictionary
-                    subsubdct = calcdict['w90'].get(filling, {}).get(spin, {})
-                    calcdict[f'w90_{filling}_{spin}'] = subsubdct
-                    # Add any keywords in the filling subdictionary
-                    subdct = {k: v for k, v in calcdict['w90'].get(filling, {}).items() if k not in ['up', 'down']}
-                    calcdict[f'w90_{filling}_{spin}'].update(subdct)
-                    # Add any keywords in the main dictionary
-                    dct = {k: v for k, v in calcdict['w90'].items() if k not in ['occ', 'emp']}
-                    calcdict[f'w90_{filling}_{spin}'].update(dct)
-                # Also create a spin-independent set of parameters
-                calcdict[f'w90_{filling}'] = {}
-                calcdict[f'w90_{filling}'].update(subdct)
-                calcdict[f'w90_{filling}'].update(dct)
+            for spin in ['up', 'down']:
+                # Add any keywords in the spin subdictionary
+                calcdict[f'w90_{spin}'] = calcdict['w90'].get(spin, {})
+                # Add any keywords in the main dictionary
+                dct = {k: v for k, v in calcdict['w90'].items() if k not in ['up', 'down']}
+                calcdict[f'w90_{spin}'].update(dct)
             # Finally, remove the nested w90 entry
             del calcdict['w90']
 
@@ -936,7 +932,6 @@ class Workflow(ABC):
         # a corresponding block in the json file
         calculator_parameters = {}
         w90_block_projs: List = []
-        w90_block_filling: List[bool] = []
         w90_block_spins: List[Union[str, None]] = []
         for block, settings_class in settings_classes.items():
             # Read the block and add the resulting calculator to the calcs_dct
@@ -958,15 +953,8 @@ class Workflow(ABC):
                 # Likewise, if we are not spin-polarized, don't store the spin-dependent w90 blocks
                 if parameters.spin_polarized is not ('up' in block or 'down' in block):
                     continue
-                if 'projections' in dct and 'projections_blocks' in dct:
-                    raise ValueError(f'You have provided both "projections" and "projections_block" for {block} but '
-                                     'these keywords are mutually exclusive')
-                elif 'projections_blocks' in dct:
-                    projs = dct.pop('projections_blocks')
-                else:
-                    projs = [dct.pop('projections', [])]
+                projs = dct.pop('projections', [[]])
                 w90_block_projs += projs
-                w90_block_filling += ['occ' in block for _ in range(len(projs))]
                 if 'up' in block:
                     w90_block_spins += ['up' for _ in range(len(projs))]
                 elif 'down' in block:
@@ -978,8 +966,7 @@ class Workflow(ABC):
 
         # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
         # object but it is provided in the w90 subdictionary)
-        kwargs['projections'] = ProjectionBlocks.fromprojections(
-            w90_block_projs, w90_block_filling, w90_block_spins, atoms)
+        kwargs['projections'] = ProjectionBlocks.fromlist(w90_block_projs, w90_block_spins, atoms)
 
         # Define the name of the workflow using the name of the json file
         kwargs['name'] = fname.replace('.json', '')
@@ -1367,8 +1354,9 @@ def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]
             'ui_occ': settings.UnfoldAndInterpolateSettingsDict(),
             'ui_emp': settings.UnfoldAndInterpolateSettingsDict(),
             'wann2kc': settings.Wann2KCSettingsDict(),
-            'w90_occ': settings.Wannier90SettingsDict(),
-            'w90_emp': settings.Wannier90SettingsDict(),
+            'w90': settings.Wannier90SettingsDict(),
+            'w90_up': settings.Wannier90SettingsDict(),
+            'w90_down': settings.Wannier90SettingsDict(),
             'plot': settings.PlotSettingsDict()}
 
 
@@ -1385,12 +1373,9 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'ui': settings.UnfoldAndInterpolateSettingsDict,
                     'ui_occ': settings.UnfoldAndInterpolateSettingsDict,
                     'ui_emp': settings.UnfoldAndInterpolateSettingsDict,
-                    'w90_occ': settings.Wannier90SettingsDict,
-                    'w90_emp': settings.Wannier90SettingsDict,
-                    'w90_occ_up': settings.Wannier90SettingsDict,
-                    'w90_emp_up': settings.Wannier90SettingsDict,
-                    'w90_occ_down': settings.Wannier90SettingsDict,
-                    'w90_emp_down': settings.Wannier90SettingsDict,
+                    'w90': settings.Wannier90SettingsDict,
+                    'w90_up': settings.Wannier90SettingsDict,
+                    'w90_down': settings.Wannier90SettingsDict,
                     'plot': settings.PlotSettingsDict}
 
 

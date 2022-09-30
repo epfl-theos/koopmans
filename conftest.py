@@ -111,7 +111,7 @@ def silicon() -> Dict[str, Any]:
     # bulk silicon
     si: Atoms = bulk('Si')
     pdict = [{'fsite': [0.25, 0.25, 0.25], 'ang_mtm': 'sp3'}]
-    si_projs = ProjectionBlocks.fromprojections([pdict, pdict], fillings=[True, False], spins=[None, None], atoms=si)
+    si_projs = ProjectionBlocks.fromlist([pdict, pdict], spins=[None, None], atoms=si)
     kpoints = Kpoints(grid=[2, 2, 2], path='GXG', cell=si.cell)
     return {'atoms': si,
             'calculator_parameters': {'pw': {'nbnd': 10},
@@ -139,8 +139,7 @@ def tio2() -> Dict[str, Any]:
     atoms: Atoms = crystal(['Ti', 'O'], basis=[(0, 0, 0), (0.3, 0.3, 0.0)],
                            spacegroup=136, cellpar=[a, a, c, 90, 90, 90])
 
-    projs = ProjectionBlocks.fromprojections([["Ti:l=0"], ["Ti:l=1"], ["O:l=0"], ["O:l=1"], ["Ti:l=2"]],
-                                             fillings=[True, True, True, True, False],
+    projs = ProjectionBlocks.fromlist([["Ti:l=0"], ["Ti:l=1"], ["O:l=0"], ["O:l=1"], ["Ti:l=2"]],
                                              spins=[None, None, None, None, None],
                                              atoms=atoms)
 
@@ -156,8 +155,7 @@ def tio2() -> Dict[str, Any]:
 def gaas() -> Dict[str, Any]:
     # bulk gallium arsenide
     atoms: Atoms = bulk('GaAs', crystalstructure='zincblende', a=5.6536)
-    gaas_projs = ProjectionBlocks.fromprojections([["Ga: d"], ["As: sp3"], ["Ga: sp3"]],
-                                                  fillings=[True, True, False],
+    gaas_projs = ProjectionBlocks.fromlist([["Ga: d"], ["As: sp3"], ["Ga: sp3"]],
                                                   spins=[None, None, None],
                                                   atoms=atoms)
     kpoints = Kpoints(grid=[2, 2, 2])
