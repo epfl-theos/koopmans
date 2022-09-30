@@ -16,7 +16,7 @@ import numpy as np
 from koopmans.utils import units
 
 
-def parse_physical(value, nelec=None):
+def parse_physical(value):
     '''
     Takes in a value that potentially has a unit following a float,
     converts the value to ASE's default units (Ang, eV), and returns
