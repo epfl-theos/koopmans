@@ -85,9 +85,9 @@ class ProjectionBlocks(object):
         self._blocks = blocks
         self._atoms = atoms
         # This BandBlocks object must keep track of how many bands we have not belonging to any block
-        self.exclude_bands = {None: [], 'up': [], 'down': []}
-        self.num_extra_bands = {None: 0, 'up': 0, 'down': 0}
-        self._num_occ_bands = {}
+        self.exclude_bands: Dict[Optional[str], List[int]] = {None: [], 'up': [], 'down': []}
+        self.num_extra_bands: Dict[Optional[str], int] = {None: 0, 'up': 0, 'down': 0}
+        self._num_occ_bands: Dict[Optional[str], int] = {}
 
     def __repr__(self):
         out = 'ProjectionBlocks('
@@ -225,7 +225,7 @@ class ProjectionBlocks(object):
     @property
     def to_merge(self) -> Dict[Path, List[ProjectionBlock]]:
         # Group the blocks by their correspondence to occupied/empty bands, and by their spin
-        dct = {}
+        dct: Dict[Path, List[ProjectionBlock]] = {}
         for block in self.blocks:
             try:
                 n_occ_bands = self.num_occ_bands[block.spin]
