@@ -52,7 +52,10 @@ class KoopmansDSCFWorkflow(Workflow):
                 # Check that we have wannierized every filled orbital
                 nbands_occ = nelec
                 if self.projections:
-                    nbands_excl = len(self.projections.exclude_bands[spin])
+                    label = 'w90'
+                    if spin:
+                        label += f'_{spin}'
+                    nbands_excl = len(self.calculator_parameters[label].get('exclude_bands', []))
                     if nbands_excl > 0:
                         raise ValueError('Excluding bands is incompatible with method == "dscf". Please provide '
                                          'projections for every band and remove the "exclude_bands" Wannier90 keyword.')
@@ -359,10 +362,10 @@ class KoopmansDSCFWorkflow(Workflow):
                     # Skip if we don't have wannier functions to copy over
                     if self.parameters.init_orbitals != 'kohn-sham':
                         if self.parameters.spin_polarized:
-                            if self.projections.num_wann(occ=(filling == 'occ'), spin=spin) == 0:
+                            if self.bands.num(filled=(filling == 'occ'), spin=spin) == 0:
                                 continue
                         else:
-                            if self.projections.num_wann(occ=(filling == 'occ'), spin=None) == 0:
+                            if self.bands.num(filled=(filling == 'occ'), spin=None) == 0:
                                 continue
 
                     if self.parameters.init_orbitals == 'kohn-sham':

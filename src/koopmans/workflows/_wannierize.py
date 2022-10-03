@@ -51,7 +51,9 @@ class WannierizeWorkflow(Workflow):
                 divs = self.projections.divisions(spin)
                 cumulative_divs = [sum(divs[:i+1]) for i in range(len(divs))]
                 if num_bands_occ not in cumulative_divs:
-                    message = 'The provided Wannier90 projections are not commensurate with the number of electrons'
+                    message = 'The provided Wannier90 projections are not commensurate with the number of ' \
+                              'electrons; divide your list of projections into sublists that represent blocks ' \
+                              'of bands to Wannierize separately'
                     if spin:
                         message += f' (spin {spin})'
                     message += f'= {num_bands_occ}'
@@ -149,11 +151,15 @@ class WannierizeWorkflow(Workflow):
                 # merge with one another
                 self.projections.num_elecs[block.spin] = nelec
 
+                calc_type = 'w90'
+                if block.spin:
+                    calc_type += f'_{block.spin}'
+
                 # Construct the subdirectory label
                 w90_dir = Path('wannier') / block.directory
 
                 # 1) pre-processing Wannier90 calculation
-                calc_w90 = self.new_calculator(block.calc_type, init_orbitals=init_orbs, directory=w90_dir,
+                calc_w90 = self.new_calculator(calc_type, init_orbitals=init_orbs, directory=w90_dir,
                                                **block.w90_kwargs)
                 calc_w90.prefix = 'wann_preproc'
                 calc_w90.command.flags = '-pp'
@@ -168,7 +174,7 @@ class WannierizeWorkflow(Workflow):
                 self.run_calculator(calc_p2w)
 
                 # 3) Wannier90 calculation
-                calc_w90 = self.new_calculator(block.calc_type, directory=w90_dir,
+                calc_w90 = self.new_calculator(calc_type, directory=w90_dir,
                                                init_orbitals=init_orbs,
                                                bands_plot=self.parameters.calculate_bands,
                                                **block.w90_kwargs)

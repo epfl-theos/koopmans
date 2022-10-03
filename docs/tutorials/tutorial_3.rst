@@ -103,7 +103,7 @@ The first step to any calculation on a periodic system is to obtain a good set o
 In the above calculation we gave you some Wannier projections to use:
 
 .. literalinclude:: ../../tutorials/tutorial_3/zno.json
-  :lines: 47-63
+  :lines: 47-55
   :lineno-start: 47
 
 But what if you need to come up with your own Wannier projections? In this bonus section we will explain how to work out Wannier projections for yourself.
@@ -119,8 +119,7 @@ A sensible choice for the occupied projectors is therefore
 .. code:: json
 
     "w90": {
-       "occ": {
-       "projections_blocks": [
+       "projections": [
            [{"site": "Zn", "ang_mtm": "l=0"}],
            [{"site": "Zn", "ang_mtm": "l=1"}],
            [{"site": "O", "ang_mtm": "l=0"}],
@@ -128,7 +127,7 @@ A sensible choice for the occupied projectors is therefore
             {"site": "O", "ang_mtm": "l=1"}]
        ]  
   
-Here we will use of the ``projections_blocks`` functionality to wannierize each block of bands separately. If we didn't do this, then the Wannierization procedure might mix orbitals from different blocks of bands (the algorithm minimizes the spatial spread without regard to the energies of the orbitals it is mixing). This sort of mixing between orbitals of very different energies is generally detrimental to the Wannierization and the resulting Koopmans band structure.
+Here we will use of the block-Wannierization functionality to wannierize each block of bands separately. If we didn't do this, then the Wannierization procedure might mix orbitals from different blocks of bands (the algorithm minimizes the spatial spread without regard to the energies of the orbitals it is mixing). This sort of mixing between orbitals of very different energies is generally detrimental to the Wannierization and the resulting Koopmans band structure.
 
 For the empty bands we want to obtain two bands corresponding to the Zn 4s orbitals. These must be disentangled from the rest of the empty bands, which is achieved via the following ``Wannier90`` keywords.
 
@@ -142,17 +141,7 @@ To determine good values for these keywords, we clearly need a more zoomed-in ba
 
 .. literalinclude:: ../../tutorials/tutorial_3/replot_dft_bandstructure.py
 
-Based on this figure, choose values for these two keywords and add them to your input file, alongside the definition of your projectors, as follows:
-
-.. code-block:: json
-   :emphasize-lines: 2-3
-
-       "emp": {
-          "dis_froz_max": "?",
-          "dis_win_max": "?",
-          "projections": [
-              {"site": "Zn", "ang_mtm": "l=0"}
-          ]  
+Based on this figure, choose values for these two keywords and add them to your input file in the ``w90`` block. Append the Zn 4s projections to to the list of projections, too.
 
 .. note::
 

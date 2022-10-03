@@ -168,11 +168,6 @@ class ProjectionBlocks(object):
                     label = f'spin_{spin}_{label}'
                 b.directory = Path(label)
 
-                # Construct calc_type
-                b.calc_type = 'w90'
-                if b.spin:
-                    b.calc_type += f'_{b.spin}'
-
         return self._blocks
 
     def __iter__(self):
@@ -185,6 +180,8 @@ class ProjectionBlocks(object):
                  spins: List[Union[str, None]],
                  atoms: Atoms):
 
+        if not all([isinstance(p, list) for p in list_of_projections]):
+            raise ValueError('list_of_projections must be a list of lists')
         blocks: List[ProjectionBlock] = []
         blocks += [ProjectionBlock(p, s) for p, s in zip(list_of_projections, spins) if len(p) > 0]
 

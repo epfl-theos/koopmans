@@ -59,27 +59,27 @@ class FoldToSupercellWorkflow(Workflow):
                     if len(subset) > 1:
                         output_directory.mkdir(exist_ok=True)
                         if self.parameters.spin_polarized:
-                            evc_fname = f'evcw.dat'
-                        elif 'up' in output_directory.name:
-                            evc_fname = f'evcw1.dat'
+                            evc_fnames = ['evcw.dat']
                         else:
-                            evc_fname = f'evcw2.dat'
-                        command = ' '.join([f'merge_evc.x -nr {np.prod(self.kpoints.grid)}']
-                                           + [f'-i {b.directory}/{evc_fname}' for b in subset]
-                                           + [f'-o {output_directory}/{evc_fname}'])
-                        if 'occ' in output_directory.name:
-                            label = 'occupied'
-                        else:
-                            label = 'empty'
-                        if subset[0].spin:
-                            label += f' spin {subset[0].spin}'
-                        if self.parameters.from_scratch or not (output_directory / evc_fname).exists():
-                            self.parameters.from_scratch = True
-                            self.print(f'Merging the {label} band blocks... ', end='')
-                            utils.system_call(command)
-                            self.print('done')
-                        else:
-                            self.print(f'Not merging the {label} band blocks as this is already complete')
+                            evc_fnames = ['evcw1.dat', 'evcw2.dat']
+
+                        for evc_fname in evc_fnames:
+                            command = ' '.join([f'merge_evc.x -nr {np.prod(self.kpoints.grid)}']
+                                               + [f'-i {b.directory}/{evc_fname}' for b in subset]
+                                               + [f'-o {output_directory}/{evc_fname}'])
+                            if 'occ' in output_directory.name:
+                                label = 'occupied'
+                            else:
+                                label = 'empty'
+                            if subset[0].spin:
+                                label += f' spin {subset[0].spin}'
+                            if self.parameters.from_scratch or not (output_directory / evc_fname).exists():
+                                self.parameters.from_scratch = True
+                                self.print(f'Merging the {label} band blocks... ', end='')
+                                utils.system_call(command)
+                                self.print('done')
+                            else:
+                                self.print(f'Not merging the {label} band blocks as this is already complete')
 
         else:
             # Create the calculator

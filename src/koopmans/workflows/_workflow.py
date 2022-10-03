@@ -897,14 +897,12 @@ class Workflow(ABC):
 
         # First, extract the w90 subdictionaries
         if 'w90' in calcdict:
+            universal_settings = {k: v for k, v in calcdict['w90'].items() if k not in ['up', 'down']}
             for spin in ['up', 'down']:
                 # Add any keywords in the spin subdictionary
-                calcdict[f'w90_{spin}'] = calcdict['w90'].get(spin, {})
+                calcdict[f'w90_{spin}'] = calcdict['w90'].pop(spin, {})
                 # Add any keywords in the main dictionary
-                dct = {k: v for k, v in calcdict['w90'].items() if k not in ['up', 'down']}
-                calcdict[f'w90_{spin}'].update(dct)
-            # Finally, remove the nested w90 entry
-            del calcdict['w90']
+                calcdict[f'w90_{spin}'].update(universal_settings)
 
         # Secondly, flatten the UI subdictionaries
         if 'ui' in calcdict:
@@ -1135,6 +1133,7 @@ class Workflow(ABC):
                 reduce(operator.getitem, nested_keys[:-1], calcdct['w90'])[k] = params_dict
                 # Projections
                 filling = nested_keys[0] == 'occ'
+                raise NotImplementedError()
                 if len(nested_keys) == 2:
                     spin = nested_keys[1]
                 else:
@@ -1395,5 +1394,5 @@ def sanitize_calculator_parameters(dct_in: Union[Dict[str, Dict], Dict[str, sett
         if k not in settings_classes:
             raise ValueError(
                 f'Unrecognized calculator_parameters entry "{k}": valid options are '
-                '/'.join(settings_classes.keys()))
+                + '/'.join(settings_classes.keys()))
     return dct_out

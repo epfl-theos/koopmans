@@ -80,6 +80,6 @@ class Wannier90SettingsDict(SettingsDict):
                         if k not in ['site', 'csite', 'fsite', 'ang_mtm', 'zaxis', 'xaxis', 'radial', 'zona']:
                             raise KeyError(f'Unrecognized key {k} in the w90 projections block')
                     value[i] = v
-            if key == 'exclude_bands':
+            if key == 'exclude_bands' and isinstance(value, str):
                 value = formatted_str_to_list(value)
             return super().__setitem__(key, value)

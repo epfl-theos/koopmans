@@ -288,8 +288,8 @@
    "__ase_objtype__": "bandpath"
   },
   "pseudopotentials": {
-   "O": "O.upf",
-   "Zn": "Zn.upf"
+   "Zn": "Zn.upf",
+   "O": "O.upf"
   },
   "pseudo_dir": {
    "__path__": "../../../src/koopmans/pseudopotentials/pseudo_dojo_standard_v0.4.1/lda"

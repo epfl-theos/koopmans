@@ -161,7 +161,7 @@ def gaas() -> Dict[str, Any]:
     kpoints = Kpoints(grid=[2, 2, 2])
     return {'atoms': atoms,
             'calculator_parameters': {'pw': {'nbnd': 45},
-                                      'w90_emp': {'dis_froz_max': 14.6, 'dis_win_max': 18.6}
+                                      'w90': {'dis_froz_max': 14.6, 'dis_win_max': 18.6}
                                       },
             'ecutwfc': 40.0,
             'smooth_int_factor': 4,

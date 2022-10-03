@@ -65,16 +65,23 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         else:
             spins = [None]
 
-        for spin in spins:
-            for filling in ['occ', 'emp']:
+        centers = np.array([center for c in w90_calcs for center in c.results['centers']])
+        spreads = np.array([spread for c in w90_calcs for spread in c.results['spreads']])
+
+        for spin, band_filling in zip(spins, self.bands.filling):
+            for filled, filling in zip([True, False], ['occ', 'emp']):
                 calc_presets = filling
                 if spin:
                     calc_presets += '_' + spin
                 calc = self.new_ui_calculator(calc_presets)
-                calc.centers = np.array([center for c in w90_calcs for center in c.results['centers']
-                                        if calc_presets in c.directory.name])
-                calc.spreads = [spread for c in w90_calcs for spread in c.results['spreads']
-                                if calc_presets in c.directory.name]
+
+                # Extract the centers and spreads that have this particular spin and filling
+                ngrid = np.prod(self.kpoints.grid)
+                mask = np.array(band_filling[::ngrid]) == filled
+                calc.centers = centers[mask]
+                calc.spreads = spreads[mask]
+
+                # Run the calculator
                 self.run_calculator(calc, enforce_ss=False)
 
         # Merge the two calculations to print out the DOS and bands
