@@ -115,7 +115,7 @@ def silicon() -> Dict[str, Any]:
     kpoints = Kpoints(grid=[2, 2, 2], path='GXG', cell=si.cell)
     return {'atoms': si,
             'calculator_parameters': {'pw': {'nbnd': 10},
-                                      'w90_emp': {'dis_froz_max': 10.6, 'dis_win_max': 16.9}
+                                      'w90': {'dis_froz_max': 10.6, 'dis_win_max': 16.9}
                                       },
             'plotting': {'Emin': -10, 'Emax': 4, 'degauss': 0.5},
             'projections': si_projs,
@@ -140,8 +140,8 @@ def tio2() -> Dict[str, Any]:
                            spacegroup=136, cellpar=[a, a, c, 90, 90, 90])
 
     projs = ProjectionBlocks.fromlist([["Ti:l=0"], ["Ti:l=1"], ["O:l=0"], ["O:l=1"], ["Ti:l=2"]],
-                                             spins=[None, None, None, None, None],
-                                             atoms=atoms)
+                                      spins=[None, None, None, None, None],
+                                      atoms=atoms)
 
     kpoints = Kpoints(grid=[2, 2, 2], path='GXG', cell=atoms.cell)
     return {'atoms': atoms,
@@ -156,8 +156,8 @@ def gaas() -> Dict[str, Any]:
     # bulk gallium arsenide
     atoms: Atoms = bulk('GaAs', crystalstructure='zincblende', a=5.6536)
     gaas_projs = ProjectionBlocks.fromlist([["Ga: d"], ["As: sp3"], ["Ga: sp3"]],
-                                                  spins=[None, None, None],
-                                                  atoms=atoms)
+                                           spins=[None, None, None],
+                                           atoms=atoms)
     kpoints = Kpoints(grid=[2, 2, 2])
     return {'atoms': atoms,
             'calculator_parameters': {'pw': {'nbnd': 45},
