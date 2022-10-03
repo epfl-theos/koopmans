@@ -224,13 +224,9 @@ class Workflow(ABC):
         if self.parameters.task != 'ui' and autogenerate_settings:
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
-            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
-
-            tot_charge = calculator_parameters['kcp'].get('tot_charge', 0)
-            nelec -= tot_charge
-            tot_mag = calculator_parameters['kcp'].get('tot_magnetization', nelec % 2)
-            nelup = int(nelec / 2 + tot_mag / 2)
-            neldw = int(nelec / 2 - tot_mag / 2)
+            nelec = self.number_of_electrons()
+            nelup = self.number_of_electrons(spin='up')
+            neldw = self.number_of_electrons(spin='down')
 
             # Setting up the magnetic moments
             if 'starting_magnetization(1)' in calculator_parameters['kcp']:
@@ -1287,6 +1283,21 @@ class Workflow(ABC):
         # Removing tmpdirs
         if not self.parameters.keep_tmpdirs:
             self._remove_tmpdirs()
+
+    def number_of_electrons(self, spin: Optional[str] = None) -> int:
+        # Return the number of electrons in a particular spin channel
+        nelec_tot = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
+        pw_params = self.calculator_parameters['pw']
+        if self.parameters.spin_polarized:
+            nelec = nelec_tot - pw_params.get('tot_charge', 0)
+            if spin == 'up':
+                nelec += pw_params.tot_magnetization
+            else:
+                nelec -= pw_params.tot_magnetization
+            nelec = int(nelec // 2)
+        else:
+            nelec = nelec_tot // 2
+        return nelec
 
 
 def header():

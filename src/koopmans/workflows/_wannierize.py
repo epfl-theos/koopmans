@@ -452,18 +452,3 @@ class WannierizeWorkflow(Workflow):
         # Write out
         fname_out = Path('wannier') / merge_directory / (prefix + '_u_dis.mat')
         utils.write_wannier_u_file(fname_out, udis_mat_large, kpts)
-
-    def _num_electrons(self, spin: Optional[str] = None) -> int:
-        # Return the number of electrons in a particular spin channel
-        nelec_tot = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
-        pw_params = self.calculator_parameters['pw']
-        if self.parameters.spin_polarized:
-            nelec = nelec_tot - pw_params.get('tot_charge', 0)
-            if spin == 'up':
-                nelec += pw_params.tot_magnetization
-            else:
-                nelec -= pw_params.tot_magnetization
-            nelec = int(nelec // 2)
-        else:
-            nelec = nelec_tot // 2
-        return nelec
