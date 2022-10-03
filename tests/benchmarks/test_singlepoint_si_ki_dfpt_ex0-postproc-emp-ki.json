@@ -9,13 +9,13 @@
    "__path__": "../../hamiltonian/kc.kcw_hr_emp.dat"
   },
   "w90_seedname": {
-   "__path__": "../../wannier/emp/wann"
+   "__path__": "../../wannier/block_2/wann"
   },
   "dft_smooth_ham_file": {
-   "__path__": "../wannier/emp/wann_hr.dat"
+   "__path__": "../wannier/block_2/wann_hr.dat"
   },
   "dft_ham_file": {
-   "__path__": "../../wannier/emp/wann_hr.dat"
+   "__path__": "../../wannier/block_2/wann_hr.dat"
   },
   "kgrid": [
    2,

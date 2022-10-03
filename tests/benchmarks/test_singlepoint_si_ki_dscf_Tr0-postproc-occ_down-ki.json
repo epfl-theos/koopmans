@@ -9,13 +9,13 @@
    "__path__": "../../final/ham_occ_2.dat"
   },
   "w90_seedname": {
-   "__path__": "../../init/wannier/occ_down/wann"
+   "__path__": "../../init/wannier/spin_down_block_1/wann"
   },
   "dft_smooth_ham_file": {
-   "__path__": "../wannier/occ_down/wann_hr.dat"
+   "__path__": "../wannier/spin_down_block_1/wann_hr.dat"
   },
   "dft_ham_file": {
-   "__path__": "../../init/wannier/occ_down/wann_hr.dat"
+   "__path__": "../../init/wannier/spin_down_block_1/wann_hr.dat"
   },
   "kgrid": [
    2,

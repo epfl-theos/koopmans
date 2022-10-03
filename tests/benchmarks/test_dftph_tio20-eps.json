@@ -3,8 +3,8 @@
   "tr2_ph": 1e-14,
   "fildyn": "tio2.dynG",
   "pseudopotentials": {
-   "O": "O.upf",
-   "Ti": "Ti.upf"
+   "Ti": "Ti.upf",
+   "O": "O.upf"
   },
   "__koopmans_name__": "PhSettingsDict",
   "__koopmans_module__": "koopmans.settings._ph"

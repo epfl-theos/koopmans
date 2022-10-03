@@ -65,21 +65,31 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         else:
             spins = [None]
 
-        centers = np.array([center for c in w90_calcs for center in c.results['centers']])
-        spreads = np.array([spread for c in w90_calcs for spread in c.results['spreads']])
-
         for spin, band_filling in zip(spins, self.bands.filling):
+            # Extract the centers and spreads corresponding to this particular spin
+            centers = np.array([center for c, p in zip(w90_calcs, self.projections)
+                               for center in c.results['centers'] if p.spin == spin])
+            spreads = np.array([spread for c, p in zip(w90_calcs, self.projections)
+                               for spread in c.results['spreads'] if p.spin == spin])
+
             for filled, filling in zip([True, False], ['occ', 'emp']):
                 calc_presets = filling
                 if spin:
                     calc_presets += '_' + spin
                 calc = self.new_ui_calculator(calc_presets)
 
-                # Extract the centers and spreads that have this particular spin and filling
-                ngrid = np.prod(self.kpoints.grid)
+                # Extract the centers and spreads that have this particular filling
+                if self.parameters.method == 'dscf':
+                    # For dscf, self.bands correspond to the supercell so band_filling involves many copies of each
+                    # band
+                    ngrid = np.prod(self.kpoints.grid)
+                else:
+                    # For dfpt, self.bands correspond to the primitive cell so band_filling is already the correct
+                    # dimensions
+                    ngrid = 1
                 mask = np.array(band_filling[::ngrid]) == filled
                 calc.centers = centers[mask]
-                calc.spreads = spreads[mask]
+                calc.spreads = spreads[mask].tolist()
 
                 # Run the calculator
                 self.run_calculator(calc, enforce_ss=False)

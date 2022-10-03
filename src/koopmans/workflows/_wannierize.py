@@ -47,16 +47,15 @@ class WannierizeWorkflow(Workflow):
                 # Work out where we have breaks between blocks of projections, and check that this is commensurate
                 # with the number of electrons in this spin channel. Note that this code can be replaced when we have
                 # an algorithm for occ-emp separation within Wannier90
-                num_bands_occ = self._num_electrons(spin)
+                num_bands_occ = self.number_of_electrons(spin)
+                if not spin:
+                    num_bands_occ /= 2
                 divs = self.projections.divisions(spin)
                 cumulative_divs = [sum(divs[:i+1]) for i in range(len(divs))]
                 if num_bands_occ not in cumulative_divs:
                     message = 'The provided Wannier90 projections are not commensurate with the number of ' \
                               'electrons; divide your list of projections into sublists that represent blocks ' \
                               'of bands to Wannierize separately'
-                    if spin:
-                        message += f' (spin {spin})'
-                    message += f'= {num_bands_occ}'
                     raise ValueError(message)
 
                 # Compare the number of bands from PW to Wannier90
@@ -137,11 +136,14 @@ class WannierizeWorkflow(Workflow):
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
             # Loop over the various subblocks that we must wannierize separately
             for block in self.projections:
-                nelec = self._num_electrons(block.spin)
-                if max(block.include_bands) <= nelec:
+                n_occ_bands = self.number_of_electrons(block.spin)
+                if not block.spin:
+                    n_occ_bands /= 2
+
+                if max(block.include_bands) <= n_occ_bands:
                     # Block consists purely of occupied bands
                     init_orbs = self.parameters.init_orbitals
-                elif min(block.include_bands) > nelec:
+                elif min(block.include_bands) > n_occ_bands:
                     # Block consists purely of empty bands
                     init_orbs = self.parameters.init_empty_orbitals
                 else:
@@ -149,7 +151,7 @@ class WannierizeWorkflow(Workflow):
                     raise ValueError(f'{block} contains both occupied and empty bands. This should not happen.')
                 # Store the number of electrons in the ProjectionBlocks object so that it can work out which blocks to
                 # merge with one another
-                self.projections.num_elecs[block.spin] = nelec
+                self.projections.num_occ_bands[block.spin] = n_occ_bands
 
                 calc_type = 'w90'
                 if block.spin:
@@ -441,8 +443,10 @@ class WannierizeWorkflow(Workflow):
         udis_mat, kpts, _ = utils.read_wannier_u_file(fname_in)
 
         # Build up the larger U_dis matrix, which is a nkpts x nwann_emp x nbnd_emp matrix...
+        raise NotImplementedError()
         nbnd_tot = self.projections.num_bands(occ=False, spin=block[-1].spin)
         nwann_tot = self.projections.num_wann(occ=False, spin=block[-1].spin)
+
         udis_mat_large = np.zeros((len(kpts), nwann_tot, nbnd_tot), dtype=complex)
         # ... with the diagonal entries equal to 1...
         udis_mat_large[:, :nwann_tot, :nwann_tot] = np.identity(nwann_tot)

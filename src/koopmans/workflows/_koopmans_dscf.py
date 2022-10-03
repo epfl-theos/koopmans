@@ -362,7 +362,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     # Skip if we don't have wannier functions to copy over
                     if self.parameters.init_orbitals != 'kohn-sham':
                         if self.parameters.spin_polarized:
-                            if self.bands.num(filled=(filling == 'occ'), spin=spin) == 0:
+                            if self.bands.num(filled=(filling == 'occ'), spin=i_spin) == 0:
                                 continue
                         else:
                             if self.bands.num(filled=(filling == 'occ'), spin=None) == 0:

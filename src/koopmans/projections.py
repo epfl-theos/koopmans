@@ -87,7 +87,7 @@ class ProjectionBlocks(object):
         # This BandBlocks object must keep track of how many bands we have not belonging to any block
         self.exclude_bands = {None: [], 'up': [], 'down': []}
         self.num_extra_bands = {None: 0, 'up': 0, 'down': 0}
-        self._num_elecs = {}
+        self._num_occ_bands = {}
 
     def __repr__(self):
         out = 'ProjectionBlocks('
@@ -200,12 +200,12 @@ class ProjectionBlocks(object):
         return nbands
 
     @property
-    def num_elecs(self):
-        return self._num_elecs
+    def num_occ_bands(self):
+        return self._num_occ_bands
 
-    @num_elecs.setter
-    def num_elecs(self, value: Dict[Optional[str], int]):
-        self._num_elecs = value
+    @num_occ_bands.setter
+    def num_occ_bands(self, value: Dict[Optional[str], int]):
+        self._num_occ_bands = value
 
     def todict(self) -> dict:
         dct: Dict[str, Any] = {k: v for k, v in self.__dict__.items()}
@@ -228,12 +228,13 @@ class ProjectionBlocks(object):
         dct = {}
         for block in self.blocks:
             try:
-                nelec = self.num_elecs[block.spin]
+                n_occ_bands = self.num_occ_bands[block.spin]
             except KeyError:
-                raise AssertionError('Initialize ProjectionBlocks.num_elecs before calling ProjectionBlocks.to_merge()')
-            if max(block.include_bands) <= nelec:
+                raise AssertionError(
+                    'Initialize ProjectionBlocks.num_occ_bands before calling ProjectionBlocks.to_merge()')
+            if max(block.include_bands) <= n_occ_bands:
                 label = 'occ'
-            elif min(block.include_bands) > nelec:
+            elif min(block.include_bands) > n_occ_bands:
                 label = 'emp'
             else:
                 raise ValueError('Block spans both occupied and empty manifolds')

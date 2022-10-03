@@ -224,9 +224,12 @@ class Workflow(ABC):
         if self.parameters.task != 'ui' and autogenerate_settings:
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
-            nelec = self.number_of_electrons()
-            nelup = self.number_of_electrons(spin='up')
-            neldw = self.number_of_electrons(spin='down')
+            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
+            tot_charge = calculator_parameters['kcp'].get('tot_charge', 0)
+            nelec -= tot_charge
+            tot_mag = calculator_parameters['kcp'].get('tot_magnetization', nelec % 2)
+            nelup = int(nelec / 2 + tot_mag / 2)
+            neldw = int(nelec / 2 - tot_mag / 2)
 
             # Setting up the magnetic moments
             if 'starting_magnetization(1)' in calculator_parameters['kcp']:
@@ -1296,7 +1299,7 @@ class Workflow(ABC):
                 nelec -= pw_params.tot_magnetization
             nelec = int(nelec // 2)
         else:
-            nelec = nelec_tot // 2
+            nelec = nelec_tot
         return nelec
 
 
