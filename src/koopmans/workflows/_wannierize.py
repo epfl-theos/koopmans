@@ -442,11 +442,18 @@ class WannierizeWorkflow(Workflow):
         fname_in = Path('wannier') / block[-1].directory / (prefix + '_u_dis.mat')
         udis_mat, kpts, _ = utils.read_wannier_u_file(fname_in)
 
-        # Build up the larger U_dis matrix, which is a nkpts x nwann_emp x nbnd_emp matrix...
-        raise NotImplementedError()
-        nbnd_tot = self.projections.num_bands(occ=False, spin=block[-1].spin)
-        nwann_tot = self.projections.num_wann(occ=False, spin=block[-1].spin)
+        # Calculate how many empty bands we have
+        spin = block[0].spin
+        if spin:
+            nbnd_occ = self.number_of_electrons(spin)
+        else:
+            nbnd_occ = self.number_of_electrons() // 2
+        nbnd_tot = self.calculator_parameters['pw'].nbnd - nbnd_occ
 
+        # Calculate how many empty wannier functions we have
+        nwann_tot = sum([len(p) for p in block])
+
+        # Build up the larger U_dis matrix, which is a nkpts x nwann_emp x nbnd_emp matrix...
         udis_mat_large = np.zeros((len(kpts), nwann_tot, nbnd_tot), dtype=complex)
         # ... with the diagonal entries equal to 1...
         udis_mat_large[:, :nwann_tot, :nwann_tot] = np.identity(nwann_tot)
