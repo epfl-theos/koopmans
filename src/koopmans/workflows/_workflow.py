@@ -1124,28 +1124,22 @@ class Workflow(ABC):
             elif code == 'ui':
                 calcdct['ui'].update(**params_dict)
             elif code.startswith('w90'):
-                nested_keys = code.split('_')[1:]
-                # The following very opaque code fills out the nested dictionary with the list of nested keys
-                for i, k in enumerate(nested_keys):
-                    parent_level = reduce(operator.getitem, nested_keys[:i], calcdct['w90'])
-                    if k not in parent_level:
-                        reduce(operator.getitem, nested_keys[:i], calcdct['w90'])[k] = {}
-                reduce(operator.getitem, nested_keys[:-1], calcdct['w90'])[k] = params_dict
-                # Projections
-                filling = nested_keys[0] == 'occ'
-                raise NotImplementedError()
-                if len(nested_keys) == 2:
-                    spin = nested_keys[1]
+                if '_' in code:
+                    spin = code.split('_')[1]
+                    calcdct['w90'][spin] = params_dict
                 else:
                     spin = None
-                projections = self.projections.get_subset(filling, spin)
-                if len(projections) > 1:
-                    proj_kwarg = {'projections_blocks': [p.projections for p in projections]}
-                elif len(projections) == 1:
-                    proj_kwarg = {'projections': projections[0].projections}
+                    calcdct['w90'] = params_dict
+                projections = self.projections.get_subset(spin)
+                if projections:
+                    proj_kwarg = {'projections': [p.projections for p in projections]}
                 else:
                     proj_kwarg = {}
-                reduce(operator.getitem, nested_keys[:-1], calcdct['w90'])[k].update(**proj_kwarg)
+
+                if spin:
+                    calcdct['w90'][spin].update(**proj_kwarg)
+                else:
+                    calcdct['w90'].update(**proj_kwarg)
             else:
                 raise NotImplementedError(
                     f'Writing of {params.__class__.__name__} with write_json is not yet implemented')
