@@ -40,5 +40,5 @@ def test_roundtrip_cell_parameters(cell: Cell):
         new_params = cell_to_parameters(cell)
         assert params == new_params
     except ValueError as e:
-        if 'You have provided a cell that is not Niggli-reduced' not in str(e):
+        if 'You have provided a cell that appears not to be Niggli-reduced' not in str(e):
             raise
