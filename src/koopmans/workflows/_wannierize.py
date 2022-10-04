@@ -287,7 +287,7 @@ class WannierizeWorkflow(Workflow):
 
         return
 
-    def new_calculator(self, calc_type, *args, **kwargs) -> CalcExtType:  # type: ignore[type-var]
+    def new_calculator(self, calc_type, *args, **kwargs) -> CalcExtType:  # type: ignore[type-var, misc]
         init_orbs = kwargs.pop('init_orbitals', None)
         calc: CalcExtType = super().new_calculator(calc_type, *args, **kwargs)
 
