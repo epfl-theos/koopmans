@@ -141,11 +141,15 @@ To determine good values for these keywords, we clearly need a more zoomed-in ba
 
 .. literalinclude:: ../../tutorials/tutorial_3/replot_dft_bandstructure.py
 
-Based on this figure, choose values for these two keywords and add them to your input file in the ``w90`` block. Append the Zn 4s projections to to the list of projections, too.
+Based on this figure, choose values for these two keywords and add them to your input file in the ``w90`` block. Append the Zn 4s projections to the list of projections, too.
 
 .. note::
 
   ``dis_froz_max`` and ``dis_win_max`` should **not** be provided relative to the valence band edge. Meanwhile the band structure plots have set the valence band edge to zero. Make sure to account for this by shifting the values of ``dis_froz_max`` and ``dis_win_max`` by 9.3 eV (the valence band edge energy; you can get this value yourself via ``grep 'highest occupied level' dft_bands/scf.pwo``)
+
+.. note::
+
+  When disentanglement keywords such as ``dis_win_max`` are provided, they will only be used during the Wannierization of the final block of projections 
 
 Testing the Wannierization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
