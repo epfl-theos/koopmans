@@ -1,17 +1,20 @@
 import os
 import shutil
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import numpy as np
 import pytest
-
 from ase import Atoms, units
-from koopmans import base_directory, calculators, ml_utils, utils
+
+from koopmans import calculators, ml_utils, utils
 from koopmans.bands import Bands
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.io import write_kwf as write_encoded_json
 from koopmans.ml_utils import (load_density_into_array,
                                load_grid_dimension_from_xml_file)
+
+benchmark_dir = Path(__file__).parents[1] / 'benchmarks'
 
 
 @pytest.mark.espresso
@@ -34,12 +37,10 @@ def test_bin2xml(tmpdir, datadir, pytestconfig):
             f.write(f"{bands_to_extract[0].index}, {int(bands_to_extract[0].filled)}, {bands_to_extract[0].spin}\n")
 
         # extract the xml file from the binary
-        command = str(calculators.bin_directory / 'bin2xml_real_space_density.x ') + ' '.join(str(x)
-                                                                                              for x in [datadir / 'ml', dirs_xml, num_bands_occ])
+        command = ' '.join(str(x) for x in ['bin2xml_real_space_density.x', datadir / 'ml', dirs_xml, num_bands_occ])
         utils.system_call(command)
 
         # check if the extracted xml-file matches the reference
-        benchmark_dir = base_directory / 'tests' / 'benchmarks'
         filename_total_density = 'charge-density.xml'
         filename_orbital_density = 'orbital.occ.0.00001.xml'
 
@@ -110,7 +111,6 @@ def test_decomposition(tmpdir, datadir, pytestconfig):
         ml_utils.compute_decomposition(n_max, l_max, r_min, r_max, r_cut, dirs, bands_to_extract, water, centers)
 
         # check if the coefficient vectors match the reference solution
-        benchmark_dir = base_directory / 'tests' / 'benchmarks'
         benchmark_file_orb = benchmark_dir / 'test_compute_decomposition_orb.json'
         benchmark_file_tot = benchmark_dir / 'test_compute_decomposition_tot.json'
         coeff_orb = np.loadtxt(dirs['coeff_orb'] / 'coff.orbital.occ.1.txt')
@@ -170,7 +170,6 @@ def test_compute_power(tmpdir, datadir, pytestconfig):
         # check if the computed power spectra match the reference solution
         power = np.loadtxt(dirs['power'] / 'power_spectrum.orbital.occ.1.txt')
 
-        benchmark_dir = base_directory / 'tests' / 'benchmarks'
         benchmark_file = benchmark_dir / 'test_compute_power.json'
 
         if pytestconfig.getoption('generate_benchmark'):

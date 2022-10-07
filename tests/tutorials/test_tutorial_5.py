@@ -1,13 +1,15 @@
+from pathlib import Path
+
 import pytest
 from deepdiff import DeepDiff
 
-from koopmans import base_directory
 from koopmans.io import read
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.io import write_kwf as write_encoded_json
 from koopmans.utils import chdir
 
-tutorial_dir = base_directory / 'tutorials' / 'tutorial_5'
+tutorial_dir = Path(__file__).parents[2] / 'tutorials' / 'tutorial_5'
+benchmark_dir = Path(__file__).parents[1] / 'benchmarks'
 
 
 @pytest.mark.tutorials
@@ -21,7 +23,6 @@ def test_run_trajectory_ml(tutorial_patch, tmpdir, pytestconfig):
         alphas = wf.all_alphas
 
         # check that the screening parameters match the reference solution
-        benchmark_dir = base_directory / 'tests' / 'benchmarks'
         benchmark_file = benchmark_dir / 'test_run_trajectory_ml.json'
 
         if pytestconfig.getoption('generate_benchmark'):
@@ -51,7 +52,6 @@ def test_run_convergence_ml(tutorial_patch, tmpdir, pytestconfig, sys2file):
         results['spin_1'].pop('evs')
 
         # check that all entries from the result dictionary match the reference solution
-        benchmark_dir = base_directory / 'tests' / 'benchmarks'
         benchmark_file = benchmark_dir / 'test_run_convergence_ml.json'
 
         if pytestconfig.getoption('generate_benchmark'):
