@@ -4,7 +4,6 @@ from typing import List
 
 import numpy as np
 
-from koopmans import base_directory
 from koopmans.calculators import (EnvironCalculator, KoopmansCPCalculator,
                                   KoopmansHamCalculator,
                                   KoopmansScreenCalculator, PhCalculator,
@@ -13,7 +12,6 @@ from koopmans.calculators import (EnvironCalculator, KoopmansCPCalculator,
                                   Wann2KCCalculator, Wann2KCPCalculator,
                                   Wannier90Calculator)
 from koopmans.io import write_kwf as write_encoded_json
-from koopmans.io._kwf import KoopmansEncoder
 from koopmans.workflows import MLFittingWorkflow
 
 from ._utils import (benchmark_filename, find_subfiles_of_calc,
@@ -124,13 +122,6 @@ class BenchGenProjwfcCalculator(BenchmarkGenCalc, ProjwfcCalculator):
     pass
 
 
-class NumpyEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        return json.JSONEncoder.default(self, obj)
-
-
 class BenchGenMLFittingWorkflow(MLFittingWorkflow):
     def _run(self):
 
@@ -141,5 +132,4 @@ class BenchGenMLFittingWorkflow(MLFittingWorkflow):
         fname = metadata_filename(self.calc_that_produced_orbital_densities)
         fname = fname.with_name(fname.name.replace('calc_alpha-ki_metadata.json', 'input_vectors_for_ml.json'))
 
-        with open(fname, 'w') as fd:
-            json.dump({'input_vectors_for_ml': input_vectors_for_ml}, fd, cls=KoopmansEncoder)
+        write_encoded_json({'input_vectors_for_ml': input_vectors_for_ml}, fname)
