@@ -1,7 +1,7 @@
 name: Run tests
 
 on:
-   pull_request_target:
+   pull_request:
       branches:
          - master
    push:
@@ -17,17 +17,10 @@ jobs:
          matrix:
             os: [ubuntu-latest, macOS-latest]
       steps:
-         - name: Set up git user
-           run: |
-              git config --global user.name "koopmans-tester"
-              git config --global user.email ${{ secrets.KOOPMANS_TESTER_EMAIL }}
          - name: Checkout
            uses: actions/checkout@v2
            with:
               submodules: true
-              ssh-known-hosts: 'gitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf'
-              ssh-strict: false
-              ssh-key: ${{ secrets.KOOPMANS_TESTER_PRIVATE_KEY }}
          - name: Set up Python 3.8
            uses: actions/setup-python@v2
            with:
@@ -41,7 +34,6 @@ jobs:
               pytest --ci tests/ -m 'not (tutorials or espresso)' --cov-config=.coveragerc --cov=./koopmans/ --cov-report=xml
          - name: Upload coverage to Codecov
            if: github.repository == 'epfl-theos/koopmans'
-           uses: codecov/codecov-action@v1
+           uses: codecov/codecov-action@v3
            with:
-              token: ${{ secrets.CODECOV_TOKEN }}
               file: coverage.xml
