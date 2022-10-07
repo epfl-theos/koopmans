@@ -1,0 +1,82 @@
+[project]
+name = "koopmans"
+version = "1.0.0-beta.4"
+description = "Koopmans spectral functional calculations with python and Quantum ESPRESSO"
+readme = "README.rst"
+requires-python = ">=3.7"
+authors = [{ name = "Edward Linscott", email = "edward.linscott@epfl.ch" },
+           { name = "Riccardo De Gennaro", email = "riccardo.degennaro@epfl.ch" },
+           { name = "Nicola Colonna", email = "nicola.colonna@psi.ch" }]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "matplotlib>=3.5.1",
+    "scipy>=0.18.1",
+    "numpy>=1.21",
+    "argparse>=1.1",
+    "pandas>=1.0.0",
+    "typing>=3.6",
+    "pybtex>=0.24",
+    "spglib>=1.9",
+    "upf-to-json>=0.9.5",
+    "ase-koopmans==0.1.1",
+    "sklearn>=0.0",
+    "deepdiff>=5.8.1",
+]
+
+[project.urls]
+homepage = "https://koopmans-functionals.org/"
+repository = "https://github.com/epfl-theos/koopmans"
+google-group = "https://groups.google.com/g/koopmans-users"
+
+[project.optional-dependencies]
+test = [
+    "codecov>=2.0",
+    "coverage>=4.4",
+    "hypothesis>=6.0.0",
+    "pytest>=5.4",
+    "pytest-cov>=2.9",
+]
+docs = [
+    "sphinx>=3.0",
+    "sphinxcontrib-bibtex>=2.1.4",
+    "sphinx_toolbox>=2.5.0",
+    "sphinx_rtd_theme>=1.0.0",
+    "recommonmark>=0.7.1",
+    "numpydoc>=1.4.0",
+    "sphinx-pyproject>=0.1.0"
+]
+
+[project.scripts]
+koopmans = "koopmans.cli.main:main"
+
+[tool.mypy]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:Could not find 2nd order Makov-Payne energy; applying first order only:UserWarning",
+    "ignore:Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with caution:UserWarning",
+    "ignore:Makov-Payne corrections are not being used; do this with caution for periodic systems:UserWarning",
+    "ignore:eps_inf missing in input; it will default to 1.0. Proceed with caution for periodic systems:UserWarning",
+    "ignore:Some of the pseudopotentials do not have PP_PSWFC blocks, which means a projected DOS calculation is not possible. Skipping...:UserWarning",
+    "ignore:Neither a pseudopotential library nor a list of pseudopotentials was provided; defaulting to sg15_v1.2:UserWarning",
+    "ignore:The screening parameters for a KI calculation with no empty states will converge instantly; to save computational time set n_max_sc_steps == 1:UserWarning",
+    "ignore:This system is not cubic and will therefore not have a uniform dielectric tensor. However, the image-correction schemes that are currently implemented assume a uniform dielectric. Proceed with caution:UserWarning",
+    'ignore:Small box parameters "nrb" not provided in input:UserWarning',
+]
+addopts = "--show-capture=no --capture=sys --strict-markers --tb=short -rfEs --basetemp=tests/tmp"
+markers = [
+    "espresso: tests that check Quantum ESPRESSO",
+    "tutorials: tests that run the tutorial exercises",
+]

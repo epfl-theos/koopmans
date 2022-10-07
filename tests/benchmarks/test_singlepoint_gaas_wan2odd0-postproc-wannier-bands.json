@@ -1,6 +1,9 @@
 {
  "_parameters": {
   "calculation": "bands",
+  "outdir": {
+   "__path__": "../TMP"
+  },
   "prefix": "kc_bands",
   "conv_thr": 3.6000000000000005e-08,
   "nbnd": 45,
@@ -339,11 +342,11 @@
    "__ase_objtype__": "bandpath"
   },
   "pseudopotentials": {
-   "As": "As_ONCV_PBE-1.0.upf",
-   "Ga": "Ga_ONCV_PBE-1.0.upf"
+   "Ga": "Ga_ONCV_PBE-1.0.upf",
+   "As": "As_ONCV_PBE-1.0.upf"
   },
   "pseudo_dir": {
-   "__path__": "../../../../../pseudos/sg15_v1.0/pbe"
+   "__path__": "../../../../../src/koopmans/pseudopotentials/sg15_v1.0/pbe"
   },
   "gamma_only": false,
   "koffset": [
@@ -3978,7 +3981,7 @@
   "postfix": "-npool 1",
   "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "../../../../bin"
+   "__path__": "../../../../../../../../usr/local/bin"
   },
   "executable": "pw.x",
   "_flags": "",
@@ -8606,5 +8609,5 @@
   }
  ],
  "__koopmans_name__": "BenchGenPWCalculator",
- "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+ "__koopmans_module__": "tests.patches._generate_benchmarks"
 }

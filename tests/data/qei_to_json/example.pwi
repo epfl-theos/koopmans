@@ -2,7 +2,7 @@
    calculation      = 'scf'
    outdir           = 'TMP/'
    prefix           = 'kc'
-   pseudo_dir       = '../../../pseudos/sg15_v1.2/pbe/'
+   pseudo_dir       = '../../../src/koopmans/pseudopotentials/sg15_v1.2/pbe/'
 /
 &SYSTEM
    ibrav            = 2

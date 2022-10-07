@@ -234,7 +234,20 @@
  },
  "results": {
   "job_done": true,
-  "eigenvalues": [],
+  "eigenvalues": [
+   [
+    -43.103,
+    -35.3067,
+    -28.1702,
+    -19.5553,
+    -19.0341,
+    -18.8921,
+    -12.6638,
+    -11.4394,
+    -11.386,
+    -0.5211
+   ]
+  ],
   "ks_eigenvalues_on_grid": [
    [
     -37.7901,
@@ -272,7 +285,7 @@
  "command": {
   "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "../../../bin"
+   "__path__": "../../../../../../../usr/local/bin"
   },
   "executable": "kcw.x",
   "_flags": "",
@@ -298,5 +311,5 @@
  ],
  "kpts": null,
  "__koopmans_name__": "BenchGenKoopmansHamCalculator",
- "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+ "__koopmans_module__": "tests.patches._generate_benchmarks"
 }

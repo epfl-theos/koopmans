@@ -10,20 +10,21 @@ Directories
 -----------
 This repository contains...
 
-| ``ase/`` a fork of ASE that manages reading and writing of ``Quantum ESPRESSO``
 | ``bin/`` executables (N.B. this directory does not need to be added to ``$PATH``)  
+| ``docs/`` documentation (see https://koopmans-functionals.org/)  
+| ``src/`` source code
 | ``quantum_espresso/`` modified versions of ``Quantum ESPRESSO`` that contain implementations of the Koopmans functionals 
 | ``pseudos/`` pseudopotentials
 | ``requirements/`` python dependencies
 | ``tests/`` test suite  
-| ``workflows/`` source code of the workflow manager
+| ``tutorials/`` tutorials  
 
 Installation
 ------------
 
 Quick installation
 ^^^^^^^^^^^^^^^^^^
-For a quick installation one can simply run ``make install``
+For a quick installation one can simply run ``make; sudo make install``
 
 Detailed installation
 ^^^^^^^^^^^^^^^^^^^^^
@@ -67,6 +68,17 @@ Then you need to compile the copies of ``Quantum ESPRESSO``. To do this, run
 
 where ``<mpif90>`` should be replaced by the name of your chosen MPI Fortran90 compiler e.g. ``MPIF90=mpiifort``. The code should automatically detect and link the requisite libraries. (If this fails you may need to manually compile the two versions of ``Quantum ESPRESSO`` contained in the ``quantum_espresso/`` directory.)
 
+Adding Quantum ESPRESSO to your path
+""""""""""""""""""""""""""""""""""""
+
+To add all of the Quantum ESPRESSO binaries to your path, run
+
+.. code-block:: bash
+
+   sudo make install
+
+By default this will copy the Quantum ESPRESSO binaries to ``/usr/local/bin``. This requires sudo privileges. If you do not have sudo privileges, you can either (a) install the codes in a different location by running ``make install PREFIX=/path/to/bin/`` (substitute ``/path/to/bin/`` with any directory of your choosing that is on your path) or (b) append ``bin/`` from the current directory to your path.
+
 Installing the workflow manager
 """""""""""""""""""""""""""""""
 
@@ -75,7 +87,7 @@ Finally, install the python workflow manager, either via ``make workflow``, or
 .. code-block:: bash
 
    python3 -m pip install --upgrade pip
-   python3 -m pip install -e . -e ase/
+   python3 -m pip install -e .
 
 Running
 -------
@@ -85,11 +97,7 @@ Calculations are run with the command
 
    koopmans <seed>.json
 
-where <seed>.json is the ``koopmans`` input file. For a description of the contents of this file, refer to the documentation (`available online <https://koopmans-docs.readthedocs.io>`_). The keywords of ``koopmans`` keywords can be readily listed by running
-
-.. code-block:: bash
-   
-   koopmans --help
+where <seed>.json is the ``koopmans`` input file. For more details, refer to the `online documentation <https://koopmans-docs.readthedocs.io>`_.
 
 Parallelism
 ^^^^^^^^^^^
@@ -104,9 +112,14 @@ In order to run the code in parallel, define the environment variables ``PARA_PR
 Pseudopotentials
 ^^^^^^^^^^^^^^^^
 
-``koopmans`` ships with several pre-existing pseudopotential libraries -- simply select the one you want to use using the ``pseudo_library`` keyword.
+Currently, Koopmans functionals only works with norm-conserving pseudopotentials. We suggest you use optimized norm-conserving Vanderbilt pseudopotentials, such as
 
-If you prefer to use your own pseudopotentials, add them to ``koopmans/pseudopotentials`` in the subdirectory ``<my_pseudos>/<functional>``, where ``<my_pseudos>`` is a name of your choosing and ``<functional>`` is the functional used to generate your pseudopotentials. You can then direct ``koopmans`` to use these pseudopotentials by setting the keywords ``pseudo_library`` and ``base_functional`` to ``<my_pseudos>`` and ``<functional>`` respectively.
+- the `SG15 library <http://www.quantum-simulation.org/potentials/sg15_oncv/index.htm>`_
+- the `Pseudo Dojo library <http://www.pseudo-dojo.org/index.html>`_
+
+For convenience, ``koopmans`` already ships with both of these pseudopotential libraries and you can simply select the one you want to use using the ``pseudo_library`` keyword.
+
+If you prefer to use your own pseudopotentials, add them to ``src/koopmans/pseudopotentials/<my_pseudos>/<functional>``, where ``<my_pseudos>`` is a name of your choosing and ``<functional>`` is the functional used to generate your pseudopotentials. You can then direct ``koopmans`` to use these pseudopotentials by setting the keywords ``pseudo_library`` and ``base_functional`` to ``<my_pseudos>`` and ``<functional>`` respectively.
 
 Alternatively, you can direct the code to always use your personal pseudopotentials directory by defining the variable
 

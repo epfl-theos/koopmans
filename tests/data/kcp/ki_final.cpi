@@ -6,7 +6,7 @@
    outdir           = '/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_h2o_ki_dscf_e0/TMP-CP/'
    prefix           = 'kc'
    disk_io          = 'high'
-   pseudo_dir       = '/home/elinscott/code/koopmans/pseudos/sg15_v1.2/pbe/'
+   pseudo_dir       = '/home/elinscott/code/koopmans/src/koopmans/pseudopotentials/sg15_v1.2/pbe/'
    ndr              = 60
    ndw              = 70
    write_hr         = .true.

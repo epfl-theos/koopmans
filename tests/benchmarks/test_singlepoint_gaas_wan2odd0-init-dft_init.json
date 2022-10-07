@@ -13,11 +13,11 @@
   "ecutwfc": 40.0,
   "nbnd": 104,
   "pseudopotentials": {
-   "As": "As_ONCV_PBE-1.0.upf",
-   "Ga": "Ga_ONCV_PBE-1.0.upf"
+   "Ga": "Ga_ONCV_PBE-1.0.upf",
+   "As": "As_ONCV_PBE-1.0.upf"
   },
   "pseudo_dir": {
-   "__path__": "../../../../pseudos/sg15_v1.0/pbe"
+   "__path__": "../../../../src/koopmans/pseudopotentials/sg15_v1.0/pbe"
   },
   "ndw": 51,
   "ndr": 50,
@@ -45406,7 +45406,7 @@
  "command": {
   "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "../../../bin"
+   "__path__": "../../../../../../../usr/local/bin"
   },
   "executable": "kcp.x",
   "_flags": "",
@@ -45633,5 +45633,5 @@
  "fixed_band": null,
  "kpts": null,
  "__koopmans_name__": "BenchGenKoopmansCPCalculator",
- "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+ "__koopmans_module__": "tests.patches._generate_benchmarks"
 }

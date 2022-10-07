@@ -1,5 +1,8 @@
 {
  "_parameters": {
+  "outdir": {
+   "__path__": "../TMP"
+  },
   "conv_thr": 1.6e-08,
   "tot_charge": 0,
   "tot_magnetization": 0,
@@ -14,7 +17,7 @@
    "Si": "Si_ONCV_PBE-1.2.upf"
   },
   "pseudo_dir": {
-   "__path__": "../../../../pseudos/sg15_v1.2/pbe"
+   "__path__": "../../../../src/koopmans/pseudopotentials/sg15_v1.2/pbe"
   },
   "gamma_only": false,
   "koffset": [
@@ -120,7 +123,7 @@
   "postfix": "",
   "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "../../../bin"
+   "__path__": "../../../../../../../usr/local/bin"
   },
   "executable": "pw.x",
   "_flags": "",
@@ -277,5 +280,5 @@
   }
  ],
  "__koopmans_name__": "BenchGenPWCalculator",
- "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+ "__koopmans_module__": "tests.patches._generate_benchmarks"
 }

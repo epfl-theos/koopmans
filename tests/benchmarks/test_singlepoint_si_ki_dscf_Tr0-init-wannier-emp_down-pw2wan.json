@@ -1,7 +1,7 @@
 {
  "_parameters": {
   "outdir": {
-   "__path__": "../TMP"
+   "__path__": "../../TMP"
   },
   "spin_component": "down",
   "__koopmans_name__": "PW2WannierSettingsDict",
@@ -83,7 +83,7 @@
  "command": {
   "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "../../../../bin"
+   "__path__": "../../../../../../../../usr/local/bin"
   },
   "executable": "pw2wannier90.x",
   "_flags": "",
@@ -94,5 +94,5 @@
  "calc": {},
  "skip_qc": false,
  "__koopmans_name__": "BenchGenPW2WannierCalculator",
- "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+ "__koopmans_module__": "tests.patches._generate_benchmarks"
 }

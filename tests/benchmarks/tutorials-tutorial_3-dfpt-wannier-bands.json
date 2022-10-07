@@ -1,6 +1,9 @@
 {
  "_parameters": {
   "calculation": "bands",
+  "outdir": {
+   "__path__": "../TMP"
+  },
   "prefix": "kc_bands",
   "conv_thr": 1.04e-07,
   "nbnd": 52,
@@ -290,7 +293,7 @@
    "Zn": "Zn.upf"
   },
   "pseudo_dir": {
-   "__path__": "../../../../pseudos/pseudo_dojo_standard_v0.4.1/lda"
+   "__path__": "../../../../src/koopmans/pseudopotentials/pseudo_dojo_standard_v0.4.1/lda"
   },
   "gamma_only": false,
   "koffset": [
@@ -6212,7 +6215,7 @@
   "postfix": "-npool 4",
   "mpi_command": "mpirun -np 8",
   "_path": {
-   "__path__": "../../../bin"
+   "__path__": "../../../../../../../usr/local/bin"
   },
   "executable": "pw.x",
   "_flags": "",
@@ -13857,5 +13860,5 @@
   }
  ],
  "__koopmans_name__": "BenchGenPWCalculator",
- "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+ "__koopmans_module__": "tests.patches._generate_benchmarks"
 }

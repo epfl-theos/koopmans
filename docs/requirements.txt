@@ -4,3 +4,4 @@ sphinx_toolbox>=2.5.0
 sphinx_rtd_theme>=1.0.0
 recommonmark>=0.7.1
 numpydoc>=1.4.0
+sphinx-pyproject>=0.1.0
