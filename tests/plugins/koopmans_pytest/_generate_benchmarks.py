@@ -132,4 +132,5 @@ class BenchGenMLFittingWorkflow(MLFittingWorkflow):
         fname = metadata_filename(self.calc_that_produced_orbital_densities)
         fname = fname.with_name(fname.name.replace('calc_alpha-ki_metadata.json', 'input_vectors_for_ml.json'))
 
-        write_encoded_json({'input_vectors_for_ml': input_vectors_for_ml}, fname)
+        with open(fname, 'w') as fd:
+            write_encoded_json({'input_vectors_for_ml': input_vectors_for_ml}, fd)
