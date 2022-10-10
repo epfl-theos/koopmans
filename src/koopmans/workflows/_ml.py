@@ -145,7 +145,7 @@ class MLFittingWorkflow(Workflow):
                     f.write(
                         f"{self.bands_to_extract[i].index}, {int(self.bands_to_extract[i].filled)}, {self.bands_to_extract[i].spin}\n")
             self.print(f'Running {calculation_title}...', end='', flush=True)
-            command = str(calculators.bin_directory / 'bin2xml_real_space_density.x ') + ' '.join(str(x) for x in [
+            command = str('bin2xml_real_space_density.x ') + ' '.join(str(x) for x in [
                 orbital_densities_bin_dir, self.dirs['xml'], self.num_bands_occ[0]])
             utils.system_call(command)
             self.print(f' done')
