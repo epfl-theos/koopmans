@@ -141,9 +141,9 @@
    ]
   ],
   "spreads": [
-   0.3462645,
+   0.34626451,
    0.43242986,
-   0.50716575,
+   0.50716574,
    0.50431554
   ]
  },
@@ -154,7 +154,7 @@
  "name": "benchgenwannier90calculator",
  "command": {
   "_path": {
-   "__path__": "../../../../../bin"
+   "__path__": "../../../../../../../../../usr/local/bin"
   },
   "executable": "wannier90.x",
   "_flags": "",
@@ -165,5 +165,5 @@
  "calc": {},
  "skip_qc": false,
  "__koopmans_name__": "BenchGenWannier90Calculator",
- "__koopmans_module__": "koopmans.testing._generate_benchmarks"
+ "__koopmans_module__": "koopmans_pytest._generate_benchmarks"
 }
