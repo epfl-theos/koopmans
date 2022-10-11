@@ -6,7 +6,7 @@ from koopmans import calculators
 
 
 def benchmark_filename(calc: calculators.CalculatorExt) -> Path:
-    base_directory = Path(__file__).parents[2]
+    base_directory = Path(__file__).parents[3]
     benchmark_dir = base_directory / 'tests' / 'benchmarks'
     if base_directory / 'tests' / 'tmp' in calc.directory.parents:
         parent = base_directory / 'tests' / 'tmp'
