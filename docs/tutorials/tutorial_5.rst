@@ -148,14 +148,14 @@ We repeat this procedure until we have added all 10 snapshots to the training da
 .. figure:: ../../tutorials/tutorial_5/tutorial_5b/spin_0_alphas_MAE_convergence.png
    :width: 1000
    :align: center
-   :alt: The 20 snapshots generated with perturb_positions.py 
+   :alt: Convergence of the MAE of the predicted screening parameters
 
 and the convergence of the mean absolute error of the predicted orbital energies:
 
 .. figure:: ../../tutorials/tutorial_5/tutorial_5b/spin_0_evs_MAE_convergence.png
    :width: 1000
    :align: center
-   :alt: The 20 snapshots generated with perturb_positions.py 
+   :alt: Convergence of the MAE of the predicted eigenenergies
 
 We can see that we converged to a reasonable accuracy after about 5 training snapshots (which corresponds to 20 occupied and 10 empty orbitals). 
 
