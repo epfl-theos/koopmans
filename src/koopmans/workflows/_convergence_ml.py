@@ -309,6 +309,3 @@ class ConvergenceMLWorkflow(Workflow):
                     plot_convergence(self.convergence_points, res['mean'], res['stdd'], qoi, metric,
                                      spin, self.dirs['convergence_final_results'] / f"{spin_id}_{qoi}_{metric}_convergence")
 
-    def find_matches(self, calcs: List[calculators.Calc], directory: Path, prefix: str) -> List[calculators.Calc]:
-        assert(False)
-        return [c for c in calcs if c.directory == directory and c.prefix == prefix]
