@@ -439,8 +439,9 @@ class Workflow(ABC):
                                'caution for periodic systems')
 
                 if self.parameters.eps_inf is None:
-                    utils.warn('eps_inf missing in input; it will default to 1.0. Proceed with caution for periodic '
-                               'systems; consider setting eps_inf == "auto" to calculate it automatically.')
+                    if self.parameters.mp_correction:
+                        utils.warn('eps_inf missing in input; it will default to 1.0. Proceed with caution for periodic '
+                                'systems; consider setting eps_inf == "auto" to calculate it automatically.')
                     self.parameters.eps_inf = 1.0
 
             if self.parameters.mt_correction is None:
