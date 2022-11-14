@@ -1,6 +1,6 @@
 [project]
 name = "koopmans"
-version = "1.0.0-beta.3"
+version = "1.0.0-beta.4"
 description = "Koopmans spectral functional calculations with python and Quantum ESPRESSO"
 readme = "README.rst"
 requires-python = ">=3.7"
@@ -29,7 +29,7 @@ dependencies = [
     "pybtex>=0.24",
     "spglib>=1.9",
     "upf-to-json>=0.9.5",
-    "ase-koopmans==0.1.0",
+    "ase-koopmans==0.1.1",
 ]
 
 [project.urls]
