@@ -69,7 +69,7 @@ class Workflow(ABC):
     atoms : Atoms
         an ASE ``Atoms`` object defining the atomic positions, cell, etc
 
-    pseudopotentals : Dict[str, str]
+    pseudopotentials : Dict[str, str]
         a dictionary mapping atom labels to pseudopotential filenames
 
     kpoints : koopmans.kpoints.Kpoints
@@ -983,6 +983,8 @@ class Workflow(ABC):
 
         # Define the name of the workflow using the name of the json file
         kwargs['name'] = fname.replace('.json', '')
+
+        kwargs['pseudopotentials'] = bigdct.pop('pseudopotentials', {})
 
         # Check for unexpected blocks
         for block in bigdct:
