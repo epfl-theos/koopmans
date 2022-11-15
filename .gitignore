@@ -15,7 +15,6 @@ coverage.xml
 *.egg-info/
 *.eggs/
 .mypy_cache/
-Yannick_tests
 TMP-CP/
 TMP/
 calc_alpha/
