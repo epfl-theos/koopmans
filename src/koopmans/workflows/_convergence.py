@@ -93,6 +93,7 @@ class ConvergenceWorkflow(Workflow):
 
             get_value: Callable[[Workflow], Any]
             set_value: Callable[[Workflow, Any], None]
+            values: List[Any]
 
             if conv_param == 'cell_size':
                 increment = 0.1
