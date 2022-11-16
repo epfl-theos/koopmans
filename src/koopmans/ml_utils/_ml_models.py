@@ -127,7 +127,8 @@ class MLModel():
 
         x_train = np.atleast_2d(x_train)
         y_train = np.atleast_1d(y_train)
-        if self.X_train is None:
+
+        if self.X_train is None or self.Y_train is None:
             self.X_train = x_train
             self.Y_train = y_train
         else:

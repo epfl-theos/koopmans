@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -65,7 +65,7 @@ def compute_beta(n_max: int, l: int, alphas: np.ndarray) -> np.ndarray:
     return beta
 
 
-def precompute_parameters_of_radial_basis(n_max: int, l_max: int, r_min_thr: float, r_max_thr: float, dirs: Dict[str, Path] = None):
+def precompute_parameters_of_radial_basis(n_max: int, l_max: int, r_min_thr: float, r_max_thr: float, dirs: Optional[Dict[str, Path]] = None):
     """
     Precomputes the alphas and betas needed to define the basis functions (as in Hilmanen et al 2020).
     """

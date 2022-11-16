@@ -21,7 +21,7 @@ class Command(object):
         Command.suffix
     """
 
-    def __init__(self, value: Optional[Union[str, Command]] = None, **kwargs):
+    def __init__(self, value: Optional[Union[str, Command]] = None, **kwargs) -> None:
         self._path = Path()
         self.executable: str = ''
         self._flags: str = ''
@@ -94,7 +94,7 @@ class ParallelCommand(Command):
     An extension to the Command class for mpi-parallelized executables
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.mpi_command: str = ''
         super().__init__(*args, **kwargs)
 
