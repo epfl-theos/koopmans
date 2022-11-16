@@ -17,51 +17,6 @@ from koopmans.ml_utils import (load_density_into_array,
 benchmark_dir = Path(__file__).parents[1] / 'benchmarks'
 
 
-@pytest.mark.espresso
-def test_bin2xml(tmpdir, datadir, pytestconfig):
-    with utils.chdir(tmpdir):
-        n_bands = 1
-        num_bands_occ = 1
-
-        # only check for one occupied orbital
-        bands_to_extract = Bands(n_bands=n_bands, n_spin=1, spin_polarized=False)
-
-        # set up the xml directory
-        ml_dir = tmpdir / 'ml' / 'TMP'
-        dirs_xml = ml_dir / 'xml'
-        os.makedirs(dirs_xml)
-
-        # write the band we want to solve into a file
-        with open(dirs_xml / 'bands_to_solve.txt', "w") as f:
-            f.write(f"{n_bands}\n")
-            f.write(f"{bands_to_extract[0].index}, {int(bands_to_extract[0].filled)}, {bands_to_extract[0].spin}\n")
-
-        # extract the xml file from the binary
-        command = ' '.join(str(x) for x in ['bin2xml_real_space_density.x', datadir / 'ml', dirs_xml, num_bands_occ])
-        utils.system_call(command)
-
-        # check if the extracted xml-file matches the reference
-        filename_total_density = 'charge-density.xml'
-        filename_orbital_density = 'orbital.occ.0.00001.xml'
-
-        if pytestconfig.getoption('generate_benchmark'):
-            shutil.copy(dirs_xml / filename_total_density, benchmark_dir / filename_total_density)
-            shutil.copy(dirs_xml / filename_orbital_density, benchmark_dir / filename_orbital_density)
-        else:
-            nr_xml = load_grid_dimension_from_xml_file(benchmark_dir / filename_total_density)
-            norm_const = 1/(units.Bohr)**3
-
-            result_orbital, _ = load_density_into_array(dirs_xml / filename_orbital_density, nr_xml, norm_const)
-            ref_orbital, _ = load_density_into_array(benchmark_dir / filename_orbital_density, nr_xml, norm_const)
-            result_total, _ = load_density_into_array(
-                dirs_xml / filename_total_density, nr_xml, norm_const, 'CHARGE-DENSITY')
-            ref_total, _ = load_density_into_array(
-                benchmark_dir / filename_total_density, nr_xml, norm_const, 'CHARGE-DENSITY')
-
-            assert np.allclose(result_orbital, ref_orbital)
-            assert np.allclose(result_total, ref_total)
-
-
 def test_decomposition(tmpdir, datadir, pytestconfig):
     with utils.chdir(tmpdir):
 

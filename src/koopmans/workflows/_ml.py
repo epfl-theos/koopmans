@@ -133,21 +133,30 @@ class MLFittingWorkflow(Workflow):
         orbital_densities_bin_dir = self.calc_that_produced_orbital_densities.parameters.outdir / \
             f'kc_{self.calc_that_produced_orbital_densities.parameters.ndw}.save'
 
-        calculation_title = 'conversion binary->xml of real-space-densities'
+        calculation_title = 'Converting the real-space densities from binary to xml format'
         is_complete = self.check_if_bin2xml_is_complete()
 
         if not self.parameters.from_scratch and is_complete:
             self.print(f'Not running {calculation_title} as it is already complete')
         else:
-            with open(self.dirs['xml'] / 'bands_to_solve.txt', "w") as f:
-                f.write(f"{len(self.bands_to_extract)}\n")
-                for i in range(len(self.bands_to_extract)):
-                    f.write(
-                        f"{self.bands_to_extract[i].index}, {int(self.bands_to_extract[i].filled)}, {self.bands_to_extract[i].spin}\n")
             self.print(f'Running {calculation_title}...', end='', flush=True)
-            command = str('bin2xml_real_space_density.x ') + ' '.join(str(x) for x in [
-                orbital_densities_bin_dir, self.dirs['xml'], self.num_bands_occ[0]])
+
+            # Convert total density to XML
+            command = f'bin2xml.x {orbital_densities_bin_dir}/charge-density.dat {self.dirs["xml"]}/charge-density.xml'
             utils.system_call(command)
+
+            # Convert orbital densities to XML
+            for band in self.bands_to_extract:
+                if band.filled:
+                    occ_id = 'occ'
+                else:
+                    occ_id = 'emp'
+                dat_seed = f'real_space_orb_density.{occ_id}.{band.spin}.{band.index:05d}'
+                xml_seed = f'orbital.{occ_id}.{band.spin}.{band.index:05d}'
+
+                command = f'bin2xml.x {orbital_densities_bin_dir}/{dat_seed}.dat {self.dirs["xml"]}/{xml_seed}.xml'
+                utils.system_call(command)
+
             self.print(f' done')
 
     def check_if_bin2xml_is_complete(self) -> bool:
@@ -166,12 +175,12 @@ class MLFittingWorkflow(Workflow):
         Performs the decomposition into radial basis functions and spherical harmonics.
         """
 
-        calculation_title = 'computation of decomposition of real-space-density'
+        calculation_title = 'the decomposition of the real-space density'
         is_complete = self.check_if_compute_decomposition_is_complete()
         if not self.parameters.from_scratch and is_complete:
-            self.print(f'Not running {calculation_title} as it is already complete')
+            self.print(f'Not calculating {calculation_title} as it is already complete')
         else:
-            self.print(f'Running {calculation_title}...', end='', flush=True)
+            self.print(f'Calculating {calculation_title}...', end='', flush=True)
 
             # /2.5 #the maximum radius will be set to the minimum of self.r_cut and half of the cell-size later on
             self.r_cut = min(self.atoms.get_cell_lengths_and_angles()[:3])
