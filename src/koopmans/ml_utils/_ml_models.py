@@ -1,6 +1,6 @@
 import copy
 from abc import ABC, abstractmethod
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 import numpy as np
 from deepdiff import DeepDiff
@@ -67,7 +67,7 @@ class MeanModel(AbstractPredictor):
 
 
 class MLModel():
-    def __init__(self, type_of_ml_model='ridge_regression', is_trained: bool = False, X_train: np.ndarray = None, Y_train: np.ndarray = None):
+    def __init__(self, type_of_ml_model='ridge_regression', is_trained: bool = False, X_train: Optional[np.ndarray] = None, Y_train: Optional[np.ndarray] = None):
         self.X_train = X_train
         self.Y_train = Y_train
         self.type_of_ml_model = type_of_ml_model
@@ -85,10 +85,10 @@ class MLModel():
             raise ValueError(f"{self.type_of_ml_model} is not implemented as a valid ML model.")
 
     def __repr__(self):
-        if self.X_train is None:
-            return f'{self.type_of_ml_model}(is_trained={self.model.is_trained}, no training data has been added so far)'
-        else:
+        if self.X_train and self.Y_train:
             return f'{self.type_of_ml_model}(is_trained={self.model.is_trained}, number_of_training_vectors={self.X_train.shape[0]}, input_vector_dimension={self.Y_train.shape[0]})'
+        else:
+            return f'{self.type_of_ml_model}(is_trained={self.model.is_trained}, no training data has been added so far)'
 
     def todict(self):
         dct = copy.deepcopy(dict(self.__dict__))
