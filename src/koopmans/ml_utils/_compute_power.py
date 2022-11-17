@@ -11,11 +11,11 @@ def read_coeff_matrix(coff_orb: np.ndarray, coff_tot: np.ndarray, n_max: int, l_
     Reads the flat coefficient vector into a matrix with the correct dimensions.
     """
 
-    coff_matrix = np.zeros((2, n_max, l_max+1, 2*l_max+1), dtype=float)
+    coff_matrix = np.zeros((2, n_max, l_max + 1, 2 * l_max + 1), dtype=float)
     idx = 0
     for n in range(n_max):
-        for l in range(l_max+1):
-            for m in range(2*l+1):
+        for l in range(l_max + 1):
+            for m in range(2 * l + 1):
                 coff_matrix[0, n, l, m] = coff_orb[idx]
                 coff_matrix[1, n, l, m] = coff_tot[idx]
                 idx += 1
@@ -40,9 +40,11 @@ def compute_power_mat(coff_matrix: np.ndarray, n_max: int, l_max: int) -> np.nda
     return np.array(power)
 
 
-def compute_power(n_max: int, l_max: int, dirs: Dict[str, Path], bands: Bands, input_vectors_fo_ml: Dict[str, np.ndarray]):
+def compute_power(n_max: int, l_max: int, dirs: Dict[str, Path], bands: Bands,
+                  input_vectors_fo_ml: Dict[str, np.ndarray]):
     """
-    Loads the coefficient vectors corresponding to the orbital and to the total density, computes the corresponding power spectrum and saves it to a file.
+    Loads the coefficient vectors corresponding to the orbital and to the total density, computes the corresponding
+    power spectrum and saves it to a file.
     """
 
     for band in bands:

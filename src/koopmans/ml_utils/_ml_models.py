@@ -11,7 +11,7 @@ from sklearn.preprocessing import StandardScaler
 class AbstractPredictor(ABC):
 
     @abstractmethod
-    def predict(self,  x_test: np.ndarray) -> np.ndarray:
+    def predict(self, x_test: np.ndarray) -> np.ndarray:
         ...
 
     @abstractmethod
@@ -31,7 +31,7 @@ class RidgeRegressionModel(AbstractPredictor):
         self.model.fit(X_train_scaled, Y_train)
         self.is_trained = True
 
-    def predict(self,  x_test: np.ndarray) -> np.ndarray:
+    def predict(self, x_test: np.ndarray) -> np.ndarray:
         X_test = np.atleast_2d(x_test)
         X_test = self.scaler.transform(X_test)
         y_predict = self.model.predict(X_test)
@@ -47,7 +47,7 @@ class LinearRegressionModel(AbstractPredictor):
         self.model.fit(X_train, Y_train)
         self.is_trained = True
 
-    def predict(self,  x_test: np.ndarray) -> np.ndarray:
+    def predict(self, x_test: np.ndarray) -> np.ndarray:
         X_test = np.atleast_2d(x_test)
         y_predict = self.model.predict(X_test)
         return y_predict
@@ -61,13 +61,14 @@ class MeanModel(AbstractPredictor):
     def fit(self, X_train: np.ndarray, Y_train: np.ndarray):
         self.mean = np.mean(Y_train)
 
-    def predict(self,  x_test: np.ndarray) -> np.ndarray:
+    def predict(self, x_test: np.ndarray) -> np.ndarray:
         shape = np.shape(x_test)[0]
         return self.mean*np.ones(shape)
 
 
 class MLModel():
-    def __init__(self, type_of_ml_model='ridge_regression', is_trained: bool = False, X_train: Optional[np.ndarray] = None, Y_train: Optional[np.ndarray] = None):
+    def __init__(self, type_of_ml_model='ridge_regression', is_trained: bool = False,
+                 X_train: Optional[np.ndarray] = None, Y_train: Optional[np.ndarray] = None):
         self.X_train = X_train
         self.Y_train = Y_train
         self.type_of_ml_model = type_of_ml_model
@@ -86,9 +87,12 @@ class MLModel():
 
     def __repr__(self):
         if self.X_train and self.Y_train:
-            return f'{self.type_of_ml_model}(is_trained={self.model.is_trained}, number_of_training_vectors={self.X_train.shape[0]}, input_vector_dimension={self.Y_train.shape[0]})'
+            return f'{self.type_of_ml_model}(is_trained={self.model.is_trained}, ' \
+                   f'number_of_training_vectors={self.X_train.shape[0]}, ' \
+                   f'input_vector_dimension={self.Y_train.shape[0]})'
         else:
-            return f'{self.type_of_ml_model}(is_trained={self.model.is_trained}, no training data has been added so far)'
+            return f'{self.type_of_ml_model}(is_trained={self.model.is_trained}, ' \
+                   'no training data has been added so far)'
 
     def todict(self):
         dct = copy.deepcopy(dict(self.__dict__))

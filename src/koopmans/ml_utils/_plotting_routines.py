@@ -7,13 +7,15 @@ import numpy as np
 from koopmans import utils
 
 
-def plot_calculated_vs_predicted(y: np.ndarray, y_pred: np.ndarray, qoi: str, filename: Path, metric: Tuple[str, float]):
+def plot_calculated_vs_predicted(y: np.ndarray, y_pred: np.ndarray, qoi: str, filename: Path,
+                                 metric: Tuple[str, float]):
     """
-    Plot the the calculated vs predicted alpha parameters (or other quantities of interest) for a given number of training samples.
+    Plot the the calculated vs predicted alpha parameters (or other quantities of interest) for a given number of
+    training samples.
     """
-    fig, ax = plt.subplots(1, 1, figsize=(7.5, 7.5))
-    lb_x = 0.98*min(y)
-    ub_x = 1.02*max(y)
+    _, ax = plt.subplots(1, 1, figsize=(7.5, 7.5))
+    lb_x = 0.98 * min(y)
+    ub_x = 1.02 * max(y)
     x = np.linspace(lb_x, ub_x, 1000)
     ax.set_xlim((lb_x, ub_x))
     ax.set_ylim((lb_x, ub_x))
@@ -28,10 +30,11 @@ def plot_calculated_vs_predicted(y: np.ndarray, y_pred: np.ndarray, qoi: str, fi
 
 def plot_error_histogram(y: np.ndarray, y_pred: np.ndarray, qoi: str, filename: Path, metric: Tuple[str, float]):
     """
-    Plot the error histogram of the alpha parameters (or other quantities of interest) for a given number of training samples.
+    Plot the error histogram of the alpha parameters (or other quantities of interest) for a given number of
+    training samples.
     """
     error = np.abs(y-y_pred)
-    fig, ax = plt.subplots(1, 1, figsize=(7.5, 7.5))
+    _, ax = plt.subplots(1, 1, figsize=(7.5, 7.5))
     lb_x = 0.0
     ub_x = 0.5
     plt.xlabel(f"error")
@@ -44,12 +47,14 @@ def plot_error_histogram(y: np.ndarray, y_pred: np.ndarray, qoi: str, filename: 
     plt.close()
 
 
-def plot_convergence(convergence_points: np.ndarray, means: np.ndarray, stddevs: np.ndarray, qoi: str, metric_name: str, spin: int, filename: Path):
+def plot_convergence(convergence_points: np.ndarray, means: np.ndarray, stddevs: np.ndarray, qoi: str,
+                     metric_name: str, spin: int, filename: Path):
     """
-    Plot the convergence of the MAE (or other error-metrics) of the alpha parameters (or other quantities of interest) as a function of the training samples.
+    Plot the convergence of the MAE (or other error-metrics) of the alpha parameters (or other quantities of interest)
+    as a function of the training samples.
     """
 
-    fig, ax = plt.subplots(1, 1, figsize=(15.0, 7.5))
+    _, ax = plt.subplots(1, 1, figsize=(15.0, 7.5))
     ax.xaxis.get_major_locator().set_params(integer=True)
     ax.set_xlabel("Number of snapshots for training")
     ax.set_ylabel(f"{metric_name} of predicted {qoi}")
