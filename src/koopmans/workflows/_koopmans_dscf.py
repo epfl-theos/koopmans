@@ -167,7 +167,7 @@ class KoopmansDSCFWorkflow(Workflow):
                                      'automatically set by the Koopmans workflow. Remove this keyword from the input '
                                      'file')
 
-        # Initialise self.init_empty_orbitals if it has not been set
+        # Check self.init_empty_orbitals
         if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
             raise NotImplementedError(f'The combination init_orbitals = {self.parameters.init_orbitals} '
                                       f'and init_empty_orbitals = {self.parameters.init_empty_orbitals} '
