@@ -34,17 +34,13 @@ def write_xsf(filename: Path, atoms: Atoms, arrays: List[np.ndarray], nr_xml: Tu
         for symbol, pos in zip(symbols, positions):
             out.write("\t" + symbol + " " + " ".join([f"{x:13.10f}" for x in pos]) + " \n")
         out.write('BEGIN_BLOCK_DATAGRID_3D\n')
-        out.write("\t" + 'my_first_example_of_3D_datagrid\n')
+        out.write("\t" + 'Datagrid_written_by_koopmans\n')
         for i, array_xsf in enumerate(arrays_xsf):
-            out.write("\t" + 'BEGIN_DATAGRID_3D_this_is_3Dgrid#' + str(i+1) + '\n')
-            out.write("\t" + "\t" + str(nr_xml[0]) + '\t' + str(nr_xml[1]) + '\t' + str(nr_xml[2]) + '\t\n')
-            out.write("\t" + "\t" + str(0.0) + '\t' + str(0.0) + '\t' + str(0.0) + '\t\n')  # origin of the data grid
-            # third spanning vector of the data grid
-            out.write("\t" + "\t" + str(cell_parameters[0][0]) + '\t' + str(0.0) + '\t' + str(0.0) + '\t\n')
-            # second spanning vector of the data grid
-            out.write("\t" + "\t" + str(0.0) + '\t' + str(cell_parameters[1][1]) + '\t' + str(0.0) + '\t\n')
-            out.write("\t" + "\t" + str(0.0) + '\t' + str(0.0) + '\t' +
-                      str(cell_parameters[2][2]) + '\t\n')  # first spanning vector of the data grid
+            out.write(f'\tBEGIN_DATAGRID_3D_#{i+1}\n')
+            out.write(f"\t\t{nr_xml[0]}\t{nr_xml[1]}\t{nr_xml[2]}\t\n")
+            out.write("\t\t0.0\t0.0\t0.0\t\n")  # origin of the data grid
+            for vec in cell_parameters:
+                out.write("\t\t" + "\t".join([str(x) for x in vec]) + "\t\n")
             for k in range(nr_xml[2]):
                 for j in range(nr_xml[1]):
                     out.write("\t\t")
