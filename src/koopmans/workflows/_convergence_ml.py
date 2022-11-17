@@ -8,8 +8,7 @@ import numpy as np
 from ase import Atoms, io
 from sklearn.metrics import mean_absolute_error, r2_score
 
-from koopmans import calculators, utils
-from koopmans.calculators import Calc
+from koopmans import utils
 from koopmans.ml_utils import MLModel, precompute_parameters_of_radial_basis
 from koopmans.ml_utils._plotting_routines import (plot_calculated_vs_predicted,
                                                   plot_convergence,
@@ -55,7 +54,7 @@ class ConvergenceMLWorkflow(Workflow):
 
         wf = super(ConvergenceMLWorkflow, cls)._fromjsondct(bigdct, override)
 
-        # initialize the set of snapshots for training and testing
+        # Initialize the set of snapshots for training and testing
         wf.snapshots = snapshots
         wf.number_of_snapshots = len(snapshots)
         wf.convergence_points = list(range(0, wf.ml.number_of_training_snapshots))
@@ -130,9 +129,11 @@ class ConvergenceMLWorkflow(Workflow):
                 "of snapshots in the xyz-file or decrease 'number_of_training_snapshots'")
 
         def convert_to_list(param, type):
-            if isinstance(param, type):  # if param is an int or a float convert it for the checks to a list
+            if isinstance(param, type):
+                # If param is an int or a float convert it for the checks to a list
                 return [param]
-            else:  # if param is not an int or a float check that it is a list of ints / floats
+            else:
+                # If param is not an int or a float check that it is a list of ints / floats
                 assert(isinstance(param, list))
                 for value in param:
                     assert(isinstance(value, type))
@@ -143,7 +144,7 @@ class ConvergenceMLWorkflow(Workflow):
         r_mins = convert_to_list(self.ml.r_min, float)
         r_maxs = convert_to_list(self.ml.r_max, float)
 
-        # perform a grid search iff there is at least one parameter that contains more than one number
+        # Perform a grid search iff there is at least one parameter that contains more than one number
         if len(n_maxs)+len(l_maxs)+len(r_mins)+len(r_maxs) > 4:
             grid_search_mode = True
         else:
@@ -151,15 +152,15 @@ class ConvergenceMLWorkflow(Workflow):
 
         self.inititalize_directories(grid_search_mode)
 
-        # if the eigenvalues are quantities of interest we have to perform the final calcualtion afresh for every
+        # If the eigenvalues are quantities of interest we have to perform the final calcualtion afresh for every
         # snapshot since its result (and thereby the eigenvalues) depend on the prediction of the alpha parameters
         get_evs = False
         if 'evs' in self.ml.quantities_of_interest:
             get_evs = True
 
-        # get the ab-initio result for the test_indices
+        # Get the ab-initio result for the test_indices
         self.print(f'Obtaining ab-initio results for the last {len(self.test_indices)} snapshot(s)', style='heading')
-        # make sure that we compute these snapshots ab-initio and don't use the ml-predicted alpha values
+        # Make sure that we compute these snapshots ab-initio and don't use the ml-predicted alpha values
         use_ml = self.ml.use_ml
         self.ml.use_ml = False
         twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots, indices=self.test_indices,
@@ -243,8 +244,9 @@ class ConvergenceMLWorkflow(Workflow):
         Create a directory that contains all relevant results. This intermediate step is supposed to simplify
         debugging and postprocessing.
         '''
-        # define the quantities we are interested in (calculating the eigenvalues requires performing the final
-        # calculation afresh for every snapshot and is hence a little bit more computationally expensive).
+
+        # Define the quantities we are interested in (calculating the eigenvalues requires performing the final
+        # calculation afresh for every snapshot and is hence a little bit more computationally expensive)
         metrics = {'MAE': mean_absolute_error, 'R2S': r2_score}
         statistics = {'mean': np.mean, 'stdd': np.std}
 
@@ -287,14 +289,11 @@ class ConvergenceMLWorkflow(Workflow):
                         for statistic in statistics:
                             self.result_dict[spin_id][qoi][metric][statistic][i] = statistics[statistic](tmp_array)
 
-        # with open(self.dirs['convergence_final_results'] / 'result_dict.pkl', 'wb') as handle:
-        #     pickle.dump(result_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
     def make_convergence_analysis_plots(self):
         """
-        Create all relevant plots for the convergence analysis.
+        Create all relevant plots for the convergence analysis
         """
-        metrics = {'MAE': mean_absolute_error}  # , 'R2S': r2_score}
+        metrics = {'MAE': mean_absolute_error}
 
         if self.parameters.spin_polarized:
             max_spin = self.bands.n_spin
