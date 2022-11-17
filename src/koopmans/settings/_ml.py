@@ -31,7 +31,7 @@ class MLSettingsDict(SettingsDictWithChecks):
             Setting('current_snapshot',
                     'Number of snapshots already trained on',
                     int, 0, None),
-            Setting('alphas_from_file_for_debugging_ml_model',
+            Setting('alphas_from_file',
                     'If true, read the screening coefficients from file instead of calculating them ab-initio. The files have to be provided in the snapshot_ folders.',
                     bool, False, (True, False)),
             Setting('train_on_the_fly',

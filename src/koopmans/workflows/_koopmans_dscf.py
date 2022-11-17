@@ -168,8 +168,6 @@ class KoopmansDSCFWorkflow(Workflow):
                                      'file')
 
         # Initialise self.init_empty_orbitals if it has not been set
-        if self.parameters.init_empty_orbitals == 'same':
-            self.parameters.init_empty_orbitals = self.parameters.init_orbitals
         if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
             raise NotImplementedError(f'The combination init_orbitals = {self.parameters.init_orbitals} '
                                       f'and init_empty_orbitals = {self.parameters.init_empty_orbitals} '
@@ -343,11 +341,7 @@ class KoopmansDSCFWorkflow(Workflow):
             # to copy the previously calculated Wannier functions
             calc = self.new_kcp_calculator('dft_dummy')
             calc.directory = Path('init')
-
-            # try:
             self.run_calculator(calc, enforce_ss=False)
-            # except:
-            #     raise ValueError("run_cal")
 
             # DFT restarting from Wannier functions (after copying the Wannier functions)
             calc = self.new_kcp_calculator('dft_init', restart_mode='restart',
@@ -464,12 +458,11 @@ class KoopmansDSCFWorkflow(Workflow):
 
     def _overwrite_canonical_with_variational_orbitals(self, calc: calculators.KoopmansCPCalculator) -> None:
         self.print('Overwriting the variational orbitals with Kohn-Sham orbitals')
-        savedir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
-        utils.system_call(f'cp {savedir}/evc1.dat {savedir}/evc01.dat')
-        utils.system_call(f'cp {savedir}/evc2.dat {savedir}/evc02.dat')
+        savedir = calc.parameters.outdir / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
         for ispin in range(2):
+            shutil.copy(savedir / f'evc{ispin + 1}.dat', savedir / f'evc0{ispin + 1}.dat')
             if calc.has_empty_states(ispin):
-                utils.system_call(f'cp {savedir}/evc_empty{ispin + 1}.dat {savedir}/evc0_empty{ispin + 1}.dat')
+                shutil.copy(savedir / f'evc_empty{ispin + 1}.dat', savedir / f'evc0_empty{ispin + 1}.dat')
 
     def perform_alpha_calculations(self) -> None:
         # Set up directories
@@ -615,20 +608,21 @@ class KoopmansDSCFWorkflow(Workflow):
                     if self.parameters.spin_polarized and band.spin == 1:
                         index_empty_to_save += self.bands.num(filled=False, spin=0)
 
-                # Make ML-prediction and decide wheather we want to use this prediction
+                # Make ML-prediction and decide whether we want to use this prediction
                 if self.ml.use_ml:
                     alpha_predicted = mlfit.predict(band)
-                    # Wheather to use the ML-prediction
+                    # Whether to use the ML-prediction
                     use_prediction = mlfit.use_prediction()
-                if not self.ml.use_ml or not (use_prediction or self.ml.alphas_from_file_for_debugging_ml_model):
-                    self.perform_fixed_band_calculations(
-                        band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs)
+                if not self.ml.use_ml or not (use_prediction or self.ml.alphas_from_file):
+                    self.perform_fixed_band_calculations(band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save,
+                                                         outdir_band, directory, alpha_indep_calcs)
 
                 if self.ml.use_ml and use_prediction:
                     alpha = alpha_predicted
-                    error = 0.0  # I would set the error for the predicted alphas to 0.0, because currently we don't want to make another scf-step because of predicted alphas
+                    error = 0.0  # set the error for the predicted alphas to 0.0, because we don't want to make another
+                    # scf-step because of predicted alphas
                 else:
-                    if self.ml.use_ml and self.ml.alphas_from_file_for_debugging_ml_model:
+                    if self.ml.use_ml and self.ml.alphas_from_file:
                         # Dummy calculation to circumvent the fixed-band-calculation for debugging
                         alpha, error = mlfit.get_alpha_from_file_for_debugging(band)
                     else:

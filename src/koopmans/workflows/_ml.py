@@ -182,10 +182,10 @@ class MLFittingWorkflow(Workflow):
         else:
             self.print(f'Calculating {calculation_title}...', end='', flush=True)
 
-            # /2.5 #the maximum radius will be set to the minimum of self.r_cut and half of the cell-size later on
+            # the maximum radius will be set to the minimum of self.r_cut and half of the cell-size later on
             self.r_cut = min(self.atoms.get_cell_lengths_and_angles()[:3])
 
-            # Extract te wannier-centres
+            # Extract the wannier-centres
             # Store the original w90 calculations
             w90_calcs = [c for c in self.calculations if isinstance(
                 c, calculators.Wannier90Calculator) and c.command.flags == ''][-len(self.projections):]
@@ -312,8 +312,6 @@ class MLFittingWorkflow(Workflow):
             filled_str = 'emp'
         return self.input_vectors_for_ml[f"power_spectrum.orbital.{filled_str}.{band.index}"]
 
-        #np.loadtxt(self.dirs['power'] / f"power_spectrum.orbital.{filled_str}.{band.index}.txt")
-
     def load_SH(self, band: Band) -> np.ndarray:
         if band.filled:
             filled_str = 'occ'
@@ -367,9 +365,9 @@ class MLFittingWorkflow(Workflow):
         Prints a summary of the prediction of the alphas values of one band.
         """
 
-        utils.indented_print('\npredicted  screening parameter: {0:.5f}'.format(alpha_predicted), indent=indent)
+        utils.indented_print('\npredicted screening parameter:  {0:.5f}'.format(alpha_predicted), indent=indent)
         utils.indented_print('calculated screening parameter: {0:.5f}'.format(alpha_calculated), indent=indent)
-        utils.indented_print('absoulute error               : {0:.5f}'.format(
+        utils.indented_print('absoulute error:                {0:.5f}'.format(
             np.abs(alpha_predicted-alpha_calculated)), indent=indent)
         utils.indented_print('')
 
@@ -377,13 +375,7 @@ class MLFittingWorkflow(Workflow):
         """
         Prints a summary of the prediction of the alphas values of all bands.
         """
-        # Printing out a progress summary
-        # utils.indented_print(f'\nerror of predictions', indent=indent)
-        # utils.indented_print('calculated ' + str(self.calculated_alphas), indent=indent)
-        # utils.indented_print('predicted  ' + str(self.predicted_alphas), indent=indent)
-        # utils.indented_print(str(self.bands.alpha_history), indent=indent)
-        # utils.indented_print('')
-        utils.indented_print('\nThe mean absolut error of the predicted screening parameters of this snapshot is {0:.7f}'.format(
+        utils.indented_print('\nThe mean absolute error of the predicted screening parameters of this snapshot is {0:.7f}'.format(
             mae(self.predicted_alphas, self.calculated_alphas)), indent=indent)
         utils.indented_print('')
 
