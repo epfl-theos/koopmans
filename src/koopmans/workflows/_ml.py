@@ -217,7 +217,8 @@ class MLFittingWorkflow(Workflow):
         """
 
         # If there are as many coefficient-files as there are bands to solve, the calculation was already completed
-        if (len([name for name in os.listdir(self.dirs['coeff'] / 'coeff_tot') if os.path.isfile(self.dirs['coeff'] / 'coeff_tot' / name)]) == (self.num_bands_to_extract[0] + self.num_bands_to_extract[1])):
+        if len([name for name in os.listdir(self.dirs['coeff'] / 'coeff_tot') if
+                os.path.isfile(self.dirs['coeff'] / 'coeff_tot' / name)]) == sum(self.num_bands_to_extract):
             return True
         else:
             return False

@@ -23,10 +23,12 @@ def precompute_basis_function(radial_basis_functions: RadialBasisFunctions,
                               spherical_basis_functions: SphericalBasisFunctions,
                               r_cartesian: np.ndarray, r_spherical: np.ndarray, n_max: int, l_max: int) -> np.ndarray:
     """
-    Precomputes the total basis function (radial_basis_function*spherical_basis_function) for each point on the integration domain.
+    Precomputes the total basis function (radial_basis_function*spherical_basis_function) for each point on the
+    integration domain.
     """
 
-    # Define the vector containing the values of the spherical basis function for each grid point for each pair of (n,l).
+    # Define the vector containing the values of the spherical basis function for each grid point for each pair of
+    # (n,l).
     Y_array_all = np.zeros((np.shape(r_cartesian)[:3] + (l_max+1, 2*l_max+1)))
     for l in range(l_max+1):
         for i, m in enumerate(range(-l, l+1)):
@@ -53,7 +55,8 @@ def precompute_basis_function(radial_basis_functions: RadialBasisFunctions,
     return total_basis_function_array
 
 
-# functions to make sure that integration domain is chosen such that the center of the orbital density is the center of the integration domain
+# functions to make sure that integration domain is chosen such that the center of the orbital density is the center
+# of the integration domain
 
 def get_index(r: np.ndarray, vec: np.ndarray) -> Tuple[int, int, int]:
     """
@@ -87,8 +90,9 @@ def generate_integration_box(r: np.ndarray, r_cut: float) -> Tuple[Tuple[int, in
     z_ = dz*np.arange(-nr_new_integration_domain[2], nr_new_integration_domain[2]+1)
     y_ = dy*np.arange(-nr_new_integration_domain[1], nr_new_integration_domain[1]+1)
     x_ = dx*np.arange(-nr_new_integration_domain[0], nr_new_integration_domain[0]+1)
-    r_new = np.zeros((2*nr_new_integration_domain[2]+1, 2 *
-                     nr_new_integration_domain[1]+1, 2*nr_new_integration_domain[0]+1, 3))
+    r_new = np.zeros((2 * nr_new_integration_domain[2] + 1,
+                      2 * nr_new_integration_domain[1] + 1,
+                      2 * nr_new_integration_domain[0] + 1, 3))
     z_, y_, x_ = np.meshgrid(z_, y_, x_, indexing='ij')
     r_new[:, :, :, 0] = z_
     r_new[:, :, :, 1] = y_
@@ -97,21 +101,27 @@ def generate_integration_box(r: np.ndarray, r_cut: float) -> Tuple[Tuple[int, in
     return nr_new_integration_domain, r_new
 
 
-def translate_to_new_integration_domain(f: np.ndarray, wfc_center_index: Tuple[int, int, int], nr_new_integration_domain: Tuple[int, int, int]) -> np.ndarray:
+def translate_to_new_integration_domain(f: np.ndarray, wfc_center_index: Tuple[int, int, int],
+                                        nr_new_integration_domain: Tuple[int, int, int]) -> np.ndarray:
     """
-    Rolls the array f, such that it is centered around wfc_center_index and brings it into the same shape as the new integration domain.
+    Rolls the array f, such that it is centered around wfc_center_index and brings it into the same shape as the new
+    integration domain.
     """
 
-    f_rolled = np.roll(f, (-(wfc_center_index[0]-nr_new_integration_domain[2]), -(wfc_center_index[1] -
-                       nr_new_integration_domain[1]), -(wfc_center_index[2]-nr_new_integration_domain[0])), axis=(0, 1, 2))
-    f_new = f_rolled[:2*nr_new_integration_domain[2]+1, :2 *
-                     nr_new_integration_domain[1]+1, :2*nr_new_integration_domain[0]+1]
+    f_rolled = np.roll(f, (-(wfc_center_index[0] - nr_new_integration_domain[2]),
+                           -(wfc_center_index[1] - nr_new_integration_domain[1]),
+                           -(wfc_center_index[2] - nr_new_integration_domain[0])),
+                       axis=(0, 1, 2))
+    f_new = f_rolled[:2 * nr_new_integration_domain[2] + 1,
+                     :2 * nr_new_integration_domain[1] + 1,
+                     :2 * nr_new_integration_domain[0] + 1]
     return f_new
 
 
 # functions to compute the expansion coefficients
 
-def get_coefficients(rho: np.ndarray, rho_total: np.ndarray, r_cartesian: np.ndarray, total_basis_function_array: np.ndarray) -> Tuple[List[float], List[float]]:
+def get_coefficients(rho: np.ndarray, rho_total: np.ndarray, r_cartesian: np.ndarray,
+                     total_basis_function_array: np.ndarray) -> Tuple[List[float], List[float]]:
     """
     Computes the expansion coefficients of rho and rho_total wrt the basis defined in total_basis_function_array.
     """
@@ -134,7 +144,8 @@ def get_coefficients(rho: np.ndarray, rho_total: np.ndarray, r_cartesian: np.nda
     return coefficients, coefficients_total
 
 
-def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_cut: float, dirs: Dict[str, Path], bands: Bands, atoms: Atoms, centers: np.ndarray):
+def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_cut: float, dirs: Dict[str, Path],
+                          bands: Bands, atoms: Atoms, centers: np.ndarray):
     """
     Computes the expansion coefficients of the total and orbital densities.
     """
@@ -157,20 +168,24 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
         for j in range(nr_xml[1]):
             for i in range(nr_xml[0]):
                 r_xsf[k, j, i, :] = np.multiply(
-                    np.array([float(k % (nr_xml[2]-1))/(nr_xml[2]-1), float(j % (nr_xml[1]-1))/(nr_xml[1]-1), float(i % (nr_xml[0]-1))/(nr_xml[0]-1)]), lat_vecs)
+                    np.array([float(k % (nr_xml[2] - 1))/(nr_xml[2] - 1),
+                              float(j % (nr_xml[1] - 1))/(nr_xml[1] - 1),
+                              float(i % (nr_xml[0] - 1))/(nr_xml[0] - 1)]), lat_vecs)
     r[:, :, :, :] = r_xsf[:-1, :-1, :-1, :]
 
-    # Define an alternative grid which is used to perform the integrations. This can be identical or smaller as the original grid but not larger
+    # Define an alternative grid which is used to perform the integrations. This can be identical or smaller as the
+    # original grid but not larger
     nr_new_integration_domain, r_cartesian = generate_integration_box(r, r_cut)
 
-    # Convert the cartesian coordinates to spherical coordinates for simplifying the integration with spherical harmonics
+    # Convert the cartesian coordinates to spherical coordinates for simplifying the integration with spherical
+    # harmonics
     r_spherical = cart2sph_array(r_cartesian)
 
     # Define our radial basis functions, which are partially parametrised by precomputed vectors
     betas = np.fromfile(dirs['betas'] / ('betas_' + '_'.join(str(x)
                         for x in [n_max, l_max, r_min, r_max]) + '.dat')).reshape((n_max, n_max, l_max+1))
-    alphas = np.fromfile(dirs['alphas'] / ('alphas_' + '_'.join(str(x)
-                                                                for x in [n_max, l_max, r_min, r_max]) + '.dat')).reshape(n_max, l_max+1)
+    alphas = np.fromfile(dirs['alphas'] / ('alphas_' + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max])
+                                           + '.dat')).reshape(n_max, l_max+1)
     radial_basis_functions: RadialBasisFunctions = partial(g_basis, betas=betas, alphas=alphas)
 
     # Compute R_nl Y_lm for each point on the integration domain
@@ -191,10 +206,11 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
         # load the orbital density
         rho_r = read_xml_array(dirs['xml'] / f'orbital.{filled_str}.{band.spin}.{band.index:05d}.xml', norm_const)
 
-        # Bring the the density to the same integration domain as the precomputed basis, centered around the orbital's center
+        # Bring the the density to the same integration domain as the precomputed basis, centered around the orbital's
+        # center, making sure that the center is in within the unit cell
         wfc_center_tmp = centers[band.index-1]
         wfc_center = np.array([wfc_center_tmp[2] % lat_vecs[0], wfc_center_tmp[1] %
-                               lat_vecs[1], wfc_center_tmp[0] % lat_vecs[2]])  # make sure that the center is in within the unit cell
+                               lat_vecs[1], wfc_center_tmp[0] % lat_vecs[2]])
         center_index = get_index(r, wfc_center)
         rho_r_new = translate_to_new_integration_domain(rho_r, center_index, nr_new_integration_domain)
         total_density_r_new = translate_to_new_integration_domain(
