@@ -1,12 +1,13 @@
+import itertools
 import pickle
 import shutil
 from pathlib import Path
 from typing import Any, Dict, List
 
 import numpy as np
+from ase import Atoms, io
 from sklearn.metrics import mean_absolute_error, r2_score
 
-from ase import Atoms, io
 from koopmans import calculators, utils
 from koopmans.calculators import Calc
 from koopmans.ml_utils import MLModel, precompute_parameters_of_radial_basis
@@ -111,19 +112,22 @@ class ConvergenceMLWorkflow(Workflow):
         """
         Depending on the provided input parameters this workflow performs either of the following:
 
-        i) If for at least one the hyper parameters (n_max, l_max, r_min, r_max) a list with more than one number is provided,
-        we perform a grid search w.r.t. these parameters.
-        That means that the MAE (or other error-metrics) of the alpha parameters (or other quantities of interest) is computed
-        for every valid (r_min<r_max) combination of (n_max, l_max, r_min, r_max) when trained on (1,..,number_of_training_samples) and evaluated on the
-        remaining snapshots (number_of_training_samples,...,number of snapshots provided in the xyz file).
+        i)  If for at least one the hyper parameters (n_max, l_max, r_min, r_max) a list with more than one number is
+            provided, we perform a grid search w.r.t. these parameters. That means that the MAE (or other error metrics)
+            of the alpha parameters (or other quantities of interest) is computed for every valid (r_min<r_max)
+            combination of (n_max, l_max, r_min, r_max) when trained on (1, ... , number_of_training_samples) and
+            evaluated on the remaining snapshots (number_of_training_samples, ... , number of snapshots provided in the
+            xyz file).
 
-        ii) Else, a convergence analyis with respect to the number of training samples is performed.
-        That means that the MAE (or other error-metrics) of the alpha parameters (or other quantities of interest) are calculated
-        when trained on (1,..,number_of_training_samples) and evaluated on the remaining snapshots (number_of_training_samples,...,number of snapshots provided in the xyz file).
+        ii) Else, a convergence analyis with respect to the number of training samples is performed.  That means that
+            the MAE (or other error-metrics) of the alpha parameters (or other quantities of interest) are calculated
+            when trained on (1, ... , number_of_training_samples) and evaluated on the remaining snapshots
+            (number_of_training_samples, ... , number of snapshots provided in the xyz file).
         """
         if self.ml.number_of_training_snapshots >= len(self.snapshots):
             raise ValueError(
-                "There are not enough test-snapshots available for a convergence_analysis. Please increase the number of snapshots in the xyz-file or decrease 'number_of_training_snapshots'")
+                "There are not enough test-snapshots available for a convergence_analysis. Please increase the number "
+                "of snapshots in the xyz-file or decrease 'number_of_training_snapshots'")
 
         def convert_to_list(param, type):
             if isinstance(param, type):  # if param is an int or a float convert it for the checks to a list
@@ -147,90 +151,85 @@ class ConvergenceMLWorkflow(Workflow):
 
         self.inititalize_directories(grid_search_mode)
 
-        # if the eigenvalues are quantities of interest we have to perform the final calcualtion afresh for every snapshot
-        # since its result (and thereby the eigenvalues) depend on the prediction of the alpha parameters
+        # if the eigenvalues are quantities of interest we have to perform the final calcualtion afresh for every
+        # snapshot since its result (and thereby the eigenvalues) depend on the prediction of the alpha parameters
         get_evs = False
         if 'evs' in self.ml.quantities_of_interest:
             get_evs = True
 
         # get the ab-initio result for the test_indices
         self.print(f'Obtaining ab-initio results for the last {len(self.test_indices)} snapshot(s)', style='heading')
-        # # make sure that we compute these snapshots ab-initio and don't use the ml-predicted alpha values
-        # number_of_training_snapshots = self.ml.number_of_training_snapshots
-        # self.ml.number_of_training_snapshots = self.number_of_snapshots+1
+        # make sure that we compute these snapshots ab-initio and don't use the ml-predicted alpha values
         use_ml = self.ml.use_ml
         self.ml.use_ml = False
-        # # set the ml_model to a simple model such that not much time is wasted for computing the decomposition
-        # type_of_ml_model = self.ml.type_of_ml_model
-        # self.ml.type_of_ml_model = 'mean'
-        twf = TrajectoryWorkflow.fromparent(
-            self, snapshots=self.snapshots, indices=self.test_indices, save_dir=self.dirs['convergence_true'], get_evs=get_evs, overwrite_atoms=False)
+        twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots, indices=self.test_indices,
+                                            save_dir=self.dirs['convergence_true'], get_evs=get_evs,
+                                            overwrite_atoms=False)
         twf.run()
-        # self.ml.type_of_ml_model = type_of_ml_model
         self.ml.use_ml = use_ml
-        # self.ml.number_of_training_snapshots = number_of_training_snapshots
 
         from_scratch = self.parameters.from_scratch
 
         with open(self.dirs['convergence'] / "result_grid_search.txt", "w") as fd:
             fd.write('n_max\tl_max\tr_min\tr_max\tMAE\n')
-        for self.ml.n_max in n_maxs:
-            for self.ml.l_max in l_maxs:
-                for self.ml.r_min in r_mins:
-                    for self.ml.r_max in r_maxs:
-                        # Skip this combination if r_max<r_min
-                        # or [self.ml.n_max, self.ml.l_max, self.ml.r_min, self.ml.r_max] == [8, 8, 0.5, 2.0]:
-                        if self.ml.r_max <= self.ml.r_min:  # skip this set of parameters if r_max<=r_min
-                            continue
-                        try:
-                            precompute_parameters_of_radial_basis(
-                                self.ml.n_max, self.ml.l_max, self.ml.r_min, self.ml.r_max)
-                        except:  # skip this set of parameters if it is not possible to find the coefficients of the radial basis function
-                            utils.warn(
-                                f"Failed to precompute the radial basis. You might want to try a larger r_min, e.g. r_min=1.0.")
-                            continue
+        for (self.ml.n_max, self.ml.l_max, self.ml.r_min, self.ml.r_max) in itertools.product(n_maxs, l_maxs, r_mins, r_maxs):
+            # Skip this combination if r_max<r_min
+            if self.ml.r_max <= self.ml.r_min:  # skip this set of parameters if r_max<=r_min
+                continue
+            try:
+                precompute_parameters_of_radial_basis(
+                    self.ml.n_max, self.ml.l_max, self.ml.r_min, self.ml.r_max)
+            except:
+                # skip this set of parameters if it is not possible to find the coefficients of the radial basis function
+                utils.warn(
+                    f"Failed to precompute the radial basis. You might want to try a larger r_min, e.g. r_min=1.0.")
+                continue
 
-                        self.print(
-                            f"Running the calculation with (n_max, l_max, r_min, r_max) = ({self.ml.n_max}, {self.ml.l_max}, {self.ml.r_min}, {self.ml.r_max})")
+            self.print(f"Running the calculation with (n_max, l_max, r_min, r_max) = ({self.ml.n_max}, "
+                       f"{self.ml.l_max}, {self.ml.r_min}, {self.ml.r_max})")
 
-                        # Reset the MLModel for every new combination of (n_max, l_max, r_min, r_max)
-                        if self.ml.occ_and_emp_together:
-                            self.ml.ml_model = MLModel(self.ml.type_of_ml_model)
-                        else:
-                            self.ml.ml_model_occ = MLModel(self.ml.type_of_ml_model)
-                            self.ml.ml_model_emp = MLModel(self.ml.type_of_ml_model)
+            # Reset the MLModel for every new combination of (n_max, l_max, r_min, r_max)
+            if self.ml.occ_and_emp_together:
+                self.ml.ml_model = MLModel(self.ml.type_of_ml_model)
+            else:
+                self.ml.ml_model_occ = MLModel(self.ml.type_of_ml_model)
+                self.ml.ml_model_emp = MLModel(self.ml.type_of_ml_model)
 
-                        # train the model on (1,...,number_of_training_snapshots) samples
-                        for convergence_point in self.convergence_points:
-                            self.print(f'Adding snapshot {convergence_point+1} to the training data', style='heading')
+            # train the model on (1, ... , number_of_training_snapshots) samples
+            for convergence_point in self.convergence_points:
+                self.print(f'Adding snapshot {convergence_point+1} to the training data', style='heading')
 
-                            # this is the snapshot we want to add to our training data
-                            train_indices = [convergence_point]
+                # this is the snapshot we want to add to our training data
+                train_indices = [convergence_point]
 
-                            # Train on this snapshot
-                            twf = TrajectoryWorkflow.fromparent(
-                                self, snapshots=self.snapshots, indices=train_indices, overwrite_atoms=False)
-                            # we want to make sure that no snapshot is calculated afresh just because the final directory of the preceeding calculation was deleted
-                            twf.run(from_scratch=from_scratch)
+                # Train on this snapshot
+                twf = TrajectoryWorkflow.fromparent(
+                    self, snapshots=self.snapshots, indices=train_indices, overwrite_atoms=False)
+                # we want to make sure that no snapshot is calculated afresh just because the final directory of the
+                # preceding calculation was deleted
+                twf.run(from_scratch=from_scratch)
 
-                            # for the grid search we are only interested in the result after all training snapshots have been added
-                            if not (grid_search_mode and convergence_point != self.convergence_points[-1]):
+                # for the grid search we are only interested in the result after all training snapshots have been added
+                if not (grid_search_mode and convergence_point != self.convergence_points[-1]):
 
-                                # Test the model (and recalculate the final calculation in case we are interested in eigenvalues) and save the results
-                                self.print(f'Testing on the last {len(self.test_indices)} snapshot(s)', style='heading')
-                                twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots, indices=self.test_indices,
-                                                                    save_dir=self.dirs[f'convergence_{convergence_point}'], get_evs=get_evs, overwrite_atoms=False)
-                                twf.run(from_scratch=False)
+                    # Test the model (and recalculate the final calculation in case we are interested in eigenvalues)
+                    # and save the results
+                    self.print(f'Testing on the last {len(self.test_indices)} snapshot(s)', style='heading')
+                    twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots, indices=self.test_indices,
+                                                        save_dir=self.dirs[f'convergence_{convergence_point}'],
+                                                        get_evs=get_evs, overwrite_atoms=False)
+                    twf.run(from_scratch=False)
 
-                        # gather all the important results
-                        self.get_result_dict()
+            # gather all the important results
+            self.get_result_dict()
 
-                        if not grid_search_mode:  # create the plots for the convergence analysis
-                            self.make_convergence_analysis_plots()
-                        else:  # add the result to the result-file of the grid search
-                            with open(self.dirs['convergence'] / "result_grid_search.txt", "a") as fd:
-                                fd.write("{:5.4f}\t{:5.4f}\t{:5.4f}\t{:5.4f}\t{:5.8f}\n".format(self.ml.n_max, self.ml.l_max,
-                                                                                                self.ml.r_min, self.ml.r_max, (self.result_dict[str("spin_"+str(0))]['alphas']['MAE']['mean'][-1])))
+            if not grid_search_mode:  # create the plots for the convergence analysis
+                self.make_convergence_analysis_plots()
+            else:  # add the result to the result-file of the grid search
+                val = self.result_dict[str("spin_"+str(0))]['alphas']['MAE']['mean'][-1]
+                with open(self.dirs['convergence'] / "result_grid_search.txt", "a") as fd:
+                    fd.write(f"{self.ml.n_max:5.4f}\t{self.ml.l_max:5.4f}\t{self.ml.r_min:5.4f}\t"
+                             f"{self.ml.r_max:5.4f}\t{val:5.8f}\n")
 
     def get_result_dict(self):
         '''
@@ -308,4 +307,3 @@ class ConvergenceMLWorkflow(Workflow):
                     res = self.result_dict[spin_id][qoi][metric]
                     plot_convergence(self.convergence_points, res['mean'], res['stdd'], qoi, metric,
                                      spin, self.dirs['convergence_final_results'] / f"{spin_id}_{qoi}_{metric}_convergence")
-
