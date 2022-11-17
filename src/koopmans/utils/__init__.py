@@ -19,3 +19,5 @@ from ._misc import flatten, update_nested_dict
 from ._os import chdir, find_executable, set_env, symlink, system_call
 from ._units import units
 from ._warnings import CalculatorNotConvergedWarning, warn
+from ._xml import read_xml_array, read_xml_nr
+from ._xsf import write_xsf

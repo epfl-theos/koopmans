@@ -5,14 +5,12 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from ase import Atoms, units
+from ase import Atoms
 
-from koopmans import calculators, ml_utils, utils
+from koopmans import ml_utils, utils
 from koopmans.bands import Bands
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.io import write_kwf as write_encoded_json
-from koopmans.ml_utils import (load_density_into_array,
-                               load_grid_dimension_from_xml_file)
 
 benchmark_dir = Path(__file__).parents[1] / 'benchmarks'
 

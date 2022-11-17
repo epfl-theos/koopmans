@@ -1,47 +1,50 @@
 import math
-import xml.etree.ElementTree as ET
+from functools import partial
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple
 
 import numpy as np
+from ase import Atoms, units
 from numpy.linalg import norm
 
-from ase import Atoms, units
 from koopmans import utils
 from koopmans.bands import Bands
-from koopmans.ml_utils import _basis_functions as basis
-from koopmans.ml_utils import debugging
+from koopmans.utils import read_xml_array, read_xml_nr
 
-# Possibilities for Debugging
-Debug = False  # if True, pmore information about the decomposition is printed to a file
-write_to_xsf = False  # if True, the original and reconstructed densities are printed to xsf-files which can be plotted with xcrysden
+from ._basis_functions import g as g_basis
+from ._basis_functions import \
+    real_spherical_harmonics as real_spherical_harmonics_basis_functions
 
 # Functions for the basis functions
+RadialBasisFunctions = Callable[[np.ndarray, int, int, int], np.ndarray]
+SphericalBasisFunctions = Callable[[np.ndarray, np.ndarray, int, int], np.ndarray]
 
 
-def radial_basis_function(r: np.ndarray, n: int, n_max: int, l: int, betas: np.ndarray, alphas: np.ndarray) -> np.ndarray:
-    """
-    Wrapper for the radial basis function.
+# def radial_basis_function(r: np.ndarray, n: int, n_max: int, l: int, betas: np.ndarray, alphas: np.ndarray) -> np.ndarray:
+#     """
+#     Wrapper for the radial basis function.
+#
+#     Currently only Gaussian Type Basis Functions (see Hilmanen et al 2020) are implemented as radial basis functions.
+#     This wrapper allows to simply exchange them with other choices of radial basis functions.
+#     """
+#
+#     return g_basis(r, n, n_max, l, betas, alphas)
+#
+#
+# def spherical_basis_function(theta: np.ndarray, phi: np.ndarray, l: int, m: int) -> np.ndarray:
+#     """
+#     Wrapper for the spherical basis function.
+#
+#     Currently only real spherical harmonics (see Hilmanen et al 2020) are implemented as spherical basis functions.
+#     This wrapper allows to simply exchange them with other choices of spherical basis functions.
+#     """
+#
+#     return real_spherical_harmonics_basis(theta, phi, l, m)
 
-    Currently only Gaussian Type Basis Functions (see Hilmanen et al 2020) are implemented as radial basis functions.
-    This wrapper allows to simply exchange them with other choices of radial basis functions.
-    """
 
-    return basis.g(r, n, n_max, l, betas, alphas)
-
-
-def spherical_basis_function(theta: np.ndarray, phi: np.ndarray, l: int, m: int) -> np.ndarray:
-    """
-    Wrapper for the spherical basis function.
-
-    Currently only real spherical harmonics (see Hilmanen et al 2020) are implemented as spherical basis functions.
-    This wrapper allows to simply exchange them with other choices of spherical basis functions.
-    """
-
-    return basis.real_spherical_harmonics(theta, phi, l, m)
-
-
-def precompute_basis_function(r_cartesian: np.ndarray, r_spherical: np.ndarray, n_max: int, l_max: int, betas: np.ndarray, alphas: np.ndarray) -> np.ndarray:
+def precompute_basis_function(radial_basis_functions: RadialBasisFunctions,
+                              spherical_basis_functions: SphericalBasisFunctions,
+                              r_cartesian: np.ndarray, r_spherical: np.ndarray, n_max: int, l_max: int) -> np.ndarray:
     """
     Precomputes the total basis function (radial_basis_function*spherical_basis_function) for each point on the integration domain.
     """
@@ -50,14 +53,14 @@ def precompute_basis_function(r_cartesian: np.ndarray, r_spherical: np.ndarray, 
     Y_array_all = np.zeros((np.shape(r_cartesian)[:3] + (l_max+1, 2*l_max+1)))
     for l in range(l_max+1):
         for i, m in enumerate(range(-l, l+1)):
-            Y_array_all[:, :, :, l, i] = spherical_basis_function(
+            Y_array_all[:, :, :, l, i] = spherical_basis_functions(
                 r_spherical[:, :, :, 1], r_spherical[:, :, :, 2], l, m)
 
     # Define the vector containing the values of the radial basis function for each grid point for each pair of (l,m).
     g_array_all = np.zeros((np.shape(r_cartesian)[:3] + (n_max, l_max+1)))
     for n in range(n_max):
         for l in range(l_max+1):
-            g_array_all[:, :, :, n, l] = radial_basis_function(r_spherical[:, :, :, 0], n, n_max, l, betas, alphas)
+            g_array_all[:, :, :, n, l] = radial_basis_functions(r_spherical[:, :, :, 0], n, n_max, l)
 
     # Compute the vector containing the values of the total basis function for each grid point for each pair of (n,l,m)
     # All values corresponding to different values for m are stored in the last axis of total_basis_function_array
@@ -100,62 +103,6 @@ def cart2sph_array(r_cartesian: np.ndarray) -> np.ndarray:
                 r_spherical[k, j, i, :] = cart2sph(
                     r_cartesian[k, j, i, 2], r_cartesian[k, j, i, 1], r_cartesian[k, j, i, 0])
     return r_spherical
-
-
-# helper functions to load quantities from xml-files
-
-
-def load_grid_dimension_from_xml_file(xml_file: Path, string: str = 'CHARGE-DENSITY') -> Tuple[int, int, int]:
-    """
-    Extracts the grid dimension on which the real space densities are defined from 'xml_file'.
-    """
-
-    with open(xml_file, 'r') as fd:
-        tree = ET.parse(fd)
-        rho_file = tree.getroot()
-        rho_file_charge_density = rho_file.find(string)
-        assert isinstance(rho_file_charge_density, ET.Element)
-        info = rho_file_charge_density.find('INFO')
-        assert isinstance(info, ET.Element)
-        nr_xml_list = [0, 0, 0]
-        for i in range(3):
-            attr = 'nr' + str(i+1)
-            info_i = info.get(attr)
-            assert isinstance(info_i, str)
-            nr_xml_list[i] = int(info_i) + 1
-        nr_xml: Tuple[int, int, int] = (nr_xml_list[0], nr_xml_list[1], nr_xml_list[2])
-    return nr_xml
-
-
-def load_density_into_array(file_rho: Path, nr_xml: Tuple[int, int, int], norm_const: float, string: str = 'EFFECTIVE-POTENTIAL') -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Loads the real space density from a xml into an array.
-    """
-
-    rho_r_xsf = np.zeros((nr_xml[2], nr_xml[1], nr_xml[0]), dtype=float)
-    rho_r = np.zeros((nr_xml[2]-1, nr_xml[1]-1, nr_xml[0]-1), dtype=float)
-
-    with open(file_rho, 'r') as fd:
-        tree = ET.parse(fd)
-    rho_file = tree.getroot()
-
-    for k in range(nr_xml[2]):
-        current_name = 'z.' + str(k % (nr_xml[2]-1)+1)
-        rho_file_str = rho_file.find(string)
-        assert isinstance(rho_file_str, ET.Element)
-        rho_file_str_current_name = rho_file_str.find(current_name)
-        assert isinstance(rho_file_str_current_name, ET.Element)
-        rho_file_str_current_name_text = rho_file_str_current_name.text
-        assert isinstance(rho_file_str_current_name_text, str)
-        rho_tmp = np.array(rho_file_str_current_name_text.split('\n')[1:-1], dtype=float)
-        for j in range(nr_xml[1]):
-            for i in range(nr_xml[0]):
-                rho_r_xsf[k, j, i] = rho_tmp[(j % (nr_xml[1]-1))*(nr_xml[0]-1)+(i %
-                                                                                (nr_xml[0]-1))]
-    rho_r_xsf *= norm_const
-    rho_r[:, :, :] = rho_r_xsf[:-1, :-1, :-1]
-
-    return rho_r, rho_r_xsf
 
 
 # functions to make sure that integration domain is chosen such that the center of the orbital density is the center of the integration domain
@@ -256,18 +203,12 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
     Computes the expansion coefficients of the total and orbital densities.
     """
 
-    if Debug:
-        debug_out = dirs['ml'] / 'orbitals_to_power_spectra_debug.out'
-    if write_to_xsf:
-        dir_xsf = dirs['ml'] / 'xsf'
-        dir_xsf.mkdir(parents=True, exist_ok=True)
-        dirs.update({'xsf': dir_xsf})
-
-    norm_const = 1/(units.Bohr)**3  # normalization of the densities
+    # Define the normalisation constant for densities
+    norm_const = 1/(units.Bohr)**3
 
     # load the grid dimensions nr_xml from charge-density-file
     file_rho = dirs['xml'] / 'charge-density.xml'
-    nr_xml = load_grid_dimension_from_xml_file(file_rho)
+    nr_xml = read_xml_nr(file_rho, 'CHARGE-DENSITY')
 
     # load the lattice parameters
     cell_parameters = atoms.get_cell()
@@ -289,27 +230,19 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
     # Convert the cartesian coordinates to spherical coordinates for simplifying the integration with spherical harmonics
     r_spherical = cart2sph_array(r_cartesian)
 
-    if Debug:
-        debugging.test_cart2sph(r_spherical, debug_out)
-
-    # load precomputed vectors defining the radial basis functions
+    # Define our radial basis functions, which are partially parametrised by precomputed vectors
     betas = np.fromfile(dirs['betas'] / ('betas_' + '_'.join(str(x)
                         for x in [n_max, l_max, r_min, r_max]) + '.dat')).reshape((n_max, n_max, l_max+1))
     alphas = np.fromfile(dirs['alphas'] / ('alphas_' + '_'.join(str(x)
                                                                 for x in [n_max, l_max, r_min, r_max]) + '.dat')).reshape(n_max, l_max+1)
+    radial_basis_functions: RadialBasisFunctions = partial(g_basis, betas=betas, alphas=alphas)
 
     # Compute R_nl Y_lm for each point on the integration domain
-    total_basis_array = precompute_basis_function(r_cartesian, r_spherical, n_max, l_max, betas, alphas)
+    total_basis_array = precompute_basis_function(
+        radial_basis_functions, real_spherical_harmonics_basis_functions, r_cartesian, r_spherical, n_max, l_max)
 
     # load the total charge density
-    file_rho = dirs['xml'] / 'charge-density.xml'
-    total_density_r, total_density_r_xsf = load_density_into_array(file_rho, nr_xml, norm_const, 'CHARGE-DENSITY')
-
-    # for debugging print the total charge density to a xsf file that can be plotted with xcrysden
-    if Debug:
-        if write_to_xsf:
-            filename_xsf = dirs['xsf'] / 'charge-density.xsf'
-            debugging.print_to_xsf_file(filename_xsf, atoms, [total_density_r_xsf], nr_xml)
+    total_density_r = read_xml_array(dirs['xml'] / 'charge-density.xml', norm_const, 'CHARGE-DENSITY')
 
     # Compute the decomposition for each band
     for band in bands:
@@ -320,13 +253,7 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
             filled_str = 'emp'
 
         # load the orbital density
-        file_rho = dirs['xml'] / 'orbital.{}.{}.{:05d}.xml'.format(filled_str, band.spin, band.index)
-        rho_r, rho_r_xsf = load_density_into_array(file_rho, nr_xml, norm_const)
-
-        # for debugging print the orbital charge density to a xsf file that can be plotted with xcrysden
-        if Debug:
-            filename_xsf = dirs['xsf'] / 'orbital.{}.{:05d}.xsf'.format(filled_str, band.index)
-            debugging.print_to_xsf_file(filename_xsf, atoms, [rho_r_xsf], nr_xml)
+        rho_r = read_xml_array(dirs['xml'] / f'orbital.{filled_str}.{band.spin}.{band.index:05d}.xml', norm_const)
 
         # Bring the the density to the same integration domain as the precomputed basis, centered around the orbital's center
         wfc_center_tmp = centers[band.index-1]
@@ -337,21 +264,34 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
         total_density_r_new = translate_to_new_integration_domain(
             total_density_r, center_index, nr_new_integration_domain)
 
-        if Debug:
-            debugging.test_translate_to_new_integration_domain(rho_r, rho_r_new, wfc_center, debug_out)
-
         # compute the decomposition coefficients
-        if band.filled:
-            coefficients_orbital, coefficients_total = get_coefficients(
-                rho_r_new, total_density_r_new, r_cartesian, total_basis_array)
-        else:
-            coefficients_orbital, coefficients_total = get_coefficients(
-                rho_r_new, total_density_r_new, r_cartesian, total_basis_array)
+        coefficients_orbital, coefficients_total = get_coefficients(
+            rho_r_new, total_density_r_new, r_cartesian, total_basis_array)
 
         # save the decomposition coefficients in files
         np.savetxt(dirs['coeff_orb'] / f'coff.orbital.{filled_str}.{band.index}.txt', coefficients_orbital)
         np.savetxt(dirs['coeff_tot'] / f'coff.total.{filled_str}.{band.index}.txt', coefficients_total)
 
-        if Debug:
-            debugging.test_decomposition(total_basis_array, rho_r, rho_r_xsf, total_density_r_xsf, coefficients_orbital,
-                                         coefficients_total, nr_xml, nr_new_integration_domain, center_index, band, atoms, write_to_xsf, dirs, debug_out, wfc_center)
+
+def get_reconstructed_orbital_densities(total_basis_array: np.ndarray, coefficients: List[float]) -> np.ndarray:
+    """
+    Reconstruct the density with the truncated expansion coefficients multiplied with the corresponding basis functions.
+    """
+
+    rho_r_reconstruced = np.einsum('ijkl,l->ijk', total_basis_array, coefficients)
+    return rho_r_reconstruced
+
+
+def map_again_to_original_grid(f_new: np.ndarray, wfc_center_index: Tuple[int, int, int], nr_xml: Tuple[int, int, int], nr_new_integration_domain: Tuple[int, int, int]):
+    """
+    Maps the function f_new defined on the new integration domain back to the unit cell.
+    """
+
+    f_on_reg_grid = np.zeros((nr_xml[2]-1, nr_xml[1]-1, nr_xml[0]-1), dtype=float)
+
+    for k_new, k in enumerate(range(wfc_center_index[0]-nr_new_integration_domain[2], wfc_center_index[0]+nr_new_integration_domain[2]+1)):
+        for j_new, j in enumerate(range(wfc_center_index[1]-nr_new_integration_domain[1], wfc_center_index[1]+nr_new_integration_domain[1]+1)):
+            for i_new, i in enumerate(range(wfc_center_index[2]-nr_new_integration_domain[0], wfc_center_index[2]+nr_new_integration_domain[0]+1)):
+                f_on_reg_grid[k % (nr_xml[2]-1), j % (nr_xml[1]-1), i % (nr_xml[0]-1)] = f_new[k_new, j_new, i_new]
+
+    return f_on_reg_grid
