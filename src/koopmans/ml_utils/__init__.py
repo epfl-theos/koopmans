@@ -2,7 +2,7 @@
 
 utils module for Machine Learning for Koopmans
 
-Written by Yannick Schubert Juni 2022
+Written by Yannick Schubert June 2022
 
 '''
 
