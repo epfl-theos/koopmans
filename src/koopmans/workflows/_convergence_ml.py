@@ -172,15 +172,20 @@ class ConvergenceMLWorkflow(Workflow):
 
         with open(self.dirs['convergence'] / "result_grid_search.txt", "w") as fd:
             fd.write('n_max\tl_max\tr_min\tr_max\tMAE\n')
-        for (self.ml.n_max, self.ml.l_max, self.ml.r_min, self.ml.r_max) in itertools.product(n_maxs, l_maxs, r_mins, r_maxs):
-            # Skip this combination if r_max<r_min
-            if self.ml.r_max <= self.ml.r_min:  # skip this set of parameters if r_max<=r_min
+
+        # Loop over all possible combinations
+        for (self.ml.n_max, self.ml.l_max, self.ml.r_min, self.ml.r_max) in \
+                itertools.product(n_maxs, l_maxs, r_mins, r_maxs):
+
+            if self.ml.r_max <= self.ml.r_min:
+                # Skip this combination if r_max<r_min
                 continue
             try:
                 precompute_parameters_of_radial_basis(
                     self.ml.n_max, self.ml.l_max, self.ml.r_min, self.ml.r_max)
             except:
-                # skip this set of parameters if it is not possible to find the coefficients of the radial basis function
+                # skip this set of parameters if it is not possible to find the coefficients of the radial basis
+                # function
                 utils.warn(
                     f"Failed to precompute the radial basis. You might want to try a larger r_min, e.g. r_min=1.0.")
                 continue
@@ -220,12 +225,14 @@ class ConvergenceMLWorkflow(Workflow):
                                                         get_evs=get_evs, overwrite_atoms=False)
                     twf.run(from_scratch=False)
 
-            # gather all the important results
+            # Gather all the important results
             self.get_result_dict()
 
-            if not grid_search_mode:  # create the plots for the convergence analysis
+            if not grid_search_mode:
+                # Create the plots for the convergence analysis
                 self.make_convergence_analysis_plots()
-            else:  # add the result to the result-file of the grid search
+            else:
+                # Add the result to the result-file of the grid search
                 val = self.result_dict[str("spin_"+str(0))]['alphas']['MAE']['mean'][-1]
                 with open(self.dirs['convergence'] / "result_grid_search.txt", "a") as fd:
                     fd.write(f"{self.ml.n_max:5.4f}\t{self.ml.l_max:5.4f}\t{self.ml.r_min:5.4f}\t"
@@ -233,10 +240,11 @@ class ConvergenceMLWorkflow(Workflow):
 
     def get_result_dict(self):
         '''
-        Create a directory that contains all relevant results. This intermediate step is supposed to simplify debugging and postprocessing.
+        Create a directory that contains all relevant results. This intermediate step is supposed to simplify
+        debugging and postprocessing.
         '''
-        # define the quantities we are interested in (calculating the eigenvalues requires performing the final calculation
-        # afresh for every snapshot and is hence a little bit more computationally expensive).
+        # define the quantities we are interested in (calculating the eigenvalues requires performing the final
+        # calculation afresh for every snapshot and is hence a little bit more computationally expensive).
         metrics = {'MAE': mean_absolute_error, 'R2S': r2_score}
         statistics = {'mean': np.mean, 'stdd': np.std}
 
@@ -270,10 +278,11 @@ class ConvergenceMLWorkflow(Workflow):
                         tmp_array = np.zeros(len(self.test_indices))
                         for j, test_index in enumerate(self.test_indices):
                             self.result_dict[spin_id][qoi]['pred_array'][i, j, :] = np.loadtxt(
-                                self.dirs[f'convergence_{convergence_point}'] / f"{qoi}_snapshot_{test_index+1}.txt")[spin, :]
+                                self.dirs[f'convergence_{convergence_point}']
+                                / f"{qoi}_snapshot_{test_index+1}.txt")[spin, :]
 
-                            tmp_array[j] = metrics[metric](
-                                self.result_dict[spin_id][qoi]['pred_array'][i, j, :], self.result_dict[spin_id][qoi]['true_array'][j, :])
+                            tmp_array[j] = metrics[metric](self.result_dict[spin_id][qoi]['pred_array'][i, j, :],
+                                                           self.result_dict[spin_id][qoi]['true_array'][j, :])
 
                         for statistic in statistics:
                             self.result_dict[spin_id][qoi][metric][statistic][i] = statistics[statistic](tmp_array)
@@ -298,12 +307,17 @@ class ConvergenceMLWorkflow(Workflow):
                 for i, convergence_point in enumerate(self.convergence_points):
                     res = self.result_dict[spin_id][qoi]
                     if qoi == 'alphas':
-                        plot_calculated_vs_predicted(res['true_array'].flatten(), res['pred_array'][i, :, :].flatten(
-                        ), qoi, self.dirs[f'convergence_final_results_{i}'] / f"{spin_id}_{qoi}_calculated_vs_predicted.png", ('MAE', res['MAE']['mean'][i]))
+                        plot_calculated_vs_predicted(res['true_array'].flatten(),
+                                                     res['pred_array'][i, :, :].flatten(), qoi,
+                                                     self.dirs[f'convergence_final_results_{i}'] /
+                                                     f"{spin_id}_{qoi}_calculated_vs_predicted.png",
+                                                     ('MAE', res['MAE']['mean'][i]))
                     elif qoi == 'evs':
-                        plot_error_histogram(res['true_array'].flatten(), res['pred_array'][i, :, :].flatten(
-                        ), qoi, self.dirs[f'convergence_final_results_{i}'] / f"{spin_id}_{qoi}_error_histogram.png", ('MAE', res['MAE']['mean'][i]))
+                        plot_error_histogram(res['true_array'].flatten(), res['pred_array'][i, :, :].flatten(),
+                                             qoi, self.dirs[f'convergence_final_results_{i}'] /
+                                             f"{spin_id}_{qoi}_error_histogram.png",
+                                             ('MAE', res['MAE']['mean'][i]))
                 for metric in metrics:
                     res = self.result_dict[spin_id][qoi][metric]
-                    plot_convergence(self.convergence_points, res['mean'], res['stdd'], qoi, metric,
-                                     spin, self.dirs['convergence_final_results'] / f"{spin_id}_{qoi}_{metric}_convergence")
+                    plot_convergence(self.convergence_points, res['mean'], res['stdd'], qoi, metric, spin,
+                                     self.dirs['convergence_final_results'] / f"{spin_id}_{qoi}_{metric}_convergence")
