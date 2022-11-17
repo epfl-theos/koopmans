@@ -21,6 +21,8 @@ def cart2sph_array(r_cartesian: np.ndarray) -> np.ndarray:
 def compute_3d_integral_naive(f: np.ndarray, r: np.ndarray) -> np.ndarray:
     """
     Computes the 3d-integral of an array of functions f on r with a simple trapezoidal rule.
+
+    Note this assumes an orthorhombic cell!
     """
 
     z = r[:, 0, 0, 0]
