@@ -3,6 +3,33 @@ from typing import List, Tuple
 import numpy as np
 
 
+def cart2sph_array(r_cartesian: np.ndarray) -> np.ndarray:
+    """
+    Converts an array of cartesian coordinates into the corresponding spherical ones.
+
+    Note that cartesian is z, y, x; spherical is r, theta, phi
+    """
+
+    xy2 = r_cartesian[:, :, :, 2]**2 + r_cartesian[:, :, :, 1]**2
+    r_spherical = np.zeros_like(r_cartesian)
+    r_spherical[:, :, :, 0] = np.linalg.norm(r_cartesian, axis=-1)
+    r_spherical[:, :, :, 1] = np.arctan2(r_cartesian[:, :, :, 0], np.sqrt(xy2)) + np.pi / 2.0
+    r_spherical[:, :, :, 2] = np.arctan2(r_cartesian[:, :, :, 1], r_cartesian[:, :, :, 2]) + np.pi
+    return r_spherical
+
+
+def compute_3d_integral_naive(f: np.ndarray, r: np.ndarray) -> np.ndarray:
+    """
+    Computes the 3d-integral of an array of functions f on r with a simple trapezoidal rule.
+    """
+
+    z = r[:, 0, 0, 0]
+    y = r[0, :, 0, 1]
+    x = r[0, 0, :, 2]
+    result_n = np.sum(f, axis=(0, 1, 2))*(x[-1]-x[0])*(y[-1]-y[0])*(z[-1]-z[0])/((len(x)-1)*(len(y)-1)*(len(z)-1))
+    return result_n
+
+
 def reconstruct_orbital_densities(total_basis_array: np.ndarray, coefficients: List[float]) -> np.ndarray:
     """
     Reconstruct the density with the truncated expansion coefficients multiplied with the corresponding basis functions
