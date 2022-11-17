@@ -7,8 +7,6 @@ from scipy.integrate import quad
 
 import koopmans.ml_utils._basis_functions as basis
 
-Debug = False
-
 
 def compute_alphas(n_max: int, l_max: int, r_thrs: np.ndarray, thr: float):
     """
@@ -71,17 +69,8 @@ def precompute_parameters_of_radial_basis(n_max: int, l_max: int, r_min_thr: flo
     """
 
     thr = 10**(-3)
-    r_thrs = np.zeros(n_max)
-
     r_thrs = np.linspace(r_min_thr, r_max_thr, n_max)
-
-    if Debug and dirs is not None:
-        debug_out = dirs['ml'] / 'orbitals_to_power_spectra_debug.out'
-        with open(debug_out, 'a') as file:
-            file.write(f"r_thrs = {r_thrs}\n")
-
     alphas = compute_alphas(n_max, l_max, r_thrs, thr)
-
     betas = np.zeros((n_max, n_max, l_max+1))
 
     try:
