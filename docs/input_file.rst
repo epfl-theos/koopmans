@@ -171,3 +171,15 @@ This block can be used to customize the band structures and densities of states 
 .. toctree::
 
   List of valid keywords <input_file/plotting_keywords>
+
+The ml block
+^^^^^^^^^^^^
+
+.. warning::
+    This feature is experimental
+
+This block controls the machine-learning of screening parameters.
+
+.. toctree::
+
+  List of valid keywords <input_file/ml_keywords>

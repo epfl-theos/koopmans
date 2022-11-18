@@ -5,8 +5,8 @@ import argparse
 from koopmans.calculators.kc_ham import KoopmansHamCalc
 from koopmans.calculators.kc_screen import KoopmansScreenCalc
 from koopmans.calculators.kcp import KCP_calc
-from koopmans.calculators.pw2wannier import PW2Wannier_calc
 from koopmans.calculators.pw import PW_calc
+from koopmans.calculators.pw2wannier import PW2Wannier_calc
 from koopmans.calculators.wann2kc import Wann2KCCalc
 from koopmans.calculators.wannier90 import W90_calc
 from koopmans.utils import calc_diff

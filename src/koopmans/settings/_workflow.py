@@ -14,7 +14,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('task',
                     'Task to perform',
                     str, 'singlepoint', ('singlepoint', 'convergence', 'wannierize', 'environ_dscf', 'ui',
-                                         'dft_bands', 'dft_eps')),
+                                         'dft_bands', 'dft_eps', 'trajectory', 'convergence_ml')),
             Setting('functional',
                     'orbital-density-dependent-functional/density-functional to use',
                     str, 'ki', ('ki', 'kipz', 'pkipz', 'dft', 'all')),

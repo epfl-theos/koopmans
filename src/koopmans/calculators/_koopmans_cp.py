@@ -193,6 +193,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # Input and output files
         for nd in [self.parameters.ndr, self.parameters.ndw]:
             outdir = self.parameters.outdir / f'{self.parameters.prefix}_{nd}.save/K00001'
+
             for fpath_1 in outdir.glob('*1.*'):
                 # Swap the two files around
                 fpath_tmp = fpath_1.parent / fpath_1.name.replace('1', 'tmp')

@@ -4,9 +4,11 @@ Defines a smart "command" class in place of storing these simply as strings
 Written by Edward Linscott, Feb 2021
 """
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 
 class Command(object):
@@ -19,7 +21,7 @@ class Command(object):
         Command.suffix
     """
 
-    def __init__(self, value=None, **kwargs):
+    def __init__(self, value: Optional[Union[str, Command]] = None, **kwargs) -> None:
         self._path = Path()
         self.executable: str = ''
         self._flags: str = ''
@@ -37,7 +39,7 @@ class Command(object):
                 '_'), f'Do not attempt to set private variables via {self.__class__.__name__}.__init__()'
             setattr(self, k, v)
 
-    def __set__(self, value):
+    def __set__(self, value: str):
         self.flags = ''
         if isinstance(value, str):
             if value.startswith(('srun', 'mpirun')):
@@ -92,7 +94,7 @@ class ParallelCommand(Command):
     An extension to the Command class for mpi-parallelized executables
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.mpi_command: str = ''
         super().__init__(*args, **kwargs)
 

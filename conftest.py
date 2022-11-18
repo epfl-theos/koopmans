@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 from typing import Any, Dict
 
@@ -8,7 +9,11 @@ from ase.spacegroup import crystal
 
 from koopmans.kpoints import Kpoints
 from koopmans.projections import ProjectionBlocks
-from tests import patches
+
+# isort: off
+sys.path.append('./tests/plugins/')
+import koopmans_pytest as kpytest  # nopep8
+# isort: on
 
 
 def pytest_addoption(parser):
@@ -31,13 +36,13 @@ def tutorial_patch(monkeypatch, pytestconfig):
     # For the tutorials...
     if pytestconfig.getoption('generate_benchmark'):
         # when generating benchmarks, use BenchCalcs
-        patches.monkeypatch_bench(monkeypatch)
+        kpytest.monkeypatch_bench(monkeypatch)
     elif pytestconfig.getoption('stumble'):
         # when testing recovery from a crash, use StumblingWorkflows
-        patches.monkeypatch_stumble(monkeypatch)
+        kpytest.monkeypatch_stumble(monkeypatch)
     else:
         # we use MockCalcs when running our tests on github, OR if the user is running locally
-        patches.monkeypatch_mock(monkeypatch)
+        kpytest.monkeypatch_mock(monkeypatch)
 
 
 @pytest.fixture
@@ -45,13 +50,13 @@ def workflow_patch(monkeypatch, pytestconfig):
     # For tests involving the workflow...
     if pytestconfig.getoption('generate_benchmark'):
         # when generating benchmarks, use BenchCalcs
-        patches.monkeypatch_bench(monkeypatch)
+        kpytest.monkeypatch_bench(monkeypatch)
     elif pytestconfig.getoption('stumble'):
         # when testing recovery from a crash, use StumblingWorkflows
-        patches.monkeypatch_stumble(monkeypatch)
+        kpytest.monkeypatch_stumble(monkeypatch)
     else:
         # we use MockCalcs when running our tests on github, OR if the user is running locally
-        patches.monkeypatch_mock(monkeypatch)
+        kpytest.monkeypatch_mock(monkeypatch)
 
 
 @pytest.fixture
@@ -59,10 +64,10 @@ def ui_patch(monkeypatch, pytestconfig):
     # For tests involving the UI python routines only...
     if pytestconfig.getoption('generate_benchmark'):
         # when generating benchmarks, use BenchCalcs
-        patches.monkeypatch_bench(monkeypatch)
+        kpytest.monkeypatch_bench(monkeypatch)
     elif pytestconfig.getoption('stumble'):
         # when testing recovery from a crash, use StumblingWorkflows
-        patches.monkeypatch_stumble(monkeypatch)
+        kpytest.monkeypatch_stumble(monkeypatch)
     else:
         # we can run the calculations directly when running our tests on github, OR if the user is running locally
         pass
@@ -73,16 +78,16 @@ def espresso_patch(monkeypatch, pytestconfig):
     # For tests involving Quantum ESPRESSO...
     if pytestconfig.getoption('generate_benchmark'):
         # when generating benchmarks, use BenchCalcs
-        patches.monkeypatch_bench(monkeypatch)
+        kpytest.monkeypatch_bench(monkeypatch)
     elif pytestconfig.getoption('stumble'):
         # when testing recovery from a crash, use StumblingWorkflows
-        patches.monkeypatch_stumble(monkeypatch)
+        kpytest.monkeypatch_stumble(monkeypatch)
     elif pytestconfig.getoption('ci'):
         # when running our tests on github, these tests shold not be called!
         raise ValueError('These tests cannot be run with --ci')
     else:
         # when the user is running locally, use CheckCalcs
-        patches.monkeypatch_check(monkeypatch)
+        kpytest.monkeypatch_check(monkeypatch)
 
 
 @pytest.fixture

@@ -3,7 +3,7 @@
 	url = https://gitlab.com/QEF/q-e.git
 [submodule "quantum_espresso/kcp"]
 	path = quantum_espresso/kcp
-	url = ../koopmans-kcp.git
+	url = https://github.com/epfl-theos/koopmans-kcp.git
 [submodule "quantum_espresso/utils"]
 	path = quantum_espresso/utils
-	url = ../koopmans-qe-utils.git
+	url = https://github.com/epfl-theos/koopmans-qe-utils.git

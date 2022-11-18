@@ -11,7 +11,7 @@ Integrated within koopmans by Edward Linscott Jan 2021
 
 import copy
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 from ase.spectrum.band_structure import BandStructure
@@ -27,7 +27,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         super().__init__(*args, **kwargs)
         self._redo_smooth_dft = redo_smooth_dft
 
-    def _run(self):
+    def _run(self) -> None:
         '''
 
         Wrapper for the whole unfolding and interpolation workflow, consisting of:
@@ -50,6 +50,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
 
         if self.calculator_parameters['ui'].do_smooth_interpolation:
             wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kpoints.grid)
+            assert self.kpoints.grid is not None
             wannier_workflow.kpoints.grid = [x * y for x, y in zip(self.kpoints.grid,
                                              self.calculator_parameters['ui'].smooth_int_factor)]
 
@@ -60,6 +61,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             wannier_workflow.run(from_scratch=self._redo_smooth_dft)
 
         calc: calculators.UnfoldAndInterpolateCalculator
+        spins: List[Optional[str]]
         if self.parameters.spin_polarized:
             spins = ['up', 'down']
         else:

@@ -1,0 +1,1638 @@
+  _
+ | | _____   ___  _ __  _ __ ___   __ _ _ __  ___
+ | |/ / _ \ / _ \| '_ \| '_ ` _ \ / _` | '_ \/ __|
+ |   < (_) | (_) | |_) | | | | | | (_| | | | \__ \ 
+ |_|\_\___/ \___/| .__/|_| |_| |_|\__,_|_| |_|___/
+                 |_|
+
+ Koopmans spectral functional calculations with Quantum ESPRESSO
+
+ version 1.0.0b4
+
+ Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna
+
+ Please cite the papers listed in h2o_trajectory_ml.bib in work involving this calculation
+UserWarning: This system is not cubic and will therefore not have a uniform dielectric tensor. However, the image-correction schemes that are currently implemented assume a uniform dielectric. Proceed with caution
+UserWarning: Predicting screening parameters with machine-learning is an experimental feature; proceed with caution
+
+ Performing Koopmans calculation on snapshot 1 / 20
+ ==================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+   Running calc_alpha/orbital_1/dft_n-1... done
+    
+    predicted screening parameter:  1.00000
+    calculated screening parameter: 0.57472
+    absolute error:                 0.42528
+    
+    Adding this orbital to the training data
+
+  Orbital 2
+  ---------
+   Running calc_alpha/orbital_2/dft_n-1... done
+    
+    predicted screening parameter:  1.00000
+    calculated screening parameter: 0.56596
+    absolute error:                 0.43404
+    
+    Adding this orbital to the training data
+
+  Orbital 3
+  ---------
+   Running calc_alpha/orbital_3/dft_n-1... done
+    
+    predicted screening parameter:  1.00000
+    calculated screening parameter: 0.49968
+    absolute error:                 0.50032
+    
+    Adding this orbital to the training data
+
+  Orbital 4
+  ---------
+   Running calc_alpha/orbital_4/dft_n-1... done
+    
+    predicted screening parameter:  1.00000
+    calculated screening parameter: 0.49925
+    absolute error:                 0.50075
+    
+    Adding this orbital to the training data
+
+  Orbital 5
+  ---------
+   Running calc_alpha/orbital_5/pz_print... done
+   Running calc_alpha/orbital_5/dft_n+1_dummy... done
+   Running calc_alpha/orbital_5/dft_n+1... done
+    
+    predicted screening parameter:  1.00000
+    calculated screening parameter: 0.56640
+    absolute error:                 0.43360
+    
+    Adding this orbital to the training data
+
+  Orbital 6
+  ---------
+   Running calc_alpha/orbital_6/pz_print... done
+   Running calc_alpha/orbital_6/dft_n+1_dummy... done
+   Running calc_alpha/orbital_6/dft_n+1... done
+    
+    predicted screening parameter:  1.00000
+    calculated screening parameter: 0.54827
+    absolute error:                 0.45173
+    
+    Adding this orbital to the training data
+   
+   alpha
+             1         2         3         4         5         6
+   0  0.600000  0.600000  0.600000  0.600000  0.600000  0.600000
+   1  0.574723  0.565955  0.499679  0.499251  0.566395  0.548267
+   
+   Delta E_i - epsilon_i (eV)
+            1         2         3         4         5         6
+   0  0.21335  0.300318  0.930521  0.938419 -0.096459 -0.137817
+
+    Training the ML model
+   
+   The mean absolute error of the predicted screening parameters of this snapshot is 0.4576
+   
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 2 / 20
+ ==================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+   Running calc_alpha/orbital_1/dft_n-1... done
+    
+    predicted screening parameter:  0.56622
+    calculated screening parameter: 0.56934
+    absolute error:                 0.00311
+    
+    Adding this orbital to the training data
+
+  Orbital 2
+  ---------
+   Running calc_alpha/orbital_2/dft_n-1... done
+    
+    predicted screening parameter:  0.57498
+    calculated screening parameter: 0.58259
+    absolute error:                 0.00761
+    
+    Adding this orbital to the training data
+
+  Orbital 3
+  ---------
+   Running calc_alpha/orbital_3/dft_n-1... done
+    
+    predicted screening parameter:  0.49615
+    calculated screening parameter: 0.50836
+    absolute error:                 0.01221
+    
+    Adding this orbital to the training data
+
+  Orbital 4
+  ---------
+   Running calc_alpha/orbital_4/dft_n-1... done
+    
+    predicted screening parameter:  0.49112
+    calculated screening parameter: 0.50810
+    absolute error:                 0.01698
+    
+    Adding this orbital to the training data
+
+  Orbital 5
+  ---------
+   Running calc_alpha/orbital_5/pz_print... done
+   Running calc_alpha/orbital_5/dft_n+1_dummy... done
+   Running calc_alpha/orbital_5/dft_n+1... done
+    
+    predicted screening parameter:  0.52692
+    calculated screening parameter: 0.51974
+    absolute error:                 0.00718
+    
+    Adding this orbital to the training data
+
+  Orbital 6
+  ---------
+   Running calc_alpha/orbital_6/pz_print... done
+   Running calc_alpha/orbital_6/dft_n+1_dummy... done
+   Running calc_alpha/orbital_6/dft_n+1... done
+    
+    predicted screening parameter:  0.59999
+    calculated screening parameter: 0.57049
+    absolute error:                 0.02951
+    
+    Adding this orbital to the training data
+   
+   alpha
+             1        2         3         4         5         6
+   0  0.600000  0.60000  0.600000  0.600000  0.600000  0.600000
+   1  0.569338  0.58259  0.508359  0.508098  0.519744  0.570485
+   
+   Delta E_i - epsilon_i (eV)
+             1         2         3        4        5         6
+   0  0.278615  0.148562  0.850366  0.85683 -0.16517 -0.094027
+
+    Training the ML model
+   
+   The mean absolute error of the predicted screening parameters of this snapshot is 0.0128
+   
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 3 / 20
+ ==================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+   Running calc_alpha/orbital_1/dft_n-1... done
+    
+    predicted screening parameter:  0.58883
+    calculated screening parameter: 0.57877
+    absolute error:                 0.01006
+    
+    Adding this orbital to the training data
+
+  Orbital 2
+  ---------
+   Running calc_alpha/orbital_2/dft_n-1... done
+    
+    predicted screening parameter:  0.54939
+    calculated screening parameter: 0.55194
+    absolute error:                 0.00256
+    
+    Adding this orbital to the training data
+
+  Orbital 3
+  ---------
+   Running calc_alpha/orbital_3/dft_n-1... done
+    
+    predicted screening parameter:  0.49960
+    calculated screening parameter: 0.49250
+    absolute error:                 0.00710
+    
+    Adding this orbital to the training data
+
+  Orbital 4
+  ---------
+   Running calc_alpha/orbital_4/dft_n-1... done
+    
+    predicted screening parameter:  0.50388
+    calculated screening parameter: 0.49297
+    absolute error:                 0.01091
+    
+    Adding this orbital to the training data
+
+  Orbital 5
+  ---------
+   Running calc_alpha/orbital_5/pz_print... done
+   Running calc_alpha/orbital_5/dft_n+1_dummy... done
+   Running calc_alpha/orbital_5/dft_n+1... done
+    
+    predicted screening parameter:  0.59450
+    calculated screening parameter: 0.58547
+    absolute error:                 0.00903
+    
+    Adding this orbital to the training data
+
+  Orbital 6
+  ---------
+   Running calc_alpha/orbital_6/pz_print... done
+   Running calc_alpha/orbital_6/dft_n+1_dummy... done
+   Running calc_alpha/orbital_6/dft_n+1... done
+    
+    predicted screening parameter:  0.53528
+    calculated screening parameter: 0.41946
+    absolute error:                 0.11582
+    
+    Adding this orbital to the training data
+   
+   alpha
+             1         2         3         4        5         6
+   0  0.600000  0.600000  0.600000  0.600000  0.60000  0.600000
+   1  0.578774  0.551943  0.492501  0.492971  0.58547  0.419464
+   
+   Delta E_i - epsilon_i (eV)
+            1        2         3         4         5         6
+   0  0.17072  0.43609  1.001089  0.994271 -0.059135 -0.256096
+
+    Training the ML model
+   
+   The mean absolute error of the predicted screening parameters of this snapshot is 0.0259
+   
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 4 / 20
+ ==================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+   Running calc_alpha/orbital_1/dft_n-1... done
+    
+    predicted screening parameter:  0.54655
+    calculated screening parameter: 0.56550
+    absolute error:                 0.01895
+    
+    Adding this orbital to the training data
+
+  Orbital 2
+  ---------
+   Running calc_alpha/orbital_2/dft_n-1... done
+    
+    predicted screening parameter:  0.57445
+    calculated screening parameter: 0.58955
+    absolute error:                 0.01510
+    
+    Adding this orbital to the training data
+
+  Orbital 3
+  ---------
+   Running calc_alpha/orbital_3/dft_n-1... done
+    
+    predicted screening parameter:  0.50125
+    calculated screening parameter: 0.52331
+    absolute error:                 0.02205
+    
+    Adding this orbital to the training data
+
+  Orbital 4
+  ---------
+   Running calc_alpha/orbital_4/dft_n-1... done
+    
+    predicted screening parameter:  0.50089
+    calculated screening parameter: 0.52291
+    absolute error:                 0.02202
+    
+    Adding this orbital to the training data
+
+  Orbital 5
+  ---------
+   Running calc_alpha/orbital_5/pz_print... done
+   Running calc_alpha/orbital_5/dft_n+1_dummy... done
+   Running calc_alpha/orbital_5/dft_n+1... done
+    
+    predicted screening parameter:  0.49481
+    calculated screening parameter: 0.45420
+    absolute error:                 0.04060
+    
+    Adding this orbital to the training data
+
+  Orbital 6
+  ---------
+   Running calc_alpha/orbital_6/pz_print... done
+   Running calc_alpha/orbital_6/dft_n+1_dummy... done
+   Running calc_alpha/orbital_6/dft_n+1... done
+    
+    predicted screening parameter:  0.57149
+    calculated screening parameter: 0.56574
+    absolute error:                 0.00575
+    
+    Adding this orbital to the training data
+   
+   alpha
+             1         2         3         4         5         6
+   0  0.600000  0.600000  0.600000  0.600000  0.600000  0.600000
+   1  0.565498  0.589548  0.523307  0.522911  0.454204  0.565736
+   
+   Delta E_i - epsilon_i (eV)
+             1         2         3         4         5       6
+   0  0.337852  0.091368  0.707369  0.714411 -0.233984 -0.1085
+
+    Training the ML model
+   
+   The mean absolute error of the predicted screening parameters of this snapshot is 0.0207
+   
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 5 / 20
+ ==================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+   Running calc_alpha/orbital_1/dft_n-1... done
+    
+    predicted screening parameter:  0.54991
+    calculated screening parameter: 0.58304
+    absolute error:                 0.03313
+    
+    Adding this orbital to the training data
+
+  Orbital 2
+  ---------
+   Running calc_alpha/orbital_2/dft_n-1... done
+    
+    predicted screening parameter:  0.59595
+    calculated screening parameter: 0.59731
+    absolute error:                 0.00135
+    
+    Adding this orbital to the training data
+
+  Orbital 3
+  ---------
+   Running calc_alpha/orbital_3/dft_n-1... done
+    
+    predicted screening parameter:  0.53437
+    calculated screening parameter: 0.55934
+    absolute error:                 0.02497
+    
+    Adding this orbital to the training data
+
+  Orbital 4
+  ---------
+   Running calc_alpha/orbital_4/dft_n-1... done
+    
+    predicted screening parameter:  0.56854
+    calculated screening parameter: 0.55853
+    absolute error:                 0.01001
+    
+    Adding this orbital to the training data
+
+  Orbital 5
+  ---------
+   Running calc_alpha/orbital_5/pz_print... done
+   Running calc_alpha/orbital_5/dft_n+1_dummy... done
+   Running calc_alpha/orbital_5/dft_n+1... done
+    
+    predicted screening parameter:  0.46404
+    calculated screening parameter: 0.38295
+    absolute error:                 0.08110
+    
+    Adding this orbital to the training data
+
+  Orbital 6
+  ---------
+   Running calc_alpha/orbital_6/pz_print... done
+   Running calc_alpha/orbital_6/dft_n+1_dummy... done
+   Running calc_alpha/orbital_6/dft_n+1... done
+    
+    predicted screening parameter:  0.44385
+    calculated screening parameter: 0.44708
+    absolute error:                 0.00323
+    
+    Adding this orbital to the training data
+   
+   alpha
+             1         2         3         4         5         6
+   0  0.600000  0.600000  0.600000  0.600000  0.600000  0.600000
+   1  0.583044  0.597305  0.559344  0.558527  0.382945  0.447081
+   
+   Delta E_i - epsilon_i (eV)
+             1         2         3         4         5         6
+   0  0.181727  0.026911  0.373773  0.384654 -0.287839 -0.308934
+
+    Training the ML model
+   
+   The mean absolute error of the predicted screening parameters of this snapshot is 0.0256
+   
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 6 / 20
+ ==================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 2
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 3
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 4
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 5
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 6
+  ---------
+    Predicting the screening parameter with the ML model
+   
+   alpha
+             1         2         3         4        5        6
+   0  0.600000  0.600000  0.600000  0.600000  0.60000  0.60000
+   1  0.491678  0.574227  0.565636  0.490833  0.46646  0.59211
+   
+   Delta E_i - epsilon_i (eV)
+        1    2    3    4    5    6
+   0  0.0  0.0  0.0  0.0  0.0  0.0
+
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 7 / 20
+ ==================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 2
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 3
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 4
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 5
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 6
+  ---------
+    Predicting the screening parameter with the ML model
+   
+   alpha
+             1        2         3         4         5         6
+   0  0.600000  0.60000  0.600000  0.600000  0.600000  0.600000
+   1  0.562391  0.59075  0.521066  0.519399  0.480376  0.562119
+   
+   Delta E_i - epsilon_i (eV)
+        1    2    3    4    5    6
+   0  0.0  0.0  0.0  0.0  0.0  0.0
+
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 8 / 20
+ ==================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 2
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 3
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 4
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 5
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 6
+  ---------
+    Predicting the screening parameter with the ML model
+   
+   alpha
+             1         2         3         4         5         6
+   0  0.600000  0.600000  0.600000  0.600000  0.600000  0.600000
+   1  0.569607  0.572185  0.509298  0.506373  0.523976  0.567918
+   
+   Delta E_i - epsilon_i (eV)
+        1    2    3    4    5    6
+   0  0.0  0.0  0.0  0.0  0.0  0.0
+
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 9 / 20
+ ==================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 2
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 3
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 4
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 5
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 6
+  ---------
+    Predicting the screening parameter with the ML model
+   
+   alpha
+             1         2         3         4         5         6
+   0  0.600000  0.600000  0.600000  0.600000  0.600000  0.600000
+   1  0.580424  0.584611  0.519123  0.514242  0.514654  0.566069
+   
+   Delta E_i - epsilon_i (eV)
+        1    2    3    4    5    6
+   0  0.0  0.0  0.0  0.0  0.0  0.0
+
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 10 / 20
+ ===================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 2
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 3
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 4
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 5
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 6
+  ---------
+    Predicting the screening parameter with the ML model
+   
+   alpha
+            1         2         3         4         5         6
+   0  0.60000  0.600000  0.600000  0.600000  0.600000  0.600000
+   1  0.60398  0.543012  0.504963  0.509808  0.603255  0.386902
+   
+   Delta E_i - epsilon_i (eV)
+        1    2    3    4    5    6
+   0  0.0  0.0  0.0  0.0  0.0  0.0
+
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 11 / 20
+ ===================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 2
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 3
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 4
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 5
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 6
+  ---------
+    Predicting the screening parameter with the ML model
+   
+   alpha
+             1       2        3        4         5         6
+   0  0.600000  0.6000  0.60000  0.60000  0.600000  0.600000
+   1  0.573421  0.5772  0.51901  0.51569  0.537472  0.540983
+   
+   Delta E_i - epsilon_i (eV)
+        1    2    3    4    5    6
+   0  0.0  0.0  0.0  0.0  0.0  0.0
+
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 12 / 20
+ ===================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 2
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 3
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 4
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 5
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 6
+  ---------
+    Predicting the screening parameter with the ML model
+   
+   alpha
+             1         2         3         4         5         6
+   0  0.600000  0.600000  0.600000  0.600000  0.600000  0.600000
+   1  0.556805  0.588778  0.507315  0.516634  0.456143  0.562052
+   
+   Delta E_i - epsilon_i (eV)
+        1    2    3    4    5    6
+   0  0.0  0.0  0.0  0.0  0.0  0.0
+
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 13 / 20
+ ===================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 2
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 3
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 4
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 5
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 6
+  ---------
+    Predicting the screening parameter with the ML model
+   
+   alpha
+             1         2         3         4         5         6
+   0  0.600000  0.600000  0.600000  0.600000  0.600000  0.600000
+   1  0.560361  0.612888  0.540161  0.533076  0.411933  0.554303
+   
+   Delta E_i - epsilon_i (eV)
+        1    2    3    4    5    6
+   0  0.0  0.0  0.0  0.0  0.0  0.0
+
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 14 / 20
+ ===================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 2
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 3
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 4
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 5
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 6
+  ---------
+    Predicting the screening parameter with the ML model
+   
+   alpha
+             1         2         3         4         5        6
+   0  0.600000  0.600000  0.600000  0.600000  0.600000  0.60000
+   1  0.548576  0.601589  0.513357  0.512281  0.436347  0.57336
+   
+   Delta E_i - epsilon_i (eV)
+        1    2    3    4    5    6
+   0  0.0  0.0  0.0  0.0  0.0  0.0
+
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 15 / 20
+ ===================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 2
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 3
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 4
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 5
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 6
+  ---------
+    Predicting the screening parameter with the ML model
+   
+   alpha
+             1        2         3         4         5         6
+   0  0.600000  0.60000  0.600000  0.600000  0.600000  0.600000
+   1  0.553172  0.60931  0.526196  0.517803  0.431213  0.595584
+   
+   Delta E_i - epsilon_i (eV)
+        1    2    3    4    5    6
+   0  0.0  0.0  0.0  0.0  0.0  0.0
+
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 16 / 20
+ ===================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 2
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 3
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 4
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 5
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 6
+  ---------
+    Predicting the screening parameter with the ML model
+   
+   alpha
+             1         2         3         4         5         6
+   0  0.600000  0.600000  0.600000  0.600000  0.600000  0.600000
+   1  0.562169  0.603075  0.545497  0.548927  0.420495  0.544664
+   
+   Delta E_i - epsilon_i (eV)
+        1    2    3    4    5    6
+   0  0.0  0.0  0.0  0.0  0.0  0.0
+
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 17 / 20
+ ===================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 2
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 3
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 4
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 5
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 6
+  ---------
+    Predicting the screening parameter with the ML model
+   
+   alpha
+             1         2         3         4         5         6
+   0  0.600000  0.600000  0.600000  0.600000  0.600000  0.600000
+   1  0.593312  0.596101  0.551318  0.554188  0.401439  0.445499
+   
+   Delta E_i - epsilon_i (eV)
+        1    2    3    4    5    6
+   0  0.0  0.0  0.0  0.0  0.0  0.0
+
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 18 / 20
+ ===================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 2
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 3
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 4
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 5
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 6
+  ---------
+    Predicting the screening parameter with the ML model
+   
+   alpha
+             1        2         3         4         5         6
+   0  0.600000  0.60000  0.600000  0.600000  0.600000  0.600000
+   1  0.591659  0.57817  0.537667  0.538981  0.566307  0.460841
+   
+   Delta E_i - epsilon_i (eV)
+        1    2    3    4    5    6
+   0  0.0  0.0  0.0  0.0  0.0  0.0
+
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 19 / 20
+ ===================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 2
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 3
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 4
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 5
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 6
+  ---------
+    Predicting the screening parameter with the ML model
+   
+   alpha
+             1         2         3        4         5         6
+   0  0.600000  0.600000  0.600000  0.60000  0.600000  0.600000
+   1  0.578704  0.573188  0.547259  0.54452  0.466799  0.464502
+   
+   Delta E_i - epsilon_i (eV)
+        1    2    3    4    5    6
+   0  0.0  0.0  0.0  0.0  0.0  0.0
+
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Performing Koopmans calculation on snapshot 20 / 20
+ ===================================================
+
+  Initialization of density and variational orbitals
+  ==================================================
+
+   Wannierization
+   ==============
+    Running wannier/scf... done
+    Running wannier/nscf... done
+    Running wannier/occ/wann_preproc... done
+    Running wannier/occ/pw2wan... done
+    Running wannier/occ/wann... done
+    Running wannier/emp/wann_preproc... done
+    Running wannier/emp/pw2wan... done
+    Running wannier/emp/wann... done
+
+   Folding to supercell
+   --------------------
+    Running occ/w2kcp... done
+    Running emp/w2kcp... done
+   Running init/dft_dummy... done
+   Running init/dft_init... done
+
+  Calculating screening parameters
+  ================================
+   Running calc_alpha/ki... done
+    Converting the real-space densities from binary to xml format... done
+    Calculating the decomposition of the real-space density... done
+    Calculating the power spectrum... done
+
+  Orbital 1
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 2
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 3
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 4
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 5
+  ---------
+    Predicting the screening parameter with the ML model
+
+  Orbital 6
+  ---------
+    Predicting the screening parameter with the ML model
+   
+   alpha
+             1         2         3        4         5        6
+   0  0.600000  0.600000  0.600000  0.60000  0.600000  0.60000
+   1  0.576205  0.581978  0.527172  0.52533  0.488856  0.51989
+   
+   Delta E_i - epsilon_i (eV)
+        1    2    3    4    5    6
+   0  0.0  0.0  0.0  0.0  0.0  0.0
+
+   Screening parameters have been converged
+
+  Final KI calculation
+  ====================
+   Running final/ki_final... done
+
+ Workflow complete
