@@ -167,7 +167,7 @@ class MLFittingWorkflow(Workflow):
 
         # If there are as many xml files as there are bands to solve, the calculation was already completed
         return len([name for name in os.listdir(self.dirs['xml']) if os.path.isfile(self.dirs['xml'] / name)]) \
-            == (self.num_bands_to_extract[0] + self.num_bands_to_extract[1] + 2)
+            == (self.num_bands_to_extract[0] + self.num_bands_to_extract[1] + 1)
 
     def compute_decomposition(self):
         """

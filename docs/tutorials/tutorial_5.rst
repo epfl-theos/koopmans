@@ -102,7 +102,7 @@ and the ``"number_of_training_snapshots"``
   :linenos:
   :emphasize-lines: 7
 
-For the ``convergence_ml`` task, setting ``"number_of_training_snapshots": 10`` means that we will perform the convergence analysis with respect to 1,2,.., and 10 training snapshots and use the remaining snapshots (in this case snapshots 11 to 20) for testing. 
+For the ``convergence_ml`` task, setting ``"number_of_training_snapshots": 10`` means that we will perform the convergence analysis with respect to 1, 2, ... , and 10 training snapshots and use the remaining snapshots (in this case snapshots 11 to 20) for testing. 
 
 The ``"quantities_of_interest"`` is the list of parameters with respect to which we would like to perform the convergence analysis. In addition to performing it only with respect to the screening parameters ``"alphas"``, we also perform it with respect to the eigenvalues (``"evs"``).
 The latter requires an additional ``final calculation`` for each snapshot and therefore takes slightly longer to run. 
@@ -120,23 +120,23 @@ You should see that the workflow first computes the screening parameters ab-init
 Next, snapshot 1 is added to the training data. 
 
 .. literalinclude:: ../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.out
-  :lines: 733-734
+  :lines: 732-733
   :language: text
-  :lineno-start: 733
+  :lineno-start: 732
 
 After having trained the machine learning model on the orbitals of the first snapshot we use the trained model to predict the screening parameters of the last 10 snapshots and compare our results to the results from the ab initio computation.
 
 .. literalinclude:: ../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.out
-  :lines: 862-863
+  :lines: 849-850
   :language: text
-  :lineno-start: 862
+  :lineno-start: 849
 
 Next, we add snapshot 2 to the training data. 
 
 .. literalinclude:: ../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.out
-  :lines: 1625-1626
+  :lines: 1552-1553
   :language: text
-  :lineno-start: 1625
+  :lineno-start: 1552
 
 Our model is now trained on the orbitals of 2 snapshots. We use this model again to predict the screening parameters of the last 10 snapshots and compare the results to the ab initio computation. 
 We repeat this procedure until we have added all 10 snapshots to the training data. Then we can have a look at the convergence of the mean absolute error of the predicted screening parameters:
