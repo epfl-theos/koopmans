@@ -162,7 +162,7 @@ class MLFittingWorkflow(Workflow):
 
     def check_if_bin2xml_is_complete(self) -> bool:
         """
-        Checks if the compuation  bin2xml was already performed.
+        Checks if the bin2xml conversion was already performed
         """
 
         # If there are as many xml files as there are bands to solve, the calculation was already completed
@@ -171,7 +171,7 @@ class MLFittingWorkflow(Workflow):
 
     def compute_decomposition(self):
         """
-        Performs the decomposition into radial basis functions and spherical harmonics.
+        Performs the decomposition into radial basis functions and spherical harmonics
         """
 
         calculation_title = 'the decomposition of the real-space density'
@@ -211,10 +211,10 @@ class MLFittingWorkflow(Workflow):
 
     def check_if_compute_decomposition_is_complete(self) -> bool:
         """
-        Checks if the compuation of the expansion coefficients was already performed.
+        Checks if the expansion coefficients were already calculated
         """
 
-        # If there are as many coefficient-files as there are bands to solve, the calculation was already completed
+        # If there are as many coefficient files as there are bands to solve, the calculation was already completed
         return len([name for name in os.listdir(self.dirs['coeff'] / 'coeff_tot') if
                     os.path.isfile(self.dirs['coeff'] / 'coeff_tot' / name)]) == sum(self.num_bands_to_extract)
 
@@ -240,8 +240,8 @@ class MLFittingWorkflow(Workflow):
             elif self.ml.input_data_for_ml_model == 'self_hartree':
                 input_data = self.load_SH(band)
             else:
-                raise ValueError(
-                    f"{self.ml.input_data_for_ml_model} is currently not implemented as a valid input for the ml model.")
+                raise ValueError(f"{self.ml.input_data_for_ml_model} is currently not implemented as a valid input "
+                                 "for the ML model")
 
         return input_data
 
@@ -335,7 +335,8 @@ class MLFittingWorkflow(Workflow):
         if use_prediction:
             self.print('The prediction criterium is satisfied; the screening parameter will be predicted')
         else:
-            self.print('The prediction criterium is not yet satsified; the screening parameter will be calculated ab initio')
+            self.print('The prediction criterium is not yet satsified; the screening parameter will be calculated '
+                       'ab initio')
 
         # Store whether the prediction was used or not
         self.use_predictions.append(use_prediction)
@@ -360,23 +361,22 @@ class MLFittingWorkflow(Workflow):
         Prints a summary of the prediction of the alphas values of one band
         """
 
-        utils.indented_print('\npredicted screening parameter:  {0:.5f}'.format(alpha_predicted), indent=indent)
-        utils.indented_print('calculated screening parameter: {0:.5f}'.format(alpha_calculated), indent=indent)
-        utils.indented_print('absoulute error:                {0:.5f}'.format(
-            np.abs(alpha_predicted-alpha_calculated)), indent=indent)
-        utils.indented_print('')
+        utils.indented_print(f'\npredicted screening parameter:  {alpha_predicted:.5f}', indent=indent)
+        utils.indented_print(f'calculated screening parameter: {alpha_predicted:.5f}', indent=indent)
+        utils.indented_print(f'absoulute error:                {np.abs(alpha_predicted-alpha_calculated):.5f}\n',
+                             indent=indent)
 
     def print_error_of_all_orbitals(self, indent: int = 0):
         """
         Prints a summary of the prediction of the alphas values of all bands
         """
-        utils.indented_print('\nThe mean absolute error of the predicted screening parameters of this snapshot is {0:.7f}'.format(
-            mae(self.predicted_alphas, self.calculated_alphas)), indent=indent)
-        utils.indented_print('')
+        utils.indented_print('\nThe mean absolute error of the predicted screening parameters of this snapshot is '
+                             f'{mae(self.predicted_alphas, self.calculated_alphas):.7f}\n', indent=indent)
 
     def get_alpha_from_file_for_debugging(self, band: Band) -> Tuple[float, float]:
         """
-        Auxillary function to test the ML workflow with screening parameters from a file instead of computing them ab initio
+        Auxillary function to test the ML workflow with screening parameters from a file instead of computing them
+        ab initio
         """
 
         flat_alphas = utils.read_alpha_file(Path())
@@ -391,7 +391,8 @@ class MLFittingWorkflow(Workflow):
     @classmethod
     def fromdict(cls, dct: Dict[str, Any], **kwargs) -> Workflow:
         calc_that_produced_orbital_densities = dct.pop('calc_that_produced_orbital_densities')
-        return super(MLFittingWorkflow, cls).fromdict(dct, calc_that_produced_orbital_densities=calc_that_produced_orbital_densities, **kwargs)
+        return super(MLFittingWorkflow, cls).fromdict(
+            dct, calc_that_produced_orbital_densities=calc_that_produced_orbital_densities, **kwargs)
 
     def __eq__(self, other):
         return DeepDiff(self, other) == {}
