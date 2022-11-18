@@ -46,8 +46,12 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}):
         workflow_cls = workflows.DFTBandsWorkflow
     elif parameters.task == 'dft_eps':
         workflow_cls = workflows.DFTPhWorkflow
+    elif parameters.task == 'trajectory':
+        workflow_cls = workflows.TrajectoryWorkflow
+    elif parameters.task == 'convergence_ml':
+        workflow_cls = workflows.ConvergenceMLWorkflow
     else:
-        raise ValueError('Invalid task name "{task_name}"')
+        raise ValueError(f'Invalid task name "{parameters.task}"')
 
     return workflow_cls.fromjson(fd.name, override)
 

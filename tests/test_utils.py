@@ -3,10 +3,9 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from koopmans_pytest import strategies as kst
 
 from koopmans import utils
-
-from . import strategies as kst
 
 wann_files_dir = Path(__file__).parent / 'w90_example_files'
 

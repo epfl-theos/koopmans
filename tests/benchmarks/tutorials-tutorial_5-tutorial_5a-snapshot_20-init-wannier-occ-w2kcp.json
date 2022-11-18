@@ -1,0 +1,114 @@
+{
+ "_parameters": {
+  "outdir": {
+   "__path__": "../../TMP"
+  },
+  "__koopmans_name__": "Wann2KCPSettingsDict",
+  "__koopmans_module__": "koopmans.settings._wann2kcp"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "int64",
+    [
+     8,
+     1,
+     1
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     3.03187277,
+     3.2048330599999995,
+     3.2933474399999993,
+     3.1739757199999996,
+     4.08020945,
+     3.5325090299999995,
+     3.53784502,
+     2.83529675,
+     2.64329792
+    ]
+   ]
+  },
+  "tags": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "int64",
+    [
+     0,
+     0,
+     0
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     6.8929,
+     0.0,
+     0.0,
+     0.0,
+     6.8929,
+     0.0,
+     0.0,
+     0.0,
+     6.8929
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     true,
+     true,
+     true
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "job done": true
+ },
+ "_directory": {
+  "__path__": "occ"
+ },
+ "prefix": "w2kcp",
+ "name": "benchgenwann2kcpcalculator",
+ "command": {
+  "mpi_command": "mpirun -np 8",
+  "_path": {
+   "__path__": "../../../../../../../../../../usr/local/bin"
+  },
+  "executable": "wann2kcp.x",
+  "_flags": "",
+  "suffix": "-in PREFIX.wki > PREFIX.wko 2>&1",
+  "__koopmans_name__": "ParallelCommand",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "__koopmans_name__": "BenchGenWann2KCPCalculator",
+ "__koopmans_module__": "koopmans_pytest._generate_benchmarks"
+}

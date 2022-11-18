@@ -8,4 +8,5 @@ Tutorials
     tutorials/tutorial_2
     tutorials/tutorial_3
     tutorials/tutorial_4
+    tutorials/tutorial_5
 

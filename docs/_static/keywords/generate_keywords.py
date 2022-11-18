@@ -1,8 +1,6 @@
-from koopmans.settings import (
-    PlotSettingsDict,
-    UnfoldAndInterpolateSettingsDict,
-    WorkflowSettingsDict,
-)
+from koopmans.settings import (MLSettingsDict, PlotSettingsDict,
+                               UnfoldAndInterpolateSettingsDict,
+                               WorkflowSettingsDict)
 
 
 def print_settings_as_html(settings, table_id, fd):
@@ -52,3 +50,6 @@ if __name__ == '__main__':
 
     with open('plot_keywords.html', 'w') as fd:
         print_settings_as_html(PlotSettingsDict(), 'plotTable', fd)
+
+    with open('ml_keywords.html', 'w') as fd:
+        print_settings_as_html(MLSettingsDict(), 'mlTable', fd)

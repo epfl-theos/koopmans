@@ -19,7 +19,7 @@ repos:
     rev: v0.961
     hooks:
       - id: mypy
-        files: koopmans/
+        files: src/koopmans/
         args: [--ignore-missing-imports]
 
   - repo: https://github.com/pre-commit/mirrors-autopep8

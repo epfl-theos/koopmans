@@ -1,6 +1,6 @@
 [project]
 name = "koopmans"
-version = "1.0.0-beta.4"
+version = "1.0.0-beta.5"
 description = "Koopmans spectral functional calculations with python and Quantum ESPRESSO"
 readme = "README.rst"
 requires-python = ">=3.7"
@@ -30,6 +30,8 @@ dependencies = [
     "spglib>=1.9",
     "upf-to-json>=0.9.5",
     "ase-koopmans==0.1.1",
+    "scikit-learn>=1.0",
+    "deepdiff>=5.8.1",
 ]
 
 [project.urls]

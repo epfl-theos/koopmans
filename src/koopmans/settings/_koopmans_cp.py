@@ -34,7 +34,9 @@ class KoopmansCPSettingsDict(IbravDict, SettingsDict):
                     'innerloop_nmax': 100,
                     'hartree_only_sic': False,
                     'conv_thr': '1.0e-9*nelec',
-                    'esic_conv_thr': '1.0e-9*nelec'}
+                    'esic_conv_thr': '1.0e-9*nelec',
+                    'print_real_space_density': False
+                    }
 
         # Get rid of any nested kwargs
         flattened_kwargs: Dict[str, Any] = {}
