@@ -1,13 +1,17 @@
+"""
 
+A workflow for serially running the Koopmans DSCF workflow on multiple atomic configurations
+
+"""
 
 import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+from ase import Atoms, io
 from sklearn.metrics import mean_absolute_error, r2_score
 
-from ase import Atoms, io
 from koopmans import calculators, utils
 
 from ._workflow import Workflow
@@ -15,7 +19,8 @@ from ._workflow import Workflow
 
 class TrajectoryWorkflow(Workflow):
 
-    def __init__(self, snapshots: List[Atoms], indices: Optional[List[int]] = None, save_dir: Optional[Path] = None, get_evs: bool = False, overwrite_atoms: bool = True, *args, **kwargs):
+    def __init__(self, snapshots: List[Atoms], indices: Optional[List[int]] = None, save_dir: Optional[Path] = None,
+                 get_evs: bool = False, overwrite_atoms: bool = True, *args, **kwargs):
 
         if overwrite_atoms:
             if isinstance(snapshots, Atoms):
@@ -35,14 +40,15 @@ class TrajectoryWorkflow(Workflow):
     @ classmethod
     def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}):
         """
-        Reads the atomic positions for each snapshot from the xyz-file specified by the user in the snapshots-file.
+        Reads the atomic positions for each snapshot from the xyz file provided by the user
         """
 
         try:
             snapshots_file = bigdct['atoms']['atomic_positions'].pop('snapshots')
         except:
-            raise ValueError(
-                f'To calculate a trajectory, please provide a xyz-file containing the atomic positions of the snapshots in the atomic_positions-block of the json-input file.')
+            raise ValueError('To calculate a trajectory, please provide a "snapshots" entry in the'
+                             '"atomic_positions" block, corresponding to the name of an xyz-formatted '
+                             'file containing the snapshots')
 
         snapshots = io.read(snapshots_file, index=':')
         if isinstance(snapshots, Atoms):
@@ -72,7 +78,7 @@ class TrajectoryWorkflow(Workflow):
 
     def _run(self):
         """
-        Starts the KoopmansDSCF Workflow for each snapshot indicated in indidses
+        Starts the KoopmansDSCF Workflow for each snapshot indicated in indices
         """
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
@@ -86,29 +92,29 @@ class TrajectoryWorkflow(Workflow):
             self.print(
                 f'Performing Koopmans calculation on snapshot {i+1} / {self.number_of_snapshots}', style='heading')
 
-            # get the atomic positions for the current snapshot
+            # Get the atomic positions for the current snapshot
             subdirectory = f'snapshot_{i+1}'
             snapshot = self.snapshots[i]
             self.ml.current_snapshot = i
             self.atoms.set_positions(snapshot.positions)
 
-            # if we are interested in the prediction of the eigenvalues,
-            # delete the final directory to make sure that the final calcualtion is rerun.
+            # If we are interested in the prediction of the eigenvalues, delete the final directory to make sure that
+            # the final calculation is rerun.
             if self.get_evs:
                 from_scratch = self.parameters.from_scratch
                 shutil.rmtree(Path(subdirectory) / 'final', ignore_errors=True)
 
-            # initialize and run the DSCF workflow
-            # workflow = KoopmansDSCFWorkflow(**self.wf_kwargs)
+            # Initialize and run the DSCF workflow
             workflow = KoopmansDSCFWorkflow.fromparent(self)
             self.bands = workflow.bands  # reset the bands to the initial guesses
             workflow.run(subdirectory=subdirectory)
 
-            # since we have deleted the final directory and therefore had to rerun, we must now make sure, that from_scratch is again set to its original value
+            # Since we have deleted the final directory and therefore had to rerun, we must now make sure that
+            # from_scratch is set to its original value
             if self.get_evs:
                 self.parameters.from_scratch = from_scratch
 
-            # if necessary, save the results (e.g. for the convergence analysis)
+            # If necessary, save the results (e.g. for the convergence analysis)
             alphas = self.bands.alphas
             self.all_alphas[f'snapshot_{i+1}'] = alphas
             if self.save_dir is not None:
