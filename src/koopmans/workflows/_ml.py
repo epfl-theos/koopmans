@@ -68,12 +68,13 @@ class MLFittingWorkflow(Workflow):
 
     def _run(self):
         """
-        Runs the MLFitting-workflow.
+        Runs the MLFitting workflow.
 
-        If the input-data are orbital densities, this worflow consists of three steps:
-        1) Converting the binary files containing real space densities to xml-files.
-        2) Reading the real space densities from the xml-files and calculating the decomposition into spherical harmonics and radial basis functions.
-        3) Computing the power spectra of the resulting coefficient vectors.
+        If the input data are orbital densities, this workflow consists of three steps:
+        1) converting the binary files containing real space densities to xml-files
+        2) reading the real space densities from the xml files and calculating the decomposition into spherical
+           harmonics and radial basis functions
+        3) computing the power spectra of the resulting coefficient vectors
         """
 
         # Specify for which bands we want to compute the decomposition
@@ -95,7 +96,7 @@ class MLFittingWorkflow(Workflow):
                 # start the actual three steps
                 self.extract_input_vector_from_orbital_densities()
             elif self.ml.input_data_for_ml_model == 'self_hartree':
-                # get the self hartree energies
+                # get the self-Hartree energies
                 self.extract_input_vector_from_self_hartrees()
             else:
                 raise ValueError(
@@ -119,7 +120,7 @@ class MLFittingWorkflow(Workflow):
 
     def extract_input_vector_from_orbital_densities(self):
         """
-        Performs the three steps of the MLFItting-workflow
+        Performs the three steps of the MLFitting workflow
         """
 
         self.convert_bin2xml()
@@ -128,7 +129,7 @@ class MLFittingWorkflow(Workflow):
 
     def convert_bin2xml(self):
         """
-        Converts the binary files produced by a previous calculation to python-readable xml-files.
+        Converts the binary files produced by a previous calculation to python-readable xml files.
         """
         orbital_densities_bin_dir = self.calc_that_produced_orbital_densities.parameters.outdir / \
             f'kc_{self.calc_that_produced_orbital_densities.parameters.ndw}.save'
@@ -164,11 +165,9 @@ class MLFittingWorkflow(Workflow):
         Checks if the compuation  bin2xml was already performed.
         """
 
-        # If there are as many xml-files as there are bands to solve, the calculation was already completed
-        if (len([name for name in os.listdir(self.dirs['xml']) if os.path.isfile(self.dirs['xml'] / name)]) == (self.num_bands_to_extract[0] + self.num_bands_to_extract[1]+2)):
-            return True
-        else:
-            return False
+        # If there are as many xml files as there are bands to solve, the calculation was already completed
+        return len([name for name in os.listdir(self.dirs['xml']) if os.path.isfile(self.dirs['xml'] / name)]) \
+            == (self.num_bands_to_extract[0] + self.num_bands_to_extract[1] + 2)
 
     def compute_decomposition(self):
         """
@@ -186,7 +185,6 @@ class MLFittingWorkflow(Workflow):
             self.r_cut = min(self.atoms.get_cell_lengths_and_angles()[:3])
 
             # Extract the wannier-centres
-            # Store the original w90 calculations
             w90_calcs = [c for c in self.calculations if isinstance(
                 c, calculators.Wannier90Calculator) and c.command.flags == ''][-len(self.projections):]
 
@@ -217,22 +215,18 @@ class MLFittingWorkflow(Workflow):
         """
 
         # If there are as many coefficient-files as there are bands to solve, the calculation was already completed
-        if len([name for name in os.listdir(self.dirs['coeff'] / 'coeff_tot') if
-                os.path.isfile(self.dirs['coeff'] / 'coeff_tot' / name)]) == sum(self.num_bands_to_extract):
-            return True
-        else:
-            return False
+        return len([name for name in os.listdir(self.dirs['coeff'] / 'coeff_tot') if
+                    os.path.isfile(self.dirs['coeff'] / 'coeff_tot' / name)]) == sum(self.num_bands_to_extract)
 
     def compute_power_spectrum(self):
         """
         Performs the computation of the power spectra.
         """
 
-        calculation_title = 'computation of power spectrum'
-        self.print(f'Running {calculation_title}...', end='', flush=True)
+        self.print('Calculating the power spectrum...', end='', flush=True)
         ml_utils.compute_power(self.ml.n_max, self.ml.l_max, self.dirs,
                                self.bands_to_extract, self.input_vectors_for_ml)
-        self.print(f' done')
+        self.print(' done')
 
     def get_input_data(self, band) -> np.ndarray:
         """
@@ -274,7 +268,7 @@ class MLFittingWorkflow(Workflow):
 
     def train(self):
         """
-        Reset the model and train the ML-model (including the StandardScaler) with all training data added so far.
+        Reset the model and train the ML-model (including the StandardScaler) with all training data added so far
         """
 
         self.print('Training the ML model')
@@ -304,7 +298,7 @@ class MLFittingWorkflow(Workflow):
 
     def load_power_spectrum(self, band: Band) -> np.ndarray:
         """
-        Reads the power spectrum of one band from a file.
+        Reads the power spectrum of one band from a file
         """
 
         if band.filled:
@@ -329,7 +323,7 @@ class MLFittingWorkflow(Workflow):
         If False: compute this alpha value ab-initio
         """
 
-        # defualt is to not use the prediction
+        # Default is to not use the prediction
         use_prediction = False
         if self.ml.criterium == 'after_fixed_num_of_snapshots':
             if self.ml.current_snapshot < self.ml.number_of_training_snapshots:
@@ -339,18 +333,18 @@ class MLFittingWorkflow(Workflow):
         else:
             raise NotImplementedError(f'criterium = {self.ml.criterium} is currently not implemented')
         if use_prediction:
-            self.print('The prediction-criterium is satisfied -> Use the predicted screening parameter')
+            self.print('The prediction criterium is satisfied; the screening parameter will be predicted')
         else:
-            self.print('The prediction-criterium is not yet satsified -> Compute the screening parameter ab initio')
+            self.print('The prediction criterium is not yet satsified; the screening parameter will be calculated ab initio')
 
-        # store whether the prediction was used or not
+        # Store whether the prediction was used or not
         self.use_predictions.append(use_prediction)
 
         return use_prediction
 
     def write_predicted_alphas(self):
         """
-        Wrapper to write the predicted alpha values to a file.
+        Wrapper to write the predicted alpha values to a file
         """
 
         if self.nspin_to_extract == 1:
@@ -363,7 +357,7 @@ class MLFittingWorkflow(Workflow):
 
     def print_error_of_single_orbital(self, alpha_predicted: float, alpha_calculated: float, indent: int = 0):
         """
-        Prints a summary of the prediction of the alphas values of one band.
+        Prints a summary of the prediction of the alphas values of one band
         """
 
         utils.indented_print('\npredicted screening parameter:  {0:.5f}'.format(alpha_predicted), indent=indent)
@@ -374,7 +368,7 @@ class MLFittingWorkflow(Workflow):
 
     def print_error_of_all_orbitals(self, indent: int = 0):
         """
-        Prints a summary of the prediction of the alphas values of all bands.
+        Prints a summary of the prediction of the alphas values of all bands
         """
         utils.indented_print('\nThe mean absolute error of the predicted screening parameters of this snapshot is {0:.7f}'.format(
             mae(self.predicted_alphas, self.calculated_alphas)), indent=indent)
@@ -382,7 +376,7 @@ class MLFittingWorkflow(Workflow):
 
     def get_alpha_from_file_for_debugging(self, band: Band) -> Tuple[float, float]:
         """
-        Auxillary function to test the ML-workflow with alpha-parameters from a file instead of computing them ab-initio
+        Auxillary function to test the ML workflow with screening parameters from a file instead of computing them ab initio
         """
 
         flat_alphas = utils.read_alpha_file(Path())
@@ -397,7 +391,7 @@ class MLFittingWorkflow(Workflow):
     @classmethod
     def fromdict(cls, dct: Dict[str, Any], **kwargs) -> Workflow:
         calc_that_produced_orbital_densities = dct.pop('calc_that_produced_orbital_densities')
-        return super(MLFittingWorkflow, cls).fromdict(dct, calc_that_produced_orbital_densities=calc_that_produced_orbital_densities)
+        return super(MLFittingWorkflow, cls).fromdict(dct, calc_that_produced_orbital_densities=calc_that_produced_orbital_densities, **kwargs)
 
     def __eq__(self, other):
         return DeepDiff(self, other) == {}
