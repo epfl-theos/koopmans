@@ -138,8 +138,7 @@ Next, we add snapshot 2 to the training data.
   :language: text
   :lineno-start: 1552
 
-Our model is now trained on the orbitals of 2 snapshots. We use this model again to predict the screening parameters of the last 10 snapshots and compare the results to the ab initio computation. 
-We repeat this procedure until we have added all 10 snapshots to the training data. Then we can have a look at the convergence of the mean absolute error of the predicted screening parameters:
+Our model is now trained on the orbitals of 2 snapshots. We use this model again to predict the screening parameters of the last 10 snapshots and compare the results to the ab initio calculation. We repeat this procedure until we have added all 10 snapshots to the training data. Then we can have a look at the convergence of the mean absolute error of the predicted screening parameters:
 
 .. figure:: ../../tutorials/tutorial_5/tutorial_5b/spin_0_alphas_MAE_convergence.png
    :width: 1000
@@ -153,7 +152,7 @@ and the convergence of the mean absolute error of the predicted orbital energies
    :align: center
    :alt: Convergence of the MAE of the predicted eigenenergies
 
-We can see that we converged to a reasonable accuracy after about 5 training snapshots (which corresponds to 20 occupied and 10 empty orbitals). 
+(You can find these plots in the ``convergence_analysis/final_results/`` subdirectory.) We can see that we converged to a reasonable accuracy after about 5 training snapshots (which corresponds to 20 occupied and 10 empty orbitals). 
 
 We can now also check (:download:`plot_5b.py <../../tutorials/tutorial_5/plot_5b.py>`) that the predicted ionization potentials match with the ionization potentials obtained from the ab-initio computation of the screening parameters:
 
