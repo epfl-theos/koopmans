@@ -9,10 +9,9 @@ from ase import Atoms, io
 from sklearn.metrics import mean_absolute_error, r2_score
 
 from koopmans import utils
-from koopmans.ml_utils import MLModel, precompute_parameters_of_radial_basis
-from koopmans.ml_utils._plotting_routines import (plot_calculated_vs_predicted,
-                                                  plot_convergence,
-                                                  plot_error_histogram)
+from koopmans.ml_utils import (MLModel, plot_calculated_vs_predicted,
+                               plot_convergence, plot_error_histogram,
+                               precompute_parameters_of_radial_basis)
 
 from ._trajectory import TrajectoryWorkflow
 from ._workflow import Workflow
@@ -38,16 +37,17 @@ class ConvergenceMLWorkflow(Workflow):
     @ classmethod
     def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}):
         """
-        Reads the atomic positions for each snapshot from the xyz-file specified by the user in the snapshots-file and initialize
-        the snapshot-indices for training and testing
+        Reads the atomic positions for each snapshot from the xyz-file specified by the user in the snapshots-file
+        and initialize the snapshot-indices for training and testing
         """
         try:
             snapshots_file = bigdct['atoms']['atomic_positions'].pop('snapshots')
         except:
-            raise ValueError(
-                f'To calculate a trajectory, please provide a xyz-file containing the atomic positions of the snapshots in the setup-block of the json-input file.')
+            raise ValueError(f'To calculate a trajectory, please provide a xyz-file containing the atomic positions '
+                             'of the snapshots in the setup-block of the json-input file.')
 
         snapshots = io.read(snapshots_file, index=':')
+
         if isinstance(snapshots, Atoms):
             snapshots = [snapshots]
         bigdct['atoms']['atomic_positions'] = utils.construct_atomic_positions_block(snapshots[0])
