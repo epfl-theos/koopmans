@@ -45,7 +45,7 @@ from koopmans import calculators, settings, utils
 from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.kpoints import Kpoints
-from koopmans.ml_utils._ml_models import MLModel
+from koopmans.ml import MLModel
 from koopmans.projections import ProjectionBlocks
 from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
                                        pseudo_database,
@@ -541,8 +541,8 @@ class Workflow(ABC):
                 assert isinstance(self.ml.r_min, float)
                 assert isinstance(self.ml.r_max, float)
 
-            
             # convert now each parameter to a list to be able to run the same checks irregardless of the task
+
             def convert_to_list(param, type):
                 if isinstance(param, type):  # if param is an int or a float convert it for the checks to a list
                     return [param]

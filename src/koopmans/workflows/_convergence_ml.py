@@ -9,9 +9,9 @@ from ase import Atoms, io
 from sklearn.metrics import mean_absolute_error, r2_score
 
 from koopmans import utils
-from koopmans.ml_utils import (MLModel, plot_calculated_vs_predicted,
-                               plot_convergence, plot_error_histogram,
-                               precompute_parameters_of_radial_basis)
+from koopmans.ml import (MLModel, plot_calculated_vs_predicted,
+                         plot_convergence, plot_error_histogram,
+                         precompute_parameters_of_radial_basis)
 
 from ._trajectory import TrajectoryWorkflow
 from ._workflow import Workflow

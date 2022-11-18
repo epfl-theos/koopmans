@@ -10,7 +10,7 @@ import numpy as np
 from deepdiff import DeepDiff
 from sklearn.metrics import mean_absolute_error as mae
 
-from koopmans import calculators, ml_utils, utils
+from koopmans import calculators, ml, utils
 from koopmans.bands import Band
 from koopmans.settings import KoopmansCPSettingsDict
 
@@ -203,10 +203,10 @@ class MLFittingWorkflow(Workflow):
                                                   if calc_presets in c.directory.name]))
             centers = np.concatenate(centers_list)
 
-            ml_utils.precompute_parameters_of_radial_basis(self.ml.n_max, self.ml.l_max,
-                                                           self.ml.r_min, self.ml.r_max, self.dirs)
-            ml_utils.compute_decomposition(self.ml.n_max, self.ml.l_max, self.ml.r_min,
-                                           self.ml.r_max, self.r_cut, self.dirs, self.bands_to_extract, self.atoms, centers)
+            ml.precompute_parameters_of_radial_basis(self.ml.n_max, self.ml.l_max,
+                                                     self.ml.r_min, self.ml.r_max, self.dirs)
+            ml.compute_decomposition(self.ml.n_max, self.ml.l_max, self.ml.r_min,
+                                     self.ml.r_max, self.r_cut, self.dirs, self.bands_to_extract, self.atoms, centers)
             self.print(f' done')
 
     def check_if_compute_decomposition_is_complete(self) -> bool:
@@ -224,8 +224,8 @@ class MLFittingWorkflow(Workflow):
         """
 
         self.print('Calculating the power spectrum...', end='', flush=True)
-        ml_utils.compute_power(self.ml.n_max, self.ml.l_max, self.dirs,
-                               self.bands_to_extract, self.input_vectors_for_ml)
+        ml.compute_power(self.ml.n_max, self.ml.l_max, self.dirs,
+                         self.bands_to_extract, self.input_vectors_for_ml)
         self.print(' done')
 
     def get_input_data(self, band) -> np.ndarray:

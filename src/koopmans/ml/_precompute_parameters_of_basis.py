@@ -1,11 +1,10 @@
 from pathlib import Path
 from typing import Dict, Optional
 
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import quad
 
-import koopmans.ml_utils._basis_functions as basis
+from ._basis_functions import phi
 
 
 def compute_alphas(n_max: int, l_max: int, r_thrs: np.ndarray, thr: float):
@@ -23,16 +22,16 @@ def compute_alphas(n_max: int, l_max: int, r_thrs: np.ndarray, thr: float):
 
 def compute_overlap(n: int, n_prime: int, l: int, alphas: np.ndarray):
     """
-    Computes the overelap between two radial basis functions phi_nl, phi_n'l.
+    Computes the overelap between two radial basis functions phi_nl, phi_n'l
     """
 
-    def integrand(r): return r**2*basis.phi(r, l, alphas[n, l])*basis.phi(r, l, alphas[n_prime, l])
+    def integrand(r): return r**2*phi(r, l, alphas[n, l])*phi(r, l, alphas[n_prime, l])
     return quad(integrand, 0.0, np.inf)[0]
 
 
 def compute_s(n_max: int, l: int, alphas: np.ndarray) -> np.ndarray:
     """
-    Computes the overlap matrix S (as in eq. (26) in Himanen et al 2020).
+    Computes the overlap matrix S (as in eq. (26) in Himanen et al 2020)
     """
 
     s = np.zeros((n_max, n_max))
@@ -45,7 +44,7 @@ def compute_s(n_max: int, l: int, alphas: np.ndarray) -> np.ndarray:
 
 def lowdin(s: np.ndarray):
     """
-    Computes the Löwdin orthogonalization of the matrix s.
+    Computes the Löwdin orthogonalization of the matrix s
     """
 
     e, v = np.linalg.eigh(s)
@@ -54,7 +53,7 @@ def lowdin(s: np.ndarray):
 
 def compute_beta(n_max: int, l: int, alphas: np.ndarray) -> np.ndarray:
     """
-    Computes beta such that the corresponding basis is orthogonal (as in eq. (25) Himanen et al 2020).
+    Computes beta such that the corresponding basis is orthogonal (as in eq. (25) Himanen et al 2020)
     """
 
     s = compute_s(n_max, l, alphas)
@@ -63,9 +62,10 @@ def compute_beta(n_max: int, l: int, alphas: np.ndarray) -> np.ndarray:
     return beta
 
 
-def precompute_parameters_of_radial_basis(n_max: int, l_max: int, r_min_thr: float, r_max_thr: float, dirs: Optional[Dict[str, Path]] = None):
+def precompute_parameters_of_radial_basis(n_max: int, l_max: int, r_min_thr: float, r_max_thr: float,
+                                          dirs: Optional[Dict[str, Path]] = None):
     """
-    Precomputes the alphas and betas needed to define the basis functions (as in Himanen et al 2020).
+    Precomputes the alphas and betas needed to define the basis functions (as in Himanen et al 2020)
     """
 
     thr = 10**(-3)
@@ -78,11 +78,11 @@ def precompute_parameters_of_radial_basis(n_max: int, l_max: int, r_min_thr: flo
             betas[:, :, l] = compute_beta(n_max, l, alphas)
     except:
         raise ValueError(
-            f"Failed to precompute the radial basis. You might want to try a larger r_min, e.g. r_min=1.0.")
+            f"Failed to precompute the radial basis. You might want to try a larger r_min, e.g. r_min=1.0")
 
     if np.isnan(betas).any() or np.isnan(alphas).any():
         raise ValueError(
-            f"Failed to precompute the radial basis. You might want to try a larger r_min, e.g. r_min=1.0.")
+            f"Failed to precompute the radial basis. You might want to try a larger r_min, e.g. r_min=1.0")
 
     if dirs is not None:
         betas.tofile(dirs['betas'] / ('betas_' + '_'.join(str(x)
