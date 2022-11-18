@@ -4,7 +4,7 @@ Test for to- and fromdict functions of the RidgeRegression class
 import numpy as np
 
 from koopmans import utils
-from koopmans.ml_utils import MLModel
+from koopmans.ml import MLModel
 
 
 def test_ridge_write_then_read_empty_from_dict(tmpdir):

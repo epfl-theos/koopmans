@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from ase import Atoms
 
-from koopmans import ml_utils, utils
+from koopmans import ml, utils
 from koopmans.bands import Bands
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.io import write_kwf as write_encoded_json
@@ -60,8 +60,8 @@ def test_decomposition(tmpdir, datadir, pytestconfig):
         shutil.copy(datadir / 'ml' / filename_orbital_density, dirs['xml'] / filename_orbital_density)
 
         # compute the coefficient vectors
-        ml_utils.precompute_parameters_of_radial_basis(n_max, l_max, r_min, r_max, dirs)
-        ml_utils.compute_decomposition(n_max, l_max, r_min, r_max, r_cut, dirs, bands_to_extract, water, centers)
+        ml.precompute_parameters_of_radial_basis(n_max, l_max, r_min, r_max, dirs)
+        ml.compute_decomposition(n_max, l_max, r_min, r_max, r_cut, dirs, bands_to_extract, water, centers)
 
         # check if the coefficient vectors match the reference solution
         benchmark_file_orb = benchmark_dir / 'test_compute_decomposition_orb.json'
@@ -118,7 +118,7 @@ def test_compute_power(tmpdir, datadir, pytestconfig):
 
         # compute the power spectra
         input_vectors_for_ml = {}
-        ml_utils.compute_power(n_max, l_max, dirs, bands_to_extract, input_vectors_for_ml)
+        ml.compute_power(n_max, l_max, dirs, bands_to_extract, input_vectors_for_ml)
 
         # check if the computed power spectra match the reference solution
         power = np.loadtxt(dirs['power'] / 'power_spectrum.orbital.occ.1.txt')
