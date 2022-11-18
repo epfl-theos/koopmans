@@ -138,9 +138,9 @@ class MLFittingWorkflow(Workflow):
         is_complete = self.check_if_bin2xml_is_complete()
 
         if not self.parameters.from_scratch and is_complete:
-            self.print(f'Not running {calculation_title} as it is already complete')
+            self.print(f'Not {calculation_title.lower()} as it is already complete')
         else:
-            self.print(f'Running {calculation_title}...', end='', flush=True)
+            self.print(f'{calculation_title}...', end='', flush=True)
 
             # Convert total density to XML
             command = f'bin2xml.x {orbital_densities_bin_dir}/charge-density.dat {self.dirs["xml"]}/charge-density.xml'
@@ -250,7 +250,6 @@ class MLFittingWorkflow(Workflow):
         Make the prediction for one band.
         """
 
-        self.print('Predicting screening parameter')
         input_data = self.get_input_data(band)
 
         if self.ml.occ_and_emp_together:
@@ -333,10 +332,7 @@ class MLFittingWorkflow(Workflow):
         else:
             raise NotImplementedError(f'criterium = {self.ml.criterium} is currently not implemented')
         if use_prediction:
-            self.print('The prediction criterium is satisfied; the screening parameter will be predicted')
-        else:
-            self.print('The prediction criterium is not yet satsified; the screening parameter will be calculated '
-                       'ab initio')
+            self.print('Predicting the screening parameter with the ML model')
 
         # Store whether the prediction was used or not
         self.use_predictions.append(use_prediction)
@@ -362,8 +358,8 @@ class MLFittingWorkflow(Workflow):
         """
 
         utils.indented_print(f'\npredicted screening parameter:  {alpha_predicted:.5f}', indent=indent)
-        utils.indented_print(f'calculated screening parameter: {alpha_predicted:.5f}', indent=indent)
-        utils.indented_print(f'absoulute error:                {np.abs(alpha_predicted-alpha_calculated):.5f}\n',
+        utils.indented_print(f'calculated screening parameter: {alpha_calculated:.5f}', indent=indent)
+        utils.indented_print(f'absolute error:                 {np.abs(alpha_predicted-alpha_calculated):.5f}\n',
                              indent=indent)
 
     def print_error_of_all_orbitals(self, indent: int = 0):
@@ -371,7 +367,7 @@ class MLFittingWorkflow(Workflow):
         Prints a summary of the prediction of the alphas values of all bands
         """
         utils.indented_print('\nThe mean absolute error of the predicted screening parameters of this snapshot is '
-                             f'{mae(self.predicted_alphas, self.calculated_alphas):.7f}\n', indent=indent)
+                             f'{mae(self.predicted_alphas, self.calculated_alphas):.4f}\n', indent=indent)
 
     def get_alpha_from_file_for_debugging(self, band: Band) -> Tuple[float, float]:
         """

@@ -2,23 +2,19 @@
 
 Tutorial 5: using machine learning to predict the screening parameters of water molecules
 =========================================================================================
-In this tutorial, we will train a machine learning model to predict the screening parameters of water molecules directly from their orbital densities. 
-To create a trajectory with 20 different atomic configurations, we run a 
-:download:`python script <../../tutorials/tutorial_5/perturb_positions.py>` that applies random noise to the unperturbed atomic positions of a water molecule. The resulting atomic positions are saved in a :download:`xyz-file <../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.json>` and visualized below
+In this tutorial, we will train a machine-learning model to predict the screening parameters of water molecules directly from their orbital densities.  To generate a trajectory with 20 different atomic configurations, we run a :download:`python script <../../tutorials/tutorial_5/perturb_positions.py>` that applies random noise to the atomic positions of a water molecule. The resulting atomic positions are saved in a :download:`xyz file <../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.json>` and are visualized below
 
 .. figure:: ../../tutorials/tutorial_5/snapshots.gif
    :width: 400
    :align: center
    :alt: The 20 snapshots generated with perturb_positions.py 
 
-Our goal in this tutorial is to perform 
-Koopmans calculations on each of these 20 snapshots using a machine learning model to predict the screening parameters.  
+Our goal in this tutorial is to perform Koopmans calculations on each of these 20 snapshots using a machine learning model to predict the screening parameters instead of calculating them ab initio.  
 
 Running a machine learning workflow
 -----------------------------------
 
-To predict the screening parameters with the machine learning model we have to train this machine learning model first. In the following we will use the first five snapshots for training and then use the trained machine learning model
-to predict the screening parameters for the remaing 15 snapshots. 
+To predict the screening parameters with the machine learning model we must first train the model. In the following we will use the first five snapshots for training and then use the trained machine learning model to predict the screening parameters for the remaining 15 snapshots. 
 
 The input file for the machine learning workflow
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -33,7 +29,7 @@ First, we have to specify that we want to perform Koopmans calculations on a who
   :emphasize-lines: 2
   :lineno-start: 24
 
-For this task, we don't provide the ``"atomic_positions"`` directly to the input file since we don't want to perform a Koopmans calculation on a single snapshot but on many snapshots. Instead, we provide the xyz-file containing all the atomic positions of each snapshot that we would like to simulate
+For this task, we don't provide the ``"atomic_positions"`` directly to the input file since we don't want to perform a Koopmans calculation on a single snapshot but on many snapshots. Instead, we provide an xyz file containing all the atomic positions of each snapshot that we would like to simulate
 
 .. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.json
   :lines: 21-24
@@ -49,34 +45,34 @@ Finally, we have to provide a ``ml`` block with keywords specific to the machine
   :lineno-start: 13
 
 To predict the screening parameters from the orbital densities, we have to translate the orbital densities into input vectors for the machine learning model. To do so, we decompose the orbital densities into radial basis functions :math:`g_{nl}(r)` and angular basis functions :math:`Y_{ml}(\theta,\phi)`. 
-This decomposition has the following four hyperparameters that we have to provide in the input file:
+This decomposition has the following four hyperparameters that we provided in the input file:
 
 * :math:`n_{max}` determines the number of radial basis functions
 * :math:`l_{max}` determines the number of angular basis functions
 * :math:`r_{min}` determines the smallest cutoff radius for the radial basis functions
-* :math:`r_{max}` determines the smallest cutoff radius for the radial basis functions
+* :math:`r_{max}` determines the largest cutoff radius for the radial basis functions
 
-In anticipation that the machine learning model will be most useful in extended systems (liquids or solids), we apply periodic boundary conditions and use maximally localized Wannier functions as our variational orbitals.
+In anticipation that the machine learning model will be most useful in extended systems (liquids or solids), we apply periodic boundary conditions and use maximally localized Wannier functions as our variational orbitals (despite the fact that our toy water model is not, in fact, a periodic system).
 
 The output file for the machine learning workflow
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You should see that we compute the screening parameters of the first 5 snapshots ab initio and add the results to our training data
+Running this calculation, the output will show that we compute the screening parameters of the first five snapshots ab initio and add the results to our training data
 
 .. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.out
-  :lines: 49-60
+  :lines: 49-57
   :language: text
   :lineno-start: 49
 
 Then we use the trained model to predict the screening parameters of the remaining snapshots 
 
 .. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.out
-  :lines: 680-683
+  :lines: 619-621
   :language: text
-  :lineno-start: 680
+  :lineno-start: 619
 
 
-Below, we plot (:download:`plot_5a.py <../../tutorials/tutorial_5/plot_5a.py>`) predicted ionization potentials of the water molecule for the last 10 snapshots. Of course, they don't necessarily correspond to anything physical because these configurations have been randomly generated. But in real applications the snapshots will correspond to something physical and the resulting ionization potentials will be meaningful.
+Using the script :download:`plot_5a.py <../../tutorials/tutorial_5/plot_5a.py>` we can plot predicted ionization potentials of the water molecule across the last 10 snapshots. Of course, they don't necessarily correspond to anything physical because these configurations have been randomly generated. But in real applications the snapshots will correspond to something physical and the resulting ionization potentials will be meaningful.
 
 
 .. figure:: ../../tutorials/tutorial_5/bar_diagram_predicted.png
