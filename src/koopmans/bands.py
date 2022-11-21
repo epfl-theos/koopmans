@@ -11,6 +11,7 @@ class Band(object):
     def __init__(self, index: Optional[int] = None, spin: int = 0, filled: bool = True, group: Optional[int] = None,
                  alpha: Optional[float] = None, error: Optional[float] = None,
                  self_hartree: Optional[float] = None,
+                 spread: Optional[float] = None,
                  center: Optional[np.ndarray] = None) -> None:
         self.index = index
         self.spin = spin
@@ -21,6 +22,7 @@ class Band(object):
         self.alpha = alpha
         self.error = error
         self.self_hartree = self_hartree
+        self.spread = spread
         self.center = center
 
     @classmethod
@@ -39,7 +41,12 @@ class Band(object):
         return dct
 
     def __repr__(self) -> str:
-        return f'Band(index={self.index}, spin={self.spin}, filled={self.filled}, group={self.group})'
+        info = f'Band(index={self.index}, spin={self.spin}, filled={self.filled}, group={self.group}'
+        for attr in ['alpha', 'self_hartree', 'spread', 'center']:
+            val = getattr(self, attr)
+            if val:
+                info += f', {attr.replace("_", "-")}={val}'
+        return info + ')'
 
     @property
     def alpha(self) -> Union[float, None]:
@@ -95,6 +102,9 @@ class Bands(object):
     def __iter__(self):
         for b in self._bands:
             yield b
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}([\n  ' + '\n  '.join([str(b) for b in self]) + '\n])'
 
     @classmethod
     def fromdict(cls, dct):

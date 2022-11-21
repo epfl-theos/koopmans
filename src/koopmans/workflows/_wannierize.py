@@ -183,6 +183,29 @@ class WannierizeWorkflow(Workflow):
                 calc_w90.prefix = 'wann'
                 self.run_calculator(calc_w90)
 
+                if hasattr(self, 'bands'):
+                    # Add centers and spreads info to self.bands
+                    if block.spin is None:
+                        remaining_bands = [b for b in self.bands if b.center is None and b.spin == 0]
+                    else:
+                        if block.spin == 'up':
+                            i_spin = 0
+                        else:
+                            i_spin = 1
+                        remaining_bands = [b for b in self.bands if b.center is None and b.spin == i_spin]
+
+                    centers = calc_w90.results['centers']
+                    spreads = calc_w90.results['spreads']
+                    for band, center, spread in zip(remaining_bands, centers, spreads):
+                        band.center = center
+                        band.spread = spread
+
+                        if block.spin is None:
+                            # Copy over spin-up results to spin-down
+                            [match] = [b for b in self.bands if b.index == band.index and b.spin == 1]
+                            match.center = center
+                            match.spread = spread
+
             # Merging Hamiltonian files, U matrix files, centers files if necessary
             if self.parent is not None:
                 for merge_directory, block in self.projections.to_merge.items():

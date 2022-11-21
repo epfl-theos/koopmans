@@ -184,24 +184,11 @@ class MLFittingWorkflow(Workflow):
             # the maximum radius will be set to the minimum of self.r_cut and half of the cell-size later on
             self.r_cut = min(self.atoms.get_cell_lengths_and_angles()[:3])
 
-            # Extract the wannier-centres
-            w90_calcs = [c for c in self.calculations if isinstance(
-                c, calculators.Wannier90Calculator) and c.command.flags == ''][-len(self.projections):]
-
+            # Extract the Wannier centres
             if self.parameters.spin_polarized:
-                spins = ['up', 'down']
+                centers = [b.center for b in self.bands]
             else:
-                spins = [None]
-
-            centers_list = []
-            for spin in spins:
-                for filling in ['occ', 'emp']:
-                    calc_presets = filling
-                    if spin:
-                        calc_presets += '_' + spin
-                    centers_list.append(np.array([center for c in w90_calcs for center in c.results['centers']
-                                                  if calc_presets in c.directory.name]))
-            centers = np.concatenate(centers_list)
+                centers = [b.center for b in self.bands if b.spin == 0]
 
             ml.precompute_parameters_of_radial_basis(self.ml.n_max, self.ml.l_max,
                                                      self.ml.r_min, self.ml.r_max, self.dirs)

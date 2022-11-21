@@ -1,0 +1,149 @@
+{
+ "_parameters": {
+  "dis_froz_max": 1.0,
+  "projections": [
+   {
+    "site": "H",
+    "ang_mtm": "s"
+   }
+  ],
+  "num_wann": 2,
+  "num_bands": 8,
+  "exclude_bands": [
+   1,
+   2,
+   3,
+   4
+  ],
+  "mp_grid": [
+   1,
+   1,
+   1
+  ],
+  "kpoints": {
+   "__ndarray__": [
+    [
+     1,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     0.0,
+     0.0
+    ]
+   ]
+  },
+  "dis_num_iter": 5000,
+  "__koopmans_name__": "Wannier90SettingsDict",
+  "__koopmans_module__": "koopmans.settings._wannier90"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "int64",
+    [
+     8,
+     1,
+     1
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     3.23831448,
+     3.21359795,
+     3.2671677799999994,
+     3.38910163,
+     3.8804592599999994,
+     3.56669154,
+     3.5999758399999995,
+     3.05218427,
+     2.56707452
+    ]
+   ]
+  },
+  "tags": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "int64",
+    [
+     0,
+     0,
+     0
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     6.8929,
+     0.0,
+     0.0,
+     0.0,
+     6.8929,
+     0.0,
+     0.0,
+     0.0,
+     6.8929
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     true,
+     true,
+     true
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "job done": true,
+  "convergence": false,
+  "Im/Re ratio": [],
+  "centers": [],
+  "spreads": []
+ },
+ "_directory": {
+  "__path__": "wannier/block_2"
+ },
+ "prefix": "wann_preproc",
+ "name": "benchgenwannier90calculator",
+ "command": {
+  "_path": {
+   "__path__": "../../../../../../../../../usr/local/bin"
+  },
+  "executable": "wannier90.x",
+  "_flags": "-pp",
+  "suffix": "PREFIX.win > PREFIX.wout 2>&1",
+  "__koopmans_name__": "Command",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "__koopmans_name__": "BenchGenWannier90Calculator",
+ "__koopmans_module__": "koopmans_pytest._generate_benchmarks"
+}

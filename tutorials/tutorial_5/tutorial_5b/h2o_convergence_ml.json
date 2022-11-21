@@ -17,10 +17,7 @@
         "r_min": 1.0,
         "r_max": 4.0,
         "number_of_training_snapshots": 10,
-        "quantities_of_interest": [
-            "alphas",
-            "evs"
-        ]
+        "quantities_of_interest": ["alphas", "evs"]
     },
     "atoms": {
         "atomic_positions": {
@@ -31,21 +28,9 @@
             "periodic": true,
             "units": "angstrom",
             "vectors": [
-                [
-                    6.892900,
-                    0.000000,
-                    0.000000
-                ],
-                [
-                    0.000000,
-                    6.892900,
-                    0.000000
-                ],
-                [
-                    0.000000,
-                    0.000000,
-                    6.892900
-                ]
+                [6.8929, 0.0, 0.0],
+                [0.0, 6.8929, 0.0],
+                [0.0, 0.0, 6.8929]
             ]
         }
     },
@@ -62,23 +47,21 @@
             }
         },
         "w90": {
-            "occ": {
-                "projections": [
+            "projections": [
+                [
                     {
                         "site": "O",
                         "ang_mtm": "sp3"
                     }
-                ]
-            },
-            "emp": {
-                "dis_froz_max": 1.0,
-                "projections": [
+                ],
+                [
                     {
                         "site": "H",
                         "ang_mtm": "s"
                     }
                 ]
-            }
+            ],
+            "dis_froz_max": 1.0
         }
     }
 }

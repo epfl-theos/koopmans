@@ -907,6 +907,9 @@ class Workflow(ABC):
                     for b, b_sub in zip(self.parent.bands, self.bands):
                         b.alpha_history += b_sub.alpha_history[1:]
                         b.error_history += b_sub.error_history
+                        b.self_hartree = b_sub.self_hartree
+                        b.spread = b_sub.spread
+                        b.center = b_sub.center
                 else:
                     # Copy the entire bands object
                     self.parent.bands = self.bands

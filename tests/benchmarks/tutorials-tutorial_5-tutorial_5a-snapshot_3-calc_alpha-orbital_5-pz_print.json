@@ -13,8 +13,8 @@
   "neldw": 4,
   "ecutwfc": 50.0,
   "pseudopotentials": {
-   "O": "O_ONCV_PBE-1.0.upf",
-   "H": "H_ONCV_PBE-1.0.upf"
+   "H": "H_ONCV_PBE-1.0.upf",
+   "O": "O_ONCV_PBE-1.0.upf"
   },
   "pseudo_dir": {
    "__path__": "../../../../../../src/koopmans/pseudopotentials/sg15_v1.0/pbe"
