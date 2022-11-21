@@ -558,13 +558,13 @@ class KoopmansDSCFWorkflow(Workflow):
                         if len(skipped_orbitals) == 1:
                             if print_headings:
                                 self.print(f'Orbital {skipped_orbitals[0]}', style='subheading')
-                            else:
-                                orb_range = f'{skipped_orbitals[0]}-{skipped_orbitals[-1]}'
-                                if print_headings:
-                                    self.print(f'Orbitals {orb_range}', style='subheading')
+                        else:
+                            orb_range = f'{skipped_orbitals[0]}-{skipped_orbitals[-1]}'
                             if print_headings:
-                                self.print(f'Skipping; will use the screening parameter of an equivalent orbital')
-                            skipped_orbitals = []
+                                self.print(f'Orbitals {orb_range}', style='subheading')
+                        if print_headings:
+                            self.print(f'Skipping; will use the screening parameter of an equivalent orbital')
+                        skipped_orbitals = []
                     if band not in self.bands.to_solve:
                         continue
                 elif not self.parameters.spin_polarized and band.spin == 1:

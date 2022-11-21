@@ -1,35 +1,43 @@
-  _                                                
- | | _____   ___  _ __  _ __ ___   __ _ _ __  ___  
- | |/ / _ \ / _ \| '_ \| '_ ` _ \ / _` | '_ \/ __| 
+  _
+ | | _____   ___  _ __  _ __ ___   __ _ _ __  ___
+ | |/ / _ \ / _ \| '_ \| '_ ` _ \ / _` | '_ \/ __|
  |   < (_) | (_) | |_) | | | | | | (_| | | | \__ \ 
- |_|\_\___/ \___/| .__/|_| |_| |_|\__,_|_| |_|___/ 
-                 |_|                               
+ |_|\_\___/ \___/| .__/|_| |_| |_|\__,_|_| |_|___/
+                 |_|
 
  Koopmans spectral functional calculations with Quantum ESPRESSO
 
+ version 1.0.0b6
+
  Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna
 
- using QE version qe-6.7MaX-Release-31-g57aa172e9, workflow manager version v0.4-6-g452fb267, and ASE version 5dfcc3659
+ Please cite the papers listed in si.bib in work involving this calculation
+UserWarning: Makov-Payne corrections are not being used; do this with caution for periodic systems
+UserWarning: eps_inf missing in input; it will default to 1.0. Proceed with caution for periodic systems; consider setting eps_inf == "auto" to calculate it automatically.
 
-  Initialisation of density and variational orbitals
+  Initialization of density and variational orbitals
   ==================================================
 
-   Wannierisation
+   Wannierization
    ==============
     Running wannier/scf... done
     Running wannier/nscf... done
-    Running wannier/occ/wann_preproc... done
-    Running wannier/occ/pw2wan... done
-    Running wannier/occ/wann... done
-    Running wannier/emp/wann_preproc... done
-    Running wannier/emp/pw2wan... done
-    Running wannier/emp/wann... done
+    Running wannier/block_1/wann_preproc... done
+    Running wannier/block_1/pw2wan... done
+    Running wannier/block_1/wann... done
+    Running wannier/block_2/wann_preproc... done
+    Running wannier/block_2/pw2wan... done
+    Running wannier/block_2/wann... done
 
    Folding to supercell
    --------------------
-    Running occ/wan2odd... done
-    Running emp/wan2odd... done
-   Running init/dft_dummy... done
+    Running block_1/w2kcp... done
+    Running block_2/w2kcp... done
+   Running init/dft_dummy...UserWarning: Small box parameters "nrb" not provided in input: these will be automatically set to safe default values. These values can probably be decreased, but this would require convergence tests.
+   Estimated real mesh dimension (nr1, nr2, nr3) = 72 72 72 
+   Small box mesh dimension (nr1b, nr2b, nr3b) = 30 30 30
+
+ done
    Running init/dft_init... done
 
   Calculating screening parameters
@@ -57,37 +65,43 @@
    alpha
             1         2         3   ...        62        63        64
    0  0.077000  0.077000  0.077000  ...  0.077000  0.077000  0.077000
-   1  0.132741  0.132741  0.132741  ...  0.040357  0.040357  0.040357
+   1  0.133006  0.133006  0.133006  ...  0.040426  0.040426  0.040426
    
    [2 rows x 64 columns]
    
    Delta E_i - epsilon_i (eV)
-            1         2         3         4   ...       61       62       63       64
-   0 -0.310253 -0.310253 -0.310253 -0.310253  ... -0.11398 -0.11398 -0.11398 -0.11398
+            1         2         3   ...        62        63        64
+   0 -0.311868 -0.311868 -0.311868  ... -0.113774 -0.113774 -0.113774
    
    [1 rows x 64 columns]
 
-   Screening parameters have been determined but are not necessarily converged
+   Screening parameters have been converged
 
   Final KI calculation
   ====================
-   Running final/ki_final... done
+   Running final/ki_final...UserWarning: Small box parameters "nrb" not provided in input: these will be automatically set to safe default values. These values can probably be decreased, but this would require convergence tests.
+   Estimated real mesh dimension (nr1, nr2, nr3) = 72 72 72 
+   Small box mesh dimension (nr1b, nr2b, nr3b) = 30 30 30
+
+ done
 
   
   Postprocessing
   ===============
 
-   Wannierisation
-   ==============
-    Running wannier/scf... done
-    Running wannier/nscf... done
-    Running wannier/occ/wann_preproc... done
-    Running wannier/occ/pw2wan... done
-    Running wannier/occ/wann... done
-    Running wannier/emp/wann_preproc... done
-    Running wannier/emp/pw2wan... done
-    Running wannier/emp/wann... done
-   Running postproc/occ/ki... done
-   Running postproc/emp/ki... done
+    Wannierization
+    ==============
+     Running wannier/scf... done
+     Running wannier/nscf... done
+     Running wannier/block_1/wann_preproc... done
+     Running wannier/block_1/pw2wan... done
+     Running wannier/block_1/wann... done
+     Running wannier/block_2/wann_preproc... done
+     Running wannier/block_2/pw2wan... done
+     Running wannier/block_2/wann... done
+     Running wannier/bands... done
+     Running pdos/projwfc... done
+    Running occ/ki... done
+    Running emp/ki... done
 
  Workflow complete
