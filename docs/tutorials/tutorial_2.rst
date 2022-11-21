@@ -74,7 +74,7 @@ which tells the code to perform a standalone Wannierization calculation. Meanwhi
   :lines: 38-44
   :lineno-start: 38
 
-Here, the keywords provided in the ``emp`` subdictionary are only applied during the Wannierization of the empty manifold. The ``w90`` block format is explained more fully :ref:`here <input_file:The w90 subblock>`.
+The ``w90`` block format is explained more fully :ref:`here <input_file:The w90 subblock>`.
 
 We run this calculation as per usual:
 
