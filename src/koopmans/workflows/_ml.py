@@ -4,7 +4,7 @@ Written by Yannick Schubert Jul 2022
 import copy
 import os
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Optional, List
 
 import numpy as np
 from deepdiff import DeepDiff
@@ -19,18 +19,14 @@ from ._workflow import Workflow
 
 class MLFittingWorkflow(Workflow):
 
-    def __init__(self, calc_that_produced_orbital_densities=None, *args, **kwargs):
+    def __init__(self, calc_that_produced_orbital_densities: calculators.Calc, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Specify from which calculation we extract the real space densities. Currently only
         # the ki-calculation at the beginning of the alpha calculations is a valid option
-        if calc_that_produced_orbital_densities is None:
-            raise ValueError(
-                "please provide this workflow with a calculation that produced the real space orbital densities.")
-        else:
-            self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
+        self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
 
-        # Define and create the different subdirectories for the outputs of the ML-workflow
+        # Define and create the different subdirectories for the outputs of the ML workflow
         ml_dir = self.calc_that_produced_orbital_densities.directory / 'ml' / 'TMP'
         dir_suffix = '_'.join(str(x) for x in [self.ml.n_max,
                               self.ml.l_max, self.ml.r_min, self.ml.r_max])
@@ -61,10 +57,10 @@ class MLFittingWorkflow(Workflow):
         self.input_vectors_for_ml: Dict[str, np.ndarray] = {}
 
         # initialize lists for the results of the prediction and the calculations
-        self.predicted_alphas = []
-        self.calculated_alphas = []
-        self.fillings_of_predicted_alphas = []
-        self.use_predictions = []
+        self.predicted_alphas: List[float] = []
+        self.calculated_alphas: List[float] = []
+        self.fillings_of_predicted_alphas: List[bool] = []
+        self.use_predictions: List[bool] = []
 
     def _run(self):
         """
