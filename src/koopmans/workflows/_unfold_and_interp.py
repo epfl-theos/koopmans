@@ -84,6 +84,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                 if self.parameters.method == 'dscf':
                     # For dscf, self.bands correspond to the supercell so band_filling involves many copies of each
                     # band
+                    assert self.kpoints.grid is not None
                     ngrid = np.prod(self.kpoints.grid)
                 else:
                     # For dfpt, self.bands correspond to the primitive cell so band_filling is already the correct
