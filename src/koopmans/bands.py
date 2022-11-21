@@ -106,6 +106,9 @@ class Bands(object):
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}([\n  ' + '\n  '.join([str(b) for b in self]) + '\n])'
 
+    def __len__(self) -> int:
+        return len(self._bands)
+
     @classmethod
     def fromdict(cls, dct):
         bands = dct.pop('_bands')
