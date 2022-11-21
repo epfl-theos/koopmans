@@ -167,8 +167,8 @@ Initialization
 If you run this new input the output will be remarkably similar to that from the previous tutorial, with a couple of exceptions. At the start of the workflow you will see there is a Wannierization procedure, much like we had earlier when we running with the ``wannierize`` task:
 
 .. literalinclude:: ../../tutorials/tutorial_2/si_ki.out
-  :lines: 16-27
-  :lineno-start: 16
+  :lines: 20-31
+  :lineno-start: 20
   :language: text
 
 which replaces the previous series of semi-local and PZ calculations that we used to initialize the variational orbitals for a molecule.
@@ -176,8 +176,8 @@ which replaces the previous series of semi-local and PZ calculations that we use
 There is then an new "folding to supercell" subsection:
 
 .. literalinclude:: ../../tutorials/tutorial_2/si_ki.out
-  :lines: 28-31
-  :lineno-start: 28
+  :lines: 32-35
+  :lineno-start: 32
   :language: text
 
 In order to understand what these calculations are doing, we must think ahead to the next step in our calculation, where we will calculate the screening parameters using the ΔSCF method. These calculations, where we remove/add an electron from/to the system, require us to work in a supercell. This means that we must transform the :math:`k`-dependent primitive cell results from previous calculations into equivalent :math:`\Gamma`-only supercell quantities that can be read by ``kcp``. This is precisely what the above ``wan2odd`` calculations do.
@@ -187,8 +187,8 @@ Calculating the screening parameters
 Having transformed into a supercell, the calculation of the screening parameters proceeds as usual. The one difference to tutorial 1 that you might notice at this step is that we are skipping the calculation of screening parameters for some of the orbitals:
 
 .. literalinclude:: ../../tutorials/tutorial_2/si_ki.out
-  :lines: 35-45
-  :lineno-start: 35
+  :lines: 42-52
+  :lineno-start: 42
   :emphasize-lines: 7
   :language: text
 
@@ -206,8 +206,8 @@ The final calculation and postprocessing
 The final difference for the solids calculation is that there is an additional preprocessing step at the very end:
 
 .. literalinclude:: ../../tutorials/tutorial_2/si_ki.out
-  :lines: 72-
-  :lineno-start: 72
+  :lines: 89-
+  :lineno-start: 89
   :language: text
 
 Here, we transform back our results from the supercell sampled at :math:`\Gamma` to the primitive cell with :math:`k`-space sampling. This allows us to obtain a bandstructure. The extra Wannierization step that is being performed is to assist the interpolation of the band structure in the primitive cell, and has been performed because in the input file we specified
