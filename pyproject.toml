@@ -2,7 +2,7 @@
 name = "koopmans"
 version = "1.0.0-beta.6"
 description = "Koopmans spectral functional calculations with python and Quantum ESPRESSO"
-readme = "README.rst"
+readme = "README_pypi.rst"
 requires-python = ">=3.7"
 authors = [
     { name = "Edward Linscott", email = "edward.linscott@epfl.ch" },
