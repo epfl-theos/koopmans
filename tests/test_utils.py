@@ -3,7 +3,6 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from koopmans_pytest import strategies as kst
 
 from koopmans import utils
 

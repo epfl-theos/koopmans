@@ -43,14 +43,15 @@ class Band(object):
     def __repr__(self) -> str:
         info = f'Band(index={self.index}, spin={self.spin}, filled={self.filled}, group={self.group}'
         for attr in ['alpha', 'self_hartree', 'spread', 'center']:
-            val = getattr(self, attr)
+            val = getattr(self, attr, None)
             if val:
                 info += f', {attr.replace("_", "-")}={val}'
         return info + ')'
 
     @property
     def alpha(self) -> Union[float, None]:
-        assert len(self.alpha_history) > 0, 'Band does not have screening parameters'
+        if len(self.alpha_history) == 0:
+            raise AttributeError('Band does not have screening parameters')
         return self.alpha_history[-1]
 
     @alpha.setter
@@ -61,7 +62,8 @@ class Band(object):
 
     @property
     def error(self):
-        assert len(self.error_history) > 0, 'Band does not have error data'
+        if len(self.error_history) == 0:
+            raise AttributeError('Band does not have error data')
         return self.error_history[-1]
 
     @error.setter

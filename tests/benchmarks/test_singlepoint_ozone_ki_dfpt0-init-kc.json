@@ -112,5 +112,5 @@
  "skip_qc": false,
  "kpts": null,
  "__koopmans_name__": "BenchGenWann2KCCalculator",
- "__koopmans_module__": "koopmans_pytest._generate_benchmarks"
+ "__koopmans_module__": "tests.helpers.patches._benchmark"
 }

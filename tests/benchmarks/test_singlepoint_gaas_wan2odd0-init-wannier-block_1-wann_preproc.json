@@ -183,5 +183,5 @@
  "calc": {},
  "skip_qc": false,
  "__koopmans_name__": "BenchGenWannier90Calculator",
- "__koopmans_module__": "koopmans_pytest._generate_benchmarks"
+ "__koopmans_module__": "tests.helpers.patches._benchmark"
 }

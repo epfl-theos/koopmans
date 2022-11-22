@@ -200,7 +200,7 @@ class WannierizeWorkflow(Workflow):
                         band.center = center
                         band.spread = spread
 
-                        if block.spin is None:
+                        if block.spin is None and len(self.bands.get(spin=1)) > 0:
                             # Copy over spin-up results to spin-down
                             [match] = [b for b in self.bands if b.index == band.index and b.spin == 1]
                             match.center = center

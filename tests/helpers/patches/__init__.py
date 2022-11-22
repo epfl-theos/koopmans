@@ -1,23 +1,25 @@
+import pytest
+
 from ._check import (CheckEnvironCalculator, CheckKoopmansCPCalculator,
                      CheckKoopmansHamCalculator, CheckKoopmansScreenCalculator,
                      CheckMLFittingWorkflow, CheckPhCalculator,
                      CheckProjwfcCalculator, CheckPW2WannierCalculator,
                      CheckPWCalculator, CheckUnfoldAndInterpolateCalculator,
                      CheckWann2KCCalculator, CheckWann2KCPCalculator,
-                     CheckWannier90Calculator, compare)
-from ._generate_benchmarks import (BenchGenEnvironCalculator,
-                                   BenchGenKoopmansCPCalculator,
-                                   BenchGenKoopmansHamCalculator,
-                                   BenchGenKoopmansScreenCalculator,
-                                   BenchGenMLFittingWorkflow,
-                                   BenchGenPhCalculator,
-                                   BenchGenProjwfcCalculator,
-                                   BenchGenPW2WannierCalculator,
-                                   BenchGenPWCalculator,
-                                   BenchGenUnfoldAndInterpolateCalculator,
-                                   BenchGenWann2KCCalculator,
-                                   BenchGenWann2KCPCalculator,
-                                   BenchGenWannier90Calculator)
+                     CheckWannier90Calculator)
+from ._benchmark import (BenchGenEnvironCalculator,
+                         BenchGenKoopmansCPCalculator,
+                         BenchGenKoopmansHamCalculator,
+                         BenchGenKoopmansScreenCalculator,
+                         BenchGenMLFittingWorkflow,
+                         BenchGenPhCalculator,
+                         BenchGenProjwfcCalculator,
+                         BenchGenPW2WannierCalculator,
+                         BenchGenPWCalculator,
+                         BenchGenUnfoldAndInterpolateCalculator,
+                         BenchGenWann2KCCalculator,
+                         BenchGenWann2KCPCalculator,
+                         BenchGenWannier90Calculator)
 from ._mock import (MockEnvironCalculator, MockKoopmansCPCalculator,
                     MockKoopmansDSCFWorkflow, MockKoopmansHamCalculator,
                     MockKoopmansScreenCalculator, MockMLFittingWorkflow,
@@ -37,6 +39,7 @@ from ._stumble import (StumblingConvergenceMLWorkflow,
                        StumblingTrajectoryWorkflow,
                        StumblingUnfoldAndInterpolateWorkflow,
                        StumblingWannierizeWorkflow)
+
 from ._utils import benchmark_filename
 
 
@@ -119,3 +122,62 @@ def monkeypatch_stumble(monkeypatch):
                         StumblingConvergenceMLWorkflow)
     # When running with stumble mode, we want to check our results against the benchmarks by using CheckCalcs
     monkeypatch_check(monkeypatch)
+
+
+@pytest.fixture
+def tutorial_patch(monkeypatch, pytestconfig):
+    # For the tutorials...
+    if pytestconfig.getoption('generate_benchmark'):
+        # when generating benchmarks, use BenchCalcs
+        monkeypatch_bench(monkeypatch)
+    elif pytestconfig.getoption('stumble'):
+        # when testing recovery from a crash, use StumblingWorkflows
+        monkeypatch_stumble(monkeypatch)
+    else:
+        # we use MockCalcs when running our tests on github, OR if the user is running locally
+        monkeypatch_mock(monkeypatch)
+
+
+@pytest.fixture
+def workflow_patch(monkeypatch, pytestconfig):
+    # For tests involving the workflow...
+    if pytestconfig.getoption('generate_benchmark'):
+        # when generating benchmarks, use BenchCalcs
+        monkeypatch_bench(monkeypatch)
+    elif pytestconfig.getoption('stumble'):
+        # when testing recovery from a crash, use StumblingWorkflows
+        monkeypatch_stumble(monkeypatch)
+    else:
+        # we use MockCalcs when running our tests on github, OR if the user is running locally
+        monkeypatch_mock(monkeypatch)
+
+
+@pytest.fixture
+def ui_patch(monkeypatch, pytestconfig):
+    # For tests involving the UI python routines only...
+    if pytestconfig.getoption('generate_benchmark'):
+        # when generating benchmarks, use BenchCalcs
+        monkeypatch_bench(monkeypatch)
+    elif pytestconfig.getoption('stumble'):
+        # when testing recovery from a crash, use StumblingWorkflows
+        monkeypatch_stumble(monkeypatch)
+    else:
+        # we can run the calculations directly when running our tests on github, OR if the user is running locally
+        pass
+
+
+@pytest.fixture
+def espresso_patch(monkeypatch, pytestconfig):
+    # For tests involving Quantum ESPRESSO...
+    if pytestconfig.getoption('generate_benchmark'):
+        # when generating benchmarks, use BenchCalcs
+        monkeypatch_bench(monkeypatch)
+    elif pytestconfig.getoption('stumble'):
+        # when testing recovery from a crash, use StumblingWorkflows
+        monkeypatch_stumble(monkeypatch)
+    elif pytestconfig.getoption('ci'):
+        # when running our tests on github, these tests shold not be called!
+        raise ValueError('These tests cannot be run with --ci')
+    else:
+        # when the user is running locally, use CheckCalcs
+        monkeypatch_check(monkeypatch)

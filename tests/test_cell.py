@@ -4,9 +4,10 @@ from ase.cell import Cell
 from ase.lattice import (BCC, BCT, CUB, FCC, HEX, MCL, MCLC, ORC, ORCC, ORCF,
                          ORCI, RHL, TET, TRI, UnconventionalLattice)
 from hypothesis import given, settings, strategies
-from koopmans_pytest import strategies as kst
 
 from koopmans.cell import cell_to_parameters, parameters_to_cell
+
+from tests.helpers import strategies as kst
 
 # Reference list of ASE Bravais lattice classes
 bravais_lattices = {1: CUB, 2: FCC, 3: BCC, 4: HEX, 5: RHL, 6: TET, 7: BCT,
