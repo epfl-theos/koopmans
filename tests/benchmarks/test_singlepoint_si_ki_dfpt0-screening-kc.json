@@ -129,5 +129,5 @@
  "skip_qc": false,
  "kpts": null,
  "__koopmans_name__": "BenchGenKoopmansScreenCalculator",
- "__koopmans_module__": "tests.patches._generate_benchmarks"
+ "__koopmans_module__": "tests.helpers.patches._benchmark"
 }

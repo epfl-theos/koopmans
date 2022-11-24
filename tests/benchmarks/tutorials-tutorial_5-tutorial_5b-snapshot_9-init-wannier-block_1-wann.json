@@ -1,0 +1,178 @@
+{
+ "_parameters": {
+  "bands_plot": false,
+  "projections": [
+   {
+    "site": "O",
+    "ang_mtm": "sp3"
+   }
+  ],
+  "num_wann": 4,
+  "num_bands": 4,
+  "exclude_bands": [
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12
+  ],
+  "mp_grid": [
+   1,
+   1,
+   1
+  ],
+  "kpoints": {
+   "__ndarray__": [
+    [
+     1,
+     3
+    ],
+    "float64",
+    [
+     0.0,
+     0.0,
+     0.0
+    ]
+   ]
+  },
+  "__koopmans_name__": "Wannier90SettingsDict",
+  "__koopmans_module__": "koopmans.settings._wannier90"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "int64",
+    [
+     8,
+     1,
+     1
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     3.11394007,
+     2.99566742,
+     3.39868416,
+     3.20891899,
+     3.92497029,
+     3.55496503,
+     3.5756447500000004,
+     2.88646653,
+     2.52503502
+    ]
+   ]
+  },
+  "tags": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "int64",
+    [
+     0,
+     0,
+     0
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     6.8929,
+     0.0,
+     0.0,
+     0.0,
+     6.8929,
+     0.0,
+     0.0,
+     0.0,
+     6.8929
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     true,
+     true,
+     true
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "job done": true,
+  "convergence": true,
+  "Im/Re ratio": [],
+  "centers": [
+   [
+    3.173765,
+    -3.385345,
+    -3.420923
+   ],
+   [
+    3.361985,
+    2.949162,
+    2.927299
+   ],
+   [
+    2.810202,
+    2.954128,
+    3.343043
+   ],
+   [
+    3.280526,
+    2.848236,
+    -3.279367
+   ]
+  ],
+  "spreads": [
+   0.44419226,
+   0.46440437,
+   0.50746321,
+   0.50127287
+  ]
+ },
+ "_directory": {
+  "__path__": "wannier/block_1"
+ },
+ "prefix": "wann",
+ "name": "benchgenwannier90calculator",
+ "command": {
+  "_path": {
+   "__path__": "../../../../../../../../../usr/local/bin"
+  },
+  "executable": "wannier90.x",
+  "_flags": "",
+  "suffix": "PREFIX.win > PREFIX.wout 2>&1",
+  "__koopmans_name__": "Command",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "__koopmans_name__": "BenchGenWannier90Calculator",
+ "__koopmans_module__": "tests.helpers.patches"
+}

@@ -1,10 +1,11 @@
 import pytest
-from ase.spectrum.band_structure import BandStructure
 
 from koopmans import workflows
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.utils import chdir
-from tests import patches
+
+
+from tests.helpers.patches import benchmark_filename
 
 
 def test_ui_si(silicon, tmp_path, sys2file, datadir, ui_patch):
@@ -39,7 +40,7 @@ def test_ui_si(silicon, tmp_path, sys2file, datadir, ui_patch):
         calc = wf.calculations[-1]
         results = calc.results
         # Save the calculator as an encoded json in the benchmarks directory
-        with open(patches.benchmark_filename(calc), 'r') as fd:
+        with open(benchmark_filename(calc), 'r') as fd:
             calc_ref = read_encoded_json(fd)
         for key, result in results.items():
             # Don't compare walltime

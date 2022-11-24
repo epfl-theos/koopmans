@@ -89,7 +89,7 @@ The calculator_parameters block
 The ``calculator_parameters`` block can be used to specify code-specific codes e.g.
 
 .. literalinclude:: ../tutorials/tutorial_2/si.json
-  :lines: 31-49
+  :lines: 31-48
   :dedent:
 
 Note that any keyword specified outside of a subblock (e.g. ``ecutwfc`` in the above example) is applied to all calculators for which it is recognized keyword.
@@ -103,37 +103,49 @@ This subblock contains keywords specific to ``pw.x`` (see the `list of valid pw.
 
 The w90 subblock
 ~~~~~~~~~~~~~~~~
-This subblock contains keywords specific to ``wannier90.x``, which are documented `here <https://github.com/wannier-developers/wannier90/raw/v3.1.0/doc/compiled_docs/user_guide.pdf>`_. Because the occupied and empty manifolds are wannierized separately, you may want to use slightly different wannierization protocols for each. You can do this by placing keywords within ``occ`` and ``emp`` sub-dictionaries as in the above example. In this case both the occupied and empty manifolds will use ``sp3`` projections, but only the empty manifold will use the provided ``dis_froz_max`` etc.
+This subblock contains keywords specific to ``wannier90.x``, which are documented `here <https://github.com/wannier-developers/wannier90/raw/v3.1.0/doc/compiled_docs/user_guide.pdf>`_. The one keyword for which the syntax differs is the ``projections`` block, via which the user specifies the projections used to initialize the Wannier functions.
 
-Projections
-  The projections can be specified as a list of dictionaries, where each dictionary corresponds to a single projection. The required entries for this dictionary are
-  
-    ``site``/``csite``/``fsite``
-      an atom label/cartesian coordinate/fractional coordinate to be used as the projections' center. The three are mutually exclusive.
-  
-    ``ang_mtm``
-      a string specifying the angular momentum states e.g. ``"l=2"``  
-  
+An individual projection can be specified as either a dictionary or a string.
+
+As a dictionary
+  If specifying a projection via a dictionary, the required entries for this dictionary are
+
+  ``site``/``csite``/``fsite``
+    an atom label/cartesian coordinate/fractional coordinate to be used as the projections' center. The three are mutually exclusive.
+
+  ``ang_mtm``
+    a string specifying the angular momentum states e.g. ``"l=2"``  
+
   The user can also optionally specify ``zaxis``, ``xaxis``, ``radial``, ``zona`` (see the `Wannier90 User Guide <https://github.com/wannier-developers/wannier90/raw/v3.1.0/doc/compiled_docs/user_guide.pdf>`_ for details).
+
+As a string
+  If specifying a projection via a string, this string must follow the ``Wannier90`` syntax e.g. ``"f=0.25,0.25,0.25:sp3"``
+
+These individual projections (either as dictionaries or as strings) must be provided to ``projections`` within a list of lists. This is because for Koopmans calculations, we want to perform the Wannierization in quite a particular way
+
+  - the occupied and empty manifolds must be wannierized separately.
+  - the occupied or empty manifold can consist of several well-separated blocks of bands. In this instance it is desirable to Wannierize each block separately, preventing the Wannierization procedure from mixing bands that are far apart in energy space.
+
+We can achieve both of the above via the list-of-lists syntax. Consider the following example for the wannierization of bulk ZnO
+
+.. literalinclude:: ../tutorials/tutorial_3/zno.json
+  :lines: 47-55
+  :dedent:
+
+In ZnO, the bands form several distinct blocks. The first block of occupied bands have Zn 3s character, the next Zn 3p, then O 2s, and finally Zn 3d hybridized with O 2p. The first empty bands have Zn 4s character. You can see this reflected in the way the projections have been specified. If we were to run the workflow with this configuration, it will run five separate Wannierizations, one for each sub-list.
+
+This means that
+
+  - the occupied and empty manifolds will be wannierized separately, because the cumulative number of projections in the first four blocks is commensurate with the number of occupied bands in our system
+  - we prevent mixing bands that belong to different sub-lists
   
-  Alternatively, the user can simply specify each projection as a single string using Wannier90 syntax e.g.
-  
-  .. code:: json
-    
-    "projections": [
-      "f=0.25,0.25,0.25:sp3"
-    ]
+See :ref:`here for a more detailed tutorial on projections <projections_blocks_explanation>`.
 
-Projections blocks
-  Often, the occupied or empty manifold consist of several well-separated blocks of bands. In this instance it is desirable to Wannierize each block separately, preventing the Wannierization procedure from mixing bands that are far apart in energy space.
+.. note::
+  The order of the projections blocks is important: they must run from lowest-energy to highest-energy.
 
-  To do this, in place of ``projections`` we provide ``projections_blocks`` e.g.
-
-  .. literalinclude:: ../tutorials/tutorial_3/zno.json
-    :lines: 47-55
-    :dedent:
-
-  This corresponds to bulk ZnO where the first block of bands have Zn 3s character, the next Zn 3p, then O 2s, and finally Zn 3d hybridized with O 2p. Note that this syntax is practically identical to the ``projections`` field, except now we are providing a list of lists of dictionaries, not just a list of dictionaries. Note that the order of the projections blocks is important: they must run from lowest-energy to highest-energy. See :ref:`here for a tutorial on projections blocks <projections_blocks_explanation>`.
+.. note::
+  If disentanglement keywords such as ``dis_win_max`` are provided, these will only be used during the Wannierization of the final block of projections 
 
 The pw2wannier subblock
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -159,3 +171,15 @@ This block can be used to customize the band structures and densities of states 
 .. toctree::
 
   List of valid keywords <input_file/plotting_keywords>
+
+The ml block
+^^^^^^^^^^^^
+
+.. warning::
+    This feature is experimental
+
+This block controls the machine-learning of screening parameters.
+
+.. toctree::
+
+  List of valid keywords <input_file/ml_keywords>

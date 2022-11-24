@@ -9,13 +9,13 @@
    "__path__": "../../hamiltonian/kc.kcw_hr_occ.dat"
   },
   "w90_seedname": {
-   "__path__": "../../wannier/occ/wann"
+   "__path__": "../../wannier/block_1/wann"
   },
   "dft_smooth_ham_file": {
-   "__path__": "../wannier/occ/wann_hr.dat"
+   "__path__": "../wannier/block_1/wann_hr.dat"
   },
   "dft_ham_file": {
-   "__path__": "../../wannier/occ/wann_hr.dat"
+   "__path__": "../../wannier/block_1/wann_hr.dat"
   },
   "kgrid": [
    2,
@@ -5570,5 +5570,5 @@
  ],
  "command": null,
  "__koopmans_name__": "BenchGenUnfoldAndInterpolateCalculator",
- "__koopmans_module__": "tests.patches._generate_benchmarks"
+ "__koopmans_module__": "tests.helpers.patches._benchmark"
 }

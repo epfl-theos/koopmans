@@ -9,7 +9,7 @@
       <td><code>task</code></td>
       <td>Task to perform</td>
       <td><code>str</code></td>
-      <td><code>singlepoint</code> (must be <code>singlepoint</code>/<code>convergence</code>/<code>wannierize</code>/<code>environ_dscf</code>/<code>ui</code>/<code>dft_bands</code>)</td>
+      <td><code>singlepoint</code> (must be <code>singlepoint</code>/<code>convergence</code>/<code>wannierize</code>/<code>environ_dscf</code>/<code>ui</code>/<code>dft_bands</code>/<code>dft_eps</code>/<code>trajectory</code>/<code>convergence_ml</code>)</td>
    </tr>
    <tr>
       <td><code>functional</code></td>
@@ -36,6 +36,12 @@
       <td></td>
    </tr>
    <tr>
+      <td><code>pseudo_directory</code></td>
+      <td>the folder containing the pseudopotentials to use (mutually exclusive with "pseudo_library")</td>
+      <td><code>str</code>/<code>Path</code></td>
+      <td></td>
+   </tr>
+   <tr>
       <td><code>method</code></td>
       <td>the method to calculate the screening parameters: either with ΔSCF or DFPT</td>
       <td><code>str</code></td>
@@ -56,12 +62,6 @@
    <tr>
       <td><code>frozen_orbitals</code></td>
       <td>if True, freeze the variational orbitals for the duration of the calculation once they've been initialized</td>
-      <td><code>bool</code></td>
-      <td></td>
-   </tr>
-   <tr>
-      <td><code>periodic</code></td>
-      <td>whether or not the system is periodic</td>
       <td><code>bool</code></td>
       <td></td>
    </tr>
@@ -99,7 +99,7 @@
       <td><code>mp_correction</code></td>
       <td>if True, apply the Makov-Payne correction for charged periodic systems</td>
       <td><code>bool</code></td>
-      <td><code>False</code></td>
+      <td></td>
    </tr>
    <tr>
       <td><code>mt_correction</code></td>
@@ -109,8 +109,8 @@
    </tr>
    <tr>
       <td><code>eps_inf</code></td>
-      <td>dielectric constant of the system used by the Gygi-Baldereschi and Makov-Payne corrections</td>
-      <td><code>float</code></td>
+      <td>dielectric constant of the system used by the Gygi-Baldereschi and Makov-Payne corrections; either provide an explicit value or set to "auto" to calculate it ab initio</td>
+      <td><code>float</code>/<code>str</code></td>
       <td></td>
    </tr>
    <tr>
@@ -165,7 +165,7 @@
       <td><code>convergence_observable</code></td>
       <td>System observable of interest which we converge</td>
       <td><code>str</code></td>
-      <td><code>total energy</code> (must be <code>homo energy</code>/<code>lumo energy</code>/<code>total energy</code>)</td>
+      <td><code>total energy</code></td>
    </tr>
    <tr>
       <td><code>convergence_threshold</code></td>

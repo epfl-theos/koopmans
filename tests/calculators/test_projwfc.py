@@ -7,7 +7,9 @@ from koopmans import __path__ as koopmans_src
 from koopmans import utils, workflows
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.io import write_kwf as write_encoded_json
-from tests import patches
+
+
+from tests.helpers.patches import benchmark_filename
 
 
 def test_generate_dos(silicon, tmp_path, datadir, pytestconfig):
@@ -30,10 +32,10 @@ def test_generate_dos(silicon, tmp_path, datadir, pytestconfig):
 
         if pytestconfig.getoption('generate_benchmark'):
             # Write the DOS to file
-            with open(patches.benchmark_filename(calc), 'w') as fd:
+            with open(benchmark_filename(calc), 'w') as fd:
                 write_encoded_json(dos, fd)
         else:
             # Compare with the DOS on file
-            with open(patches.benchmark_filename(calc), 'r') as fd:
+            with open(benchmark_filename(calc), 'r') as fd:
                 dos_ref = read_encoded_json(fd)
             assert dos == dos_ref

@@ -56,15 +56,20 @@ def construct_cell_parameters_block(atoms: Atoms) -> Dict[str, Any]:
     return params
 
 
-def construct_atomic_positions_block(atoms: Atoms) -> Dict[str, Any]:
-    labels: List[str] = atoms.get_chemical_symbols()
-    positions: List[List[float]] = atoms.get_scaled_positions()
-    block: List[List[Union[str, float]]] = []
-    for label, pos in zip(labels, positions):
-        line: List[Union[str, float]] = [label]
-        line += [x for x in pos]
-        block.append(line)
-    return {'positions': block, 'units': 'crystal'}
+def construct_atomic_positions_block(atoms: Atoms, crystal: bool = True) -> dict:
+    if len(set(atoms.get_tags())) > 1:
+        labels = [s + str(t) if t > 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
+    else:
+        labels = atoms.symbols
+    if not crystal:
+        dct = {'positions': [
+            [label] + [str(x) for x in pos] for label, pos in zip(labels, atoms.get_positions())],
+            'units': 'angstrom'}
+    else:
+        dct = {'positions': [
+            [label] + [str(x) for x in pos] for label, pos in zip(labels, atoms.get_scaled_positions())],
+            'units': 'crystal'}
+    return dct
 
 
 def construct_atomic_species_block(atoms: Atoms) -> Dict[str, Any]:

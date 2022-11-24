@@ -17,8 +17,8 @@
    2
   ],
   "pseudopotentials": {
-   "O": "O.upf",
-   "Ti": "Ti.upf"
+   "Ti": "Ti.upf",
+   "O": "O.upf"
   },
   "pseudo_dir": {
    "__path__": "../../../../src/koopmans/pseudopotentials/pseudo_dojo_standard_v0.4.1/pbe"
@@ -600,5 +600,5 @@
   }
  ],
  "__koopmans_name__": "BenchGenPWCalculator",
- "__koopmans_module__": "tests.patches._generate_benchmarks"
+ "__koopmans_module__": "tests.helpers.patches"
 }

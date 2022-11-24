@@ -150,8 +150,8 @@ def cell_to_parameters(cell: Cell) -> Dict[str, Union[int, Dict[int, float]]]:
     lat: BravaisLattice = cell.get_bravais_lattice()
     new_cell = lat.tocell()
 
-    if abs(cell.volume - new_cell.volume) > 1e-8:
-        raise ValueError('You have provided a cell that is not Niggli-reduced.\n'
+    if abs(cell.volume - new_cell.volume) > 1e-6:
+        raise ValueError('You have provided a cell that appears not to be Niggli-reduced.\n'
                          'Try running\n'
                          ' >>> cell.get_bravais_lattice().tocell()\n'
                          'within python to obtain a reduced cell')

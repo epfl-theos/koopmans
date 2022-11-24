@@ -1,10 +1,9 @@
 """
-
 Generic workflow object for koopmans
 
 Written by Edward Linscott Oct 2020
-Converted workflows from functions to objects Nov 2020
 
+Converted workflows from functions to objects Nov 2020
 """
 
 from __future__ import annotations
@@ -48,6 +47,7 @@ from koopmans import calculators, settings, utils
 from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.kpoints import Kpoints
+from koopmans.ml import MLModel
 from koopmans.projections import ProjectionBlocks
 from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
                                        pseudo_database,
@@ -56,6 +56,7 @@ from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
 from koopmans.references import bib_data
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
+W = TypeVar('W', bound='Workflow')
 
 
 class Workflow(ABC):
@@ -68,38 +69,28 @@ class Workflow(ABC):
 
     atoms : Atoms
         an ASE ``Atoms`` object defining the atomic positions, cell, etc
-
     pseudopotentials : Dict[str, str]
         a dictionary mapping atom labels to pseudopotential filenames
-
     kpoints : koopmans.kpoints.Kpoints
         a dataclass defining the k-point sampling and paths
-
     projections : ProjectionsBlocks
         The projections to be used in the Wannierization
-
     name : str
         a name for the workflow
-
     parameters : Dict[str, Any] | koopmans.settings.WorkflowSettingsDict
         a dictionary specifying any workflow settings to use; note that a simpler alternative is to provide workflow
         settings as keyword arguments
-
     calculator_parameters : Dict[str, koopmans.settings.SettingsDict]
         a dictionary containing calculator-specific settings; as for the parameters, it is usually simpler to specify
         these individually as keyword arguments
-
     plotting : koopmans.settings.PlotSettingsDict
         a dictionary containing settings specific to plotting; again, it is usually simpler to specify these
         individually as keyword arguments
-
     autogenerate_settings : bool
         if True (the default), autogenerate various calculator settings; the only scenario where you do not want to do
         this is when creating a new workflow from a .kwf file
-
     **kwargs
         any valid workflow, calculator, or plotting settings e.g. ``{"functional": "ki", "ecutwfc": 50.0}``
-
     '''
 
     atoms: Atoms
@@ -121,6 +112,7 @@ class Workflow(ABC):
                  calculator_parameters: Optional[Union[Dict[str, Dict[str, Any]],
                                                        Dict[str, settings.SettingsDict]]] = None,
                  plotting: Union[Dict[str, Any], settings.PlotSettingsDict] = {},
+                 ml: Union[Dict[str, Any], settings.MLSettingsDict] = {},
                  autogenerate_settings: bool = True,
                  **kwargs: Dict[str, Any]):
 
@@ -139,15 +131,12 @@ class Workflow(ABC):
             proj_list: List[List[Any]]
             spins: List[Optional[str]]
             if self.parameters.spin_polarized:
-                proj_list = [[], [], [], []]
-                fillings = [True, True, False, False]
-                spins = ['up', 'down', 'up', 'down']
-            else:
                 proj_list = [[], []]
-                fillings = [True, False]
-                spins = [None, None]
-            self.projections = ProjectionBlocks.fromprojections(
-                proj_list, fillings=fillings, spins=spins, atoms=self.atoms)
+                spins = ['up', 'down']
+            else:
+                proj_list = [[]]
+                spins = [None]
+            self.projections = ProjectionBlocks.fromlist(proj_list, spins=spins, atoms=self.atoms)
         else:
             self.projections = projections
 
@@ -155,6 +144,19 @@ class Workflow(ABC):
         for key, value in kwargs.items():
             if self.plotting.is_valid(key):
                 self.plotting[key] = value
+
+        self.ml = settings.MLSettingsDict(**ml)  # , task=self.parameters.task)
+        for key, value in kwargs.items():
+            if self.ml.is_valid(key):
+                self.ml[key] = value
+
+        # Initialize the MLModel
+        if self.ml.use_ml:
+            if self.ml.occ_and_emp_together:
+                self.ml.ml_model = MLModel(self.ml.type_of_ml_model)
+            else:
+                self.ml.ml_model_occ = MLModel(self.ml.type_of_ml_model)
+                self.ml.ml_model_emp = MLModel(self.ml.type_of_ml_model)
 
         if all(self.atoms.pbc):
             self.atoms.wrap(pbc=True)
@@ -228,7 +230,6 @@ class Workflow(ABC):
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
             nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
-
             tot_charge = calculator_parameters['kcp'].get('tot_charge', 0)
             nelec -= tot_charge
             tot_mag = calculator_parameters['kcp'].get('tot_magnetization', nelec % 2)
@@ -307,8 +308,16 @@ class Workflow(ABC):
                     calc_params[key] = value
                     match = True
             # if not a calculator, workflow, or plotting keyword, raise an error
-            if not match and not self.parameters.is_valid(key) and not self.plotting.is_valid(key):
+            if not match and not self.parameters.is_valid(key) and not self.plotting.is_valid(key) and not self.ml.is_valid(key):
                 raise ValueError(f'{key} is not a valid setting')
+
+        # Adding excluded_bands info to self.projections
+        if self.projections:
+            for spin in ['up', 'down', None]:
+                label = 'w90'
+                if spin:
+                    label += f'_{spin}'
+                self.projections.exclude_bands[spin] = self.calculator_parameters[label].get('exclude_bands', [])
 
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
@@ -367,10 +376,9 @@ class Workflow(ABC):
         self._pseudopotentials = value
 
     @classmethod
-    def fromparent(cls, parent_wf: Workflow, **kwargs: Any) -> Workflow:
+    def fromparent(cls: Type[W], parent_wf: Workflow, **kwargs: Any) -> W:
         '''
         Creates a subworkflow with the same configuration as the parent workflow
-
         e.g.
         >>> sub_wf = Workflow.fromparent(self)
         '''
@@ -388,6 +396,7 @@ class Workflow(ABC):
                        kpoints=copy.deepcopy(parent_wf.kpoints),
                        projections=copy.deepcopy(parent_wf.projections),
                        plotting=copy.deepcopy(parent_wf.plotting),
+                       ml=copy.deepcopy(parent_wf.ml),
                        **other_kwargs)
         child_wf.parent = parent_wf
         return child_wf
@@ -505,6 +514,83 @@ class Workflow(ABC):
                 if not (self.parameters.pseudo_directory / pseudo).exists():
                     raise FileNotFoundError(f'{self.parameters.pseudo_directory / pseudo} does not exist. Please '
                                             'double-check your pseudopotential settings')
+
+        # Make sanity checks for the ML model
+        if self.ml.use_ml:
+            utils.warn("Predicting screening parameters with machine-learning is an experimental feature; proceed with caution")
+            if self.parameters.task not in ['trajectory', 'convergence_ml']:
+                raise NotImplementedError(
+                    f'Using the ML-prediction for the {self.parameter.task}-task has not yet been implemented.')
+            if self.parameters.method != 'dscf':
+                raise NotImplementedError(
+                    f"Using the ML-prediction for the {self.parameters.method}-method has not yet been implemented")
+            if self.parameters.functional != 'ki':
+                raise NotImplementedError(
+                    f'Using the ML-prediction for the {self.parameters.functional}-functional has not yet been implemented.')
+            if self.parameters.init_orbitals != 'mlwfs':
+                raise NotImplementedError(
+                    f'Using the ML-prediction for {self.parameters.init_orbitals}-init orbitals has not yet been implemented.')
+            if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
+                raise NotImplementedError(
+                    f'Using the ML-prediction for using different init orbitals for empty states than for occupied states has not yet been implemented.')
+            if self.parameters.spin_polarized:
+                utils.warn(f'Using the ML-prediction for spin-polarised systems has not yet been extensively tested.')
+            if not all(self.atoms.pbc):
+                utils.warn(f'Using the ML-prediction for non-periodic systems has not yet been extensively tested.')
+            if self.parameters.orbital_groups:
+                utils.warn('Using orbital_groups has not yet been extensively tested.')
+            if not np.all(self.atoms.cell.angles() == 90.0):
+                raise ValueError(f"The ML-workflow has only been implemented for simulation cells that have 90° angles")
+
+            if self.parameters.task is not 'convergence_ml':
+                assert isinstance(self.ml.n_max, int)
+                assert isinstance(self.ml.l_max, int)
+                assert isinstance(self.ml.r_min, float)
+                assert isinstance(self.ml.r_max, float)
+
+            # convert now each parameter to a list to be able to run the same checks irregardless of the task
+
+            def convert_to_list(param, type):
+                if isinstance(param, type):  # if param is an int or a float convert it for the checks to a list
+                    return [param]
+                else:  # if param is not an int or a float check that it is a list of ints / floats
+                    assert(isinstance(param, list))
+                    for value in param:
+                        assert(isinstance(value, type))
+                    return param
+
+            n_maxs = convert_to_list(self.ml.n_max, int)
+            l_maxs = convert_to_list(self.ml.l_max, int)
+            r_mins = convert_to_list(self.ml.r_min, float)
+            r_maxs = convert_to_list(self.ml.r_max, float)
+
+            # check that each n_max, l_max, r_max and r_min are greater or equal to 0 and that r_min is smaller than r_max
+            for n_max in n_maxs:
+                if not n_max > 0:
+                    raise ValueError(f"n_max has to be larger than zero. The provided value is n_max={n_max}")
+            for l_max in l_maxs:
+                if not l_max >= 0:
+                    raise ValueError(f"l_max has to be equal or larger than zero. The provided value is l_max={l_max}")
+            for r_min in r_mins:
+                if not r_min >= 0:
+                    raise ValueError(f"r_min has to be equal or larger than zero. The provided value is r_min={r_min}")
+                if r_min < 0.5:
+                    utils.warn(
+                        f"Small values of r_min (<0.5) can lead to problems in the construction of the radial basis. The provided value is r_min={r_min}.")
+            for r_max in r_maxs:
+                if not any(r_min < r_max for r_min in r_mins):
+                    raise ValueError(f"All provided values of r_min are larger or equal to r_max={r_max}.")
+
+            # for the convergence_ml task we want to have each parameter in a list form
+            if self.parameters.task == 'convergence_ml':
+
+                implemented_quantities_of_interest = ['alphas', 'evs']
+                self.ml.quantities_of_interest = convert_to_list(self.ml.quantities_of_interest, str)
+
+                for qoi in self.ml.quantities_of_interest:
+                    if qoi not in implemented_quantities_of_interest:
+                        raise NotImplementedError(
+                            "Performing the convergence_analysis w.r.t. {qoi} has not yet been implement.")
 
     def new_calculator(self,
                        calc_type: str,
@@ -751,7 +837,6 @@ class Workflow(ABC):
         '''
         Context for calling self._run(), within which self inherits relevant information from self.parent, runs, and
         then passes back relevant information to self.parent
-
         '''
 
         assert self.parent is not None
@@ -775,6 +860,14 @@ class Workflow(ABC):
 
         # Link the list of calculations
         self.calculations = self.parent.calculations
+
+        # Link the ML_Model
+        if self.ml.use_ml:
+            if self.parent.ml.occ_and_emp_together:
+                self.ml.ml_model = self.parent.ml.ml_model
+            else:
+                self.ml.ml_model_occ = self.parent.ml.ml_model_occ
+                self.ml.ml_model_emp = self.parent.ml.ml_model_emp
 
         # Link the bands
         if hasattr(self.parent, 'bands'):
@@ -813,10 +906,14 @@ class Workflow(ABC):
             # Copy back over the bands
             if hasattr(self, 'bands'):
                 if hasattr(self.parent, 'bands'):
-                    # Add the alpha and error history
-                    for b, b_sub in zip(self.parent.bands, self.bands):
-                        b.alpha_history += b_sub.alpha_history[1:]
-                        b.error_history += b_sub.error_history
+                    # Add the alpha and error history if the length of the bands match
+                    if len(self.parent.bands) == len(self.bands):
+                        for b, b_sub in zip(self.parent.bands, self.bands):
+                            b.alpha_history += b_sub.alpha_history[1:]
+                            b.error_history += b_sub.error_history
+                            b.self_hartree = b_sub.self_hartree
+                            b.spread = b_sub.spread
+                            b.center = b_sub.center
                 else:
                     # Copy the entire bands object
                     self.parent.bands = self.bands
@@ -834,14 +931,15 @@ class Workflow(ABC):
         return dct
 
     @classmethod
-    def fromdict(cls, dct: Dict[str, Any]) -> Workflow:
+    def fromdict(cls, dct: Dict[str, Any], **kwargs) -> Workflow:
         wf = cls(atoms=dct.pop('atoms'),
                  parameters=dct.pop('parameters'),
                  calculator_parameters=dct.pop('calculator_parameters'),
                  pseudopotentials=dct.pop('_pseudopotentials'),
                  kpoints=dct.pop('kpoints'),
                  projections=dct.pop('projections'),
-                 autogenerate_settings=False)
+                 autogenerate_settings=False,
+                 **kwargs)
 
         for k, v in dct.items():
             setattr(wf, k, v)
@@ -864,6 +962,14 @@ class Workflow(ABC):
 
         with open(fname, 'r') as fd:
             bigdct = json_ext.loads(fd.read())
+        wf = cls._fromjsondct(bigdct, override)
+
+        # Define the name of the workflow using the name of the json file
+        wf.name = fname.replace('.json', '')
+        return wf
+
+    @classmethod
+    def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}):
 
         # Override all keywords provided explicitly
         utils.update_nested_dict(bigdct, override)
@@ -883,31 +989,23 @@ class Workflow(ABC):
         # Loading workflow settings
         parameters = settings.WorkflowSettingsDict(**utils.parse_dict(bigdct.pop('workflow', {})))
 
+        # Loading ml settings
+        kwargs['ml'] = settings.MLSettingsDict(**utils.parse_dict(bigdct.pop('ml', {})))  # , task=parameters['task'])
+
         # Loading kpoints
         kpts = Kpoints(**utils.parse_dict(bigdct.pop('kpoints', {})), cell=atoms.cell)
 
         # Loading calculator-specific settings
         calcdict = bigdct.pop('calculator_parameters', {})
 
-        # First, extract the nested w90 subdictionaries
+        # First, extract the w90 subdictionaries
         if 'w90' in calcdict:
-            for filling in ['occ', 'emp']:
-                for spin in ['up', 'down']:
-                    # Add any keywords in the filling:spin subsubdictionary
-                    subsubdct = calcdict['w90'].get(filling, {}).get(spin, {})
-                    calcdict[f'w90_{filling}_{spin}'] = subsubdct
-                    # Add any keywords in the filling subdictionary
-                    subdct = {k: v for k, v in calcdict['w90'].get(filling, {}).items() if k not in ['up', 'down']}
-                    calcdict[f'w90_{filling}_{spin}'].update(subdct)
-                    # Add any keywords in the main dictionary
-                    dct = {k: v for k, v in calcdict['w90'].items() if k not in ['occ', 'emp']}
-                    calcdict[f'w90_{filling}_{spin}'].update(dct)
-                # Also create a spin-independent set of parameters
-                calcdict[f'w90_{filling}'] = {}
-                calcdict[f'w90_{filling}'].update(subdct)
-                calcdict[f'w90_{filling}'].update(dct)
-            # Finally, remove the nested w90 entry
-            del calcdict['w90']
+            universal_settings = {k: v for k, v in calcdict['w90'].items() if k not in ['up', 'down']}
+            for spin in ['up', 'down']:
+                # Add any keywords in the spin subdictionary
+                calcdict[f'w90_{spin}'] = calcdict['w90'].pop(spin, {})
+                # Add any keywords in the main dictionary
+                calcdict[f'w90_{spin}'].update(universal_settings)
 
         # Secondly, flatten the UI subdictionaries
         if 'ui' in calcdict:
@@ -935,7 +1033,6 @@ class Workflow(ABC):
         # a corresponding block in the json file
         calculator_parameters = {}
         w90_block_projs: List = []
-        w90_block_filling: List[bool] = []
         w90_block_spins: List[Union[str, None]] = []
         for block, settings_class in settings_classes.items():
             # Read the block and add the resulting calculator to the calcs_dct
@@ -957,15 +1054,8 @@ class Workflow(ABC):
                 # Likewise, if we are not spin-polarized, don't store the spin-dependent w90 blocks
                 if parameters.spin_polarized is not ('up' in block or 'down' in block):
                     continue
-                if 'projections' in dct and 'projections_blocks' in dct:
-                    raise ValueError(f'You have provided both "projections" and "projections_block" for {block} but '
-                                     'these keywords are mutually exclusive')
-                elif 'projections_blocks' in dct:
-                    projs = dct.pop('projections_blocks')
-                else:
-                    projs = [dct.pop('projections', [])]
+                projs = dct.pop('projections', [[]])
                 w90_block_projs += projs
-                w90_block_filling += ['occ' in block for _ in range(len(projs))]
                 if 'up' in block:
                     w90_block_spins += ['up' for _ in range(len(projs))]
                 elif 'down' in block:
@@ -977,11 +1067,7 @@ class Workflow(ABC):
 
         # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
         # object but it is provided in the w90 subdictionary)
-        kwargs['projections'] = ProjectionBlocks.fromprojections(
-            w90_block_projs, w90_block_filling, w90_block_spins, atoms)
-
-        # Define the name of the workflow using the name of the json file
-        kwargs['name'] = fname.replace('.json', '')
+        kwargs['projections'] = ProjectionBlocks.fromlist(w90_block_projs, w90_block_spins, atoms)
 
         kwargs['pseudopotentials'] = bigdct.pop('pseudopotentials', {})
 
@@ -1140,27 +1226,22 @@ class Workflow(ABC):
             elif code == 'ui':
                 calcdct['ui'].update(**params_dict)
             elif code.startswith('w90'):
-                nested_keys = code.split('_')[1:]
-                # The following very opaque code fills out the nested dictionary with the list of nested keys
-                for i, k in enumerate(nested_keys):
-                    parent_level = reduce(operator.getitem, nested_keys[:i], calcdct['w90'])
-                    if k not in parent_level:
-                        reduce(operator.getitem, nested_keys[:i], calcdct['w90'])[k] = {}
-                reduce(operator.getitem, nested_keys[:-1], calcdct['w90'])[k] = params_dict
-                # Projections
-                filling = nested_keys[0] == 'occ'
-                if len(nested_keys) == 2:
-                    spin = nested_keys[1]
+                if '_' in code:
+                    spin = code.split('_')[1]
+                    calcdct['w90'][spin] = params_dict
                 else:
                     spin = None
-                projections = self.projections.get_subset(filling, spin)
-                if len(projections) > 1:
-                    proj_kwarg = {'projections_blocks': [p.projections for p in projections]}
-                elif len(projections) == 1:
-                    proj_kwarg = {'projections': projections[0].projections}
+                    calcdct['w90'] = params_dict
+                projections = self.projections.get_subset(spin)
+                if projections:
+                    proj_kwarg = {'projections': [p.projections for p in projections]}
                 else:
                     proj_kwarg = {}
-                reduce(operator.getitem, nested_keys[:-1], calcdct['w90'])[k].update(**proj_kwarg)
+
+                if spin:
+                    calcdct['w90'][spin].update(**proj_kwarg)
+                else:
+                    calcdct['w90'].update(**proj_kwarg)
             else:
                 raise NotImplementedError(
                     f'Writing of {params.__class__.__name__} with write_json is not yet implemented')
@@ -1181,7 +1262,6 @@ class Workflow(ABC):
                            dosplot_kwargs: Dict[str, Any] = {}) -> None:
         """
         Plots the provided band structure (and optionally also a provided DOS)
-
         Arguments:
         bs -- a bandstructure/list of band structures to be plotted
         dos -- a density of states object to be plotted
@@ -1309,6 +1389,21 @@ class Workflow(ABC):
         if not self.parameters.keep_tmpdirs:
             self._remove_tmpdirs()
 
+    def number_of_electrons(self, spin: Optional[str] = None) -> int:
+        # Return the number of electrons in a particular spin channel
+        nelec_tot = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
+        pw_params = self.calculator_parameters['pw']
+        if self.parameters.spin_polarized:
+            nelec = nelec_tot - pw_params.get('tot_charge', 0)
+            if spin == 'up':
+                nelec += pw_params.tot_magnetization
+            else:
+                nelec -= pw_params.tot_magnetization
+            nelec = int(nelec // 2)
+        else:
+            nelec = nelec_tot
+        return nelec
+
 
 def header():
     from koopmans import __version__
@@ -1330,9 +1425,7 @@ def header():
 
 def read_atoms_dict(dct: Dict[str, Any]):
     '''
-
     Reads the "atoms" block
-
     '''
 
     atoms = Atoms()
@@ -1368,8 +1461,9 @@ def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]
             'ui_occ': settings.UnfoldAndInterpolateSettingsDict(),
             'ui_emp': settings.UnfoldAndInterpolateSettingsDict(),
             'wann2kc': settings.Wann2KCSettingsDict(),
-            'w90_occ': settings.Wannier90SettingsDict(),
-            'w90_emp': settings.Wannier90SettingsDict(),
+            'w90': settings.Wannier90SettingsDict(),
+            'w90_up': settings.Wannier90SettingsDict(),
+            'w90_down': settings.Wannier90SettingsDict(),
             'plot': settings.PlotSettingsDict()}
 
 
@@ -1386,12 +1480,9 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'ui': settings.UnfoldAndInterpolateSettingsDict,
                     'ui_occ': settings.UnfoldAndInterpolateSettingsDict,
                     'ui_emp': settings.UnfoldAndInterpolateSettingsDict,
-                    'w90_occ': settings.Wannier90SettingsDict,
-                    'w90_emp': settings.Wannier90SettingsDict,
-                    'w90_occ_up': settings.Wannier90SettingsDict,
-                    'w90_emp_up': settings.Wannier90SettingsDict,
-                    'w90_occ_down': settings.Wannier90SettingsDict,
-                    'w90_emp_down': settings.Wannier90SettingsDict,
+                    'w90': settings.Wannier90SettingsDict,
+                    'w90_up': settings.Wannier90SettingsDict,
+                    'w90_down': settings.Wannier90SettingsDict,
                     'plot': settings.PlotSettingsDict}
 
 
@@ -1411,5 +1502,5 @@ def sanitize_calculator_parameters(dct_in: Union[Dict[str, Dict], Dict[str, sett
         if k not in settings_classes:
             raise ValueError(
                 f'Unrecognized calculator_parameters entry "{k}": valid options are '
-                '/'.join(settings_classes.keys()))
+                + '/'.join(settings_classes.keys()))
     return dct_out

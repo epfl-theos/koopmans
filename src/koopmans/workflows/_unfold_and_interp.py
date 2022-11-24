@@ -11,7 +11,7 @@ Integrated within koopmans by Edward Linscott Jan 2021
 
 import copy
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 from ase.spectrum.band_structure import BandStructure
@@ -27,7 +27,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         super().__init__(*args, **kwargs)
         self._redo_smooth_dft = redo_smooth_dft
 
-    def _run(self):
+    def _run(self) -> None:
         '''
 
         Wrapper for the whole unfolding and interpolation workflow, consisting of:
@@ -50,6 +50,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
 
         if self.calculator_parameters['ui'].do_smooth_interpolation:
             wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kpoints.grid)
+            assert self.kpoints.grid is not None
             wannier_workflow.kpoints.grid = [x * y for x, y in zip(self.kpoints.grid,
                                              self.calculator_parameters['ui'].smooth_int_factor)]
 
@@ -60,21 +61,40 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             wannier_workflow.run(from_scratch=self._redo_smooth_dft)
 
         calc: calculators.UnfoldAndInterpolateCalculator
+        spins: List[Optional[str]]
         if self.parameters.spin_polarized:
             spins = ['up', 'down']
         else:
             spins = [None]
 
-        for spin in spins:
-            for filling in ['occ', 'emp']:
+        for spin, band_filling in zip(spins, self.bands.filling):
+            # Extract the centers and spreads corresponding to this particular spin
+            centers = np.array([center for c, p in zip(w90_calcs, self.projections)
+                               for center in c.results['centers'] if p.spin == spin])
+            spreads = np.array([spread for c, p in zip(w90_calcs, self.projections)
+                               for spread in c.results['spreads'] if p.spin == spin])
+
+            for filled, filling in zip([True, False], ['occ', 'emp']):
                 calc_presets = filling
                 if spin:
                     calc_presets += '_' + spin
                 calc = self.new_ui_calculator(calc_presets)
-                calc.centers = np.array([center for c in w90_calcs for center in c.results['centers']
-                                        if calc_presets in c.directory.name])
-                calc.spreads = [spread for c in w90_calcs for spread in c.results['spreads']
-                                if calc_presets in c.directory.name]
+
+                # Extract the centers and spreads that have this particular filling
+                if self.parameters.method == 'dscf':
+                    # For dscf, self.bands correspond to the supercell so band_filling involves many copies of each
+                    # band
+                    assert self.kpoints.grid is not None
+                    ngrid = np.prod(self.kpoints.grid, dtype=int)
+                else:
+                    # For dfpt, self.bands correspond to the primitive cell so band_filling is already the correct
+                    # dimensions
+                    ngrid = 1
+                mask = np.array(band_filling[::ngrid]) == filled
+                calc.centers = centers[mask]
+                calc.spreads = spreads[mask].tolist()
+
+                # Run the calculator
                 self.run_calculator(calc, enforce_ss=False)
 
         # Merge the two calculations to print out the DOS and bands

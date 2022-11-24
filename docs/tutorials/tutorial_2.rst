@@ -71,10 +71,10 @@ Let's now inspect this tutorial's :download:`input file <../../tutorials/tutoria
 which tells the code to perform a standalone Wannierization calculation. Meanwhile, near the bottom of the file there are some Wannier90-specific parameters provided in the ``w90`` block
 
 .. literalinclude:: ../../tutorials/tutorial_2/si.json
-  :lines: 38-45
+  :lines: 38-44
   :lineno-start: 38
 
-Here, the keywords provided in the ``emp`` subdictionary are only applied during the Wannierization of the empty manifold. The ``w90`` block format is explained more fully :ref:`here <input_file:The w90 subblock>`.
+The ``w90`` block format is explained more fully :ref:`here <input_file:The w90 subblock>`.
 
 We run this calculation as per usual:
 
@@ -85,7 +85,7 @@ We run this calculation as per usual:
 After the usual header, you should see something like the following:
 
 .. literalinclude:: ../../tutorials/tutorial_2/si_wannierize.out
-  :lines: 15-27
+  :lines: 15-
 
 These various calculations that are required to obtain the MLWFs of bulk silicon. You can inspect the  and various output files will have been generated in a new ``wannier/`` directory.
 
@@ -97,24 +97,27 @@ These various calculations that are required to obtain the MLWFs of bulk silicon
   nscf
     a ``pw.x`` non-self-consistent DFT calculation that determines the Hamiltonian, now including some empty bands
 
-  occ/wann_preproc
+  block_1/wann_preproc
     a preprocessing ``wannier90.x`` calculation that generates some files required by ``pw2wannier90.x``
 
-  occ/pw2wan
+  block_1/pw2wan
     a ``pw2wannier90.x`` calculation that extracts from the eariler ``pw.x`` calculations several key quantities required for generating the Wannier orbitals for the occupied manifold: namely, the overlap matrix of the cell-periodic part of the Block states (this is the ``wann.mmn`` file) and the projection of the Bloch states onto some trial localised orbitals (``wann.amn``)
 
-  occ/wann
+  block_1/wann
     the ``wannier90.x`` calculation that obtains the MLWFs for the occupied manifold
 
-  emp/...
+  block_2/...
     the analogous calculations as those in ``occ/``, but for the empty manifold
   
   bands
     a ``pw.x`` calculation that calculates the band structure of silicon explicitly, used for verification of the Wannierization (see the next section)
 
+  pdos/projwfc
+    a ``projwfc.x`` calculation that calculates the projected density of states, also used for checking the Wannierization
+
 |
 
-The main output files of interest in ``wannier/`` are files ``occ/wann.wout`` and ``emp/wann.wout``, which contain the output of ``wannier90.x`` for the Wannierization of the occupied and empty manifolds. If you inspect either of these files you will be able to see a lot of starting information, and then under a heading like
+The main output files of interest in ``wannier/`` are files ``block_1/wann.wout`` and ``block_2/wann.wout``, which contain the output of ``wannier90.x`` for the Wannierization of the occupied and empty manifolds. If you inspect either of these files you will be able to see a lot of starting information, and then under a heading like
 
 .. code-block::
 
@@ -164,8 +167,8 @@ Initialization
 If you run this new input the output will be remarkably similar to that from the previous tutorial, with a couple of exceptions. At the start of the workflow you will see there is a Wannierization procedure, much like we had earlier when we running with the ``wannierize`` task:
 
 .. literalinclude:: ../../tutorials/tutorial_2/si_ki.out
-  :lines: 16-27
-  :lineno-start: 16
+  :lines: 20-31
+  :lineno-start: 20
   :language: text
 
 which replaces the previous series of semi-local and PZ calculations that we used to initialize the variational orbitals for a molecule.
@@ -173,8 +176,8 @@ which replaces the previous series of semi-local and PZ calculations that we use
 There is then an new "folding to supercell" subsection:
 
 .. literalinclude:: ../../tutorials/tutorial_2/si_ki.out
-  :lines: 28-31
-  :lineno-start: 28
+  :lines: 32-35
+  :lineno-start: 32
   :language: text
 
 In order to understand what these calculations are doing, we must think ahead to the next step in our calculation, where we will calculate the screening parameters using the ΔSCF method. These calculations, where we remove/add an electron from/to the system, require us to work in a supercell. This means that we must transform the :math:`k`-dependent primitive cell results from previous calculations into equivalent :math:`\Gamma`-only supercell quantities that can be read by ``kcp``. This is precisely what the above ``wan2odd`` calculations do.
@@ -184,8 +187,8 @@ Calculating the screening parameters
 Having transformed into a supercell, the calculation of the screening parameters proceeds as usual. The one difference to tutorial 1 that you might notice at this step is that we are skipping the calculation of screening parameters for some of the orbitals:
 
 .. literalinclude:: ../../tutorials/tutorial_2/si_ki.out
-  :lines: 35-45
-  :lineno-start: 35
+  :lines: 42-52
+  :lineno-start: 42
   :emphasize-lines: 7
   :language: text
 
@@ -203,15 +206,15 @@ The final calculation and postprocessing
 The final difference for the solids calculation is that there is an additional preprocessing step at the very end:
 
 .. literalinclude:: ../../tutorials/tutorial_2/si_ki.out
-  :lines: 72-
-  :lineno-start: 72
+  :lines: 89-
+  :lineno-start: 89
   :language: text
 
 Here, we transform back our results from the supercell sampled at :math:`\Gamma` to the primitive cell with :math:`k`-space sampling. This allows us to obtain a bandstructure. The extra Wannierization step that is being performed is to assist the interpolation of the band structure in the primitive cell, and has been performed because in the input file we specified
 
 .. literalinclude:: ../../tutorials/tutorial_2/si.json
-  :lines: 46-48
-  :lineno-start: 46
+  :lines: 45-47
+  :lineno-start: 45
   :emphasize-lines: 2
 
 For more details on the "unfold and interpolate" procedure see :ref:`here <input_file:The ui subblock>` and Ref. :cite:`DeGennaro2022`.

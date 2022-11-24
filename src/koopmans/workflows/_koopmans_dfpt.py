@@ -6,13 +6,10 @@ Written by Edward Linscott Feb 2021
 
 """
 
-import os
 import shutil
 from pathlib import Path
 
-import numpy as np
-
-from koopmans import utils
+from koopmans import utils, pseudopotentials
 from koopmans.bands import Bands
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
                                   Wann2KCCalculator)
@@ -85,12 +82,15 @@ class KoopmansDFPTWorkflow(Workflow):
                                 f'assume_isolated = {params.assume_isolated} is incompatible with mt_correction = True')
 
         # Initialize the bands
+        nocc = pseudopotentials.nelec_from_pseudos(
+            self.atoms, self.pseudopotentials, self.parameters.pseudo_directory) // 2
         if all(self.atoms.pbc):
-            nocc = self.projections.num_wann(occ=True)
-            nemp = self.projections.num_wann(occ=False)
+            exclude_bands = self.calculator_parameters['w90'].get('exclude_bands', [])
+            nocc -= len(exclude_bands)
+            ntot = self.projections.num_wann()
         else:
-            nocc = self.calculator_parameters['kcp'].nelec // 2
-            nemp = self.calculator_parameters['pw'].nbnd - nocc
+            ntot = self.calculator_parameters['pw'].nbnd
+        nemp = ntot - nocc
         if self.parameters.orbital_groups is None:
             self.parameters.orbital_groups = [list(range(nocc + nemp))]
         self.bands = Bands(n_bands=nocc + nemp, filling=[[True] * nocc + [False] * nemp],
@@ -254,14 +254,14 @@ class KoopmansDFPTWorkflow(Workflow):
             calc.alphas = self.bands.alphas
 
         if all(self.atoms.pbc):
-            nocc = self.projections.num_wann(occ=True)
-            nemp = self.projections.num_wann(occ=False)
-            have_empty = (self.projections.num_wann(occ=False) > 0)
-            has_disentangle = (self.projections.num_bands() != self.projections.num_wann())
+            nocc = self.bands.num(filled=True)
+            nemp = self.bands.num(filled=False)
+            have_empty = (nemp > 0)
+            has_disentangle = (self.projections.num_bands() != nocc + nemp)
         else:
             nocc = self.calculator_parameters['kcp'].nelec // 2
             nemp = self.calculator_parameters['pw'].nbnd - nocc
-            have_empty = nemp > 0
+            have_empty = (nemp > 0)
             has_disentangle = False
         calc.parameters.num_wann_occ = nocc
         calc.parameters.num_wann_emp = nemp

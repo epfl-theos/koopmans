@@ -7,7 +7,7 @@ from hypothesis import given, settings, strategies
 
 from koopmans.cell import cell_to_parameters, parameters_to_cell
 
-from . import strategies as kst
+from tests.helpers import strategies as kst
 
 # Reference list of ASE Bravais lattice classes
 bravais_lattices = {1: CUB, 2: FCC, 3: BCC, 4: HEX, 5: RHL, 6: TET, 7: BCT,
@@ -40,5 +40,5 @@ def test_roundtrip_cell_parameters(cell: Cell):
         new_params = cell_to_parameters(cell)
         assert params == new_params
     except ValueError as e:
-        if 'You have provided a cell that is not Niggli-reduced' not in str(e):
+        if 'You have provided a cell that appears not to be Niggli-reduced' not in str(e):
             raise

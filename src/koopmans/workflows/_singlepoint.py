@@ -41,8 +41,7 @@ class SinglepointWorkflow(Workflow):
         >>> from koopmans.kpoints import Kpoints
         >>> from koopmans.workflows import SinglepointWorkflow
         >>> gaas = bulk('GaAs', crystalstructure='zincblende', a=5.6536)
-        >>> projs = ProjectionBlocks.fromprojections([["Ga: d"], ["As: sp3"], ["Ga: sp3"]],
-        >>>                                           fillings=[True, True, False],
+        >>> projs = ProjectionBlocks.fromlist([["Ga: d"], ["As: sp3"], ["Ga: sp3"]],
         >>>                                           spins=[None, None, None],
         >>>                                           atoms=gaas)
         >>> kpoints = Kpoints(grid=[2, 2, 2])

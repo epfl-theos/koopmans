@@ -87,7 +87,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
             n_occs = [int(nelec / 2 + mag / 2), int(nelec / 2 - mag / 2)]
 
         # Return the energy of the highest occupied band
-        return np.nanmax([eigs[:, :n_occ] for eigs, n_occ in zip(eigenvals, n_occs)])
+        return np.max([np.nanmax(eigs[:, :n_occ]) for eigs, n_occ in zip(eigenvals, n_occs)])
 
     def eigenvalues_from_results(self):
         class_name = self.__class__.__name__

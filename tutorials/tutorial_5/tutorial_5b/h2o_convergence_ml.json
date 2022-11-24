@@ -1,0 +1,67 @@
+{
+    "workflow": {
+        "task": "convergence_ml",
+        "functional": "ki",
+        "init_orbitals": "mlwfs",
+        "from_scratch": true,
+        "fix_spin_contamination": false,
+        "pseudo_library": "sg15_v1.0",
+        "mp_correction": true,
+        "eps_inf": 1.72,
+        "calculate_bands": false
+    },
+    "ml": {
+        "use_ml": true,
+        "n_max": 6,
+        "l_max": 6,
+        "r_min": 1.0,
+        "r_max": 4.0,
+        "number_of_training_snapshots": 10,
+        "quantities_of_interest": ["alphas", "evs"]
+    },
+    "atoms": {
+        "atomic_positions": {
+            "units": "angstrom",
+            "snapshots": "snapshots.xyz"
+        },
+        "cell_parameters": {
+            "periodic": true,
+            "units": "angstrom",
+            "vectors": [
+                [6.8929, 0.0, 0.0],
+                [0.0, 6.8929, 0.0],
+                [0.0, 0.0, 6.8929]
+            ]
+        }
+    },
+    "calculator_parameters": {
+        "ecutwfc": 50.0,
+        "pw": {
+            "system": {
+                "nbnd": 12
+            }
+        },
+        "kcp": {
+            "system": {
+                "nbnd": 6
+            }
+        },
+        "w90": {
+            "projections": [
+                [
+                    {
+                        "site": "O",
+                        "ang_mtm": "sp3"
+                    }
+                ],
+                [
+                    {
+                        "site": "H",
+                        "ang_mtm": "s"
+                    }
+                ]
+            ],
+            "dis_froz_max": 1.0
+        }
+    }
+}

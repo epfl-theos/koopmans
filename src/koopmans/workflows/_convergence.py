@@ -93,6 +93,7 @@ class ConvergenceWorkflow(Workflow):
 
             get_value: Callable[[Workflow], Any]
             set_value: Callable[[Workflow, Any], None]
+            values: List[Any]
 
             if conv_param == 'cell_size':
                 increment = 0.1
@@ -172,6 +173,7 @@ class ConvergenceWorkflow(Workflow):
                     continue
 
                 # Create a new workflow
+                subwf: workflows.Workflow
                 if self.parameters.convergence_observable == 'eps_inf':
                     subwf = workflows.DFTPhWorkflow.fromparent(self)
                 else:
