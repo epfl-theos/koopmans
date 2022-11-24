@@ -127,15 +127,12 @@ class Workflow(ABC):
             proj_list: List[List[Any]]
             spins: List[Optional[str]]
             if self.parameters.spin_polarized:
-                proj_list = [[], [], [], []]
-                fillings = [True, True, False, False]
-                spins = ['up', 'down', 'up', 'down']
-            else:
                 proj_list = [[], []]
-                fillings = [True, False]
-                spins = [None, None]
-            self.projections = ProjectionBlocks.fromprojections(
-                proj_list, fillings=fillings, spins=spins, atoms=self.atoms)
+                spins = ['up', 'down']
+            else:
+                proj_list = [[]]
+                spins = [None]
+            self.projections = ProjectionBlocks.fromlist(proj_list, spins=spins, atoms=self.atoms)
         else:
             self.projections = projections
 
@@ -229,7 +226,6 @@ class Workflow(ABC):
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
             nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
-
             tot_charge = calculator_parameters['kcp'].get('tot_charge', 0)
             nelec -= tot_charge
             tot_mag = calculator_parameters['kcp'].get('tot_magnetization', nelec % 2)
@@ -311,6 +307,14 @@ class Workflow(ABC):
             # if not a calculator, workflow, or plotting keyword, raise an error
             if not match and not self.parameters.is_valid(key) and not self.plotting.is_valid(key) and not self.ml.is_valid(key):
                 raise ValueError(f'{key} is not a valid setting')
+
+        # Adding excluded_bands info to self.projections
+        if self.projections:
+            for spin in ['up', 'down', None]:
+                label = 'w90'
+                if spin:
+                    label += f'_{spin}'
+                self.projections.exclude_bands[spin] = self.calculator_parameters[label].get('exclude_bands', [])
 
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
@@ -899,10 +903,14 @@ class Workflow(ABC):
             # Copy back over the bands
             if hasattr(self, 'bands'):
                 if hasattr(self.parent, 'bands'):
-                    # Add the alpha and error history
-                    for b, b_sub in zip(self.parent.bands, self.bands):
-                        b.alpha_history += b_sub.alpha_history[1:]
-                        b.error_history += b_sub.error_history
+                    # Add the alpha and error history if the length of the bands match
+                    if len(self.parent.bands) == len(self.bands):
+                        for b, b_sub in zip(self.parent.bands, self.bands):
+                            b.alpha_history += b_sub.alpha_history[1:]
+                            b.error_history += b_sub.error_history
+                            b.self_hartree = b_sub.self_hartree
+                            b.spread = b_sub.spread
+                            b.center = b_sub.center
                 else:
                     # Copy the entire bands object
                     self.parent.bands = self.bands
@@ -987,25 +995,14 @@ class Workflow(ABC):
         # Loading calculator-specific settings
         calcdict = bigdct.pop('calculator_parameters', {})
 
-        # First, extract the nested w90 subdictionaries
+        # First, extract the w90 subdictionaries
         if 'w90' in calcdict:
-            for filling in ['occ', 'emp']:
-                for spin in ['up', 'down']:
-                    # Add any keywords in the filling:spin subsubdictionary
-                    subsubdct = calcdict['w90'].get(filling, {}).get(spin, {})
-                    calcdict[f'w90_{filling}_{spin}'] = subsubdct
-                    # Add any keywords in the filling subdictionary
-                    subdct = {k: v for k, v in calcdict['w90'].get(filling, {}).items() if k not in ['up', 'down']}
-                    calcdict[f'w90_{filling}_{spin}'].update(subdct)
-                    # Add any keywords in the main dictionary
-                    dct = {k: v for k, v in calcdict['w90'].items() if k not in ['occ', 'emp']}
-                    calcdict[f'w90_{filling}_{spin}'].update(dct)
-                # Also create a spin-independent set of parameters
-                calcdict[f'w90_{filling}'] = {}
-                calcdict[f'w90_{filling}'].update(subdct)
-                calcdict[f'w90_{filling}'].update(dct)
-            # Finally, remove the nested w90 entry
-            del calcdict['w90']
+            universal_settings = {k: v for k, v in calcdict['w90'].items() if k not in ['up', 'down']}
+            for spin in ['up', 'down']:
+                # Add any keywords in the spin subdictionary
+                calcdict[f'w90_{spin}'] = calcdict['w90'].pop(spin, {})
+                # Add any keywords in the main dictionary
+                calcdict[f'w90_{spin}'].update(universal_settings)
 
         # Secondly, flatten the UI subdictionaries
         if 'ui' in calcdict:
@@ -1033,7 +1030,6 @@ class Workflow(ABC):
         # a corresponding block in the json file
         calculator_parameters = {}
         w90_block_projs: List = []
-        w90_block_filling: List[bool] = []
         w90_block_spins: List[Union[str, None]] = []
         for block, settings_class in settings_classes.items():
             # Read the block and add the resulting calculator to the calcs_dct
@@ -1055,15 +1051,8 @@ class Workflow(ABC):
                 # Likewise, if we are not spin-polarized, don't store the spin-dependent w90 blocks
                 if parameters.spin_polarized is not ('up' in block or 'down' in block):
                     continue
-                if 'projections' in dct and 'projections_blocks' in dct:
-                    raise ValueError(f'You have provided both "projections" and "projections_block" for {block} but '
-                                     'these keywords are mutually exclusive')
-                elif 'projections_blocks' in dct:
-                    projs = dct.pop('projections_blocks')
-                else:
-                    projs = [dct.pop('projections', [])]
+                projs = dct.pop('projections', [[]])
                 w90_block_projs += projs
-                w90_block_filling += ['occ' in block for _ in range(len(projs))]
                 if 'up' in block:
                     w90_block_spins += ['up' for _ in range(len(projs))]
                 elif 'down' in block:
@@ -1075,8 +1064,7 @@ class Workflow(ABC):
 
         # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
         # object but it is provided in the w90 subdictionary)
-        kwargs['projections'] = ProjectionBlocks.fromprojections(
-            w90_block_projs, w90_block_filling, w90_block_spins, atoms)
+        kwargs['projections'] = ProjectionBlocks.fromlist(w90_block_projs, w90_block_spins, atoms)
 
         # Check for unexpected blocks
         for block in bigdct:
@@ -1233,27 +1221,22 @@ class Workflow(ABC):
             elif code == 'ui':
                 calcdct['ui'].update(**params_dict)
             elif code.startswith('w90'):
-                nested_keys = code.split('_')[1:]
-                # The following very opaque code fills out the nested dictionary with the list of nested keys
-                for i, k in enumerate(nested_keys):
-                    parent_level = reduce(operator.getitem, nested_keys[:i], calcdct['w90'])
-                    if k not in parent_level:
-                        reduce(operator.getitem, nested_keys[:i], calcdct['w90'])[k] = {}
-                reduce(operator.getitem, nested_keys[:-1], calcdct['w90'])[k] = params_dict
-                # Projections
-                filling = nested_keys[0] == 'occ'
-                if len(nested_keys) == 2:
-                    spin = nested_keys[1]
+                if '_' in code:
+                    spin = code.split('_')[1]
+                    calcdct['w90'][spin] = params_dict
                 else:
                     spin = None
-                projections = self.projections.get_subset(filling, spin)
-                if len(projections) > 1:
-                    proj_kwarg = {'projections_blocks': [p.projections for p in projections]}
-                elif len(projections) == 1:
-                    proj_kwarg = {'projections': projections[0].projections}
+                    calcdct['w90'] = params_dict
+                projections = self.projections.get_subset(spin)
+                if projections:
+                    proj_kwarg = {'projections': [p.projections for p in projections]}
                 else:
                     proj_kwarg = {}
-                reduce(operator.getitem, nested_keys[:-1], calcdct['w90'])[k].update(**proj_kwarg)
+
+                if spin:
+                    calcdct['w90'][spin].update(**proj_kwarg)
+                else:
+                    calcdct['w90'].update(**proj_kwarg)
             else:
                 raise NotImplementedError(
                     f'Writing of {params.__class__.__name__} with write_json is not yet implemented')
@@ -1401,6 +1384,21 @@ class Workflow(ABC):
         if not self.parameters.keep_tmpdirs:
             self._remove_tmpdirs()
 
+    def number_of_electrons(self, spin: Optional[str] = None) -> int:
+        # Return the number of electrons in a particular spin channel
+        nelec_tot = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
+        pw_params = self.calculator_parameters['pw']
+        if self.parameters.spin_polarized:
+            nelec = nelec_tot - pw_params.get('tot_charge', 0)
+            if spin == 'up':
+                nelec += pw_params.tot_magnetization
+            else:
+                nelec -= pw_params.tot_magnetization
+            nelec = int(nelec // 2)
+        else:
+            nelec = nelec_tot
+        return nelec
+
 
 def header():
     from koopmans import __version__
@@ -1458,8 +1456,9 @@ def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]
             'ui_occ': settings.UnfoldAndInterpolateSettingsDict(),
             'ui_emp': settings.UnfoldAndInterpolateSettingsDict(),
             'wann2kc': settings.Wann2KCSettingsDict(),
-            'w90_occ': settings.Wannier90SettingsDict(),
-            'w90_emp': settings.Wannier90SettingsDict(),
+            'w90': settings.Wannier90SettingsDict(),
+            'w90_up': settings.Wannier90SettingsDict(),
+            'w90_down': settings.Wannier90SettingsDict(),
             'plot': settings.PlotSettingsDict()}
 
 
@@ -1476,12 +1475,9 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'ui': settings.UnfoldAndInterpolateSettingsDict,
                     'ui_occ': settings.UnfoldAndInterpolateSettingsDict,
                     'ui_emp': settings.UnfoldAndInterpolateSettingsDict,
-                    'w90_occ': settings.Wannier90SettingsDict,
-                    'w90_emp': settings.Wannier90SettingsDict,
-                    'w90_occ_up': settings.Wannier90SettingsDict,
-                    'w90_emp_up': settings.Wannier90SettingsDict,
-                    'w90_occ_down': settings.Wannier90SettingsDict,
-                    'w90_emp_down': settings.Wannier90SettingsDict,
+                    'w90': settings.Wannier90SettingsDict,
+                    'w90_up': settings.Wannier90SettingsDict,
+                    'w90_down': settings.Wannier90SettingsDict,
                     'plot': settings.PlotSettingsDict}
 
 
@@ -1501,5 +1497,5 @@ def sanitize_calculator_parameters(dct_in: Union[Dict[str, Dict], Dict[str, sett
         if k not in settings_classes:
             raise ValueError(
                 f'Unrecognized calculator_parameters entry "{k}": valid options are '
-                '/'.join(settings_classes.keys()))
+                + '/'.join(settings_classes.keys()))
     return dct_out

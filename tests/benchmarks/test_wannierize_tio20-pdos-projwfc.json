@@ -246869,13 +246869,13 @@
  "calc": {},
  "skip_qc": false,
  "pseudopotentials": {
-  "O": "O.upf",
-  "Ti": "Ti.upf"
+  "Ti": "Ti.upf",
+  "O": "O.upf"
  },
  "pseudo_dir": {
   "__path__": "../../../src/koopmans/pseudopotentials/pseudo_dojo_standard_v0.4.1/pbe"
  },
  "spin_polarized": false,
  "__koopmans_name__": "BenchGenProjwfcCalculator",
- "__koopmans_module__": "koopmans_pytest._generate_benchmarks"
+ "__koopmans_module__": "tests.helpers.patches"
 }

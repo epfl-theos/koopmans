@@ -49,22 +49,29 @@ class KoopmansDSCFWorkflow(Workflow):
 
             for spin, nelec in zip(spins, nelecs):
                 # Check that we have wannierized every filled orbital
+                nbands_occ = nelec
                 if self.projections:
-                    nbands_occ = self.projections.num_wann(occ=True, spin=spin)
+                    label = 'w90'
+                    if spin:
+                        label += f'_{spin}'
+                    nbands_excl = len(self.calculator_parameters[label].get('exclude_bands', []))
+                    if nbands_excl > 0:
+                        raise ValueError('Excluding bands is incompatible with method == "dscf". Please provide '
+                                         'projections for every band and remove the "exclude_bands" Wannier90 keyword.')
 
-                    if nbands_occ != nelec:
+                    nwann = self.projections.num_wann(spin=spin)
+
+                    if nwann < nelec:
                         raise ValueError('You have configured this calculation to only wannierize a subset of the '
                                          'occupied bands:\n'
-                                         f' number of occupied bands = {nelec}\n'
-                                         f' number of occupied Wannier functions = {nbands_occ}\n'
+                                         f' number of occupied bands = {nbands_occ}\n'
+                                         f' number of Wannier functions = {nwann}\n'
                                          'This is incompatible with the subsequent Koopmans '
                                          'calculation.\nPlease modify the wannier90 settings in order to wannierize '
-                                         'all of the occupied bands. (You may want to consider taking advantage of the '
-                                         '"projections_blocks" functionality if your system has a lot of electrons.)')
+                                         'all of the occupied bands.')
 
-                    nbands_emp = self.projections.num_wann(occ=False, spin=spin)
+                    nbands_emp = nwann - nbands_occ
                 else:
-                    nbands_occ = nelec
                     nbands_emp = self.calculator_parameters['pw'].nbnd - nbands_occ
 
                 # Check the number of empty states has been correctly configured
@@ -354,10 +361,10 @@ class KoopmansDSCFWorkflow(Workflow):
                     # Skip if we don't have wannier functions to copy over
                     if self.parameters.init_orbitals != 'kohn-sham':
                         if self.parameters.spin_polarized:
-                            if self.projections.num_wann(occ=(filling == 'occ'), spin=spin) == 0:
+                            if self.bands.num(filled=(filling == 'occ'), spin=i_spin) == 0:
                                 continue
                         else:
-                            if self.projections.num_wann(occ=(filling == 'occ'), spin=None) == 0:
+                            if self.bands.num(filled=(filling == 'occ'), spin=None) == 0:
                                 continue
 
                     if self.parameters.init_orbitals == 'kohn-sham':
@@ -551,13 +558,13 @@ class KoopmansDSCFWorkflow(Workflow):
                         if len(skipped_orbitals) == 1:
                             if print_headings:
                                 self.print(f'Orbital {skipped_orbitals[0]}', style='subheading')
-                            else:
-                                orb_range = f'{skipped_orbitals[0]}-{skipped_orbitals[-1]}'
-                                if print_headings:
-                                    self.print(f'Orbitals {orb_range}', style='subheading')
+                        else:
+                            orb_range = f'{skipped_orbitals[0]}-{skipped_orbitals[-1]}'
                             if print_headings:
-                                self.print(f'Skipping; will use the screening parameter of an equivalent orbital')
-                            skipped_orbitals = []
+                                self.print(f'Orbitals {orb_range}', style='subheading')
+                        if print_headings:
+                            self.print(f'Skipping; will use the screening parameter of an equivalent orbital')
+                        skipped_orbitals = []
                     if band not in self.bands.to_solve:
                         continue
                 elif not self.parameters.spin_polarized and band.spin == 1:

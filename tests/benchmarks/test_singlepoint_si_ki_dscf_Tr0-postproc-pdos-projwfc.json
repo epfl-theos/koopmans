@@ -39900,5 +39900,5 @@
  },
  "spin_polarized": true,
  "__koopmans_name__": "BenchGenProjwfcCalculator",
- "__koopmans_module__": "koopmans_pytest._generate_benchmarks"
+ "__koopmans_module__": "tests.helpers.patches._benchmark"
 }

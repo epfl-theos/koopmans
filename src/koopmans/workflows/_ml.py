@@ -4,7 +4,7 @@ Written by Yannick Schubert Jul 2022
 import copy
 import os
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Optional, List
 
 import numpy as np
 from deepdiff import DeepDiff
@@ -19,18 +19,14 @@ from ._workflow import Workflow
 
 class MLFittingWorkflow(Workflow):
 
-    def __init__(self, calc_that_produced_orbital_densities=None, *args, **kwargs):
+    def __init__(self, calc_that_produced_orbital_densities: calculators.Calc, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Specify from which calculation we extract the real space densities. Currently only
         # the ki-calculation at the beginning of the alpha calculations is a valid option
-        if calc_that_produced_orbital_densities is None:
-            raise ValueError(
-                "please provide this workflow with a calculation that produced the real space orbital densities.")
-        else:
-            self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
+        self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
 
-        # Define and create the different subdirectories for the outputs of the ML-workflow
+        # Define and create the different subdirectories for the outputs of the ML workflow
         ml_dir = self.calc_that_produced_orbital_densities.directory / 'ml' / 'TMP'
         dir_suffix = '_'.join(str(x) for x in [self.ml.n_max,
                               self.ml.l_max, self.ml.r_min, self.ml.r_max])
@@ -61,10 +57,10 @@ class MLFittingWorkflow(Workflow):
         self.input_vectors_for_ml: Dict[str, np.ndarray] = {}
 
         # initialize lists for the results of the prediction and the calculations
-        self.predicted_alphas = []
-        self.calculated_alphas = []
-        self.fillings_of_predicted_alphas = []
-        self.use_predictions = []
+        self.predicted_alphas: List[float] = []
+        self.calculated_alphas: List[float] = []
+        self.fillings_of_predicted_alphas: List[bool] = []
+        self.use_predictions: List[bool] = []
 
     def _run(self):
         """
@@ -184,24 +180,11 @@ class MLFittingWorkflow(Workflow):
             # the maximum radius will be set to the minimum of self.r_cut and half of the cell-size later on
             self.r_cut = min(self.atoms.get_cell_lengths_and_angles()[:3])
 
-            # Extract the wannier-centres
-            w90_calcs = [c for c in self.calculations if isinstance(
-                c, calculators.Wannier90Calculator) and c.command.flags == ''][-len(self.projections):]
-
+            # Extract the Wannier centres
             if self.parameters.spin_polarized:
-                spins = ['up', 'down']
+                centers = [b.center for b in self.bands]
             else:
-                spins = [None]
-
-            centers_list = []
-            for spin in spins:
-                for filling in ['occ', 'emp']:
-                    calc_presets = filling
-                    if spin:
-                        calc_presets += '_' + spin
-                    centers_list.append(np.array([center for c in w90_calcs for center in c.results['centers']
-                                                  if calc_presets in c.directory.name]))
-            centers = np.concatenate(centers_list)
+                centers = [b.center for b in self.bands if b.spin == 0]
 
             ml.precompute_parameters_of_radial_basis(self.ml.n_max, self.ml.l_max,
                                                      self.ml.r_min, self.ml.r_max, self.dirs)

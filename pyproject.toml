@@ -1,12 +1,14 @@
 [project]
 name = "koopmans"
-version = "1.0.0-beta.5"
+version = "1.0.0-beta.6"
 description = "Koopmans spectral functional calculations with python and Quantum ESPRESSO"
-readme = "README.rst"
+readme = "README_pypi.rst"
 requires-python = ">=3.7"
-authors = [{ name = "Edward Linscott", email = "edward.linscott@epfl.ch" },
-           { name = "Riccardo De Gennaro", email = "riccardo.degennaro@epfl.ch" },
-           { name = "Nicola Colonna", email = "nicola.colonna@psi.ch" }]
+authors = [
+    { name = "Edward Linscott", email = "edward.linscott@epfl.ch" },
+    { name = "Riccardo De Gennaro", email = "riccardo.degennaro@epfl.ch" },
+    { name = "Nicola Colonna", email = "nicola.colonna@psi.ch" },
+]
 classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
@@ -54,7 +56,7 @@ docs = [
     "sphinx_rtd_theme>=1.0.0",
     "recommonmark>=0.7.1",
     "numpydoc>=1.4.0",
-    "sphinx-pyproject>=0.1.0"
+    "sphinx-pyproject>=0.1.0",
 ]
 
 [project.scripts]

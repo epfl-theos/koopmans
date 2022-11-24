@@ -67,16 +67,34 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         else:
             spins = [None]
 
-        for spin in spins:
-            for filling in ['occ', 'emp']:
+        for spin, band_filling in zip(spins, self.bands.filling):
+            # Extract the centers and spreads corresponding to this particular spin
+            centers = np.array([center for c, p in zip(w90_calcs, self.projections)
+                               for center in c.results['centers'] if p.spin == spin])
+            spreads = np.array([spread for c, p in zip(w90_calcs, self.projections)
+                               for spread in c.results['spreads'] if p.spin == spin])
+
+            for filled, filling in zip([True, False], ['occ', 'emp']):
                 calc_presets = filling
                 if spin:
                     calc_presets += '_' + spin
                 calc = self.new_ui_calculator(calc_presets)
-                calc.centers = np.array([center for c in w90_calcs for center in c.results['centers']
-                                        if calc_presets in c.directory.name])
-                calc.spreads = [spread for c in w90_calcs for spread in c.results['spreads']
-                                if calc_presets in c.directory.name]
+
+                # Extract the centers and spreads that have this particular filling
+                if self.parameters.method == 'dscf':
+                    # For dscf, self.bands correspond to the supercell so band_filling involves many copies of each
+                    # band
+                    assert self.kpoints.grid is not None
+                    ngrid = np.prod(self.kpoints.grid, dtype=int)
+                else:
+                    # For dfpt, self.bands correspond to the primitive cell so band_filling is already the correct
+                    # dimensions
+                    ngrid = 1
+                mask = np.array(band_filling[::ngrid]) == filled
+                calc.centers = centers[mask]
+                calc.spreads = spreads[mask].tolist()
+
+                # Run the calculator
                 self.run_calculator(calc, enforce_ss=False)
 
         # Merge the two calculations to print out the DOS and bands

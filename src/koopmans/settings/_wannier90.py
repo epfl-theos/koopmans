@@ -2,7 +2,7 @@ from typing import Any
 
 import numpy as np
 from ase.dft.kpoints import BandPath
-from ase.io.wannier90 import construct_kpoint_path, proj_string_to_dict
+from ase.io.wannier90 import construct_kpoint_path, proj_string_to_dict, formatted_str_to_list
 
 from ._utils import SettingsDict
 
@@ -80,4 +80,6 @@ class Wannier90SettingsDict(SettingsDict):
                         if k not in ['site', 'csite', 'fsite', 'ang_mtm', 'zaxis', 'xaxis', 'radial', 'zona']:
                             raise KeyError(f'Unrecognized key {k} in the w90 projections block')
                     value[i] = v
+            if key == 'exclude_bands' and isinstance(value, str):
+                value = formatted_str_to_list(value)
             return super().__setitem__(key, value)
