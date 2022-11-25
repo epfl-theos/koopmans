@@ -111,6 +111,9 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'The observable of interest will be converged with respect to this/these '
                     'simulation parameter(s)',
                     (list, str), ['ecutwfc'], None),
+            Setting('dfpt_coarse_grid',
+                    'The coarse k-point grid on which to perform the DFPT calculations',
+                    list, None, None),
             Setting('eps_cavity',
                     'a list of epsilon_infinity values for the cavity in dscf calculations',
                     list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None)]
