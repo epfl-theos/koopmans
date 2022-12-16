@@ -1,5 +1,5 @@
 import itertools
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -75,7 +75,7 @@ class Band(object):
 
 class Bands(object):
     def __init__(self, n_bands: Union[int, List[int]], n_spin: int = 1, spin_polarized: bool = False,
-                 self_hartree_tol=None, **kwargs):
+                 tolerances: Dict[str, float] = {}, **kwargs):
         if isinstance(n_bands, int):
             self.n_bands = [n_bands for _ in range(n_spin)]
         else:
@@ -95,7 +95,7 @@ class Bands(object):
             self._bands = [Band(i_band + 1, i_spin, group=i_band) for i_spin in range(n_spin)
                            for i_band in range(self.n_bands[i_spin])]
 
-        self.self_hartree_tol = self_hartree_tol
+        self.tolerances = tolerances
         for k, v in kwargs.items():
             assert hasattr(self, k)
             if v:
@@ -187,15 +187,18 @@ class Bands(object):
         for b, v in zip(self, [v for subarray in value for v in subarray]):
             b.group = v
 
-    def assign_groups(self, sh_tol: Optional[float] = None, allow_reassignment: bool = False):
+    def assign_groups(self, sort_by: str = 'self_hartree', tol: Optional[float] = None, allow_reassignment: bool = False):
         # Basic clustering algorithm for assigning groups
 
-        if self.self_hartree_tol is None:
+        if self.tolerances == {}:
             # Do not perform clustering
             return
 
+        if sort_by not in self.tolerances:
+            return ValueError(f'Cannot sort bands according to {sort_by}; valid choices are' + '/'.join(self.tolerances.keys()))
+
         # By default use the settings provided when Bands() was initialized
-        sh_tol = sh_tol if sh_tol is not None else self.self_hartree_tol
+        tol = tol if tol is not None else self.tolerances[sort_by]
 
         # Separate the orbitals into different subsets, where we don't want any grouping of orbitals belonging to
         # different subsets
@@ -209,10 +212,7 @@ class Bands(object):
 
         def points_are_close(p0: Band, p1: Band, factor: Union[int, float] = 1) -> bool:
             # Determine if two bands are "close"
-            for obs, tol in (('self_hartree', sh_tol),):
-                if tol is not None and abs(getattr(p0, obs) - getattr(p1, obs)) > tol * factor:
-                    return False
-            return True
+            return abs(getattr(p0, sort_by) - getattr(p1, sort_by)) < tol * factor
 
         group = 0
         for unassigned in unassigned_sets:
@@ -224,8 +224,8 @@ class Bands(object):
                 neighborhood = [b for b in unassigned if points_are_close(guess, b)]
 
                 # Find the center of that neighborhood
-                av_sh = np.mean([b.self_hartree for b in neighborhood])
-                center = Band(self_hartree=av_sh)
+                av = np.mean([getattr(b, sort_by) for b in neighborhood])
+                center = Band(**{sort_by: av})
 
                 # Find a revised neighborhood close to the center (using a factor of 0.5 because we want points that
                 # are on opposite sides of the neighborhood to be within "tol" of each other which means they can be
@@ -236,11 +236,11 @@ class Bands(object):
                 wider_neighborhood = [b for b in unassigned if points_are_close(center, b)]
 
                 if neighborhood != wider_neighborhood:
-                    if self.self_hartree_tol and sh_tol < 0.01 * self.self_hartree_tol:
+                    if self.tolerances[sort_by] and tol < 0.01 * self.tolerances[sort_by]:
                         # We have recursed too deeply, abort
                         raise Exception('Clustering algorithm failed')
                     else:
-                        self.assign_groups(sh_tol=0.9 * sh_tol if sh_tol else None,
+                        self.assign_groups(sort_by, tol=0.9 * tol if tol else None,
                                            allow_reassignment=allow_reassignment)
                         return
 
@@ -266,10 +266,10 @@ class Bands(object):
                 [match] = [b_op for b_op in self.get(spin=0) if b_op.index == b.index]
                 b.group = match.group
 
-        if sh_tol != self.self_hartree_tol:
-            warn(f'It was not possible to group orbitals with the self-Hartree tolerance of {self.self_hartree_tol:.2e} eV. '
-                 f'A grouping was found for a self-Hartree tolerance of {sh_tol:.2e} eV.\n'
-                 f'Try a larger self-Hartree tolerance to group more orbitals together')
+        if tol != self.tolerances[sort_by]:
+            warn(f'It was not possible to group orbitals with the {sort_by} tolerance of {self.tolerances[sort_by]:.2e} eV. '
+                 f'A grouping was found for a tolerance of {tol:.2e} eV.\n'
+                 f'Try a larger tolerance to group more orbitals together')
 
         return
 

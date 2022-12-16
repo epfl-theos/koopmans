@@ -8,6 +8,7 @@ Written by Edward Linscott Feb 2021
 
 import shutil
 from pathlib import Path
+from typing import Dict
 
 from koopmans import utils, pseudopotentials
 from koopmans.bands import Bands
@@ -96,8 +97,13 @@ class KoopmansDFPTWorkflow(Workflow):
         nemp = ntot - nocc
         if self.parameters.orbital_groups is None:
             self.parameters.orbital_groups = [list(range(nocc + nemp))]
+        tols: Dict[str, float] = {}
+        for key in ['self_hartree', 'spread']:
+            val = self.parameters.get(f'orbital_groups_{key}_tol', None)
+            if val is not None:
+                tols[key] = val
         self.bands = Bands(n_bands=nocc + nemp, filling=[[True] * nocc + [False] * nemp],
-                           groups=self.parameters.orbital_groups)
+                           groups=self.parameters.orbital_groups, tolerances=tols)
 
         # Populating kpoints if absent
         if not all(self.atoms.pbc):
@@ -127,7 +133,7 @@ class KoopmansDFPTWorkflow(Workflow):
             coarse_wf.parameters.dfpt_coarse_grid = None
             coarse_wf.kpoints.grid = self.parameters.dfpt_coarse_grid
             coarse_wf._perform_ham_calc = False
-            coarse_wf.run()
+            coarse_wf.run(subdirectory='coarse_grid')
             self.print('Regular grid calculations', style='heading')
 
         if all(self.atoms.pbc):
@@ -172,8 +178,11 @@ class KoopmansDFPTWorkflow(Workflow):
         if self.parameters.calculate_alpha:
             if self.parameters.dfpt_coarse_grid is None:
                 self.print('Calculation of screening parameters', style='heading')
-                all_groups = [g for gspin in self.parameters.orbital_groups for g in gspin]
-                if len(set(all_groups)) == len(all_groups):
+
+                # Group the bands by spread
+                self.bands.assign_groups(sort_by='spread', allow_reassignment=True)
+
+                if len(self.bands.to_solve) == len(self.bands):
                     # If there is no orbital grouping, do all orbitals in one calculation
                     # 1) Create the calculator
                     kc_screen_calc = self.new_calculator('kc_screen')

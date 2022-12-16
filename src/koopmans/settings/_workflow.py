@@ -101,6 +101,10 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'together only if their self-Hartree energy is within this '
                     'threshold',
                     float, None, None),
+            Setting('orbital_groups_spread_tol',
+                    'when calculating alpha parameters, the code will group orbitals '
+                    'together only if their spread is within this threshold',
+                    float, None, None),
             Setting('convergence_observable',
                     'System observable of interest which we converge',
                     str, 'total energy', None),
