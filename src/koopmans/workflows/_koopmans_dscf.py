@@ -636,15 +636,22 @@ class KoopmansDSCFWorkflow(Workflow):
                         # Calculate an updated alpha and a measure of the error
                         # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
                         # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
-                        #
-                        # Note that we can do this even from calculations that have been skipped because
-                        # we read in all the requisite information from the output files and .pkl files
-                        # that do not get overwritten
 
                         calcs = [c for c in alpha_dep_calcs + alpha_indep_calcs if c.fixed_band == band]
 
                         alpha, error = self.calculate_alpha_from_list_of_calcs(
                             calcs, trial_calc, band, filled=band.filled)
+                        
+                        # Mixing
+                        alpha = self.parameters.alpha_mixing * alpha + (1 - self.parameters.alpha_mixing) * band.alpha
+
+                    guidance = 'This should not happen. Decrease alpha_mixing and/or change alpha_guess.'
+                    if alpha < 0:
+                        raise ValueError('The computed screening parameter is less than 0. ' + guidance)
+                    elif alpha > 1.2:
+                        raise ValueError('The computed screening parameter is significantly greater than 1. ' + guidance)
+                    elif alpha > 1:
+                        utils.warn('The computed screening parameter is greater than 1. Proceed with caution.')
 
                 for b in self.bands:
                     if b == band or (b.group is not None and b.group == band.group):
