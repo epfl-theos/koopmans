@@ -645,13 +645,18 @@ class KoopmansDSCFWorkflow(Workflow):
                         # Mixing
                         alpha = self.parameters.alpha_mixing * alpha + (1 - self.parameters.alpha_mixing) * band.alpha
 
-                    guidance = 'This should not happen. Decrease alpha_mixing and/or change alpha_guess.'
-                    if alpha < 0:
-                        raise ValueError('The computed screening parameter is less than 0. ' + guidance)
-                    elif alpha > 1.2:
-                        raise ValueError('The computed screening parameter is significantly greater than 1. ' + guidance)
+                    warning_message = 'The computed screening parameter is {0}. Proceed with caution.'
+                    failure_message = 'The computed screening parameter is significantly {0}. This should not ' \
+                         'happen. Decrease alpha_mixing and/or change alpha_guess.'
+
+                    if alpha < -0.1:
+                        raise ValueError(failure_message.format('less than 0'))
+                    elif alpha < 0:
+                        utils.warn(warning_message.format('less than 0'))
+                    elif alpha > 1.1:
+                        raise ValueError(failure_message.format('greater than 1'))
                     elif alpha > 1:
-                        utils.warn('The computed screening parameter is greater than 1. Proceed with caution.')
+                        utils.warn(warning_message.format('greater than 1'))
 
                 for b in self.bands:
                     if b == band or (b.group is not None and b.group == band.group):
