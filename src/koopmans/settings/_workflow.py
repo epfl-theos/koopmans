@@ -71,7 +71,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'dielectric constant of the system used by the Gygi-Baldereschi and Makov-Payne corrections; '
                     'either provide an explicit value or set to "auto" to calculate it ab initio',
                     (float, str), None, None),
-            Setting('n_max_sc_steps',
+            Setting('alpha_numsteps',
                     'maximum number of self-consistency steps for calculating alpha',
                     int, 1, None),
             Setting('alpha_conv_thr',

@@ -16,7 +16,7 @@ def test_singlepoint_h2o_ki_dscf_explicit(water, espresso_patch, tmp_path, sys2f
     '''
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
-                      'n_max_sc_steps': 1,
+                      'alpha_numsteps': 1,
                       'keep_tmpdirs': False,
                       'orbital_groups_self_hartree_tol': 100.0
                       }
@@ -27,7 +27,7 @@ def test_singlepoint_h2o_ki_dscf_explicit(water, espresso_patch, tmp_path, sys2f
 def test_singlepoint_h2o_all_dscf(water, workflow_patch, tmp_path, sys2file):
     with chdir(tmp_path):
         parameters = {'functional': 'all',
-                      'n_max_sc_steps': 2,
+                      'alpha_numsteps': 2,
                       'keep_tmpdirs': False,
                       'orbital_groups_self_hartree_tol': 100.0
                       }

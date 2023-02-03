@@ -110,7 +110,7 @@ The first table lists the screening parameters :math:`\alpha_i` that we obtained
 The second table lists :math:`\Delta E_i - \varepsilon_{i}^\alpha`. This is a measure of how well converged the alpha values are: if this value is close to zero, then the alpha values are well-converged. Note that the values listed above correspond to our starting guess of :math:`\alpha_i = 0.6`; this table does not show how well-converged the final alpha values are.
 
 .. note::
-  In order to see how well-converged our new screening parameters are, try increasing ``n_max_sc_steps`` in the input file from ``1`` to ``2``. Can you make sense of the contents of the resulting tables?
+  In order to see how well-converged our new screening parameters are, try increasing ``alpha_numsteps`` in the input file from ``1`` to ``2``. Can you make sense of the contents of the resulting tables?
 
 The input and output Quantum ESPRESSO files for this step can be found in the directory ``calc_alpha/``.
 

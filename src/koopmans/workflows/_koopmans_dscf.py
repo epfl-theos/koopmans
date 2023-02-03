@@ -480,7 +480,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         alpha_indep_calcs: List[calculators.KoopmansCPCalculator] = []
 
-        while not converged and i_sc < self.parameters.n_max_sc_steps:
+        while not converged and i_sc < self.parameters.alpha_numsteps:
             i_sc += 1
 
             # Setting up directories
@@ -491,7 +491,7 @@ class KoopmansDSCFWorkflow(Workflow):
             if not outdir.is_dir():
                 outdir.mkdir()
 
-            if self.parameters.n_max_sc_steps > 1:
+            if self.parameters.alpha_numsteps > 1:
                 self.print('SC iteration {}'.format(i_sc), style='subheading')
                 iteration_directory /= f'iteration_{i_sc}'
                 if not iteration_directory.is_dir():
@@ -684,13 +684,13 @@ class KoopmansDSCFWorkflow(Workflow):
 
         if self.parameters.functional == 'ki' and self.bands.num(filled=False):
             # For this case the screening parameters are guaranteed to converge instantly
-            if self.parameters.n_max_sc_steps == 1:
+            if self.parameters.alpha_numsteps == 1:
                 # Print the "converged" message rather than the "determined but not necessarily converged" message
                 converged = True
             else:
                 # Do the subsequent loop
                 utils.warn('The screening parameters for a KI calculation with no empty states will converge '
-                           'instantly; to save computational time set n_max_sc_steps == 1')
+                           'instantly; to save computational time set alpha_numsteps == 1')
         if converged:
             self.print('Screening parameters have been converged')
         else:
