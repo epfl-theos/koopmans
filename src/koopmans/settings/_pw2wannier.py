@@ -9,7 +9,6 @@ class PW2WannierSettingsDict(SettingsDict):
                          defaults={'outdir': 'TMP', 'prefix': 'kc', 'seedname': 'wann',
                                    'wan_mode': 'standalone'},
                          are_paths=['outdir'],
-                         to_not_parse=['wan_mode'],
                          **kwargs)
 
     @property

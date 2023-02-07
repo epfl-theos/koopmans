@@ -29,7 +29,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     str, None, None),
             Setting('pseudo_directory',
                     'the folder containing the pseudopotentials to use (mutually exclusive with "pseudo_library")',
-                    (str, Path), None, None),
+                    Path, None, None),
             Setting('method',
                     'the method to calculate the screening parameters: either with ΔSCF or DFPT',
                     str, 'dscf', ('dscf', 'dfpt')),
