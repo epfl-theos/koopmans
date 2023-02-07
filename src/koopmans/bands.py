@@ -212,6 +212,7 @@ class Bands(object):
 
         def points_are_close(p0: Band, p1: Band, factor: Union[int, float] = 1) -> bool:
             # Determine if two bands are "close"
+            assert tol is not None
             return abs(getattr(p0, sort_by) - getattr(p1, sort_by)) < tol * factor
 
         group = 0
