@@ -71,7 +71,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'dielectric constant of the system used by the Gygi-Baldereschi and Makov-Payne corrections; '
                     'either provide an explicit value or set to "auto" to calculate it ab initio',
                     (float, str), None, None),
-            Setting('n_max_sc_steps',
+            Setting('alpha_numsteps',
                     'maximum number of self-consistency steps for calculating alpha',
                     int, 1, None),
             Setting('alpha_conv_thr',
@@ -81,6 +81,9 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('alpha_guess',
                     'starting guess for alpha (overridden if alpha_from_file is true)',
                     (float, list), 0.6, None),
+            Setting('alpha_mixing',
+                    'mixing parameter for updating alpha',
+                    float, 1.0, None),
             Setting('alpha_from_file',
                     'if True, uses the file_alpharef.txt from the base directory as a '
                     'starting guess',

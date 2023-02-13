@@ -480,7 +480,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         alpha_indep_calcs: List[calculators.KoopmansCPCalculator] = []
 
-        while not converged and i_sc < self.parameters.n_max_sc_steps:
+        while not converged and i_sc < self.parameters.alpha_numsteps:
             i_sc += 1
 
             # Setting up directories
@@ -491,7 +491,7 @@ class KoopmansDSCFWorkflow(Workflow):
             if not outdir.is_dir():
                 outdir.mkdir()
 
-            if self.parameters.n_max_sc_steps > 1:
+            if self.parameters.alpha_numsteps > 1:
                 self.print('SC iteration {}'.format(i_sc), style='subheading')
                 iteration_directory /= f'iteration_{i_sc}'
                 if not iteration_directory.is_dir():
@@ -636,15 +636,27 @@ class KoopmansDSCFWorkflow(Workflow):
                         # Calculate an updated alpha and a measure of the error
                         # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
                         # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
-                        #
-                        # Note that we can do this even from calculations that have been skipped because
-                        # we read in all the requisite information from the output files and .pkl files
-                        # that do not get overwritten
 
                         calcs = [c for c in alpha_dep_calcs + alpha_indep_calcs if c.fixed_band == band]
 
                         alpha, error = self.calculate_alpha_from_list_of_calcs(
                             calcs, trial_calc, band, filled=band.filled)
+                        
+                        # Mixing
+                        alpha = self.parameters.alpha_mixing * alpha + (1 - self.parameters.alpha_mixing) * band.alpha
+
+                    warning_message = 'The computed screening parameter is {0}. Proceed with caution.'
+                    failure_message = 'The computed screening parameter is significantly {0}. This should not ' \
+                         'happen. Decrease alpha_mixing and/or change alpha_guess.'
+
+                    if alpha < -0.1:
+                        raise ValueError(failure_message.format('less than 0'))
+                    elif alpha < 0:
+                        utils.warn(warning_message.format('less than 0'))
+                    elif alpha > 1.1:
+                        raise ValueError(failure_message.format('greater than 1'))
+                    elif alpha > 1:
+                        utils.warn(warning_message.format('greater than 1'))
 
                 for b in self.bands:
                     if b == band or (b.group is not None and b.group == band.group):
@@ -672,13 +684,13 @@ class KoopmansDSCFWorkflow(Workflow):
 
         if self.parameters.functional == 'ki' and self.bands.num(filled=False):
             # For this case the screening parameters are guaranteed to converge instantly
-            if self.parameters.n_max_sc_steps == 1:
+            if self.parameters.alpha_numsteps == 1:
                 # Print the "converged" message rather than the "determined but not necessarily converged" message
                 converged = True
             else:
                 # Do the subsequent loop
                 utils.warn('The screening parameters for a KI calculation with no empty states will converge '
-                           'instantly; to save computational time set n_max_sc_steps == 1')
+                           'instantly; to save computational time set alpha_numsteps == 1')
         if converged:
             self.print('Screening parameters have been converged')
         else:
