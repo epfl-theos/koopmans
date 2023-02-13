@@ -1,6 +1,6 @@
 [project]
 name = "koopmans"
-version = "1.0.0-beta.6"
+version = "1.0.0-rc.1"
 description = "Koopmans spectral functional calculations with python and Quantum ESPRESSO"
 readme = "README_pypi.rst"
 requires-python = ">=3.7"
