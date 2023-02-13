@@ -27,7 +27,7 @@ Written and maintained by Edward Linscott, Riccardo De Gennaro, and Nicola Colon
 
 For help and feedback email edward.linscott@gmail.com
 
-.. |GH Actions| image:: https://img.shields.io/github/workflow/status/epfl-theos/koopmans/Run%20tests/master?label=master&logo=github
+.. |GH Actions| image:: https://img.shields.io/github/actions/workflow/status/epfl-theos/koopmans/tests.yml?master&label=master&logo=github
    :target: https://github.com/epfl-theos/koopmans/actions?query=branch%3Amaster
 .. |Coverage Status| image:: https://img.shields.io/codecov/c/gh/epfl-theos/koopmans/master?logo=codecov
    :target: https://codecov.io/gh/epfl-theos/koopmans
