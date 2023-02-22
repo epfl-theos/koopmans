@@ -1,0 +1,54 @@
+authors:
+- affiliation: École Polytechnique Fédérale de Lausanne
+  email: edward.linscott@epfl.ch
+  family-names: Linscott
+  given-names: Edward
+  orcid: https://orcid.org/0000-0002-4967-9873
+- affiliation: Paul Scherrer Institut
+  family-names: Colonna
+  given-names: Nicola
+  orcid: https://orcid.org/0000-0002-6106-6316
+- affiliation: École Polytechnique Fédérale de Lausanne
+  family-names: De Gennaro
+  given-names: Riccardo
+  orcid: https://orcid.org/0000-0003-1955-0849
+- affiliation: Phenikaa University
+  family-names: Nguyen
+  given-names: Ngoc Linh
+- affiliation: École Polytechnique Fédérale de Lausanne
+  family-names: Borghi
+  given-names: Giovanni
+- affiliation: CNR-Istituto Nanoscienze
+  family-names: Ferretti
+  given-names: Andrea
+  orcid: 0000-0003-0855-2590
+- affiliation: The Pennsylvania State University
+  family-names: Dabo
+  given-names: Ismaila
+  orcid: 0000-0003-0742-030X
+- affiliation: École Polytechnique Fédérale de Lausanne
+  email: nicola.marzari@epfl.ch
+  family-names: Marzari
+  given-names: Nicola
+  orcid: https://orcid.org/0000-0002-9764-0199
+cff-version: 1.2.0
+message: If you use this software, please cite it using the metadata from this file.
+references:
+- identifiers:
+  - description: DOI of the arXiv preprint
+    type: doi
+    value: https://doi.org/10.48550/arXiv.2302.07759
+  - description: The arXiv preprint
+    type: other
+    value: https://arxiv.org/abs/2302.07759
+  journal: arXiv
+  status: preprint
+  title: 'koopmans: an open-source package for accurately and efficiently predicting
+    spectral properties with Koopmans functionals'
+  type: article
+  year: 2023
+- license: GPL-3.0
+  repository-code: https://github.com/epfl-theos/koopmans/
+  title: koopmans
+  type: software
+  version: 1.0.0b6
