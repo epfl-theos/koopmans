@@ -4,6 +4,9 @@ on:
    pull_request:
       branches:
          - master
+      paths:
+         - CITATION.cff
+         - pyproject.toml
 
 jobs:
    update-cff:
