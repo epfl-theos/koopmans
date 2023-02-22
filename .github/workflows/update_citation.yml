@@ -28,6 +28,7 @@ jobs:
          - name: Commit changes
            uses: test-room-7/action-update-file@v1
            with:
+             branch: ${GITHUB_REF##*/}
              file-path: 'CITATION.cff'
              commit-msg: 'Update CITATION.cff'
              github-token: ${{ secrets.GITHUB_TOKEN }}
