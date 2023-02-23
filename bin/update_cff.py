@@ -1,5 +1,7 @@
 import sys
+
 import yaml
+
 if sys.version_info >= (3, 8):
     from importlib import metadata
 else:

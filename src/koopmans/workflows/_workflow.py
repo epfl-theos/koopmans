@@ -48,7 +48,7 @@ from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.kpoints import Kpoints
 from koopmans.ml import MLModel
-from koopmans.projections import ProjectionBlocks, ExplicitProjectionBlock
+from koopmans.projections import ExplicitProjectionBlock, ProjectionBlocks
 from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
                                        pseudo_database,
                                        pseudos_library_directory,
@@ -128,7 +128,7 @@ class Workflow(ABC):
         self.print_indent = 1
 
         if projections is None:
-            proj_list: List[List[Any]]
+            proj_list: List[List[str]]
             spins: List[Optional[str]]
             if self.parameters.spin_polarized:
                 proj_list = [[], []]
@@ -250,7 +250,8 @@ class Workflow(ABC):
                 atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
 
             # Work out the number of bands
-            nbnd = calculator_parameters['pw'].get('nbnd', calculator_parameters['kcp'].get('nbnd', nelec // 2 + nelec % 2))
+            nbnd = calculator_parameters['pw'].get(
+                'nbnd', calculator_parameters['kcp'].get('nbnd', nelec // 2 + nelec % 2))
             generated_keywords = {'nelec': nelec, 'tot_charge': tot_charge, 'tot_magnetization': tot_mag,
                                   'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd}
         else:
@@ -513,7 +514,7 @@ class Workflow(ABC):
                 if spin_set != {None}:
                     raise ValueError('This calculation is not spin-polarized; please do not provide spin-indexed '
                                      'projections')
-            
+
             if self.parameters.block_wannierization_threshold is not None:
                 if not any([v['auto_projections'] for k, v in self.calculator_parameters.items() if 'w90' in k]):
                     raise ValueError('Automated block detection is only compatible with automated projections. '
@@ -1254,7 +1255,8 @@ class Workflow(ABC):
                     calcdct['w90'] = params_dict
                 projections = self.projections.get_subset(spin)
                 if projections:
-                    proj_kwarg = {'projections': [p.projections for p in projections]}
+                    proj_kwarg = {'projections': [
+                        p.projections for p in projections if isinstance(p, ExplicitProjectionBlock)]}
                 else:
                     proj_kwarg = {}
 
@@ -1409,7 +1411,7 @@ class Workflow(ABC):
         if not self.parameters.keep_tmpdirs:
             self._remove_tmpdirs()
 
-    def number_of_electrons(self, spin: Optional[str] = None, params: Optional[dict] = None) -> int:
+    def number_of_electrons(self, spin: Optional[str] = None, params: Optional[Union[dict, settings.SettingsDict]] = None) -> int:
         # Return the number of electrons in a particular spin channel
         nelec_tot = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
         if params is None:
@@ -1525,4 +1527,3 @@ def sanitize_calculator_parameters(dct_in: Union[Dict[str, Dict], Dict[str, sett
                 f'Unrecognized calculator_parameters entry "{k}": valid options are '
                 + '/'.join(settings_classes.keys()))
     return dct_out
-

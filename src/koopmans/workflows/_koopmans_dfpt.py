@@ -10,7 +10,7 @@ import shutil
 from pathlib import Path
 from typing import Dict
 
-from koopmans import utils, pseudopotentials
+from koopmans import pseudopotentials, utils
 from koopmans.bands import Bands
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
                                   Wann2KCCalculator)

@@ -35,6 +35,7 @@ def _warn_with_traceback(message: Union[str, Warning], category: Type[Warning] =
 # warnings.showwarning = _warn_with_traceback
 warnings.showwarning = _warning
 
+
 def warn(message: str, cls: Type[Warning] = UserWarning) -> None:
     '''
     Allowing the monkey-patched warnings.warn to be imported as utils.warn

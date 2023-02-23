@@ -1,10 +1,9 @@
 import numpy as np
+import pytest
 from ase.dft.kpoints import BandPath
 from hypothesis import given, settings
-import pytest
 
 from koopmans.kpoints import Kpoints, dict_to_kpath, kpath_to_dict
-
 from tests.helpers import strategies as kst
 
 

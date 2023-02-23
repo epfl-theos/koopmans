@@ -11,7 +11,8 @@ import copy
 import math
 import shutil
 from pathlib import Path
-from typing import List, TypeVar, Optional
+from typing import List, Optional, TypeVar
+
 from ase.spectrum.band_structure import BandStructure
 
 # isort: off
@@ -441,14 +442,14 @@ class WannierizeWorkflow(Workflow):
         fname_out = Path('wannier') / merge_directory / (prefix + '_u_dis.mat')
         utils.write_wannier_u_file(fname_out, udis_mat_large, kpts)
 
-
     def _run_preproc_p2w_wannier_block(self, block: projections.ProjectionBlock, p2w_outdir: Path):
         # Wraps self._run_preproc_p2w_wannier, constructing many of its arguments via provided ProjectionBlock
 
         n_occ_bands = self.number_of_electrons(block.spin)
         if not block.spin:
-            n_occ_bands /= 2
+            n_occ_bands //= 2
 
+        assert isinstance(block.include_bands, list)
         if max(block.include_bands) <= n_occ_bands:
             # Block consists purely of occupied bands
             init_orbs = self.parameters.init_orbitals
@@ -467,31 +468,34 @@ class WannierizeWorkflow(Workflow):
             calc_type += f'_{block.spin}'
 
         # Construct the subdirectory label
+        assert isinstance(block.directory, Path)
         w90_dir = Path('wannier') / block.directory
 
         self._run_preproc_p2w_wannier(calc_type, init_orbs, block.spin, w90_dir, p2w_outdir, **block.w90_kwargs)
 
-    def _run_preproc_p2w_wannier(self, calc_type: str, init_orbitals: str, spin_component: Optional[str], directory: Path, p2w_outdir: Path, **kwargs):
+    def _run_preproc_p2w_wannier(self, calc_type: str, init_orbitals: str, spin_component: Optional[str],
+                                 directory: Path, p2w_outdir: Path, **kwargs):
         # 1) pre-processing Wannier90 calculation
-        calc_w90 = self.new_calculator(calc_type, init_orbitals=init_orbitals, directory=directory,
-                                       **kwargs)
-        calc_w90.prefix = 'wann_preproc'
-        calc_w90.command.flags = '-pp'
-        self.run_calculator(calc_w90)
-        utils.system_call(f'rsync -a {calc_w90.directory}/wann_preproc.nnkp {calc_w90.directory}/wann.nnkp')
+        calc_w90_pp: calculators.Wannier90Calculator = self.new_calculator(calc_type, init_orbitals=init_orbitals,
+                                                                           directory=directory, **kwargs)
+        calc_w90_pp.prefix = 'wann_preproc'
+        calc_w90_pp.command.flags = '-pp'
+        self.run_calculator(calc_w90_pp)
+        utils.system_call(f'rsync -a {calc_w90_pp.directory}/wann_preproc.nnkp {calc_w90_pp.directory}/wann.nnkp')
 
         # 2) standard pw2wannier90 calculation
-        calc_p2w = self.new_calculator('pw2wannier', directory=directory,
-                                       spin_component=spin_component,
-                                       outdir=p2w_outdir)
+        calc_p2w: calculators.PW2WannierCalculator = self.new_calculator('pw2wannier', directory=directory,
+                                                                         spin_component=spin_component,
+                                                                         outdir=p2w_outdir)
         calc_p2w.prefix = 'pw2wan'
         self.run_calculator(calc_p2w)
 
         # 3) Wannier90 calculation
-        calc_w90 = self.new_calculator(calc_type, directory=directory,
-                                       init_orbitals=init_orbitals,
-                                       bands_plot=self.parameters.calculate_bands,
-                                       **kwargs)
+        calc_w90: calculators.Wannier90Calculator = self.new_calculator(calc_type, directory=directory,
+                                                                        init_orbitals=init_orbitals,
+                                                                        bands_plot=self.parameters.calculate_bands,
+                                                                        **kwargs)
+        assert isinstance(calc_w90, calculators.Wannier90Calculator)
         calc_w90.prefix = 'wann'
         self.run_calculator(calc_w90)
 
@@ -518,6 +522,7 @@ class WannierizeWorkflow(Workflow):
                 match.center = center
                 match.spread = spread
 
+
 def detect_band_blocks(bandstructure: BandStructure, tol: float = 0.1) -> List[List[int]]:
     n_bands = []
     # Loop over each spin index
@@ -535,4 +540,3 @@ def detect_band_blocks(bandstructure: BandStructure, tol: float = 0.1) -> List[L
                 n_bands[-1][-1] += 1
 
     return n_bands
-                

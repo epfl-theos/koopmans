@@ -3,8 +3,6 @@ import pytest
 from koopmans import workflows
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.utils import chdir
-
-
 from tests.helpers.patches import benchmark_filename
 
 

@@ -4,7 +4,7 @@ Written by Yannick Schubert Jul 2022
 import copy
 import os
 from pathlib import Path
-from typing import Any, Dict, Tuple, Optional, List
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from deepdiff import DeepDiff

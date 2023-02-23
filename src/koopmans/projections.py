@@ -71,8 +71,8 @@ class ProjectionBlock(object):
 
 class ExplicitProjectionBlock(ProjectionBlock):
     # This class extends ProjectionBlock to have explicit projections instead of simply num_wann
-    def __init__(self, projections: List[Union[str, Dict[str, Any]]], *args, **kwargs):
-        
+    def __init__(self, projections: Union[List[str], List[Dict[str, Any]]], *args, **kwargs):
+
         super().__init__(*args, **kwargs)
 
         self.projections = []
@@ -80,7 +80,7 @@ class ExplicitProjectionBlock(ProjectionBlock):
             if isinstance(proj, str):
                 proj = proj_string_to_dict(proj)
             self.projections.append(proj)
-        
+
         self._w90_keys.append('projections')
 
     def __repr__(self) -> str:
@@ -193,7 +193,7 @@ class ProjectionBlocks(object):
 
     @classmethod
     def fromlist(cls,
-                 list_of_projections: List[Union[int, List[Union[str, Dict[str, Any]]]]],
+                 list_of_projections: Union[List[int], List[List[str]], List[List[Dict[str, Any]]]],
                  spins: List[Union[str, None]],
                  atoms: Optional[Atoms] = None):
 
@@ -202,8 +202,11 @@ class ProjectionBlocks(object):
         blocks: List[ProjectionBlock] = []
         for projs, spin in zip(list_of_projections, spins):
             if isinstance(projs, int):
-                blocks.append(ProjectionBlock(projs, spin))
-            elif len(projs) > 0:
+                blocks.append(ProjectionBlock(projs, spin=spin))
+            else:
+                assert isinstance(projs, list)
+                if len(projs) == 0:
+                    continue
                 if atoms is None:
                     raise ValueError('To construct a ProjectionBlocks object from a list of list of '
                                      'strings/dictionaries, you must provide an "atoms" argument')
@@ -211,7 +214,7 @@ class ProjectionBlocks(object):
                     if isinstance(proj, str):
                         projs[i] = proj_string_to_dict(proj)
                 num_wann = num_wann_from_projections(projs, atoms)
-                blocks.append(ExplicitProjectionBlock(projs, num_wann, spin))
+                blocks.append(ExplicitProjectionBlock(projs, num_wann, spin=spin))
 
         return cls(blocks)
 
