@@ -103,7 +103,8 @@ def read_pseudo_file(filename: Path) -> Dict[str, Any]:
 
     '''
 
-    upf: Dict[str, Any] = upf_to_json(open(filename, 'r').read(), filename.name)
+    with open(filename, 'r') as fd:
+        upf: Dict[str, Any] = upf_to_json(fd.read(), filename.name)
 
     return upf['pseudo_potential']
 
