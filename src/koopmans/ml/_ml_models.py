@@ -21,7 +21,7 @@ class AbstractPredictor(ABC):
         ...
 
     @abstractmethod
-    def load_from_file(self, save_dir: Path) -> None:
+    def save_to_file(self, save_dir: Path) -> None:
         ...
 
     @abstractmethod
