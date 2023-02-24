@@ -1,5 +1,6 @@
 import copy
 from abc import ABC, abstractmethod
+import pickle
 from typing import Dict, Optional, Union
 
 import numpy as np
@@ -36,6 +37,12 @@ class RidgeRegressionModel(AbstractPredictor):
         X_test = self.scaler.transform(X_test)
         y_predict = self.model.predict(X_test)
         return y_predict
+
+    def load_from_file(self, file):
+        self.model = pickle.load(open(file, "rb"))
+
+    def save_to_file(self, file):
+        pickle.dump(self.model, open(file, "wb"))
 
 
 class LinearRegressionModel(AbstractPredictor):
