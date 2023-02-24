@@ -38,11 +38,13 @@ class RidgeRegressionModel(AbstractPredictor):
         y_predict = self.model.predict(X_test)
         return y_predict
 
-    def load_from_file(self, file):
-        self.model = pickle.load(open(file, "rb"))
+    def load_from_file(self, file_model, file_scaler):
+        self.model = pickle.load(open(file_model, "rb"))
+        self.scaler = pickle.load(open(file_scaler, "rb"))
 
-    def save_to_file(self, file):
-        pickle.dump(self.model, open(file, "wb"))
+    def save_to_file(self, file_model, file_scaler):
+        pickle.dump(self.model, open(file_model, "wb"))
+        pickle.dump(self.scaler, open(file_scaler, "wb"))
 
 
 class LinearRegressionModel(AbstractPredictor):
