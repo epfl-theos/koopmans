@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, TypeVar, Union
 
 from ase import Atoms
 from ase.io.wannier90 import (list_to_formatted_str, num_wann_from_projections,
                               proj_string_to_dict)
+
+TProjBlock = TypeVar("TProjBlock", bound="ProjectionBlock")
 
 
 class ProjectionBlock(object):
@@ -68,6 +72,28 @@ class ProjectionBlock(object):
     def fromdict(cls, dct):
         return cls(**dct)
 
+    def split(self: TProjBlock, num_wann0: int, atoms: Optional[Atoms] = None) -> List[TProjBlock]:
+        # Split this block into two blocks, where the first block contains num_wann0 Wannier functions
+        # For the base class atoms is not required, but it is required for subclasses
+
+        assert self.num_wann is not None
+        assert self.num_bands is not None
+
+        # Create the two blocks
+        dct = {k: v for k, v in self.__dict__.items() if k in ['num_wann', 'projections']}
+        block0 = self.__class__(**dct)
+        block1 = self.__class__(**dct)
+
+        # num_wann
+        block0.num_wann = num_wann0
+        block1.num_wann = self.num_wann - num_wann0
+
+        # num_bands (equal to num_wann, since after splitting we don't have extra bands)
+        block0.num_bands = block0.num_wann
+        block1.num_bands = block1.num_wann
+
+        return [block0, block1]
+
 
 class ExplicitProjectionBlock(ProjectionBlock):
     # This class extends ProjectionBlock to have explicit projections instead of simply num_wann
@@ -92,6 +118,28 @@ class ExplicitProjectionBlock(ProjectionBlock):
     def __len__(self):
         # Count the number of projections
         return len(self.projections)
+
+    def split(self, num_wann0: int, atoms: Optional[Atoms] = None) -> List[ExplicitProjectionBlock]:
+        [block0, block1] = super().split(num_wann0)
+
+        if atoms is None:
+            raise ValueError('Please provide an Atoms object when splitting a block with explicit projections')
+
+        # Split self.projections
+        block0.projections = []
+        block1.projections = []
+        for i, proj in enumerate(self.projections):
+            num_wann_block0 = num_wann_from_projections(block0.projections, atoms)
+            num_wann_proj = num_wann_from_projections([proj], atoms)
+            if num_wann_block0 == num_wann0:
+                block1.projections = self.projections[i:]
+            elif num_wann_block0 + num_wann_proj <= num_wann0:
+                block0.projections.append(proj)
+            else:
+                raise ValueError(
+                    f'The projections \n{self.projections}\n cannot be split into two blocks of length {num_wann0} and {self.num_wann - num_wann0}')
+
+        return [block0, block1]
 
 
 class ProjectionBlocks(object):
@@ -180,7 +228,17 @@ class ProjectionBlocks(object):
                     b.exclude_bands = list_to_formatted_str(to_exclude)
 
                 # Construct directory
-                label = f'block_{iblock + 1}'
+                try:
+                    if self.block_spans_occ_and_emp(b):
+                        label = 'occ_emp'
+                    else:
+                        if self.block_is_occupied(b):
+                            label = 'occ'
+                        else:
+                            label = 'emp'
+                        label += f'_{iblock + 1}'
+                except AssertionError:
+                    label = 'unknown'
                 if spin:
                     label = f'spin_{spin}_{label}'
                 b.directory = Path(label)
@@ -253,22 +311,37 @@ class ProjectionBlocks(object):
             setattr(new_bandblock, k, v)
         return new_bandblock
 
+    def block_spans_occ_and_emp(self, block: ProjectionBlock) -> bool:
+        # Works out if the provided block spans both occupied and empty
+        try:
+            n_occ_bands = self.num_occ_bands[block.spin]
+        except KeyError:
+            raise AssertionError(
+                'Initialize ProjectionBlocks.num_occ_bands before calling ProjectionBlocks.to_merge()')
+        assert block.include_bands is not None
+        return max(block.include_bands) > n_occ_bands and min(block.include_bands) <= n_occ_bands
+
+    def block_is_occupied(self, block: ProjectionBlock) -> bool:
+        # Works out if the provided block is occupied
+        try:
+            n_occ_bands = self.num_occ_bands[block.spin]
+        except KeyError:
+            raise AssertionError(
+                'Initialize ProjectionBlocks.num_occ_bands before calling ProjectionBlocks.to_merge()')
+        assert block.include_bands is not None
+        if max(block.include_bands) <= n_occ_bands:
+            return True
+        elif min(block.include_bands) > n_occ_bands:
+            return False
+        else:
+            raise ValueError('Block spans both occupied and empty manifolds')
+
     @property
     def to_merge(self) -> Dict[Path, List[ProjectionBlock]]:
         # Group the blocks by their correspondence to occupied/empty bands, and by their spin
         dct: Dict[Path, List[ProjectionBlock]] = {}
         for block in self.blocks:
-            try:
-                n_occ_bands = self.num_occ_bands[block.spin]
-            except KeyError:
-                raise AssertionError(
-                    'Initialize ProjectionBlocks.num_occ_bands before calling ProjectionBlocks.to_merge()')
-            if max(block.include_bands) <= n_occ_bands:
-                label = 'occ'
-            elif min(block.include_bands) > n_occ_bands:
-                label = 'emp'
-            else:
-                raise ValueError('Block spans both occupied and empty manifolds')
+            label = 'occ' if self.block_is_occupied(block) else 'emp'
             if block.spin:
                 label += f'_{block.spin}'
             directory = Path(label)
@@ -277,3 +350,27 @@ class ProjectionBlocks(object):
             else:
                 dct[directory] = [block]
         return dct
+
+    def split(self, block: ProjectionBlock, atoms: Optional[Atoms] = None):
+        # Split valence and conduction
+        assert block.include_bands is not None
+        n_val = len([i for i in block.include_bands if i <= self.num_occ_bands[block.spin]])
+        blocks = block.split(n_val, atoms)
+
+        # Record the current self.num_wann
+        num_wann_orig = self.num_wann(block.spin)
+
+        # Replace block with blocks in self._blocks
+        i = self._blocks.index(block)
+        self._blocks = self._blocks[:i] + blocks + self._blocks[i+1:]
+
+        # Check self.num_wann has not changed
+        assert self.num_wann(block.spin) == num_wann_orig
+
+        # After splitting we do away with extra bands
+        self.num_extra_bands[block.spin] = 0
+
+        # Call self.blocks to re-populate the global information assigned to each block
+        self.blocks
+
+        return

@@ -168,11 +168,25 @@ class WannierizeWorkflow(Workflow):
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
 
-            # Loop over the various subblocks that we must wannierize separately
-            for block in self.projections:
+            # Store the number of electrons in the ProjectionBlocks object so that it can work out which blocks to
+            # merge with one another
+            for spin in [None, 'up', 'down']:
+                n_occ_bands = self.number_of_electrons(spin)
+                if not spin:
+                    n_occ_bands //= 2
+                self.projections.num_occ_bands[spin] = n_occ_bands
+            self.projections.blocks
 
-                # Run the w90 preproc, pw2wannier, and w90 calculation for this block
-                self._run_preproc_p2w_wannier_block(block, p2w_outdir=calc_pw.parameters.outdir)
+            # Loop over the various subblocks that we must wannierize separately
+            for block in copy.deepcopy(self.projections):
+
+                if self.projections.block_spans_occ_and_emp(block):
+                    # For blocks that span both valence and conduction, split them using wjl splitvc
+                    self._run_splitvc_wannier_block(block, p2w_outdir=calc_pw.parameters.outdir)
+
+                else:
+                    # Run the w90 preproc, pw2wannier, and w90 calculation for this block
+                    self._run_preproc_p2w_wannier_block(block, p2w_outdir=calc_pw.parameters.outdir)
 
                 # Extract the centers and spreads
                 if hasattr(self, 'bands'):
@@ -445,27 +459,19 @@ class WannierizeWorkflow(Workflow):
     def _run_preproc_p2w_wannier_block(self, block: projections.ProjectionBlock, p2w_outdir: Path):
         # Wraps self._run_preproc_p2w_wannier, constructing many of its arguments via provided ProjectionBlock
 
-        n_occ_bands = self.number_of_electrons(block.spin)
-        if not block.spin:
-            n_occ_bands //= 2
-
-        assert isinstance(block.include_bands, list)
-        if max(block.include_bands) <= n_occ_bands:
+        if self.projections.block_spans_occ_and_emp(block):
+            if self.parameters.init_orbitals != self.parameters.init_empty_orbitals:
+                raise ValueError('You cannot chose different methods for initializing the occupied and empty orbitals '
+                                 'when the calculation is configured to Wannierize both simultaneously')
+            init_orbs = self.parameters.init_orbitals
+        elif self.projections.block_is_occupied(block):
             # Block consists purely of occupied bands
             init_orbs = self.parameters.init_orbitals
-        elif min(block.include_bands) > n_occ_bands:
+        else:
             # Block consists purely of empty bands
             init_orbs = self.parameters.init_empty_orbitals
-        else:
-            # Block contains both occupied and empty bands
-            raise ValueError(f'{block} contains both occupied and empty bands. This should not happen.')
-        # Store the number of electrons in the ProjectionBlocks object so that it can work out which blocks to
-        # merge with one another
-        self.projections.num_occ_bands[block.spin] = n_occ_bands
 
-        calc_type = 'w90'
-        if block.spin:
-            calc_type += f'_{block.spin}'
+        calc_type = 'w90' if block.spin is None else f'w90_{block.spin}'
 
         # Construct the subdirectory label
         assert isinstance(block.directory, Path)
@@ -521,6 +527,53 @@ class WannierizeWorkflow(Workflow):
                 [match] = [b for b in self.bands if b.index == band.index and b.spin == 1]
                 match.center = center
                 match.spread = spread
+
+    def _run_splitvc_wannier_block(self, block: projections.ProjectionBlock, p2w_outdir: Path):
+        # Perform an initial Wannierization
+        self._run_preproc_p2w_wannier_block(block, p2w_outdir=p2w_outdir)
+
+        # Perform the wjl calculation that splits the valence and conduction
+        assert isinstance(block.directory, Path)
+        w90_dir = Path('wannier') / block.directory
+        assert block.include_bands is not None
+        nval = len([i for i in block.include_bands if i <= self.projections.num_occ_bands[block.spin]])
+        calc_wjl: calculators.WannierJLCalculator = self.new_calculator('wjl', directory=w90_dir, nval=nval)
+        calc_wjl.parameters['outdir-val'] = 'occ'
+        calc_wjl.parameters['outdir-cond'] = 'emp'
+        calc_wjl.prefix = 'wann'
+        self.run_calculator(calc_wjl)
+
+        # Split the block in self.projections
+        self.projections.split(block, self.atoms)
+
+        # Fetch the newly-created blocks from self.projections
+        new_blocks = [b for b in self.projections.get_subset(spin=block.spin)
+                      if block.include_bands is not None and b.include_bands is not None
+                      and set(block.include_bands).intersection(b.include_bands)]
+        assert len(new_blocks) == 2
+        wjl_outdirs = [calc_wjl.parameters[f'outdir-{x}'] for x in ['val', 'cond']]
+
+        # Run the Wannierization (and not the preprocessing or the pw2wannier) for the two newly-created blocks
+        for new_block, wjl_outdir in zip(new_blocks, wjl_outdirs):
+            # Create w90_dir
+            assert new_block.directory is not None
+            w90_dir = Path('wannier') / new_block.directory
+            w90_dir.mkdir(parents=True, exist_ok=True)
+
+            # Copy over the files generated by wjl
+            for f in wjl_outdir.glob('*'):
+                utils.symlink(f, w90_dir, exist_ok=True)
+
+            calc_type = 'w90' if new_block.spin is None else f'w90_{new_block.spin}'
+            assert isinstance(new_block.directory, Path)
+            calc_w90: calculators.Wannier90Calculator = self.new_calculator(calc_type,
+                                                                            directory=w90_dir,
+                                                                            init_orbitals=self.parameters.init_orbitals,
+                                                                            bands_plot=self.parameters.calculate_bands,
+                                                                            **new_block.w90_kwargs)
+            assert isinstance(calc_w90, calculators.Wannier90Calculator)
+            calc_w90.prefix = 'wann'
+            self.run_calculator(calc_w90)
 
 
 def detect_band_blocks(bandstructure: BandStructure, tol: float = 0.1) -> List[List[int]]:

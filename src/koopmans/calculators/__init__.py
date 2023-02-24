@@ -15,6 +15,7 @@ from ._utils import (CalculatorCanEnforceSpinSym, CalculatorExt,
 from ._wann2kc import Wann2KCCalculator
 from ._wann2kcp import Wann2KCPCalculator
 from ._wannier90 import Wannier90Calculator
+from ._wannierjl import WannierJLCalculator
 
 Calc = Union[EnvironCalculator,
              KoopmansCPCalculator,
@@ -25,6 +26,7 @@ Calc = Union[EnvironCalculator,
              PW2WannierCalculator,
              Wann2KCPCalculator,
              Wannier90Calculator,
+             WannierJLCalculator,
              Wann2KCCalculator,
              UnfoldAndInterpolateCalculator]
 
@@ -37,5 +39,6 @@ CalcType = Union[Type[EnvironCalculator],
                  Type[PW2WannierCalculator],
                  Type[Wann2KCPCalculator],
                  Type[Wannier90Calculator],
+                 Type[WannierJLCalculator],
                  Type[Wann2KCCalculator],
                  Type[UnfoldAndInterpolateCalculator]]

@@ -312,7 +312,7 @@ class Workflow(ABC):
             if not match and not self.parameters.is_valid(key) and not self.plotting.is_valid(key) and not self.ml.is_valid(key):
                 raise ValueError(f'{key} is not a valid setting')
 
-        # Generating self.projections if automated_projections is True
+        # Generating self.projections if auto_projections is True
         auto = [self.calculator_parameters[s].auto_projections for s in ['w90', 'w90_up', 'w90_down']]
         if any(auto):
             if self.parameters.spin_polarized:
@@ -505,7 +505,7 @@ class Workflow(ABC):
 
             if len(self.projections) == 0:
                 raise ValueError(f'In order to use init_orbitals={self.parameters.init_orbitals}, "projections" must be '
-                                 'provided or "automated_projections" must be set to True')
+                                 'provided or "auto_projections" must be set to True')
             elif self.parameters.spin_polarized:
                 if spin_set != {'up', 'down'}:
                     raise ValueError('This calculation is spin-polarized; please provide spin-up and spin-down '
@@ -643,6 +643,8 @@ class Workflow(ABC):
             calc_class = calculators.PhCalculator
         elif calc_type == 'projwfc':
             calc_class = calculators.ProjwfcCalculator
+        elif calc_type == 'wjl':
+            calc_class = calculators.WannierJLCalculator
         else:
             raise ValueError(f'Cound not find a calculator of type {calc_type}')
 
@@ -1487,6 +1489,7 @@ def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]
             'w90': settings.Wannier90SettingsDict(),
             'w90_up': settings.Wannier90SettingsDict(),
             'w90_down': settings.Wannier90SettingsDict(),
+            'wjl': settings.WannierJLSettingsDict(),
             'plot': settings.PlotSettingsDict()}
 
 
@@ -1506,6 +1509,7 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'w90': settings.Wannier90SettingsDict,
                     'w90_up': settings.Wannier90SettingsDict,
                     'w90_down': settings.Wannier90SettingsDict,
+                    'wjl': settings.WannierJLSettingsDict,
                     'plot': settings.PlotSettingsDict}
 
 
