@@ -259,6 +259,10 @@ class MLFittingWorkflow(Workflow):
         else:
             self.ml.ml_model_occ.train()
             self.ml.ml_model_emp.train()
+        
+        # TODO Yannick: decide if the model should always saved to save, currently only implemented for ridge
+        if self.ml.type_of_ml_model == 'ridge_regression':
+            self.ml.ml_model.save_to_file(self.dirs['ml'] / 'ridge_model.save', self.dirs['ml'] / 'scaler_model.save')
 
     def add_training_data(self, band: Band):
         """
