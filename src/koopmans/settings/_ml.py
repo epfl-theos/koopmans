@@ -26,6 +26,9 @@ class MLSettingsDict(SettingsDictWithChecks):
                     'The width of the broadest radial basis function. If a list is provided in the '
                     'convergence_ml-task, a grid search will be performed',
                     (float, list), 4.0, None),
+            Setting('load_model_from_file',
+                    'If true, load a trained model from file.',
+                    bool, False, (True, False)),
             Setting('criterium',
                     'The criterium which has to be satisfied in order to use the ML-predicted screening coefficients '
                     'instead of computing them ab-initio',
