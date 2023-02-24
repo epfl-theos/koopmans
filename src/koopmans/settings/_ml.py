@@ -28,7 +28,7 @@ class MLSettingsDict(SettingsDictWithChecks):
                     'convergence_ml-task, a grid search will be performed',
                     (float, list), 4.0, None),
             Setting('pretrained_model',
-                    'If provided, load a pre-trained model from this file.',
+                    'If provided, load a pretrained model from this folder.',
                     Path, None, None),
             Setting('criterium',
                     'The criterium which has to be satisfied in order to use the ML-predicted screening coefficients '
