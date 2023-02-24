@@ -41,6 +41,7 @@ class RidgeRegressionModel(AbstractPredictor):
     def load_from_file(self, file_model, file_scaler):
         self.model = pickle.load(open(file_model, "rb"))
         self.scaler = pickle.load(open(file_scaler, "rb"))
+        self.is_trained = True
 
     def save_to_file(self, file_model, file_scaler):
         pickle.dump(self.model, open(file_model, "wb"))
