@@ -1,5 +1,6 @@
 import copy
 from abc import ABC, abstractmethod
+from pathlib import Path
 import pickle
 from typing import Dict, Optional, Union
 
@@ -19,12 +20,21 @@ class AbstractPredictor(ABC):
     def fit(self, X_train: np.ndarray, Y_train: np.ndarray):
         ...
 
+    @abstractmethod
+    def load_from_file(self, save_dir: Path) -> None:
+        ...
+
+    @abstractmethod
+    def load_from_file(self, save_dir: Path) -> None:
+        ...
+
 
 class RidgeRegressionModel(AbstractPredictor):
     def __init__(self) -> None:
         self.scaler = StandardScaler()
         self.model = Ridge(alpha=1.0)
         self.is_trained = False
+        self.name = 'ridge_regression'
 
     def fit(self, X_train: np.ndarray, Y_train: np.ndarray):
         self.scaler = self.scaler.fit(X_train)
@@ -37,21 +47,22 @@ class RidgeRegressionModel(AbstractPredictor):
         X_test = self.scaler.transform(X_test)
         y_predict = self.model.predict(X_test)
         return y_predict
+    
+    def save_to_file(self, save_dir: Path) -> None:
+        pickle.dump(self.model, open(save_dir / f'{self.name}_model.save', "wb"))
+        pickle.dump(self.scaler, open(save_dir / f'{self.name}_scaler.save', "wb"))
 
-    def load_from_file(self, file_model, file_scaler):
-        self.model = pickle.load(open(file_model, "rb"))
-        self.scaler = pickle.load(open(file_scaler, "rb"))
+    def load_from_file(self, save_dir: Path) -> None:
+        self.model = pickle.load(open(save_dir / f'{self.name}_model.save', "rb"))
+        self.scaler = pickle.load(open(save_dir / f'{self.name}_scaler.save', "rb"))
         self.is_trained = True
-
-    def save_to_file(self, file_model, file_scaler):
-        pickle.dump(self.model, open(file_model, "wb"))
-        pickle.dump(self.scaler, open(file_scaler, "wb"))
 
 
 class LinearRegressionModel(AbstractPredictor):
     def __init__(self) -> None:
         self.model = Ridge(alpha=0.0)
         self.is_trained = False
+        self.name = 'linear_regression'
 
     def fit(self, X_train: np.ndarray, Y_train: np.ndarray):
         self.model.fit(X_train, Y_train)
@@ -61,12 +72,20 @@ class LinearRegressionModel(AbstractPredictor):
         X_test = np.atleast_2d(x_test)
         y_predict = self.model.predict(X_test)
         return y_predict
+    
+    def save_to_file(self, save_dir: Path) -> None:
+        pickle.dump(self.model, open(save_dir / f'{self.name}_model.save', "wb"))
+
+    def load_from_file(self, save_dir: Path) -> None:
+        self.model = pickle.load(open(save_dir / f'{self.name}_model.save', "rb"))
+        self.is_trained = True
 
 
 class MeanModel(AbstractPredictor):
     def __init__(self) -> None:
         self.mean = 0.0
         self.is_trained = True
+        self.name = 'mean'
 
     def fit(self, X_train: np.ndarray, Y_train: np.ndarray):
         self.mean = np.mean(Y_train)
@@ -74,6 +93,13 @@ class MeanModel(AbstractPredictor):
     def predict(self, x_test: np.ndarray) -> np.ndarray:
         shape = np.shape(x_test)[0]
         return self.mean*np.ones(shape)
+
+    def save_to_file(self, save_dir: Path) -> None:
+        pickle.dump(self.mean, open(save_dir / f'{self.name}_model.save', "wb"))
+
+    def load_from_file(self, save_dir: Path) -> None:
+        self.mean = pickle.load(open(save_dir / f'{self.name}_model.save', "rb"))
+        self.is_trained = True
 
 
 class MLModel():

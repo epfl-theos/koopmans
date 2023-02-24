@@ -33,6 +33,7 @@ class MLFittingWorkflow(Workflow):
         if self.ml.input_data_for_ml_model == 'orbital_density':
             self.dirs = {
                 'ml': ml_dir,
+                'trained_model': ml_dir / 'trained_model',
                 'xml': ml_dir / 'xml',
                 'alphas': ml_dir / 'alphas',
                 'betas': ml_dir / 'betas',
@@ -44,6 +45,7 @@ class MLFittingWorkflow(Workflow):
         elif self.ml.input_data_for_ml_model == 'self_hartree':
             self.dirs = {
                 'ml': ml_dir,
+                'trained_model': ml_dir / 'trained_model',
                 'SH': ml_dir / 'SH'
             }
         else:
@@ -256,13 +258,19 @@ class MLFittingWorkflow(Workflow):
         self.print('Training the ML model')
         if self.ml.occ_and_emp_together:
             self.ml.ml_model.train()
+
+            self.ml.ml_model.model.save_to_file(self.dirs['trained_model'])
         else:
             self.ml.ml_model_occ.train()
             self.ml.ml_model_emp.train()
-        
-        # TODO Yannick: decide if the model should always saved to save, currently only implemented for ridge
-        if self.ml.type_of_ml_model == 'ridge_regression':
-            self.ml.ml_model.save_to_file(self.dirs['ml'] / 'ridge_model.save', self.dirs['ml'] / 'scaler_model.save')
+
+            save_dir_occ = self.dirs['trained_model'] / 'occ'
+            save_dir_emp = self.dirs['trained_model'] / 'emp'
+            save_dir_occ.mkdir(parents=True, exist_ok=True)
+            save_dir_emp.mkdir(parents=True, exist_ok=True)
+            self.ml.ml_model_occ.model.save_to_file(save_dir_occ)
+            self.ml.ml_model_emp.model.save_to_file(save_dir_emp)
+            
 
     def add_training_data(self, band: Band):
         """

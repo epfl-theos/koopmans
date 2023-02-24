@@ -153,17 +153,15 @@ class Workflow(ABC):
         # Initialize the MLModel
         if self.ml.use_ml:
             if self.ml.occ_and_emp_together:
-                # TODO Yannick: add keyword to input list
                 self.ml.ml_model = MLModel(self.ml.type_of_ml_model)
-                if self.ml.load_model_from_file:
-                    self.ml.ml_model.load_from_file('ridge_model.save', 'scaler_model.save')
+                if self.ml.pretrained_model is not None:
+                    self.ml.ml_model.model.load_from_file(self.ml.pretrained_model)
             else:
                 self.ml.ml_model_occ = MLModel(self.ml.type_of_ml_model)
-                self.ml.ml_model_emp = MLModel(self.ml.type_of_ml_model)
-                if self.ml.load_model_from_file:
-                    self.ml.ml_model_occ.load_from_file('ridge_model_occ.save', 'scaler_model_occ.save')
-                    self.ml.ml_model_emp.load_from_file('ridge_model_emp.save', 'scaler_model_emp.save')
-                    
+                self.ml.ml_model_emp = MLModel(self.ml.type_of_ml_model) 
+                if self.ml.pretrained_model is not None:
+                    self.ml.ml_model_occ.model.load_from_file(self.ml.pretrained_model / 'occ')  
+                    self.ml.ml_model_emp.model.load_from_file(self.ml.pretrained_model / 'emp')    
 
         if all(self.atoms.pbc):
             self.atoms.wrap(pbc=True)
@@ -875,6 +873,7 @@ class Workflow(ABC):
             else:
                 self.ml.ml_model_occ = self.parent.ml.ml_model_occ
                 self.ml.ml_model_emp = self.parent.ml.ml_model_emp
+
 
         # Link the bands
         if hasattr(self.parent, 'bands'):
