@@ -50,9 +50,9 @@ from koopmans.kpoints import Kpoints
 from koopmans.ml import MLModel
 from koopmans.projections import ExplicitProjectionBlock, ProjectionBlocks
 from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
+                                       nwfcs_from_pseudos, pseudo_contents,
                                        pseudo_database,
-                                       pseudos_library_directory,
-                                       valence_from_pseudo)
+                                       pseudos_library_directory)
 from koopmans.references import bib_data
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
@@ -243,7 +243,7 @@ class Workflow(ABC):
                 for i, (l, p) in enumerate(self.pseudopotentials.items()):
                     # ASE uses absolute values; QE uses the fraction of the valence
                     frac_mag = calculator_parameters['kcp'].pop(f'starting_magnetization({i + 1})', 0.0)
-                    valence = valence_from_pseudo(p, self.parameters.pseudo_directory)
+                    valence = pseudo_contents(p, self.parameters.pseudo_directory)['header']['z_valence']
                     starting_magmoms[l] = frac_mag * valence
                 atoms.set_initial_magnetic_moments([starting_magmoms[l] for l in labels])
             elif tot_mag != 0:
@@ -319,12 +319,16 @@ class Workflow(ABC):
                 spins = ['up', 'down']
             else:
                 spins = [None]
-            nbnd = []
+
+            num_wann = [nwfcs_from_pseudos(self.atoms, self.pseudopotentials,
+                                           self.parameters.pseudo_directory) for _ in spins]
+            self.projections = ProjectionBlocks.fromlist(num_wann, spins, self.atoms)
+
+            # Also override various pw2wannier and w90 settings
+            self.calculator_parameters['pw2wannier'].atom_proj = True
             for spin in spins:
                 label = 'w90' if spin is None else f'w90_{spin}'
-                nbnd.append(self.calculator_parameters['pw'].nbnd
-                            - len(self.calculator_parameters[label].get('exclude_bands', [])))
-            self.projections = ProjectionBlocks.fromlist(nbnd, spins, self.atoms)
+                self.calculator_parameters[label].guiding_centres = False
 
         # Adding excluded_bands info to self.projections
         if self.projections:
