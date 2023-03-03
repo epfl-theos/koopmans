@@ -321,7 +321,7 @@ class Workflow(ABC):
 
         # Providing cutoffs based on pseudos if they are not provided already
         cutoffs = cutoffs_from_pseudos(self.atoms, self.parameters.pseudo_directory)
-        for params in self.parameters.calculator_parameters:
+        for params in self.calculator_parameters.values():
             for k, v in cutoffs.items():
                 if params.is_valid(k) and k not in params:
                     utils.warn('{k} was not provided; it will be set based on tabulated cutoffs for the individual '
