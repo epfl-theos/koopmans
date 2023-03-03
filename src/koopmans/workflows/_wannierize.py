@@ -41,44 +41,9 @@ class WannierizeWorkflow(Workflow):
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
-
-            if self.parameters.spin_polarized:
-                spins = ['up', 'down']
-            else:
-                spins = [None]
-
-            for spin in spins:
-                # Work out where we have breaks between blocks of projections, and check that this is commensurate
-                # with the number of electrons in this spin channel. Note that this code can be replaced when we have
-                # an algorithm for occ-emp separation within Wannier90
-                num_bands_occ = self.number_of_electrons(spin)
-                if not spin:
-                    num_bands_occ //= 2
-                divs = self.projections.divisions(spin)
-                cumulative_divs = [sum(divs[:i+1]) for i in range(len(divs))]
-                if num_bands_occ not in cumulative_divs:
-                    message = 'The provided Wannier90 projections are not commensurate with the number of ' \
-                              'electrons; divide your list of projections into sublists that represent blocks ' \
-                              'of bands to Wannierize separately'
-                    utils.warn(message)
-
-                # Compare the number of bands from PW to Wannier90
-                num_bands_w90 = self.projections.num_bands(spin=spin)
-                if num_bands_w90 > pw_params.nbnd:
-                    raise ValueError(f'You have provided more bands to the Wannier90 calculator ({num_bands_w90}) '
-                                     f'than the preceeding PW calculation ({pw_params.nbnd})')
-                elif num_bands_w90 == pw_params.nbnd:
-                    pass
-                else:
-                    # Update the projections_blocks to account for additional empty bands
-                    self.projections.num_extra_bands[spin] = pw_params.nbnd - num_bands_w90
-
-                # Sanity checking
-                assert pw_params.nbnd == self.projections.num_bands(spin=spin)
-
+            pass
         elif self.parameters.init_orbitals == 'kohn-sham' and self.parameters.init_empty_orbitals == 'kohn-sham':
             pass
-
         else:
             raise NotImplementedError('WannierizeWorkflow only supports setting init_orbitals and init_empty_orbitals '
                                       'to "mlwfs"/"projwfs" or "kohn-sham"')
@@ -117,6 +82,45 @@ class WannierizeWorkflow(Workflow):
             self.print('Wannierization', style='heading')
         else:
             self.print('Kohn-Sham orbitals', style='heading')
+
+        # Sanity checks
+        pw_params = self.calculator_parameters['pw']
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
+                and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
+
+            if self.parameters.spin_polarized:
+                spins = ['up', 'down']
+            else:
+                spins = [None]
+
+            for spin in spins:
+                # Work out where we have breaks between blocks of projections, and check that this is commensurate
+                # with the number of electrons in this spin channel. Note that this code can be replaced when we have
+                # an algorithm for occ-emp separation within Wannier90
+                num_bands_occ = self.number_of_electrons(spin)
+                if not spin:
+                    num_bands_occ //= 2
+                divs = self.projections.divisions(spin)
+                cumulative_divs = [sum(divs[:i+1]) for i in range(len(divs))]
+                if num_bands_occ not in cumulative_divs:
+                    message = 'The provided Wannier90 projections are not commensurate with the number of ' \
+                              'electrons; divide your list of projections into sublists that represent blocks ' \
+                              'of bands to Wannierize separately'
+                    utils.warn(message)
+
+                # Compare the number of bands from PW to Wannier90
+                num_bands_w90 = self.projections.num_bands(spin=spin)
+                if num_bands_w90 > pw_params.nbnd:
+                    raise ValueError(f'You have provided more bands to the Wannier90 calculator ({num_bands_w90}) '
+                                     f'than the preceeding PW calculation ({pw_params.nbnd})')
+                elif num_bands_w90 == pw_params.nbnd:
+                    pass
+                else:
+                    # Update the projections_blocks to account for additional empty bands
+                    self.projections.num_extra_bands[spin] = pw_params.nbnd - num_bands_w90
+
+                # Sanity checking
+                assert pw_params.nbnd == self.projections.num_bands(spin=spin)
 
         if self.parameters.from_scratch:
             utils.system_call("rm -rf wannier", False)
