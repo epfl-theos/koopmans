@@ -357,7 +357,7 @@ class Workflow(ABC):
                 # Note that we check if 'ecutwfc' is not provided, because if ecutwfc is provided then ecutrho is
                 # (implicitly) provided too because its default is 4 * ecutwfc
                 if params.is_valid(k) and 'ecutwfc' not in params:
-                    utils.warn('{k} was not provided; it will be set based on tabulated cutoffs for the individual '
+                    utils.warn(f'{k} was not provided; it will be set based on tabulated cutoffs for the individual '
                                'species. It is *strongly* recommended that you perform a proper convergence test for '
                                'this parameter instead of relying on this default.')
                     params[k] = v
