@@ -49,8 +49,8 @@ from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.kpoints import Kpoints
 from koopmans.ml import MLModel
 from koopmans.projections import ProjectionBlocks
-from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
-                                       pseudo_database,
+from koopmans.pseudopotentials import (cutoffs_from_pseudos, fetch_pseudo,
+                                       nelec_from_pseudos, pseudo_database,
                                        pseudos_library_directory,
                                        valence_from_pseudo)
 from koopmans.references import bib_data
@@ -318,6 +318,16 @@ class Workflow(ABC):
                 if spin:
                     label += f'_{spin}'
                 self.projections.exclude_bands[spin] = self.calculator_parameters[label].get('exclude_bands', [])
+
+        # Providing cutoffs based on pseudos if they are not provided already
+        cutoffs = cutoffs_from_pseudos(self.atoms, self.parameters.pseudo_directory)
+        for params in self.parameters.calculator_parameters:
+            for k, v in cutoffs.items():
+                if params.is_valid(k) and k not in params:
+                    utils.warn('{k} was not provided; it will be set based on tabulated cutoffs for the individual '
+                               'species. It is *strongly* recommended that you perform a proper convergence test for '
+                               'this parameter instead of relying on this default.')
+                    params[k] = v
 
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
