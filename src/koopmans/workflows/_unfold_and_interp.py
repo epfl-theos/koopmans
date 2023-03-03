@@ -26,6 +26,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
     def __init__(self, *args, redo_smooth_dft: Optional[bool] = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._redo_smooth_dft = redo_smooth_dft
+        self._corresponding_taskname = 'ui'
 
     def _run(self) -> None:
         '''

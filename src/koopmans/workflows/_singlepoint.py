@@ -55,6 +55,8 @@ class SinglepointWorkflow(Workflow):
     if Workflow.__doc__ and __doc__:
         __doc__ = Workflow.__doc__ + __doc__
 
+    _corresponding_taskname = 'singlepoint'
+
     def _run(self) -> None:
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version

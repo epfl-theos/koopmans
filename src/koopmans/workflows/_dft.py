@@ -21,6 +21,7 @@ T = TypeVar('T', bound='calculators.CalculatorExt')
 
 
 class DFTWorkflow(Workflow):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.parameters.functional = 'dft'
@@ -83,6 +84,8 @@ class DFTPWWorkflow(DFTWorkflow):
 
 class DFTPhWorkflow(Workflow):
 
+    _corresponding_taskname = 'dft_eps'
+
     def _run(self):
 
         self.print('Calculate the dielectric tensor', style='heading')
@@ -96,6 +99,8 @@ class DFTPhWorkflow(Workflow):
 
 
 class DFTBandsWorkflow(DFTWorkflow):
+
+    _corresponding_taskname = 'dft_bands'
 
     def _run(self):
 
