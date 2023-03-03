@@ -160,8 +160,9 @@ class WannierizeWorkflow(Workflow):
 
         if self.parameters.block_wannierization_threshold:
             # Regenerate self.projections splitting based on block_wannierization_threshold
-            nbands_updown = detect_band_blocks(calc_pw_bands.results['band structure'],
-                                               self.parameters.block_wannierization_threshold)
+            bs = copy.deepcopy(calc_pw_bands.results['band structure'])
+            bs._energies = bs._energies[:, :, :self.projections.num_wann()]
+            nbands_updown = detect_band_blocks(bs, self.parameters.block_wannierization_threshold)
             spins = [s for s in ['up', 'down', None] if any([b.spin == s for b in self.projections.blocks])]
 
             projs_nbands = []
@@ -169,7 +170,11 @@ class WannierizeWorkflow(Workflow):
             for nbands, spin in zip(nbands_updown, spins):
                 projs_nbands += nbands
                 projs_spins = [spin for _ in projs_nbands]
+            import ipdb
+            ipdb.set_trace()
             self.projections = projections.ProjectionBlocks.fromlist(projs_nbands, projs_spins)
+            for spin in spins:
+                self.projections.num_extra_bands[spin] = calc_pw_bands.parameters.nbnd - self.projections.num_wann()
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
