@@ -142,6 +142,32 @@ def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
     return sum(valences)
 
 
+def cutoffs_from_pseudos(atoms: Atoms, pseudo_dir: Path) -> Dict[str, float]:
+    """
+    Works out a recommended ecutwfc and ecutrho based on the contents of a cutoffs.json file
+    located in the pseudopotential directory
+    """
+
+    cutoff_database_file = pseudo_dir / 'cutoffs.json'
+    if not cutoff_database_file.exists():
+        return {}
+
+    with open(cutoff_database_file, 'r') as fd:
+        cutoff_database = json.load(fd)
+
+    cutoffs = {}
+    for symbol in atoms.symbols:
+        if symbol not in cutoff_database:
+            return {}
+        for k, v in cutoff_database[symbol].items():
+            if k not in cutoffs:
+                cutoffs[k] = v
+            elif cutoffs[k] < v:
+                cutoffs[k] = v
+
+    return cutoffs
+
+
 def expected_subshells(atoms: Atoms, pseudopotentials: Dict[str, str],
                        pseudo_dir: Optional[Path] = None) -> Dict[str, List[str]]:
     """
