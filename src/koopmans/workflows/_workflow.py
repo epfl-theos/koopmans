@@ -51,9 +51,9 @@ from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.kpoints import Kpoints
 from koopmans.ml import MLModel
 from koopmans.projections import ExplicitProjectionBlock, ProjectionBlocks
-from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
-                                       nwfcs_from_pseudos, pseudo_contents,
-                                       pseudo_database,
+from koopmans.pseudopotentials import (cutoffs_from_pseudos, fetch_pseudo,
+                                       nelec_from_pseudos, nwfcs_from_pseudos,
+                                       pseudo_contents, pseudo_database,
                                        pseudos_library_directory)
 from koopmans.references import bib_data
 
@@ -349,6 +349,16 @@ class Workflow(ABC):
             for dct in self.calculator_parameters.values():
                 if dct.is_valid('ibrav'):
                     dct.update(**params_dct)
+
+        # Providing cutoffs based on pseudos if they are not provided already
+        cutoffs = cutoffs_from_pseudos(self.atoms, self.parameters.pseudo_directory)
+        for params in self.calculator_parameters.values():
+            for k, v in cutoffs.items():
+                if params.is_valid(k) and k not in params:
+                    utils.warn('{k} was not provided; it will be set based on tabulated cutoffs for the individual '
+                               'species. It is *strongly* recommended that you perform a proper convergence test for '
+                               'this parameter instead of relying on this default.')
+                    params[k] = v
 
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
