@@ -45,6 +45,8 @@ from ase.spectrum.dosdata import GridDOSData
 
 from koopmans import calculators, settings, utils
 from koopmans.bands import Bands
+from koopmans.cell import (cell_follows_qe_conventions, cell_to_parameters,
+                           parameters_to_cell)
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.kpoints import Kpoints
 from koopmans.ml import MLModel
@@ -340,6 +342,13 @@ class Workflow(ABC):
                 if spin:
                     label += f'_{spin}'
                 self.projections.exclude_bands[spin] = self.calculator_parameters[label].get('exclude_bands', [])
+
+        # Updating ibrav
+        if cell_follows_qe_conventions(self.atoms.cell):
+            params_dct = cell_to_parameters(self.atoms.cell)
+            for dct in self.calculator_parameters.values():
+                if dct.is_valid('ibrav'):
+                    dct.update(**params_dct)
 
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
@@ -1194,15 +1203,17 @@ class Workflow(ABC):
             if v != default or k in ['task', 'functional']:
                 bigdct['workflow'][k] = v
 
-        # "atoms" block
         # Working out ibrav
-        ibrav = self.calculator_parameters['kcp'].get('ibrav', self.calculator_parameters['pw'].get('ibrav', 0))
+        if cell_follows_qe_conventions(self.atoms.cell):
+            ibrav = cell_to_parameters(self.atoms.cell)['ibrav']
+        else:
+            ibrav = 0
 
+        # "atoms" block
         bigdct['atoms'] = {}
 
         # cell parameters
-        if ibrav == 0:
-            bigdct['atoms']['cell_parameters'] = utils.construct_cell_parameters_block(self.atoms)
+        bigdct['atoms']['cell_parameters'] = utils.construct_cell_parameters_block(self.atoms)
 
         # atomic positions
         if len(set(self.atoms.get_tags())) > 1:
