@@ -288,6 +288,9 @@ class WannierizeWorkflow(Workflow):
             if calc.parameters.num_bands != calc.parameters.num_wann:
                 if calc.parameters.dis_num_iter is None:
                     calc.parameters.dis_num_iter = 5000
+                if calc.parameters.dis_froz_max is None:
+                    calc_scf = [c for c in self.calculations if c.prefix == 'scf'][-1]
+                    calc.parameters.dis_froz_max = calc_scf.results['homo_energy'] + 2
             else:
                 calc.parameters.dis_win_min = None
                 calc.parameters.dis_win_max = None

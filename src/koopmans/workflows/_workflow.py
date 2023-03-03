@@ -329,6 +329,8 @@ class Workflow(ABC):
             for spin in spins:
                 label = 'w90' if spin is None else f'w90_{spin}'
                 self.calculator_parameters[label].guiding_centres = False
+                if self.calculator_parameters[label].dis_proj_max is None:
+                    self.calculator_parameters[label].dis_proj_max = 0.95
 
         # Adding excluded_bands info to self.projections
         if self.projections:
