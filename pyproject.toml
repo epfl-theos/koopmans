@@ -31,7 +31,7 @@ dependencies = [
     "pybtex>=0.24",
     "spglib>=1.9",
     "upf-to-json>=0.9.5",
-    "ase-koopmans==0.1.1",
+    "ase-koopmans==0.1.3",
     "scikit-learn>=1.0",
     "deepdiff>=5.8.1",
 ]
