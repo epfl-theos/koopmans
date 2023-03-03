@@ -354,7 +354,9 @@ class Workflow(ABC):
         cutoffs = cutoffs_from_pseudos(self.atoms, self.parameters.pseudo_directory)
         for params in self.calculator_parameters.values():
             for k, v in cutoffs.items():
-                if params.is_valid(k) and k not in params:
+                # Note that we check if 'ecutwfc' is not provided, because if ecutwfc is provided then ecutrho is
+                # (implicitly) provided too because its default is 4 * ecutwfc
+                if params.is_valid(k) and 'ecutwfc' not in params:
                     utils.warn('{k} was not provided; it will be set based on tabulated cutoffs for the individual '
                                'species. It is *strongly* recommended that you perform a proper convergence test for '
                                'this parameter instead of relying on this default.')
