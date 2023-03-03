@@ -165,7 +165,7 @@ class Workflow(ABC):
         if all(self.atoms.pbc):
             # By default, use ASE's default bandpath for this cell (see
             # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
-            default_path = self.atoms.cell.bandpath().path
+            default_path = self.atoms.cell.bandpath(eps=1e-10).path
         else:
             default_path = 'G'
         if kpoints is None:
