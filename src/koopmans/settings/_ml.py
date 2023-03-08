@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any, List, Optional
 
 from koopmans import utils
+from koopmans.ml import MLModel
 
 from ._utils import Setting, SettingsDictWithChecks
 
@@ -66,3 +67,21 @@ class MLSettingsDict(SettingsDictWithChecks):
         ]
 
         super().__init__(settings=valid_settings, **kwargs)
+
+        if self.use_ml:
+            if self.occ_and_emp_together:
+                self.ml_model: MLModel 
+            else:
+                self.ml_model_occ: MLModel 
+                self.ml_model_emp: MLModel 
+
+    def todict(self):
+        dct = super().todict()
+        if self.use_ml:
+            if self.occ_and_emp_together:
+                dct['ml_model'] = self.ml_model.todict()
+            else:
+                dct['ml_model_occ'] = self.ml_model_occ.todict()
+                dct['ml_model_emp'] = self.ml_model_emp.todict()
+        return dct
+        

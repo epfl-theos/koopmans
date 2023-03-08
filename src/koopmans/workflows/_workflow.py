@@ -153,15 +153,10 @@ class Workflow(ABC):
         # Initialize the MLModel
         if self.ml.use_ml:
             if self.ml.occ_and_emp_together:
-                self.ml.ml_model = MLModel(self.ml.type_of_ml_model)
-                if self.ml.pretrained_model is not None:
-                    self.ml.ml_model.model.load_from_file(self.ml.pretrained_model)
+                self.ml.ml_model = MLModel(type_of_ml_model = self.ml.type_of_ml_model, save_dir=self.ml.pretrained_model)
             else:
-                self.ml.ml_model_occ = MLModel(self.ml.type_of_ml_model)
-                self.ml.ml_model_emp = MLModel(self.ml.type_of_ml_model) 
-                if self.ml.pretrained_model is not None:
-                    self.ml.ml_model_occ.model.load_from_file(self.ml.pretrained_model / 'occ')  
-                    self.ml.ml_model_emp.model.load_from_file(self.ml.pretrained_model / 'emp')    
+                self.ml.ml_model_occ = MLModel(self.ml.type_of_ml_model, save_dir=self.ml.pretrained_model / 'occ')
+                self.ml.ml_model_emp = MLModel(self.ml.type_of_ml_model, save_dir=self.ml.pretrained_mode / 'emp') 
 
         if all(self.atoms.pbc):
             self.atoms.wrap(pbc=True)
