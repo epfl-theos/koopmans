@@ -158,24 +158,6 @@ class WannierizeWorkflow(Workflow):
                 shutil.copytree(src, dest)
             self.run_calculator(calc_pw_bands)
 
-        if self.parameters.block_wannierization_threshold:
-            # Regenerate self.projections splitting based on block_wannierization_threshold
-            bs = copy.deepcopy(calc_pw_bands.results['band structure'])
-            bs._energies = bs._energies[:, :, :self.projections.num_wann()]
-            nbands_updown = detect_band_blocks(bs, self.parameters.block_wannierization_threshold)
-            spins = [s for s in ['up', 'down', None] if any([b.spin == s for b in self.projections.blocks])]
-
-            projs_nbands = []
-            projs_spins = []
-            for nbands, spin in zip(nbands_updown, spins):
-                projs_nbands += nbands
-                projs_spins = [spin for _ in projs_nbands]
-            import ipdb
-            ipdb.set_trace()
-            self.projections = projections.ProjectionBlocks.fromlist(projs_nbands, projs_spins)
-            for spin in spins:
-                self.projections.num_extra_bands[spin] = calc_pw_bands.parameters.nbnd - self.projections.num_wann()
-
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
 
@@ -188,12 +170,33 @@ class WannierizeWorkflow(Workflow):
                 self.projections.num_occ_bands[spin] = n_occ_bands
             self.projections.blocks
 
+            # Define the dictionary ibands_split_dct which specifies how the bands must be split (at a minimum). Note
+            # that this does not account for manual splits in the projections that the user introduces, but only for
+            # (a) the split between valence and conduction and (b) any automated splitting via
+            # block_wannierization_threshold
+            spins = [s for s in ['up', 'down', None] if any([b.spin == s for b in self.projections.blocks])]
+            if self.parameters.block_wannierization_threshold:
+                # Truncate the bands so they only span those that will be Wannierized
+                bs = copy.deepcopy(calc_pw_bands.results['band structure'])
+                bs._energies = bs._energies[:, :, :self.projections.num_wann()]
+
+                # Construct the list of split band indices
+                num_occ_bands = [self.projections.num_occ_bands[spin] for spin in spins]
+                ibands_split_list = detect_band_blocks(
+                    bs, self.parameters.block_wannierization_threshold, num_occ_bands)
+                ibands_split_dct = {spin: lst for spin, lst in zip(spins, ibands_split_list)}
+            else:
+                # Split valence and conduction
+                ibands_split_dct = {spin: [range(1, n_occ_bands + 1), range(n_occ_bands + 1,
+                                                                            self.projections.num_wann(spin) + 1)] for spin in spins}
+
             # Loop over the various subblocks that we must wannierize separately
             for block in copy.deepcopy(self.projections):
-
-                if self.projections.block_spans_occ_and_emp(block):
-                    # For blocks that span both valence and conduction, split them using wjl splitvc
-                    self._run_splitvc_wannier_block(block, p2w_outdir=calc_pw.parameters.outdir)
+                overlaps = [len(set(b).intersection(block.include_bands)) > 0 for b in ibands_split_dct[block.spin]]
+                if overlaps.count(True) > 1:
+                    # Block needs breaking up using wjl splitvc
+                    self._run_splitvc_wannier_block(
+                        block, groups=ibands_split_dct[block.spin], p2w_outdir=calc_pw.parameters.outdir)
 
                 else:
                     # Run the w90 preproc, pw2wannier, and w90 calculation for this block
@@ -300,8 +303,8 @@ class WannierizeWorkflow(Workflow):
                 if calc.parameters.dis_num_iter is None:
                     calc.parameters.dis_num_iter = 5000
                 if calc.parameters.dis_froz_max is None:
-                    calc_scf = [c for c in self.calculations if c.prefix == 'scf'][-1]
-                    calc.parameters.dis_froz_max = calc_scf.results['homo_energy'] + 2
+                    calc_nscf = [c for c in self.calculations if c.prefix == 'nscf'][-1]
+                    calc.parameters.dis_froz_max = calc_nscf.results['lumo_energy'] + 2
             else:
                 calc.parameters.dis_win_min = None
                 calc.parameters.dis_win_max = None
@@ -542,33 +545,31 @@ class WannierizeWorkflow(Workflow):
                 match.center = center
                 match.spread = spread
 
-    def _run_splitvc_wannier_block(self, block: projections.ProjectionBlock, p2w_outdir: Path):
+    def _run_splitvc_wannier_block(self, block: projections.ProjectionBlock,
+                                   groups: List[List[int]], p2w_outdir: Path):
         # Perform an initial Wannierization
         self._run_preproc_p2w_wannier_block(block, p2w_outdir=p2w_outdir)
 
-        # Perform the wjl calculation that splits the valence and conduction
-        assert isinstance(block.directory, Path)
-        w90_dir = Path('wannier') / block.directory
-        assert block.include_bands is not None
-        nval = len([i for i in block.include_bands if i <= self.projections.num_occ_bands[block.spin]])
-        calc_wjl: calculators.WannierJLCalculator = self.new_calculator('wjl', directory=w90_dir, nval=nval)
-        calc_wjl.parameters['outdir-val'] = 'occ'
-        calc_wjl.parameters['outdir-cond'] = 'emp'
-        calc_wjl.prefix = 'wann'
-        self.run_calculator(calc_wjl)
-
         # Split the block in self.projections
-        self.projections.split(block, self.atoms)
+        self.projections.split(block, groups, self.atoms)
 
         # Fetch the newly-created blocks from self.projections
         new_blocks = [b for b in self.projections.get_subset(spin=block.spin)
                       if block.include_bands is not None and b.include_bands is not None
                       and set(block.include_bands).intersection(b.include_bands)]
-        assert len(new_blocks) == 2
-        wjl_outdirs = [calc_wjl.parameters[f'outdir-{x}'] for x in ['val', 'cond']]
+        assert len(new_blocks) == len(groups)
+
+        # Perform the wjl calculation that splits the blocks
+        assert isinstance(block.directory, Path)
+        w90_dir = Path('wannier') / block.directory
+        assert block.include_bands is not None
+        calc_wjl: calculators.WannierJLCalculator = self.new_calculator('wjl', directory=w90_dir, indices=groups,
+                                                                        outdirs=[b.directory for b in new_blocks])
+        calc_wjl.prefix = 'wann'
+        self.run_calculator(calc_wjl)
 
         # Run the Wannierization (and not the preprocessing or the pw2wannier) for the two newly-created blocks
-        for new_block, wjl_outdir in zip(new_blocks, wjl_outdirs):
+        for new_block, wjl_outdir in zip(new_blocks, calc_wjl.parameters.outdirs):
             # Create w90_dir
             assert new_block.directory is not None
             w90_dir = Path('wannier') / new_block.directory
@@ -590,20 +591,36 @@ class WannierizeWorkflow(Workflow):
             self.run_calculator(calc_w90)
 
 
-def detect_band_blocks(bandstructure: BandStructure, tol: float = 0.1) -> List[List[int]]:
-    n_bands = []
+def detect_band_blocks(bandstructure: BandStructure, tol: float = 0.1, num_occ_bands: Optional[List[int]] = None) -> List[List[List[int]]]:
+    """
+    Works out the blocks of bands in a bandstructure that are separated from one another by at least "tol" eV. If "num_occ_bands" is provided,
+    it will also split the bands between occupied and empty
+    """
+
+    # If num_occ_bands is not provided, the following lines make sure the subsequent code works
+    if num_occ_bands is None:
+        num_occ_bands = [-1 for _ in bandstructure.energies]
+
+    # Sanity checking
+    if len(bandstructure.energies) != len(num_occ_bands):
+        raise ValueError(
+            'The "bandstructure" and "num_occ_bands" arguments to detect_band_blocks() do not have the same number of spins')
+
     # Loop over each spin index
-    for bs_spin in bandstructure.energies:
-        n_bands.append([1])
+    i_bands = []
+    for bs_spin, nocc in zip(bandstructure.energies, num_occ_bands):
+        i_bands.append([[1]])
 
         # For each band, starting from the second...
         for i in range(1, bs_spin.shape[1]):
-
-            if bs_spin[:, i].min() - bs_spin[:, i - 1].max() > tol:
+            if i == nocc:
+                # ... if we have crossed over to the unoccupied bands, create a new group
+                i_bands[-1].append([i + 1])
+            elif bs_spin[:, i].min() - bs_spin[:, i - 1].max() > tol:
                 # ... if it is well-separated, create a new group
-                n_bands[-1].append(1)
+                i_bands[-1].append([i + 1])
             else:
                 # ... if it is not, add it to the current group
-                n_bands[-1][-1] += 1
+                i_bands[-1][-1].append(i + 1)
 
-    return n_bands
+    return i_bands

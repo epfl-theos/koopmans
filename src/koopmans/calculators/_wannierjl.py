@@ -37,12 +37,7 @@ class WannierJLCalculator(CalculatorExt, WannierJL, CalculatorABC):
         return True
 
     def is_complete(self):
-        return True
+        return self.results.get('job_done', False)
 
     def check_convergence(self) -> None:
-        return
-
-    @classmethod
-    def read_input(self, *args, **kwargs):
-        # wjl doesn't have an input file, so just skip this step
         return

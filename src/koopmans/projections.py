@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TypeVar, Union
 
+import toml
 from ase import Atoms
 from ase.io.wannier90 import (list_to_formatted_str, num_wann_from_projections,
                               proj_string_to_dict)
@@ -72,27 +73,29 @@ class ProjectionBlock(object):
     def fromdict(cls, dct):
         return cls(**dct)
 
-    def split(self: TProjBlock, num_wann0: int, atoms: Optional[Atoms] = None) -> List[TProjBlock]:
-        # Split this block into two blocks, where the first block contains num_wann0 Wannier functions
-        # For the base class atoms is not required, but it is required for subclasses
+    def split(self: TProjBlock, groups: List[List[int]], atoms: Optional[Atoms] = None) -> List[TProjBlock]:
+        # Split this block into several blocks, as indicated by "groups", a list of lists of orbital indices, with each
+        # sublist corresponding to a new block to be created. For the base class "atoms" is not required, but it is
+        # required for subclasses
 
         assert self.num_wann is not None
         assert self.num_bands is not None
+        assert self.include_bands is not None
+
+        mismatched_bands = set([i for subblock in groups for i in subblock]).difference(self.include_bands)
+        if len(mismatched_bands) > 0:
+            raise ValueError('The list of oribtals "groups" does not perfectly overlap with this block')
 
         # Create the two blocks
         dct = {k: v for k, v in self.__dict__.items() if k in ['num_wann', 'projections']}
-        block0 = self.__class__(**dct)
-        block1 = self.__class__(**dct)
+        blocks = [self.__class__(**dct) for _ in groups]
+        for block, group in zip(blocks, groups):
+            # num_wann
+            block.num_wann = len(group)
+            # num_bands (equal to num_wann, since after splitting we don't have extra bands)
+            block.num_bands = len(group)
 
-        # num_wann
-        block0.num_wann = num_wann0
-        block1.num_wann = self.num_wann - num_wann0
-
-        # num_bands (equal to num_wann, since after splitting we don't have extra bands)
-        block0.num_bands = block0.num_wann
-        block1.num_bands = block1.num_wann
-
-        return [block0, block1]
+        return blocks
 
 
 class ExplicitProjectionBlock(ProjectionBlock):
@@ -119,27 +122,30 @@ class ExplicitProjectionBlock(ProjectionBlock):
         # Count the number of projections
         return len(self.projections)
 
-    def split(self, num_wann0: int, atoms: Optional[Atoms] = None) -> List[ExplicitProjectionBlock]:
-        [block0, block1] = super().split(num_wann0)
+    def split(self, groups: List[List[int]], atoms: Optional[Atoms] = None) -> List[ExplicitProjectionBlock]:
+        blocks = super().split(groups)
 
         if atoms is None:
             raise ValueError('Please provide an Atoms object when splitting a block with explicit projections')
 
         # Split self.projections
-        block0.projections = []
-        block1.projections = []
+        for block in blocks:
+            block.projections = []
+        i_block = 0
         for i, proj in enumerate(self.projections):
-            num_wann_block0 = num_wann_from_projections(block0.projections, atoms)
-            num_wann_proj = num_wann_from_projections([proj], atoms)
-            if num_wann_block0 == num_wann0:
-                block1.projections = self.projections[i:]
-            elif num_wann_block0 + num_wann_proj <= num_wann0:
-                block0.projections.append(proj)
+            current_num_wann = num_wann_from_projections(blocks[i_block].projections, atoms)
+            target_num_wann = len(groups[i_block])
+            additional_num_wann = num_wann_from_projections([proj], atoms)
+
+            if current_num_wann == target_num_wann:
+                i_block += 1
+            if current_num_wann + additional_num_wann <= target_num_wann:
+                blocks[i_block].projections.append(proj)
             else:
                 raise ValueError(
-                    f'The projections \n{self.projections}\n cannot be split into two blocks of length {num_wann0} and {self.num_wann - num_wann0}')
+                    f'The projections \n{self.projections}\n cannot be split into blocks of length ' + ', '.join([str(len(x)) for x in groups]))
 
-        return [block0, block1]
+        return blocks
 
 
 class ProjectionBlocks(object):
@@ -351,11 +357,16 @@ class ProjectionBlocks(object):
                 dct[directory] = [block]
         return dct
 
-    def split(self, block: ProjectionBlock, atoms: Optional[Atoms] = None):
-        # Split valence and conduction
+    def split(self, block: ProjectionBlock, groups: Optional[List[List[int]]] = None, atoms: Optional[Atoms] = None):
+        # Split block
         assert block.include_bands is not None
-        n_val = len([i for i in block.include_bands if i <= self.num_occ_bands[block.spin]])
-        blocks = block.split(n_val, atoms)
+
+        if groups is None:
+            # Default to splitting valence and conduction
+            groups = [[i for i in block.include_bands if i <= self.num_occ_bands[block.spin]],
+                      [i for i in block.include_bands if i > self.num_occ_bands[block.spin]]]
+
+        blocks = block.split(groups, atoms)
 
         # Record the current self.num_wann
         num_wann_orig = self.num_wann(block.spin)
@@ -374,3 +385,9 @@ class ProjectionBlocks(object):
         self.blocks
 
         return
+
+    def to_wjl_config(self, fd):
+        dct = {}
+        dct['splitvc'] = {'indices': [p.include_bands for p in self],
+                          'outdirs': [str(p.directory) for p in self]}
+        toml.dump(dct, fd)

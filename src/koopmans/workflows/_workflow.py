@@ -846,7 +846,10 @@ class Workflow(ABC):
 
     def load_old_calculator(self, qe_calc: calculators.Calc) -> bool:
         # This is a separate function so that it can be monkeypatched by the test suite
-        old_calc = qe_calc.__class__.fromfile(qe_calc.directory / qe_calc.prefix)
+        try:
+            old_calc = qe_calc.__class__.fromfile(qe_calc.directory / qe_calc.prefix)
+        except FileNotFoundError:
+            return False
 
         if old_calc.is_complete():
             # If it is complete, load the results
