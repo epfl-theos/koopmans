@@ -149,7 +149,7 @@ class SinglepointWorkflow(Workflow):
                         for dir in ['wannier', 'TMP']:
                             utils.system_call(f'rsync -a ki/postproc/{dir} kipz/postproc/')
                         if any([isinstance(c, ProjwfcCalculator) for c in self.calculations]):
-                            utils.system_call(f'rsync -a ki/postproc/pdos pkipz/postproc/')
+                            utils.system_call(f'rsync -a ki/postproc/pdos kipz/postproc/')
 
         else:
             # self.functional != all and self.method != 'dfpt'
