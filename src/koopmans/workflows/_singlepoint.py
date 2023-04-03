@@ -133,10 +133,9 @@ class SinglepointWorkflow(Workflow):
                     if all(self.atoms.pbc) and self.calculator_parameters['ui'].do_smooth_interpolation:
                         if not Path('pkipz/postproc').is_dir():
                             utils.system_call('mkdir pkipz/postproc')
-                        for dir in ['wannier', 'TMP']:
-                            utils.system_call(f'rsync -a ki/postproc/{dir} pkipz/postproc/')
-                        if any([isinstance(c, ProjwfcCalculator) for c in self.calculations]):
-                            utils.system_call(f'rsync -a ki/postproc/pdos pkipz/postproc/')
+                        for dir in ['wannier', 'TMP', 'pdos']:
+                            if Path(f'ki/postproc/{dir}').exists():
+                                utils.system_call(f'rsync -a ki/postproc/{dir} pkipz/postproc/')
 
                     # KIPZ
                     utils.system_call('rsync -a ki/final/ kipz/init/')
@@ -146,10 +145,9 @@ class SinglepointWorkflow(Workflow):
                         utils.system_call('rsync -a ki/init/wannier kipz/init/')
                     if all(self.atoms.pbc) and self.calculator_parameters['ui'].do_smooth_interpolation:
                         # Copy over the smooth PBE calculation from KI for KIPZ to use
-                        for dir in ['wannier', 'TMP']:
-                            utils.system_call(f'rsync -a ki/postproc/{dir} kipz/postproc/')
-                        if any([isinstance(c, ProjwfcCalculator) for c in self.calculations]):
-                            utils.system_call(f'rsync -a ki/postproc/pdos kipz/postproc/')
+                        for dir in ['wannier', 'TMP', 'pdos']:
+                            if Path(f'ki/postproc/{dir}').exists():
+                                utils.system_call(f'rsync -a ki/postproc/{dir} kipz/postproc/')
 
         else:
             # self.functional != all and self.method != 'dfpt'
