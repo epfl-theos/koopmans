@@ -50,19 +50,9 @@ class KoopmansEncoder(ase_json.MyEncoder):
         # If none of the above, use ASE's encoder
         return super().default(obj)
 
+
 encode = KoopmansEncoder(indent=1).encode
 
-    # @classmethod
-    # def fromdict(cls, dct: Dict):
-    #     predictor = cls()
-    #     if dct['serialize_as_list'] != {}:
-    #         for item in dct['serialize_as_list'].keys():
-    #             model = predictor.serialize_as_list[item]['class']
-    #             model.set_params(**dct['serialize_as_list'][item]['init_params'])
-    #             for name, p in dct['serialize_as_list'][item]['model_params'].items():
-    #                 setattr(model, name, np.asarray(p))
-    #     predictor.is_trained = dct['is_trained']
-    #     return predictor
 
 def object_hook(dct):
     if '__koopmans_name__' in dct:
@@ -75,22 +65,6 @@ def object_hook(dct):
         subdct = dct['__class__']
         module = import_module(subdct['__module__'])
         return getattr(module, subdct['__name__'])
-        
-        
-
-        # model_params: List[str] = []
-        # if 'model' in dct:
-        #     model = Ridge()
-        #     model_params = ['coef_', 'intercept_']
-        #     model_dct = dct['model']
-        # elif 'scaler' in dct:
-        #     model = StandardScaler()
-        #     model_params = ['mean_', 'scale_']
-        #     model_dct = dct['scaler']
-        # model.set_params(**model_dct['init_params'])
-        # for p in model_params:
-        #     setattr(model, p, np.asarray(model_dct['model_params'][p] ))
-        # return ase_json.object_hook(dct)
     else:
         if ('scaler' in dct or 'model' in 'dct'):
             def load_ml_model(model, model_dct):

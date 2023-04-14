@@ -94,20 +94,23 @@ class MeanModel(AbstractPredictor):
 class MLModel():
     def __init__(self, type_of_ml_model: str ='ridge_regression',
                  X_train: Optional[np.ndarray] = None, Y_train: Optional[np.ndarray] = None, 
-                 save_dir: Optional[Path]=None):
+                 save_dir: Optional[Path]=None, sub_dir: Optional[str] = None):
         self.X_train = X_train
         self.Y_train = Y_train
         self.type_of_ml_model = type_of_ml_model
-        self.model_class: AbstractPredictor = self.init_and_reset_model(save_dir)
+        self.model_class: AbstractPredictor = self.init_and_reset_model(save_dir, sub_dir)
 
-    def init_and_reset_model(self, save_dir: Optional[Path]=None) -> AbstractPredictor:
+    def init_and_reset_model(self, save_dir: Optional[Path]=None, sub_dir: Optional[str] = None) -> AbstractPredictor:
         model_class: AbstractPredictor
         model_classes = {'ridge_regression': RidgeRegressionModel, 'linear_regression': LinearRegressionModel, 'mean': MeanModel}
         cls = model_classes[self.type_of_ml_model]
         if save_dir is None:
             model_class = cls()
         else:
-            model_class = cls.load_from_file(save_dir)
+            if sub_dir is None:
+                model_class = cls.load_from_file(save_dir)
+            else:
+                model_class = cls.load_from_file(save_dir / sub_dir)
         return model_class
 
     def __repr__(self):

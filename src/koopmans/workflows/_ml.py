@@ -262,7 +262,6 @@ class MLFittingWorkflow(Workflow):
         else:
             self.ml.ml_model_occ.train()
             self.ml.ml_model_emp.train()
-
             save_dir_occ = self.dirs['trained_model'] / 'occ'
             save_dir_emp = self.dirs['trained_model'] / 'emp'
             save_dir_occ.mkdir(parents=True, exist_ok=True)

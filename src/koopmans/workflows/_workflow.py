@@ -155,8 +155,8 @@ class Workflow(ABC):
             if self.ml.occ_and_emp_together:
                 self.ml.ml_model = MLModel(type_of_ml_model = self.ml.type_of_ml_model, save_dir=self.ml.pretrained_model)
             else:
-                self.ml.ml_model_occ = MLModel(self.ml.type_of_ml_model, save_dir=self.ml.pretrained_model / 'occ')
-                self.ml.ml_model_emp = MLModel(self.ml.type_of_ml_model, save_dir=self.ml.pretrained_mode / 'emp') 
+                self.ml.ml_model_occ = MLModel(self.ml.type_of_ml_model, save_dir=self.ml.pretrained_model, sub_dir = 'occ')
+                self.ml.ml_model_emp = MLModel(self.ml.type_of_ml_model, save_dir=self.ml.pretrained_model, sub_dir = 'emp') 
 
         if all(self.atoms.pbc):
             self.atoms.wrap(pbc=True)
