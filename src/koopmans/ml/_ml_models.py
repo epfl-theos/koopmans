@@ -11,9 +11,6 @@ from sklearn.preprocessing import StandardScaler
 
 class AbstractPredictor(ABC):
 
-    def __init__(self) -> None:
-        self.is_trained: bool = False
-
     @abstractmethod
     def predict(self, x_test: np.ndarray) -> np.ndarray:
         ...
