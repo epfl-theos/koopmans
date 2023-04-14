@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Optional, Union
 
-import json
 import numpy as np
 from deepdiff import DeepDiff
 from sklearn.linear_model import Ridge
