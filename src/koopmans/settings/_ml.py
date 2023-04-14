@@ -75,6 +75,7 @@ class MLSettingsDict(SettingsDictWithChecks):
                 self.ml_model_occ: MLModel 
                 self.ml_model_emp: MLModel 
 
+    
     def todict(self):
         dct = super().todict()
         if self.use_ml:

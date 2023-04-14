@@ -258,8 +258,7 @@ class MLFittingWorkflow(Workflow):
         self.print('Training the ML model')
         if self.ml.occ_and_emp_together:
             self.ml.ml_model.train()
-
-            self.ml.ml_model.model.save_to_file(self.dirs['trained_model'])
+            self.ml.ml_model.model_class.save_to_file(self.dirs['trained_model'])
         else:
             self.ml.ml_model_occ.train()
             self.ml.ml_model_emp.train()
@@ -268,8 +267,8 @@ class MLFittingWorkflow(Workflow):
             save_dir_emp = self.dirs['trained_model'] / 'emp'
             save_dir_occ.mkdir(parents=True, exist_ok=True)
             save_dir_emp.mkdir(parents=True, exist_ok=True)
-            self.ml.ml_model_occ.model.save_to_file(save_dir_occ)
-            self.ml.ml_model_emp.model.save_to_file(save_dir_emp)
+            self.ml.ml_model_occ.model_class.save_to_file(save_dir_occ)
+            self.ml.ml_model_emp.model_class.save_to_file(save_dir_emp)
             
 
     def add_training_data(self, band: Band):
