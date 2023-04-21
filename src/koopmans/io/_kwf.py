@@ -18,6 +18,7 @@ from sklearn.preprocessing import StandardScaler
 
 from ase.io import jsonio as ase_json
 
+from koopmans.ml import AbstractPredictor
 import koopmans.workflows as workflows
 
 import numpy as np
@@ -113,7 +114,7 @@ def read_kwf(fd: TextIO):
     return decode(fd.read())
 
 
-def write_kwf(obj: Union[workflows.Workflow, dict], fd: TextIO):
+def write_kwf(obj: Union[workflows.Workflow, AbstractPredictor, dict], fd: TextIO):
     if isinstance(obj, workflows.Workflow):
         use_relpath = obj.parameters.use_relative_paths
         obj.parameters.use_relative_paths = True

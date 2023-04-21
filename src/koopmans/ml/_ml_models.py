@@ -1,7 +1,7 @@
 import copy
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Type, Union
 
 import numpy as np
 from deepdiff import DeepDiff
@@ -9,6 +9,9 @@ from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 
 class AbstractPredictor(ABC):
+
+    def __init__(self) -> None:
+        self.is_trained = False
 
     @abstractmethod
     def predict(self, x_test: np.ndarray) -> np.ndarray:
@@ -27,8 +30,9 @@ class AbstractPredictor(ABC):
         return cls(**dct)
 
     def save_to_file(self, save_dir: Path) -> None:
-        from koopmans.io import write
-        write(self, save_dir / f'model.kwf')
+        from koopmans.io import write_kwf
+        with open(save_dir / f'model.kwf', 'w') as fd:
+            write_kwf(self, fd)
 
     @classmethod
     def load_from_file(cls, save_dir: Path):
@@ -98,8 +102,8 @@ class MLModel():
 
     def init_and_reset_model(self, save_dir: Optional[Path]=None, sub_dir: Optional[str] = None) -> AbstractPredictor:
         model_class: AbstractPredictor
-        model_classes = {'ridge_regression': RidgeRegressionModel, 'linear_regression': LinearRegressionModel, 'mean': MeanModel}
-        cls = model_classes[self.type_of_ml_model]
+        model_classes: Dict[str, Type[AbstractPredictor]] = {'ridge_regression': RidgeRegressionModel, 'linear_regression': LinearRegressionModel, 'mean': MeanModel}
+        cls: Type[AbstractPredictor] = model_classes[self.type_of_ml_model]
         if save_dir is None:
             model_class = cls()
         else:
