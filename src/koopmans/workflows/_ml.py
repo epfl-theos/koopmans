@@ -52,6 +52,11 @@ class MLFittingWorkflow(Workflow):
             raise ValueError(
                 f"{self.ml.input_data_for_ml_model} is currently not implemented as a valid input for the ml model.")
 
+        self.dirs['trained_model'] = ml_dir / 'trained_model'
+        if not self.ml.occ_and_emp_together:
+            self.dirs['trained_model_occ'] = self.dirs['trained_model'] / 'occ'
+            self.dirs['trained_model_occ'] = self.dirs['trained_model'] / 'emp'
+
         for dir in self.dirs.values():
             dir.mkdir(parents=True, exist_ok=True)
 
@@ -262,10 +267,6 @@ class MLFittingWorkflow(Workflow):
         else:
             self.ml.ml_model_occ.train()
             self.ml.ml_model_emp.train()
-            save_dir_occ = self.dirs['trained_model'] / 'occ'
-            save_dir_emp = self.dirs['trained_model'] / 'emp'
-            save_dir_occ.mkdir(parents=True, exist_ok=True)
-            save_dir_emp.mkdir(parents=True, exist_ok=True)
             self.ml.ml_model_occ.model_class.save_to_file(save_dir_occ)
             self.ml.ml_model_emp.model_class.save_to_file(save_dir_emp)
             
