@@ -59,7 +59,7 @@ def test_ridge_save_to_and_load_non_empty_model_from_file(tmpdir):
         y_pred_out = ridge_out.predict(X_test)
         save_dir = Path('.') / 'trained_model'
         save_dir.mkdir(parents=True, exist_ok=True)
-        ridge_out.model_class.save_to_file(save_dir)
+        ridge_out.predictor.save_to_file(save_dir)
 
         ridge_in = MLModel('ridge_regression', save_dir=save_dir)
         y_pred_in = ridge_in.predict(X_test)
@@ -72,7 +72,7 @@ def test_ridge_save_to_and_load_empty_model_from_file(tmpdir):
         ridge_out = MLModel('ridge_regression')
         save_dir = Path('.') / 'trained_model'
         save_dir.mkdir(parents=True, exist_ok=True)
-        ridge_out.model_class.save_to_file(save_dir)
+        ridge_out.predictor.save_to_file(save_dir)
 
         ridge_in = MLModel('ridge_regression', save_dir=save_dir)
 

@@ -31,12 +31,12 @@ class MLSettingsDict(SettingsDictWithChecks):
             Setting('pretrained_model',
                     'If provided, load a pretrained model from this folder.',
                     Path, None, None),
-            Setting('criterium',
-                    'The criterium which has to be satisfied in order to use the ML-predicted screening coefficients '
+            Setting('criterion',
+                    'The criterion which has to be satisfied in order to use the ML-predicted screening coefficients '
                     'instead of computing them ab-initio',
                     str, 'after_fixed_num_of_snapshots', ('after_fixed_num_of_snapshots', )),
             Setting('number_of_training_snapshots',
-                    'Number of snapshots needed for the "after_fixed_num_of_snapshots"-criterium. In case of the '
+                    'Number of snapshots needed for the "after_fixed_num_of_snapshots"-criterion. In case of the '
                     'convergence_ml task, this number is taken to be the highest number of training samples for the '
                     'convergence analysis',
                     int, 1, None),

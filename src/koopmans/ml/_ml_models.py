@@ -22,23 +22,31 @@ class AbstractPredictor(ABC):
         ...
 
     def todict(self):
+        # Shallow copy of self.__dict__
         dct = dict(self.__dict__)
+
+        # Add additional information required by the json decoder
+        dct['__koopmans_name__'] = self.__class__.__name__
+        dct['__koopmans_module__'] = self.__class__.__module__
         return dct
 
     @classmethod
     def fromdict(cls, dct):
+        # Remove name and module if they're there
+        dct.pop('__koopmans_name__', None)
+        dct.pop('__koopmans_module__', None)
         return cls(**dct)
 
     def save_to_file(self, save_dir: Path) -> None:
         from koopmans.io import write_kwf
-        with open(save_dir / f'model.kwf', 'w') as fd:
+        with open(save_dir / f'{self.__class__.__name__.lower()}.kwf', 'w') as fd:
             write_kwf(self, fd)
 
     @classmethod
     def load_from_file(cls, save_dir: Path):
         from koopmans.io import read
-        dct = read(save_dir / f'model.kwf')
-        return cls.fromdict(dct)
+        predictor = read(save_dir / f'{cls.__name__.lower()}.kwf')
+        return predictor
     
 
 class RidgeRegressionModel(AbstractPredictor):
@@ -94,32 +102,32 @@ class MeanModel(AbstractPredictor):
 class MLModel():
     def __init__(self, type_of_ml_model: str ='ridge_regression',
                  X_train: Optional[np.ndarray] = None, Y_train: Optional[np.ndarray] = None, 
-                 save_dir: Optional[Path]=None, sub_dir: Optional[str] = None):
+                 save_dir: Optional[Path]=None):
         self.X_train = X_train
         self.Y_train = Y_train
         self.type_of_ml_model = type_of_ml_model
-        self.model_class: AbstractPredictor = self.init_and_reset_model(save_dir, sub_dir)
+        self.predictor: AbstractPredictor = self.init_and_reset_model(save_dir)
 
     def init_and_reset_model(self, save_dir: Optional[Path]=None, sub_dir: Optional[str] = None) -> AbstractPredictor:
-        model_class: AbstractPredictor
-        model_classes: Dict[str, Type[AbstractPredictor]] = {'ridge_regression': RidgeRegressionModel, 'linear_regression': LinearRegressionModel, 'mean': MeanModel}
-        cls: Type[AbstractPredictor] = model_classes[self.type_of_ml_model]
+        predictor: AbstractPredictor
+        predictor_classes: Dict[str, Type[AbstractPredictor]] = {'ridge_regression': RidgeRegressionModel, 'linear_regression': LinearRegressionModel, 'mean': MeanModel}
+        cls: Type[AbstractPredictor] = predictor_classes[self.type_of_ml_model]
         if save_dir is None:
-            model_class = cls()
+            predictor = cls()
         else:
             if sub_dir is None:
-                model_class = cls.load_from_file(save_dir)
+                predictor = cls.load_from_file(save_dir)
             else:
-                model_class = cls.load_from_file(save_dir / sub_dir)
-        return model_class
+                predictor = cls.load_from_file(save_dir / sub_dir)
+        return predictor
 
     def __repr__(self):
         if self.X_train and self.Y_train:
-            return f'{self.type_of_ml_model}(is_trained={self.model_class.is_trained}, ' \
+            return f'{self.type_of_ml_model}(is_trained={self.predictor.is_trained}, ' \
                    f'number_of_training_vectors={self.X_train.shape[0]}, ' \
                    f'input_vector_dimension={self.Y_train.shape[0]})'
         else:
-            return f'{self.type_of_ml_model}(is_trained={self.model_class.is_trained}, ' \
+            return f'{self.type_of_ml_model}(is_trained={self.predictor.is_trained}, ' \
                    'no training data has been added so far)'
 
     def todict(self):
@@ -129,9 +137,9 @@ class MLModel():
     
     @classmethod
     def fromdict(cls, dct: Dict):
-        predictor_class = dct.pop('model_class')
+        predictor_class = dct.pop('predictor')
         ml_model = cls(**dct)
-        ml_model.model_class = predictor_class
+        ml_model.predictor = predictor_class
         return ml_model
 
     def predict(self, x_test: np.ndarray):
@@ -139,8 +147,8 @@ class MLModel():
         Make a prediction of using the trained model.
         """
 
-        if self.model_class.is_trained:
-            y_predict = self.model_class.predict(x_test)
+        if self.predictor.is_trained:
+            y_predict = self.predictor.predict(x_test)
             return y_predict
         else:
             return np.array([1.0])  # dummy value
@@ -150,7 +158,7 @@ class MLModel():
         Reset the model and train the model (including the StandardScaler) with all training data added so far.
         """
         self.init_and_reset_model()
-        self.model_class.fit(self.X_train, self.Y_train)
+        self.predictor.fit(self.X_train, self.Y_train)
 
     def add_training_data(self, x_train: np.ndarray, y_train: Union[float, np.ndarray]):
         """
@@ -168,7 +176,7 @@ class MLModel():
             self.Y_train = np.concatenate([self.Y_train, y_train])
 
     def __eq__(self, other):
-        items_to_pop = ['model_class']
+        items_to_pop = ['predictor']
         if isinstance(other, MLModel):
             self_dict = copy.deepcopy(self.__dict__)
             other_dict = copy.deepcopy(other.__dict__)

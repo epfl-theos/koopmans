@@ -40,13 +40,15 @@ class KoopmansEncoder(ase_json.MyEncoder):
             model_params: List[str] = []
             if isinstance(obj, Ridge):
                 model_params = ['coef_', 'intercept_']
+                identifier = '__ridge__'
             elif isinstance(obj, StandardScaler):
                 model_params = ['mean_', 'scale_', 'n_samples_seen_', 'var_']
+                identifier = '__standardscaler__'
             d = {}
-            d['init_params'] = obj.get_params()
-            d['model_params'] = {}
-            for p in model_params:
-                d['model_params'][p] = getattr(obj, p).tolist()
+            d[f'{identifier}'] = {}
+            d[f'{identifier}']['init_params'] = obj.get_params()
+            d[f'{identifier}']['model_params'] = {}
+            d[f'{identifier}']['model_params'] = {p : getattr(obj, p).tolist() for p in model_params}
             return d
         # If none of the above, use ASE's encoder
         return super().default(obj)
@@ -66,23 +68,18 @@ def object_hook(dct):
         subdct = dct['__class__']
         module = import_module(subdct['__module__'])
         return getattr(module, subdct['__name__'])
+    elif '__standardscaler__' in dct or '__ridge__' in dct:
+        if '__standardscaler__' in dct:
+            model = StandardScaler()
+            model_dct = dct['__standardscaler__']
+        elif '__ridge__' in dct:
+            model = Ridge()
+            model_dct = dct['__ridge__']
+        model.set_params(**model_dct['init_params'])
+        for p in model_dct['model_params'].keys():
+            setattr(model, p, np.asarray(model_dct['model_params'][p]))
+        return model
     else:
-        if ('scaler' in dct or 'model' in 'dct'):
-            def load_ml_model(model, model_dct):
-                model.set_params(**model_dct['init_params'])
-                for p in model_dct['model_params'].keys():
-                    setattr(model, p, np.asarray(model_dct['model_params'][p] ))
-                return model
-            if 'scaler' in dct:
-                scaler = StandardScaler()
-                model_dct = dct.pop('scaler')
-                scaler = load_ml_model(scaler, model_dct)
-                dct['scaler'] = scaler
-            if 'model' in dct:
-                model = Ridge()
-                model_dct = dct.pop('model')
-                model = load_ml_model(model, model_dct)
-                dct['model'] = model
         # Patching bug in ASE where allocating an np.empty(dtype=str) will assume a particular length for each
         # string. dtype=object allows for individual strings to be different lengths
         if '__ndarray__' in dct:
