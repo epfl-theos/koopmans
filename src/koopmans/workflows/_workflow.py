@@ -645,7 +645,11 @@ class Workflow(ABC):
                 elif kw == 'kpath':
                     val = self.kpoints.path
                 elif kw == 'koffset':
-                    val = self.kpoints.offset
+                    if calc_class == calculators.PWCalculator and all_kwargs['calculation'] == 'nscf' or \
+                            calc_class == calculators.Wannier90Calculator and self.kpoints.offset_nscf is not None:
+                        val = self.kpoints.offset_nscf
+                    else:
+                        val = self.kpoints.offset
                 elif kw == 'gamma_only':
                     val = self.kpoints.gamma_only
                 elif kw == 'pseudo_dir':
