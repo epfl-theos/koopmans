@@ -11,7 +11,6 @@ class KoopmansScreenSettingsDict(SettingsDict):
                          defaults={'calculation': 'screen', 'tr2': 1.0e-18, 'nmix': 4, 'niter': 33,
                                    'check_spread': True, **kc_wann_defaults},
                          are_paths=['outdir', 'pseudo_dir'],
-                         to_not_parse=['assume_isolated'],
                          ** kwargs)
 
     @property

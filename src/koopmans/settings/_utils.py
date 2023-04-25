@@ -34,6 +34,9 @@ def parse_physical(value):
         elif len(splitline) == 2:
             [value, val_units] = splitline
             value = float(value)
+            if val_units == 'nelec':
+                # Leave 'nelec' untouched; it will be parsed later by replace_nelec()
+                return f'{value} nelec'
             matching_units = [
                 u for u in units if u.lower() == val_units.lower()]
             if len(matching_units) == 1:
@@ -65,7 +68,6 @@ class SettingsDict(UserDict):
     valid -- list of valid settings
     defaults -- dict of defaults for each setting
     are_paths -- list of settings that correspond to paths
-    to_not_parse -- list of settings that should not be parsed algebraically
     directory -- the directory in which the calculation is being run (used to enforce all path settings to be absolute
                  paths)
     physicals -- list of keywords that have accompanying units from input
@@ -78,17 +80,15 @@ class SettingsDict(UserDict):
     valid: List[str] = []
     data: Dict[str, Any] = {}
     are_paths: List[str] = []
-    to_not_parse: List[str] = []
     physicals: List[str] = []
 
     def __init__(self, valid: List[str], defaults: Dict[str, Any] = {}, are_paths: List[str] = [],
-                 to_not_parse: List[str] = [], directory='', physicals: List[str] = [], **kwargs):
+                 directory='', physicals: List[str] = [], **kwargs):
         super().__init__()
         self.valid = valid + self._other_valid_keywords
         self.are_paths = are_paths
         self.defaults = {k: v for k, v in defaults.items() if k not in self.are_paths}
         self.defaults.update(**{k: Path(v) for k, v in defaults.items() if k in self.are_paths})
-        self.to_not_parse = to_not_parse
         self.directory = directory if directory is not None else Path.cwd()
         self.physicals = physicals
         self.update(**defaults)
@@ -174,56 +174,12 @@ class SettingsDict(UserDict):
             raise KeyError(f'{key} is not a valid setting')
         return
 
-    def parse_algebraic_setting(self, expr, **kwargs):
-        # Checks if expr is defined algebraically, and evaluates them
-        if not isinstance(expr, str):
-            return expr
-        if all([c.isalpha() or c in ['_', '"', "'"] for c in expr]):
-            return expr.strip('"').strip("'")
-
-        for replace in [('/', ' / '), ('*', ' * '), ('-', ' - '), ('+', ' + '), ('e - ', 'e-'), ('e + ', 'e+')]:
-            expr = expr.replace(*replace)
-        expr = expr.split()
-
-        for i, term in enumerate(expr):
-            if term in ['*', '/', '+', '-']:
-                continue
-            elif all([c.isalpha() for c in term]):
-                if term in kwargs:
-                    expr[i] = kwargs[term]
-                elif getattr(self, term, None) is None:
-                    raise ValueError('Failed to parse ' + ''.join(map(str, expr)))
-                else:
-                    expr[i] = getattr(self, term)
-            elif len(expr) == 1 and any([c.isalpha() for c in term]):
-                return term.strip('"').strip("'")
-            else:
-                expr[i] = float(term)
-
-        value = float(expr[0])
-        for op, term in zip(expr[1::2], expr[2::2]):
-            if op == '*':
-                value *= float(term)
-            elif op == '/':
-                value /= float(term)
-            elif op == '+':
-                value += float(term)
-            elif op == '-':
-                value -= float(term)
-            else:
-                raise ValueError('Failed to parse ' + ''.join([str(e) for e in expr]))
-
-        return value
-
-    def parse_algebraic_settings(self, **kwargs):
-        # Checks self.parameters for keywords defined algebraically, and evaluates them.
-        # kwargs can be used to provide values for keywords such as 'nelec', which the
-        # SettingsDict may not have access to but is a useful keyword for scaling extensive
-        # parameters
-        for key in self.data.keys():
-            if key in self.to_not_parse:
-                continue
-            self.data[key] = self.parse_algebraic_setting(self.data[key], **kwargs)
+    def replace_nelec(self, nelec: int):
+        for k, v in self.items():
+            if isinstance(v, str):
+                v_list = v.replace('*', ' ').split()
+                if len(v_list) == 2 and v_list[1] == 'nelec':
+                    self[k] = float(v_list[0]) * nelec
 
     @property
     def _other_valid_keywords(self):

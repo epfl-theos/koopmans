@@ -42,7 +42,7 @@ configure_7:
 configure: configure_4 configure_7
 
 espresso_4:
-	@(cd quantum_espresso/kcp && $(MAKE) kcp)
+	@(cd quantum_espresso/kcp && $(MAKE) all)
 
 espresso_4_install:
 	@(cd quantum_espresso/kcp && $(MAKE) install PREFIX=$(PREFIX))

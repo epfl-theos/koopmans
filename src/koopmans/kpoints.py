@@ -53,7 +53,7 @@ class Kpoints:
         self.gamma_only = gamma_only
 
         if gamma_only:
-            if grid:
+            if grid and not grid == [1, 1, 1]:
                 raise ValueError(f'gamma_only = {gamma_only} and grid != None are incompatible')
             self.grid = None
             self.offset = [0, 0, 0]

@@ -61,9 +61,7 @@ valid_settings: List[Setting] = [
 class UnfoldAndInterpolateSettingsDict(SettingsDictWithChecks):
 
     def __init__(self, **kwargs):
-        super().__init__(settings=valid_settings,
-                         to_not_parse=[],
-                         **kwargs)
+        super().__init__(settings=valid_settings, **kwargs)
 
     @property
     def _other_valid_keywords(self):

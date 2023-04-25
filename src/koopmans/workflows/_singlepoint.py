@@ -16,6 +16,7 @@ import numpy as np
 from koopmans import utils
 
 from ._workflow import Workflow
+from koopmans.calculators import ProjwfcCalculator
 
 load_results_from_output = True
 
@@ -139,7 +140,8 @@ class SinglepointWorkflow(Workflow):
                         if not Path('pkipz/postproc').is_dir():
                             utils.system_call('mkdir pkipz/postproc')
                         for dir in ['wannier', 'TMP', 'pdos']:
-                            utils.system_call(f'rsync -a ki/postproc/{dir} pkipz/postproc/')
+                            if Path(f'ki/postproc/{dir}').exists():
+                                utils.system_call(f'rsync -a ki/postproc/{dir} pkipz/postproc/')
 
                     # KIPZ
                     utils.system_call('rsync -a ki/final/ kipz/init/')
@@ -150,7 +152,8 @@ class SinglepointWorkflow(Workflow):
                     if all(self.atoms.pbc) and self.calculator_parameters['ui'].do_smooth_interpolation:
                         # Copy over the smooth PBE calculation from KI for KIPZ to use
                         for dir in ['wannier', 'TMP', 'pdos']:
-                            utils.system_call(f'rsync -a ki/postproc/{dir} kipz/postproc/')
+                            if Path(f'ki/postproc/{dir}').exists():
+                                utils.system_call(f'rsync -a ki/postproc/{dir} kipz/postproc/')
 
         else:
             # self.functional != all and self.method != 'dfpt'

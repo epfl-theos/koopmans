@@ -8,6 +8,7 @@ Written by Edward Linscott Feb 2021
 
 import shutil
 from pathlib import Path
+from typing import Dict
 
 from koopmans import utils, pseudopotentials
 from koopmans.bands import Bands
@@ -39,6 +40,9 @@ class KoopmansDFPTWorkflow(Workflow):
                 raise ValueError(
                     'Calculating screening parameters with DFPT for a non-periodic system is only possible '
                     'with Kohn-Sham orbitals as the variational orbitals')
+        if self.parameters.dfpt_coarse_grid is not None and not self.parameters.calculate_alpha:
+            raise ValueError('Using a DFPT coarse grid to calculate the screening parameters is not possible '
+                             'when calculate_alpha = False')
         for params in self.calculator_parameters.values():
             if all(self.atoms.pbc):
                 # Gygi-Baldereschi
@@ -93,13 +97,20 @@ class KoopmansDFPTWorkflow(Workflow):
         nemp = ntot - nocc
         if self.parameters.orbital_groups is None:
             self.parameters.orbital_groups = [list(range(nocc + nemp))]
+        tols: Dict[str, float] = {}
+        for key in ['self_hartree', 'spread']:
+            val = self.parameters.get(f'orbital_groups_{key}_tol', None)
+            if val is not None:
+                tols[key] = val
         self.bands = Bands(n_bands=nocc + nemp, filling=[[True] * nocc + [False] * nemp],
-                           groups=self.parameters.orbital_groups)
+                           groups=self.parameters.orbital_groups, tolerances=tols)
 
         # Populating kpoints if absent
         if not all(self.atoms.pbc):
             for key in ['pw', 'kc_screen']:
                 self.calculator_parameters[key].kpts = [1, 1, 1]
+
+        self._perform_ham_calc: bool = True
 
     def _run(self):
         '''
@@ -115,6 +126,15 @@ class KoopmansDFPTWorkflow(Workflow):
                 output_directory = Path(output_directory)
                 if output_directory.exists():
                     shutil.rmtree(output_directory)
+
+        if self.parameters.dfpt_coarse_grid is not None:
+            self.print('Coarse grid calculations', style='heading')
+            coarse_wf = self.__class__.fromparent(self)
+            coarse_wf.parameters.dfpt_coarse_grid = None
+            coarse_wf.kpoints.grid = self.parameters.dfpt_coarse_grid
+            coarse_wf._perform_ham_calc = False
+            coarse_wf.run(subdirectory='coarse_grid')
+            self.print('Regular grid calculations', style='heading')
 
         if all(self.atoms.pbc):
             # Run PW and Wannierization
@@ -156,33 +176,39 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Calculate screening parameters
         if self.parameters.calculate_alpha:
-            self.print('Calculation of screening parameters', style='heading')
-            all_groups = [g for gspin in self.parameters.orbital_groups for g in gspin]
-            if len(set(all_groups)) == len(all_groups):
-                # If there is no orbital grouping, do all orbitals in one calculation
-                # 1) Create the calculator
-                kc_screen_calc = self.new_calculator('kc_screen')
+            if self.parameters.dfpt_coarse_grid is None:
+                self.print('Calculation of screening parameters', style='heading')
 
-                # 2) Run the calculator
-                self.run_calculator(kc_screen_calc)
+                # Group the bands by spread
+                self.bands.assign_groups(sort_by='spread', allow_reassignment=True)
 
-                # 3) Store the computed screening parameters
-                self.bands.alphas = kc_screen_calc.results['alphas']
-            else:
-                # If there is orbital grouping, do the orbitals one-by-one
-                for band in self.bands.to_solve:
-                    # 1) Create the calculator (in a subdirectory)
-                    kc_screen_calc = self.new_calculator('kc_screen', i_orb=band.index)
-                    kc_screen_calc.directory /= f'band_{band.index}'
+                if len(self.bands.to_solve) == len(self.bands):
+                    # If there is no orbital grouping, do all orbitals in one calculation
+                    # 1) Create the calculator
+                    kc_screen_calc = self.new_calculator('kc_screen')
 
                     # 2) Run the calculator
                     self.run_calculator(kc_screen_calc)
 
-                    # 3) Store the computed screening parameter (accounting for band groupings)
-                    for b in self.bands:
-                        if b.group == band.group:
-                            alpha = kc_screen_calc.results['alphas'][band.spin]
-                            b.alpha = alpha[band.spin]
+                    # 3) Store the computed screening parameters
+                    self.bands.alphas = kc_screen_calc.results['alphas']
+                else:
+                    # If there is orbital grouping, do the orbitals one-by-one
+                    for band in self.bands.to_solve:
+                        # 1) Create the calculator (in a subdirectory)
+                        kc_screen_calc = self.new_calculator('kc_screen', i_orb=band.index)
+                        kc_screen_calc.directory /= f'band_{band.index}'
+
+                        # 2) Run the calculator
+                        self.run_calculator(kc_screen_calc)
+
+                        # 3) Store the computed screening parameter (accounting for band groupings)
+                        for b in self.bands:
+                            if b.group == band.group:
+                                alpha = kc_screen_calc.results['alphas'][band.spin]
+                                b.alpha = alpha[band.spin]
+            else:
+                self.bands.alphas = coarse_wf.bands.alphas
         else:
             # Load the alphas
             if self.parameters.alpha_from_file:
@@ -191,31 +217,33 @@ class KoopmansDFPTWorkflow(Workflow):
                 self.bands.alphas = self.parameters.alpha_guess
 
         # Calculate the Hamiltonian
-        self.print('Construction of the Hamiltonian', style='heading')
-        kc_ham_calc = self.new_calculator('kc_ham', kpts=self.kpoints.path)
+        if self._perform_ham_calc:
+            self.print('Construction of the Hamiltonian', style='heading')
+            kc_ham_calc = self.new_calculator('kc_ham', kpts=self.kpoints.path)
 
-        if self.parameters.calculate_alpha and kc_ham_calc.parameters.lrpa != kc_screen_calc.parameters.lrpa:
-            raise ValueError('Do not set "lrpa" to different values in the "screen" and "ham" blocks')
-        self.run_calculator(kc_ham_calc)
+            if self.parameters.calculate_alpha and self.parameters.dfpt_coarse_grid is None:
+                if kc_ham_calc.parameters.lrpa != kc_screen_calc.parameters.lrpa:
+                    raise ValueError('Do not set "lrpa" to different values in the "screen" and "ham" blocks')
+            self.run_calculator(kc_ham_calc)
 
-        # Postprocessing
-        if all(self.atoms.pbc) and self.projections and self.kpoints.path is not None \
-                and self.calculator_parameters['ui'].do_smooth_interpolation:
-            from koopmans.workflows import UnfoldAndInterpolateWorkflow
-            self.print(f'\nPostprocessing', style='heading')
-            ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(self)
-            ui_workflow.run(subdirectory='postproc')
+            # Postprocessing
+            if all(self.atoms.pbc) and self.projections and self.kpoints.path is not None \
+                    and self.calculator_parameters['ui'].do_smooth_interpolation:
+                from koopmans.workflows import UnfoldAndInterpolateWorkflow
+                self.print(f'\nPostprocessing', style='heading')
+                ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(self)
+                ui_workflow.run(subdirectory='postproc')
 
-        # Plotting
-        self.plot_bandstructure()
+            # Plotting
+            self.plot_bandstructure()
 
     def plot_bandstructure(self):
         if not all(self.atoms.pbc):
             return
 
         # Identify the relevant calculators
-        [wann2kc_calc] = [c for c in self.calculations if isinstance(c, Wann2KCCalculator)]
-        [kc_ham_calc] = [c for c in self.calculations if isinstance(c, KoopmansHamCalculator)]
+        wann2kc_calc = [c for c in self.calculations if isinstance(c, Wann2KCCalculator)][-1]
+        kc_ham_calc = [c for c in self.calculations if isinstance(c, KoopmansHamCalculator)][-1]
 
         # Plot the bandstructure if the band path has been specified
         bs = kc_ham_calc.results['band structure']

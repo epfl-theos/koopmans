@@ -29,7 +29,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     str, None, None),
             Setting('pseudo_directory',
                     'the folder containing the pseudopotentials to use (mutually exclusive with "pseudo_library")',
-                    (str, Path), None, None),
+                    Path, None, None),
             Setting('method',
                     'the method to calculate the screening parameters: either with ΔSCF or DFPT',
                     str, 'dscf', ('dscf', 'dfpt')),
@@ -71,7 +71,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'dielectric constant of the system used by the Gygi-Baldereschi and Makov-Payne corrections; '
                     'either provide an explicit value or set to "auto" to calculate it ab initio',
                     (float, str), None, None),
-            Setting('n_max_sc_steps',
+            Setting('alpha_numsteps',
                     'maximum number of self-consistency steps for calculating alpha',
                     int, 1, None),
             Setting('alpha_conv_thr',
@@ -81,6 +81,9 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('alpha_guess',
                     'starting guess for alpha (overridden if alpha_from_file is true)',
                     (float, list), 0.6, None),
+            Setting('alpha_mixing',
+                    'mixing parameter for updating alpha',
+                    float, 1.0, None),
             Setting('alpha_from_file',
                     'if True, uses the file_alpharef.txt from the base directory as a '
                     'starting guess',
@@ -101,6 +104,10 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'together only if their self-Hartree energy is within this '
                     'threshold',
                     float, None, None),
+            Setting('orbital_groups_spread_tol',
+                    'when calculating alpha parameters, the code will group orbitals '
+                    'together only if their spread is within this threshold',
+                    float, None, None),
             Setting('convergence_observable',
                     'System observable of interest which we converge',
                     str, 'total energy', None),
@@ -111,6 +118,9 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'The observable of interest will be converged with respect to this/these '
                     'simulation parameter(s)',
                     (list, str), ['ecutwfc'], None),
+            Setting('dfpt_coarse_grid',
+                    'The coarse k-point grid on which to perform the DFPT calculations',
+                    list, None, None),
             Setting('eps_cavity',
                     'a list of epsilon_infinity values for the cavity in dscf calculations',
                     list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None)]
