@@ -26,7 +26,7 @@ class Kpoints:
     offset : List[int]
         a list of three integers, either zero or one. If one, the regular k-point grid is offset by half a grid step
         in that dimension
-    offset_nscf : List[Union[int, float]]
+    offset_nscf : Union[List[Union[int, float]]], int, float]
         a list of three numbers, within the interval (-1, 1].
         It has the same meaning of offset, but it is applied only to the grid of PWnscf calculations. Additionally it allows to provide explicitly any fractional offset.
     path : ase.dft.kpoints.BandPath
@@ -43,8 +43,9 @@ class Kpoints:
     gamma_only: bool
 
     def __init__(self, grid: Optional[List[int]] = [1, 1, 1], offset: Optional[List[int]] = [0, 0, 0],
-                 offset_nscf: Optional[List[Union[int, float]]] = None, path: Optional[Union[str, BandPath]] = None,
-                 gamma_only: bool = False, cell: Optional[Cell] = None, density: float = 10.0):
+                 offset_nscf: Optional[Union[List[Union[int, float]], int, float]] = None,
+                 path: Optional[Union[str, BandPath]] = None, gamma_only: bool = False, cell: Optional[Cell] = None,
+                 density: float = 10.0):
         """
         Initialize a Kpoint object. The path can be initialized using a string, but if so the additional requirements
         density and cell are required, where...
@@ -111,7 +112,7 @@ class Kpoints:
         return self._offset_nscf
 
     @offset_nscf.setter
-    def offset_nscf(self, value: Optional[List[Union[int, float]]]):
+    def offset_nscf(self, value: Optional[Union[List[Union[int, float]], int, float]]):
         if isinstance(value, list):
             if len(value) != 3:
                 raise ValueError('"offset" must be a list of three numbers')
