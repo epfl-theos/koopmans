@@ -645,8 +645,8 @@ class Workflow(ABC):
                 elif kw == 'kpath':
                     val = self.kpoints.path
                 elif kw == 'koffset':
-                    if calc_class == calculators.PWCalculator and all_kwargs['calculation'] == 'nscf' or \
-                            calc_class == calculators.Wannier90Calculator and self.kpoints.offset_nscf is not None:
+                    if (calc_class == calculators.PWCalculator and all_kwargs['calculation'] == 'nscf' or \
+                            calc_class == calculators.Wannier90Calculator) and self.kpoints.offset_nscf is not None:
                         val = self.kpoints.offset_nscf
                     else:
                         val = self.kpoints.offset
