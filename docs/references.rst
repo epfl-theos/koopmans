@@ -7,7 +7,7 @@ Selected references
 The central paper describing Koopmans functionals and the ``koopmans`` code is
 
 .. bibliography::
-  :style: plain
+  :style: unsrt
   :filter: False
   :list: bullet
 
@@ -18,7 +18,7 @@ In any publications arising from the use of ``koopmans``, please cite this paper
 **Papers introducing Koopmans functionals**
 
 .. bibliography::
-  :style: plain
+  :style: unsrt
   :filter: False
   :list: bullet
 
@@ -30,7 +30,7 @@ In any publications arising from the use of ``koopmans``, please cite this paper
 **Linear-response formalism**
 
 .. bibliography::
-  :style: plain
+  :style: unsrt
   :filter: False
   :list: bullet
 
@@ -39,18 +39,19 @@ In any publications arising from the use of ``koopmans``, please cite this paper
 **Application to molecules**
 
 .. bibliography::
-  :style: plain
+  :style: unsrt
   :filter: False
   :list: bullet
 
   Dabo2013
+  Nguyen2015
   Nguyen2016
   Colonna2019
 
 **Application to solids**
 
 .. bibliography::
-  :style: plain
+  :style: unsrt
   :filter: False
   :list: bullet
 
@@ -62,5 +63,5 @@ All references
 --------------
 
 .. bibliography::
-  :style: plain
+  :style: unsrt
   :all:
