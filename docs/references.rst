@@ -9,7 +9,7 @@ The central paper describing Koopmans functionals and the ``koopmans`` code is
 .. bibliography::
   :style: plain
   :filter: False
-  :list: enumerated
+  :list: bullet
 
   Linscott2023
 
@@ -20,8 +20,7 @@ In any publications arising from the use of ``koopmans``, please cite this paper
 .. bibliography::
   :style: plain
   :filter: False
-  :list: enumerated
-  :start: continue
+  :list: bullet
 
   Dabo2009
   Dabo2010
@@ -33,8 +32,7 @@ In any publications arising from the use of ``koopmans``, please cite this paper
 .. bibliography::
   :style: plain
   :filter: False
-  :list: enumerated
-  :start: continue
+  :list: bullet
 
   Colonna2018
 
@@ -43,8 +41,7 @@ In any publications arising from the use of ``koopmans``, please cite this paper
 .. bibliography::
   :style: plain
   :filter: False
-  :list: enumerated
-  :start: continue
+  :list: bullet
 
   Dabo2013
   Nguyen2016
@@ -55,8 +52,7 @@ In any publications arising from the use of ``koopmans``, please cite this paper
 .. bibliography::
   :style: plain
   :filter: False
-  :list: enumerated
-  :start: continue
+  :list: bullet
 
   Nguyen2018
   Colonna2022
