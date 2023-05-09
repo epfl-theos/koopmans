@@ -102,23 +102,24 @@ class MeanModel(AbstractPredictor):
 class MLModel():
     def __init__(self, type_of_ml_model: str ='ridge_regression',
                  X_train: Optional[np.ndarray] = None, Y_train: Optional[np.ndarray] = None, 
-                 save_dir: Optional[Path]=None):
+                 save_dir: Optional[Path]=None, predictor:Optional[AbstractPredictor] = None):
         self.X_train = X_train
         self.Y_train = Y_train
         self.type_of_ml_model = type_of_ml_model
-        self.predictor: AbstractPredictor = self.init_and_reset_model(save_dir)
+        self.predictor: AbstractPredictor
+        if predictor is None:
+            self.predictor = self.init_and_reset_model(save_dir)
+        else:
+            self.predictor = predictor
 
-    def init_and_reset_model(self, save_dir: Optional[Path]=None, sub_dir: Optional[str] = None) -> AbstractPredictor:
+    def init_and_reset_model(self, save_dir: Optional[Path]=None) -> AbstractPredictor:
         predictor: AbstractPredictor
         predictor_classes: Dict[str, Type[AbstractPredictor]] = {'ridge_regression': RidgeRegressionModel, 'linear_regression': LinearRegressionModel, 'mean': MeanModel}
         cls: Type[AbstractPredictor] = predictor_classes[self.type_of_ml_model]
         if save_dir is None:
             predictor = cls()
         else:
-            if sub_dir is None:
-                predictor = cls.load_from_file(save_dir)
-            else:
-                predictor = cls.load_from_file(save_dir / sub_dir)
+            predictor = cls.load_from_file(save_dir)            
         return predictor
 
     def __repr__(self):
@@ -137,10 +138,7 @@ class MLModel():
     
     @classmethod
     def fromdict(cls, dct: Dict):
-        predictor_class = dct.pop('predictor')
-        ml_model = cls(**dct)
-        ml_model.predictor = predictor_class
-        return ml_model
+        return cls(**dct)
 
     def predict(self, x_test: np.ndarray):
         """
