@@ -72,5 +72,5 @@ All references
 --------------
 
 .. bibliography::
-  :style: abbrevunsrt
+  :style: plainabbrev
   :all:

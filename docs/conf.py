@@ -13,6 +13,7 @@ from datetime import date
 
 import pybtex.plugin
 import sphinx_rtd_theme
+from pybtex.style.formatting.plain import Style as PlainStyle
 from pybtex.style.formatting.unsrt import Style as UnsrtStyle
 from pybtex.style.sorting import BaseSortingStyle
 from sphinx_pyproject import SphinxConfig
@@ -96,10 +97,10 @@ class MyChronoStyle(UnsrtStyle):
 pybtex.plugin.register_plugin('pybtex.style.formatting', 'chrono', MyChronoStyle)
 
 
-class MyAbbrevUnsrtStyle(UnsrtStyle):
+class MyAbbrevPlainStyle(PlainStyle):
     def __init__(self, *args, **kwargs):
         kwargs.update(abbreviate_names=True)
         return super().__init__(*args, **kwargs)
 
 
-pybtex.plugin.register_plugin('pybtex.style.formatting', 'abbrevunsrt', MyAbbrevUnsrtStyle)
+pybtex.plugin.register_plugin('pybtex.style.formatting', 'plainabbrev', MyAbbrevPlainStyle)
