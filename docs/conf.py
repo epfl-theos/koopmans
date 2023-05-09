@@ -8,8 +8,13 @@
 
 import os
 import sys
+from calendar import month_name
+from datetime import date
 
+import pybtex.plugin
 import sphinx_rtd_theme
+from pybtex.style.formatting.unsrt import Style as UnsrtStyle
+from pybtex.style.sorting import BaseSortingStyle
 from sphinx_pyproject import SphinxConfig
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -68,3 +73,33 @@ master_doc = 'index'
 autodoc_typehints = 'none'
 autodoc_mock_imports = ['ase']
 numpydoc_show_class_members = False
+
+# -- Chronological bibliography style -----------------------------------------
+
+
+class ChronoSortingStyle(BaseSortingStyle):
+    def sort(self, entries):
+        def get_date(entry):
+            month_lookup = list(month_name)
+            year = int(entry.fields['year'])
+            month = month_lookup.index(entry.fields.get('month', 'January'))
+            return date(year, month, 1)
+        return sorted(entries, key=get_date)
+
+
+class MyChronoStyle(UnsrtStyle):
+    def __init__(self, *args, **kwargs):
+        kwargs.update(sorting_style=ChronoSortingStyle, abbreviate_names=True)
+        return super().__init__(*args, **kwargs)
+
+
+pybtex.plugin.register_plugin('pybtex.style.formatting', 'chrono', MyChronoStyle)
+
+
+class MyAbbrevUnsrtStyle(UnsrtStyle):
+    def __init__(self, *args, **kwargs):
+        kwargs.update(abbreviate_names=True)
+        return super().__init__(*args, **kwargs)
+
+
+pybtex.plugin.register_plugin('pybtex.style.formatting', 'abbrevunsrt', MyAbbrevUnsrtStyle)

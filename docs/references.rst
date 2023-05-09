@@ -4,21 +4,21 @@ References
 Selected references
 -------------------
 
-The central paper describing Koopmans functionals and the ``koopmans`` code is
+In any publication arising from the use of Koopmans functionals and/or the ``koopmans`` code, please cite
 
 .. bibliography::
-  :style: unsrt
+  :style: chrono
   :filter: False
   :list: bullet
 
   Linscott2023
 
-In any publications arising from the use of ``koopmans``, please cite this paper, alongside any relevant papers from the following lists:
+Other relevant references include
 
 **Papers introducing Koopmans functionals**
 
 .. bibliography::
-  :style: unsrt
+  :style: chrono
   :filter: False
   :list: bullet
 
@@ -30,7 +30,7 @@ In any publications arising from the use of ``koopmans``, please cite this paper
 **Linear-response formalism**
 
 .. bibliography::
-  :style: unsrt
+  :style: chrono
   :filter: False
   :list: bullet
 
@@ -39,7 +39,7 @@ In any publications arising from the use of ``koopmans``, please cite this paper
 **Application to molecules**
 
 .. bibliography::
-  :style: unsrt
+  :style: chrono
   :filter: False
   :list: bullet
 
@@ -51,7 +51,7 @@ In any publications arising from the use of ``koopmans``, please cite this paper
 **Application to solids**
 
 .. bibliography::
-  :style: unsrt
+  :style: chrono
   :filter: False
   :list: bullet
 
@@ -59,9 +59,18 @@ In any publications arising from the use of ``koopmans``, please cite this paper
   Colonna2022
   DeGennaro2022
 
+**Connection with many-body formulations**
+
+.. bibliography::
+  :style: chrono
+  :filter: False
+  :list: bullet
+
+  Ferretti2014
+
 All references
 --------------
 
 .. bibliography::
-  :style: unsrt
+  :style: abbrevunsrt
   :all:
