@@ -187,11 +187,12 @@ class WannierizeWorkflow(Workflow):
                 ibands_split_dct = {spin: lst for spin, lst in zip(spins, ibands_split_list)}
             else:
                 # Split valence and conduction
-                ibands_split_dct = {spin: [range(1, n_occ_bands + 1), range(n_occ_bands + 1,
-                                                                            self.projections.num_wann(spin) + 1)] for spin in spins}
+                ibands_split_dct = {spin: [list(range(1, n_occ_bands + 1)), list(range(n_occ_bands + 1,
+                                                                                       self.projections.num_wann(spin) + 1))] for spin in spins}
 
             # Loop over the various subblocks that we must wannierize separately
             for block in copy.deepcopy(self.projections):
+                # Count the number of subblocks that this block overlaps with
                 overlaps = [len(set(b).intersection(block.include_bands)) > 0 for b in ibands_split_dct[block.spin]]
                 if overlaps.count(True) > 1:
                     # Block needs breaking up using wjl splitvc
@@ -563,8 +564,10 @@ class WannierizeWorkflow(Workflow):
         assert isinstance(block.directory, Path)
         w90_dir = Path('wannier') / block.directory
         assert block.include_bands is not None
-        calc_wjl: calculators.WannierJLCalculator = self.new_calculator('wjl', directory=w90_dir, indices=groups,
-                                                                        outdirs=[b.directory for b in new_blocks])
+        block_outdirs = [b.directory if b.directory is None else w90_dir.parent.absolute() /
+                         b.directory for b in new_blocks]
+        calc_wjl: calculators.WannierJLCalculator = self.new_calculator(
+            'wjl', directory=w90_dir, indices=groups, outdirs=block_outdirs)
         calc_wjl.prefix = 'wann'
         self.run_calculator(calc_wjl)
 
