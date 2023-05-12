@@ -3,7 +3,7 @@ name = "koopmans"
 version = "1.0.0-rc.1"
 description = "Koopmans spectral functional calculations with python and Quantum ESPRESSO"
 readme = "README_pypi.rst"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 authors = [
     { name = "Edward Linscott", email = "edward.linscott@epfl.ch" },
     { name = "Riccardo De Gennaro", email = "riccardo.degennaro@epfl.ch" },
@@ -13,7 +13,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
