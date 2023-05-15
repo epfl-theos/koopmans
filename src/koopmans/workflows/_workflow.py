@@ -153,10 +153,16 @@ class Workflow(ABC):
         # Initialize the MLModel
         if self.ml.use_ml:
             if self.ml.occ_and_emp_together:
-                self.ml.ml_model = MLModel(self.ml.type_of_ml_model)
+                self.ml.ml_model = MLModel(type_of_ml_model = self.ml.type_of_ml_model, save_dir=self.ml.pretrained_model)
             else:
-                self.ml.ml_model_occ = MLModel(self.ml.type_of_ml_model)
-                self.ml.ml_model_emp = MLModel(self.ml.type_of_ml_model)
+                if self.ml.pretrained_model is None:
+                    save_dir_occ = None
+                    save_dir_emp = None
+                else:
+                    save_dir_occ = self.ml.pretrained_model / 'occ'
+                    save_dir_emp = self.ml.pretrained_model / 'emp'
+                self.ml.ml_model_occ = MLModel(self.ml.type_of_ml_model, save_dir=save_dir_occ)
+                self.ml.ml_model_emp = MLModel(self.ml.type_of_ml_model, save_dir=save_dir_emp) 
 
         if all(self.atoms.pbc):
             self.atoms.wrap(pbc=True)
@@ -868,6 +874,7 @@ class Workflow(ABC):
             else:
                 self.ml.ml_model_occ = self.parent.ml.ml_model_occ
                 self.ml.ml_model_emp = self.parent.ml.ml_model_emp
+
 
         # Link the bands
         if hasattr(self.parent, 'bands'):

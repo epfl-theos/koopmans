@@ -33,6 +33,7 @@ class MLFittingWorkflow(Workflow):
         if self.ml.input_data_for_ml_model == 'orbital_density':
             self.dirs = {
                 'ml': ml_dir,
+                'trained_model': ml_dir / 'trained_model',
                 'xml': ml_dir / 'xml',
                 'alphas': ml_dir / 'alphas',
                 'betas': ml_dir / 'betas',
@@ -44,11 +45,17 @@ class MLFittingWorkflow(Workflow):
         elif self.ml.input_data_for_ml_model == 'self_hartree':
             self.dirs = {
                 'ml': ml_dir,
+                'trained_model': ml_dir / 'trained_model',
                 'SH': ml_dir / 'SH'
             }
         else:
             raise ValueError(
                 f"{self.ml.input_data_for_ml_model} is currently not implemented as a valid input for the ml model.")
+
+        self.dirs['trained_model'] = ml_dir / 'trained_model'
+        if not self.ml.occ_and_emp_together:
+            self.dirs['trained_model_occ'] = self.dirs['trained_model'] / 'occ'
+            self.dirs['trained_model_emp'] = self.dirs['trained_model'] / 'emp'
 
         for dir in self.dirs.values():
             dir.mkdir(parents=True, exist_ok=True)
@@ -256,9 +263,13 @@ class MLFittingWorkflow(Workflow):
         self.print('Training the ML model')
         if self.ml.occ_and_emp_together:
             self.ml.ml_model.train()
+            self.ml.ml_model.predictor.save_to_file(self.dirs['trained_model'])
         else:
             self.ml.ml_model_occ.train()
             self.ml.ml_model_emp.train()
+            self.ml.ml_model_occ.predictor.save_to_file(self.dirs['trained_model_occ'])
+            self.ml.ml_model_emp.predictor.save_to_file(self.dirs['trained_model_emp'])
+            
 
     def add_training_data(self, band: Band):
         """
@@ -299,7 +310,7 @@ class MLFittingWorkflow(Workflow):
 
     def use_prediction(self) -> bool:
         """
-        Check if the prediction criterium specified by the user is satisfied.
+        Check if the prediction criterion specified by the user is satisfied.
 
         If True: use the ML-prediction for the alpha value
         If False: compute this alpha value ab-initio
@@ -307,13 +318,13 @@ class MLFittingWorkflow(Workflow):
 
         # Default is to not use the prediction
         use_prediction = False
-        if self.ml.criterium == 'after_fixed_num_of_snapshots':
+        if self.ml.criterion == 'after_fixed_num_of_snapshots':
             if self.ml.current_snapshot < self.ml.number_of_training_snapshots:
                 use_prediction = False
             else:
                 use_prediction = True
         else:
-            raise NotImplementedError(f'criterium = {self.ml.criterium} is currently not implemented')
+            raise NotImplementedError(f'criterion = {self.ml.criterion} is currently not implemented')
         if use_prediction:
             self.print('Predicting the screening parameter with the ML model')
 

@@ -11,11 +11,17 @@ import json
 import os
 from importlib import import_module
 from pathlib import Path
-from typing import TextIO, Union
+from typing import List, TextIO, Union
+from sklearn.linear_model import Ridge
+from sklearn.preprocessing import StandardScaler
+
 
 from ase.io import jsonio as ase_json
 
+from koopmans.ml import AbstractPredictor
 import koopmans.workflows as workflows
+
+import numpy as np
 
 
 class KoopmansEncoder(ase_json.MyEncoder):
@@ -30,7 +36,20 @@ class KoopmansEncoder(ase_json.MyEncoder):
             d = obj.todict()
             if '__koopmans_name__' in d:
                 return d
-
+        elif (isinstance(obj, Ridge) or isinstance(obj, StandardScaler)):
+            model_params: List[str] = []
+            if isinstance(obj, Ridge):
+                model_params = ['coef_', 'intercept_']
+                identifier = '__ridge__'
+            elif isinstance(obj, StandardScaler):
+                model_params = ['mean_', 'scale_', 'n_samples_seen_', 'var_']
+                identifier = '__standardscaler__'
+            d = {}
+            d[f'{identifier}'] = {}
+            d[f'{identifier}']['init_params'] = obj.get_params()
+            d[f'{identifier}']['model_params'] = {}
+            d[f'{identifier}']['model_params'] = {p : getattr(obj, p).tolist() for p in model_params}
+            return d
         # If none of the above, use ASE's encoder
         return super().default(obj)
 
@@ -49,6 +68,17 @@ def object_hook(dct):
         subdct = dct['__class__']
         module = import_module(subdct['__module__'])
         return getattr(module, subdct['__name__'])
+    elif '__standardscaler__' in dct or '__ridge__' in dct:
+        if '__standardscaler__' in dct:
+            model = StandardScaler()
+            model_dct = dct['__standardscaler__']
+        elif '__ridge__' in dct:
+            model = Ridge()
+            model_dct = dct['__ridge__']
+        model.set_params(**model_dct['init_params'])
+        for p in model_dct['model_params'].keys():
+            setattr(model, p, np.asarray(model_dct['model_params'][p]))
+        return model
     else:
         # Patching bug in ASE where allocating an np.empty(dtype=str) will assume a particular length for each
         # string. dtype=object allows for individual strings to be different lengths
@@ -81,7 +111,7 @@ def read_kwf(fd: TextIO):
     return decode(fd.read())
 
 
-def write_kwf(obj: Union[workflows.Workflow, dict], fd: TextIO):
+def write_kwf(obj: Union[workflows.Workflow, AbstractPredictor, dict], fd: TextIO):
     if isinstance(obj, workflows.Workflow):
         use_relpath = obj.parameters.use_relative_paths
         obj.parameters.use_relative_paths = True

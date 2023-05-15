@@ -1,6 +1,8 @@
-from typing import Any, List
+from pathlib import Path
+from typing import Any, List, Optional
 
 from koopmans import utils
+from koopmans.ml import MLModel
 
 from ._utils import Setting, SettingsDictWithChecks
 
@@ -26,12 +28,15 @@ class MLSettingsDict(SettingsDictWithChecks):
                     'The width of the broadest radial basis function. If a list is provided in the '
                     'convergence_ml-task, a grid search will be performed',
                     (float, list), 4.0, None),
-            Setting('criterium',
-                    'The criterium which has to be satisfied in order to use the ML-predicted screening coefficients '
+            Setting('pretrained_model',
+                    'If provided, load a pretrained model from this folder.',
+                    Path, None, None),
+            Setting('criterion',
+                    'The criterion which has to be satisfied in order to use the ML-predicted screening coefficients '
                     'instead of computing them ab-initio',
                     str, 'after_fixed_num_of_snapshots', ('after_fixed_num_of_snapshots', )),
             Setting('number_of_training_snapshots',
-                    'Number of snapshots needed for the "after_fixed_num_of_snapshots"-criterium. In case of the '
+                    'Number of snapshots needed for the "after_fixed_num_of_snapshots"-criterion. In case of the '
                     'convergence_ml task, this number is taken to be the highest number of training samples for the '
                     'convergence analysis',
                     int, 1, None),
@@ -62,3 +67,22 @@ class MLSettingsDict(SettingsDictWithChecks):
         ]
 
         super().__init__(settings=valid_settings, **kwargs)
+
+        if self.use_ml:
+            if self.occ_and_emp_together:
+                self.ml_model: MLModel 
+            else:
+                self.ml_model_occ: MLModel 
+                self.ml_model_emp: MLModel 
+
+    
+    def todict(self):
+        dct = super().todict()
+        if self.use_ml:
+            if self.occ_and_emp_together:
+                dct['ml_model'] = self.ml_model.todict()
+            else:
+                dct['ml_model_occ'] = self.ml_model_occ.todict()
+                dct['ml_model_emp'] = self.ml_model_emp.todict()
+        return dct
+        
