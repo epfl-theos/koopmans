@@ -35,7 +35,7 @@ def read_xml_nr(xml_file: Path, string: str = 'EFFECTIVE-POTENTIAL') -> List[int
     return _get_nr(branch)
 
 
-def read_xml_array(xml_file: Path, norm_const: float, string: str = 'EFFECTIVE-POTENTIAL') -> np.ndarray:
+def read_xml_array(xml_file: Path, norm_const: float, string: str = 'EFFECTIVE-POTENTIAL', in_xsf_format: bool=False) -> np.ndarray:
     """
     Loads an array from an xml file
     """
@@ -60,4 +60,7 @@ def read_xml_array(xml_file: Path, norm_const: float, string: str = 'EFFECTIVE-P
                 array_xml[k, j, i] = rho_tmp[(j % (nr_xml[1]-1))*(nr_xml[0]-1)+(i % (nr_xml[0]-1))]
     array_xml *= norm_const
 
-    return array_xml[:-1, :-1, :-1]
+    if in_xsf_format: # the xsf format requires an array where the last element is equal to the first element in each dimension
+        return array_xml
+    else:
+        return array_xml[:-1, :-1, :-1]
