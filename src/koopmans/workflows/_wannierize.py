@@ -179,6 +179,9 @@ class WannierizeWorkflow(Workflow):
                 # Truncate the bands so they only span those that will be Wannierized
                 bs = copy.deepcopy(calc_pw_bands.results['band structure'])
                 bs._energies = bs._energies[:, :, :self.projections.num_wann()]
+                if self._force_nspin2 and not self.parameters.spin_polarized:
+                    # Take only the spin-up part of the band structure
+                    bs._energies = bs._energies[0, :, :][np.newaxis, :, :]
 
                 # Construct the list of split band indices
                 num_occ_bands = [self.projections.num_occ_bands[spin] for spin in spins]
