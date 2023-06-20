@@ -30,7 +30,7 @@ T = TypeVar('T', int, float, List[int], List[float])
 
 
 @dataclass
-class ConvergenceParameter(Generic[T]):
+class ConvergenceVariable(Generic[T]):
     name: str
     increment: T
     get_value: Callable[[Workflow], T]
@@ -61,6 +61,16 @@ class ConvergenceParameter(Generic[T]):
             raise ValueError(
                 f'Do not call {self.__class__.__name__}.get_initial_value() once {self.__class__.__name__}.initial_value has been initialized')
         self.initial_value = self.get_value(workflow)
+
+    def todict(self) -> Dict[str, Any]:
+        dct = dict(self.__dict__)
+        dct['__koopmans_name__'] = self.__class__.__name__
+        dct['__koopmans_module__'] = self.__class__.__module__
+        return dct
+
+    @classmethod
+    def fromdict(cls, dct: Dict[str, Any]):
+        return cls.__init__(**dct)
 
 
 def get_calc_value(wf: Workflow, key: str) -> None:
@@ -103,35 +113,30 @@ def fetch_eps_inf(wf: Workflow) -> float:
     return np.mean(np.diag(calc.results['dielectric tensor']))
 
 
-def fetch_observable_factory(obs_str: str) -> Callable[[Workflow], float]:
+def ObservableFactory(obs_str: str) -> Callable[[Workflow], float]:
     if obs_str == 'eps_inf':
         return fetch_eps_inf
     else:
         return partial(fetch_result_default, observable=obs_str)
 
 
-def conv_param_celldm1(increment: float = 1.0, **kwargs) -> ConvergenceParameter:
+def conv_var_celldm1(increment: float = 1.0, **kwargs) -> ConvergenceVariable:
 
     def get_value(wf: Workflow) -> float:
 
         params = cell.cell_to_parameters(wf.atoms.cell)
-        assert isinstance(params['celldms'], dict)
         assert 1 in params['celldms']
-        import ipdb
-        ipdb.set_trace()
         return params['celldms'][1]
 
     def set_value(wf: Workflow, value: float) -> None:
         params = cell.cell_to_parameters(wf.atoms.cell)
-        assert isinstance(params['celldms'], dict)
-        assert 1 in params['celldms']
         params['celldms'][1] = value
         wf.atoms.cell = cell.parameters_to_cell(**params)
 
-    return ConvergenceParameter('cell_size', increment, get_value, set_value, **kwargs)
+    return ConvergenceVariable('celldm1', increment, get_value, set_value, **kwargs)
 
 
-def conv_param_ecutwfc(increment: float = 10.0, **kwargs) -> ConvergenceParameter:
+def conv_var_ecutwfc(increment: float = 10.0, **kwargs) -> ConvergenceVariable:
 
     def set_value(wf: Workflow, value: float) -> None:
         set_calc_value(wf, value, key='ecutwfc')
@@ -139,19 +144,19 @@ def conv_param_ecutwfc(increment: float = 10.0, **kwargs) -> ConvergenceParamete
 
     get_value = cast(Callable[[Workflow], float], partial(get_calc_value, key='ecutwfc'))
 
-    return ConvergenceParameter('ecutwfc', increment, get_value, set_value, **kwargs)
+    return ConvergenceVariable('ecutwfc', increment, get_value, set_value, **kwargs)
 
 
-def conv_param_nbnd(increment: int = 1, **kwargs) -> ConvergenceParameter:
+def conv_var_nbnd(increment: int = 1, **kwargs) -> ConvergenceVariable:
 
     set_value = cast(Callable[[Workflow, int], None], partial(set_calc_value, key='nbnd'))
 
     get_value = cast(Callable[[Workflow], int], partial(get_calc_value, key='nbnd'))
 
-    return ConvergenceParameter('nbnd', increment, get_value, set_value, **kwargs)
+    return ConvergenceVariable('nbnd', increment, get_value, set_value, **kwargs)
 
 
-def conv_param_kgrid(increment: List[int] = [2, 2, 2], **kwargs) -> ConvergenceParameter:
+def conv_var_kgrid(increment: List[int] = [2, 2, 2], **kwargs) -> ConvergenceVariable:
 
     def get_value(wf: Workflow) -> List[int]:
         assert wf.kpoints.grid
@@ -160,68 +165,77 @@ def conv_param_kgrid(increment: List[int] = [2, 2, 2], **kwargs) -> ConvergenceP
     def set_value(wf: Workflow, value: List[int]) -> None:
         wf.kpoints.grid = value
 
-    return ConvergenceParameter('kgrid', increment, get_value, set_value, **kwargs)
+    return ConvergenceVariable('kgrid', increment, get_value, set_value, **kwargs)
 
 
-def ConvergenceParameterFactory(conv_param, **kwargs) -> ConvergenceParameter:
+def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
 
-    if conv_param == 'celldm1':
-        return conv_param_celldm1(**kwargs)
-    elif conv_param == 'ecutwfc':
-        return conv_param_ecutwfc(**kwargs)
-    elif conv_param == 'nbnd':
-        return conv_param_nbnd(**kwargs)
-    elif conv_param == 'kgrid':
-        return conv_param_kgrid(**kwargs)
+    if conv_var == 'celldm1':
+        return conv_var_celldm1(**kwargs)
+    elif conv_var == 'ecutwfc':
+        return conv_var_ecutwfc(**kwargs)
+    elif conv_var == 'nbnd':
+        return conv_var_nbnd(**kwargs)
+    elif conv_var == 'kgrid':
+        return conv_var_kgrid(**kwargs)
     else:
-        raise NotImplementedError(f'Convergence with respect to {conv_param} has not been directly implemented. You '
-                                  'can still perform a convergence calculation with respect to this parameter, but '
-                                  'you must first create an appropriate ConvergenceParameter object and then '
+        raise NotImplementedError(f'Convergence with respect to {conv_var} has not been directly implemented. You '
+                                  'can still perform a convergence calculation with respect to this variable, but '
+                                  'you must first create an appropriate ConvergenceVariable object and then '
                                   'construct your ConvergenceWorkflow using the ConvergenceWorkflowFactory')
 
 
 class ConvergenceWorkflow(Workflow):
 
-    def __init__(self, subworkflow_class: Type[Workflow], convergence_parameters: List[ConvergenceParameter] = [], fetch_observable: Optional[Callable[[Workflow], float]] = None, *args, **kwargs):
+    '''
+    A Workflow class that wraps another workflow in a convergence procedure in order to converge the observable within the specified tolerance with respect to the variables
+    '''
+
+    def __init__(self, subworkflow_class: Type[Workflow], observable: Optional[Callable[[Workflow], float]] = None, threshold: Optional[float] = None, variables: List[ConvergenceVariable] = [], *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._subworkflow_class = subworkflow_class
-        self._convergence_parameters = convergence_parameters
-        self._fetch_observable = fetch_observable
-
-        # Set the initial value for each of the convergence parameters
-        for c in self._convergence_parameters:
-            c.get_initial_value(self)
+        self.observable = observable
+        self.threshold = threshold
+        self.variables = variables
 
     def _run(self, initial_depth: int = 3) -> None:
 
         # Deferred import to allow for monkeypatching
         from koopmans import workflows
 
-        # Check that everything has been initialized
-        if self._fetch_observable is None:
-            raise ValueError(
-                f'{self.__class__.__name__} has not been provided with a "convergence_observable" to converge')
+        # Set the initial value for each of the convergence variables
+        for c in self.variables:
+            c.get_initial_value(self)
 
-        if len(self._convergence_parameters) == 0:
+        # Check that everything has been initialized
+        if self.observable is None:
             raise ValueError(
-                f'{self.__class__.__name__} has not been provided with any "convergence_parameters" with which to perform convergence')
+                f'{self.__class__.__name__} has not been provided with an observable to converge')
+
+        if len(self.variables) == 0:
+            raise ValueError(
+                f'{self.__class__.__name__} has not been provided with any variables with which to perform convergence')
+
+        if self.threshold is None:
+            raise ValueError(
+                f'{self.__class__.__name__} has not been provided with a threshold with which to perform convergence')
 
         if self.parameters.from_scratch:
-            for c in self._convergence_parameters:
+            for c in self.variables:
                 for path in Path().glob(c.name + '*'):
                     shutil.rmtree(str(path))
 
         # Create array for storing calculation results
-        results = np.empty([initial_depth for _ in self._convergence_parameters])
+        results = np.empty([initial_depth for _ in self.variables])
         results[:] = np.nan
 
-        # Continue to increment the convergence parameters until convergence in the convergence observable
+        # Continue to increment the convergence variables until convergence in the convergence observable
         # is achieved. A lot of the following code is quite obtuse, in order to make it work for an arbitrary
-        # number of convergence parameters
+        # number of convergence variables
 
         # Record the alpha values for the original calculation
-        provide_alpha = any([p.name == 'nbnd' for p in self._convergence_parameters]) \
+        provide_alpha = any([p.name == 'nbnd' for p in self.variables]) \
             and self.parameters.functional in ['ki', 'kipz', 'pkipz', 'all'] \
             and self.parameters.alpha_from_file
         if provide_alpha:
@@ -232,8 +246,8 @@ class ConvergenceWorkflow(Workflow):
 
         while True:
 
-            # Loop over all possible permutations of convergence parameter settings
-            for indices in itertools.product(*[range(len(x.values)) for x in self._convergence_parameters]):
+            # Loop over all possible permutations of convergence variables
+            for indices in itertools.product(*[range(len(x.values)) for x in self.variables]):
                 # If we already have results for this permutation, don't recalculate it
                 if not np.isnan(results[tuple(indices)]):
                     continue
@@ -244,22 +258,22 @@ class ConvergenceWorkflow(Workflow):
                 # For each parameter we're converging wrt...
                 header = ''
                 subdir = Path()
-                for index, parameter in zip(indices, self._convergence_parameters):
-                    value = parameter.values[index]
+                for index, variable in zip(indices, self.variables):
+                    value = variable.values[index]
                     if isinstance(value, float):
                         value_str = f'{value:.1f}'
                     else:
                         value_str = str(value)
-                    header += f'{parameter.name} = {value_str}, '
+                    header += f'{variable.name} = {value_str}, '
 
                     if isinstance(value, list):
                         value_str = ''.join([str(x) for x in value])
 
                     # Create new working directory
-                    subdir /= f'{parameter.name}_{value_str}'.replace(' ', '_').replace('.', 'd')
+                    subdir /= f'{variable.name}_{value_str}'.replace(' ', '_').replace('.', 'd')
 
                     # Set the value
-                    parameter.set_value(subwf, value)
+                    variable.set_value(subwf, value)
 
                 if provide_alpha:
                     # Update alpha files and orbitals
@@ -279,86 +293,97 @@ class ConvergenceWorkflow(Workflow):
                 subwf.run(subdirectory=subdir)
 
                 # Store the result
-                results[indices] = self._fetch_observable(subwf)
+                results[indices] = self.observable(subwf)
 
             # Check convergence
-            converged = np.empty([len(p) for p in self._convergence_parameters], dtype=bool)
+            converged = np.empty([len(p) for p in self.variables], dtype=bool)
             converged[:] = False
 
-            converged_result = results[tuple([-1 for _ in self._convergence_parameters])]
-            threshold = self.parameters.convergence_threshold
+            converged_result = results[tuple([-1 for _ in self.variables])]
             subarray_slice: List[Union[int, slice]]
-            for indices in itertools.product(*[range(len(p.values)) for p in self._convergence_parameters]):
+            for indices in itertools.product(*[range(len(p)) for p in self.variables]):
                 subarray_slice = [slice(None) for _ in range(len(indices))]
                 for i_index, index in enumerate(indices):
                     subarray_slice[i_index] = slice(index, None)
-                if np.all(np.abs(results[tuple(subarray_slice)] - converged_result) < threshold):
+                if np.all(np.abs(results[tuple(subarray_slice)] - converged_result) < self.threshold):
                     converged[tuple(indices)] = True
 
-            # Check convergence, ignoring the calculations with the most fine parameters because
+            # Check convergence, ignoring the calculations with the most fine variables because
             # we have nothing to compare them against
-            subarray_slice = [slice(0, -1) for _ in self._convergence_parameters]
+            subarray_slice = [slice(0, -1) for _ in self.variables]
+
             if np.any(converged[tuple(subarray_slice)]):
-                # Work out which was the fastest calculation, and propose those parameters
+                # Work out which was the fastest calculation, and propose those variables
 
                 # First, find the indices of the converged array
-                slice_where: List[Union[slice, int]] = [slice(None) for _ in self._convergence_parameters]
+                slice_where: List[Union[slice, int]] = [slice(None) for _ in self.variables]
                 slice_where[-1] = 0
                 converged_indices = np.array(np.where(converged[tuple(subarray_slice)]))[tuple(slice_where)]
 
-                # Extract the corresponding parameters
-                for index, parameter in zip(converged_indices, self._convergence_parameters):
-                    parameter.converged_value = parameter.values[index]
+                # Extract the corresponding variables
+                for index, variable in zip(converged_indices, self.variables):
+                    variable.converged_value = variable.values[index]
 
-                self.print('\n Converged parameters are '
-                           + ', '.join([f'{p.name} = {p.converged_value}' for p in self._convergence_parameters]))
+                self.print('\n Converged variables are '
+                           + ', '.join([f'{p.name} = {p.converged_value}' for p in self.variables]))
 
                 return
             else:
-                # Work out which parameters are yet to converge, and line up more calculations
-                # for increased values of those parameters
+                # Work out which variables are yet to converge, and line up more calculations
+                # for increased values of those variables
 
                 new_array_shape = list(np.shape(results))
                 new_array_slice: List[Union[int, slice]] = [slice(None) for _ in indices]
                 self.print('Progress update', style='heading')
-                for index, param in enumerate(self._convergence_parameters):
-                    subarray_slice = [slice(None) for _ in self._convergence_parameters]
+                for index, var in enumerate(self.variables):
+                    subarray_slice = [slice(None) for _ in self.variables]
                     subarray_slice[index] = slice(0, -1)
 
                     if np.any(converged[tuple(subarray_slice)]):
-                        self.print(f'{param.name} appears converged')
+                        self.print(f'{var.name} appears converged')
                         continue
 
                     # Add one finer value to try
-                    param.extend()
+                    var.extend()
                     new_array_shape[index] += 1
                     new_array_slice[index] = slice(None, -1)
-                    self.print(f'{param.name} still appears unconverged, will reattempt using a finer value')
+                    self.print(f'{var.name} still appears unconverged, will reattempt using a finer value')
+
+                # Deal with the edge case where all variables appear converged for the finest value of all the other variables
+                if results.shape == tuple([len(v) for v in self.variables]):
+                    self.print('... but the variables are not collectively converged. Cautiously incrementing all variables.')
+                    for index, var in enumerate(self.variables):
+                        var.extend()
+                        new_array_shape[index] += 1
+                        new_array_slice[index] = slice(None, -1)
 
                 new_results = np.empty(new_array_shape)
                 new_results[:] = np.nan
                 new_results[tuple(new_array_slice)] = results
                 results = new_results
 
+        return
 
-def ConvergenceWorkflowFactory(subworkflow: Workflow, parameters: List[Union[str, ConvergenceParameter]], fetch_observable: Union[str, Callable[[Workflow], float]]) -> Workflow:
+
+def ConvergenceWorkflowFactory(subworkflow: Workflow, observable: Union[str, Callable[[Workflow], float]], threshold: float,
+                               variables: List[Union[str, ConvergenceVariable]]) -> ConvergenceWorkflow:
     '''
     Generates a ConvergenceWorkflow based on...
         subworkflow_class: the class of the Workflow that we will repeatedly run
-        parameters: a list of parameters with respect to which we will perform the convergence
-        fetch_observable: a function with which we extract the observable from the child workflow
+        observable: a function with which we extract the observable from the child workflow
+        threshold: the threshold within which the observable will be converged
+        variables: a list of variables with respect to which we will perform the convergence
     '''
 
-    # Ensure parameters are all ConvergenceParameters
-    parameters = [p if isinstance(p, ConvergenceParameter) else ConvergenceParameterFactory(p) for p in parameters]
+    # Ensure variables are all ConvergenceVariables
+    variables = [v if isinstance(v, ConvergenceVariable) else ConvergenceVariableFactory(v) for v in variables]
 
-    # Ensure fetch_observable is a Callable
-    fetch_observable = fetch_observable_factory(fetch_observable) if isinstance(
-        fetch_observable, str) else fetch_observable
+    # Ensure observable is a Callable
+    observable = ObservableFactory(observable) if isinstance(observable, str) else observable
 
     # Co-opt the fromparent method to use the subworkflow settings to initialize a ConvergenceWorkflow...
     wf = ConvergenceWorkflow.fromparent(subworkflow, subworkflow_class=subworkflow.__class__,
-                                        convergence_parameters=parameters, fetch_observable=fetch_observable)
+                                        variables=variables, observable=observable, threshold=threshold)
     wf.parent = None  # ... making sure we remove wf.parent immediately afterwards
 
     return wf

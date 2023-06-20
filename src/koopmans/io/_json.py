@@ -51,12 +51,7 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}):
     else:
         raise ValueError(f'Invalid task name "{parameters.task}"')
 
-    wf = workflow_cls.fromjson(fd.name, override)
-
-    if parameters.converge:
-        return workflows.ConvergenceWorkflowFactory(wf, parameters.convergence_parameters, parameters.convergence_observable)
-    else:
-        return wf
+    return workflow_cls.fromjson(fd.name, override)
 
 
 def write_json(workflow: workflows.Workflow, filename: Path):

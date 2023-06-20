@@ -6,6 +6,7 @@ Written by Edward Linscott Mar 2021, largely modelled off ase.io.jsonio
 
 """
 
+import functools
 import inspect
 import json
 import os
@@ -26,6 +27,10 @@ class KoopmansEncoder(ase_json.MyEncoder):
             return {'__path__': os.path.relpath(obj, '.')}
         elif inspect.isclass(obj):
             return {'__class__': {'__name__': obj.__name__, '__module__': obj.__module__}}
+        elif isinstance(obj, functools.partial):
+            return {'__partial__': {'func': obj.func, 'args': obj.args, 'keywords': obj.keywords}}
+        elif inspect.isfunction(obj):
+            return {'__function__': {'__name__': obj.__name__, '__module__': obj.__module__}}
         elif hasattr(obj, 'todict'):
             d = obj.todict()
             if '__koopmans_name__' in d:
@@ -47,6 +52,13 @@ def object_hook(dct):
         return Path(dct['__path__'])
     elif '__class__' in dct:
         subdct = dct['__class__']
+        module = import_module(subdct['__module__'])
+        return getattr(module, subdct['__name__'])
+    elif '__partial__' in dct:
+        subdct = dct['__partial__']
+        return functools.partial(**subdct)
+    elif '__function__' in dct:
+        subdct = dct['__partial__']
         module = import_module(subdct['__module__'])
         return getattr(module, subdct['__name__'])
     else:

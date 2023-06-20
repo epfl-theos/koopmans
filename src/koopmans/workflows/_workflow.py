@@ -1071,14 +1071,25 @@ class Workflow(ABC):
 
         kwargs['pseudopotentials'] = bigdct.pop('pseudopotentials', {})
 
+        # Convergence
+        if parameters.converge:
+            conv_block = settings.ConvergenceSettingsDict(**bigdct.pop('convergence', {}))
+
         # Check for unexpected blocks
         for block in bigdct:
             raise ValueError(f'Unrecognized block "{block}" in the json input file')
 
         # Create the workflow. Note that any keywords provided in the calculator_parameters (i.e. whatever is left in
         # calcdict) are provided as kwargs
-        return cls(atoms, parameters=parameters, kpoints=kpts, calculator_parameters=calculator_parameters, **kwargs,
-                   **calcdict)
+        wf = cls(atoms, parameters=parameters, kpoints=kpts, calculator_parameters=calculator_parameters, **kwargs,
+                 **calcdict)
+
+        if parameters.converge:
+            # Wrap the workflow in a convergence outer loop
+            from koopmans.workflows import ConvergenceWorkflowFactory
+            return ConvergenceWorkflowFactory(wf, **conv_block)
+        else:
+            return wf
 
     def print_header(self):
         print(header())
