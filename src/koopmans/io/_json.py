@@ -34,8 +34,6 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}):
     workflow_cls: Type[workflows.Workflow]
     if parameters.task == 'singlepoint':
         workflow_cls = workflows.SinglepointWorkflow
-    elif parameters.task == 'convergence':
-        workflow_cls = workflows.ConvergenceWorkflow
     elif parameters.task == 'wannierize':
         workflow_cls = workflows.WannierizeWorkflow
     elif parameters.task == 'environ_dscf':
@@ -53,7 +51,12 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}):
     else:
         raise ValueError(f'Invalid task name "{parameters.task}"')
 
-    return workflow_cls.fromjson(fd.name, override)
+    wf = workflow_cls.fromjson(fd.name, override)
+
+    if parameters.converge:
+        return workflows.ConvergenceWorkflowFactory(wf, parameters.convergence_parameters, parameters.convergence_observable)
+    else:
+        return wf
 
 
 def write_json(workflow: workflows.Workflow, filename: Path):

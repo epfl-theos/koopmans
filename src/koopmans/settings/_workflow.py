@@ -108,6 +108,10 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'when calculating alpha parameters, the code will group orbitals '
                     'together only if their spread is within this threshold',
                     float, None, None),
+            Setting('converge',
+                    'If True, repeat the workflow increasing the convergence_parameters until the '
+                    'convergence_observable converges within the convergence_threshold',
+                    bool, False, (True, False)),
             Setting('convergence_observable',
                     'System observable of interest which we converge',
                     str, 'total energy', None),
