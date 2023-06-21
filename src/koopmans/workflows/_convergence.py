@@ -12,14 +12,13 @@ from __future__ import annotations
 import copy
 import itertools
 import shutil
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from typing import (Any, Callable, Dict, Generic, List, Optional, Type,
                     TypeVar, Union, cast)
 
 import numpy as np
-import numpy.typing as npt
 
 from koopmans import cell, utils
 
@@ -73,7 +72,7 @@ class ConvergenceVariable(Generic[T]):
         return cls.__init__(**dct)
 
 
-def get_calc_value(wf: Workflow, key: str) -> None:
+def get_calculator_parameter(wf: Workflow, key: str) -> None:
     '''
     Gets a particular calculator setting from a workflow
     '''
@@ -82,7 +81,8 @@ def get_calc_value(wf: Workflow, key: str) -> None:
         if settings.is_valid(key):
             val = settings[key]
             if val is None:
-                raise AttributeError(f'In order to converge wrt {key}, specify a baseline value for it')
+                raise AttributeError(
+                    f'In order to converge wrt {key}, specify a baseline value for it')
             values.add(val)
     if len(values) > 1:
         raise ValueError(f'{key} has different values for different calculators. This is not compatible with the'
@@ -90,7 +90,7 @@ def get_calc_value(wf: Workflow, key: str) -> None:
     return values.pop()
 
 
-def set_calc_value(wf: Workflow, value: Union[int, float], key: str) -> None:
+def set_calculator_parameter(wf: Workflow, key: str, value: Union[int, float]) -> None:
     '''
     Sets a particular calculator setting for every calculator in the workflow
     '''
@@ -139,19 +139,22 @@ def conv_var_celldm1(increment: float = 1.0, **kwargs) -> ConvergenceVariable:
 def conv_var_ecutwfc(increment: float = 10.0, **kwargs) -> ConvergenceVariable:
 
     def set_value(wf: Workflow, value: float) -> None:
-        set_calc_value(wf, value, key='ecutwfc')
-        set_calc_value(wf, 4 * value, key='ecutrho')
+        set_calculator_parameter(wf, 'ecutwfc', value)
+        set_calculator_parameter(wf, 'ecutrho', 4 * value)
 
-    get_value = cast(Callable[[Workflow], float], partial(get_calc_value, key='ecutwfc'))
+    get_value = cast(Callable[[Workflow], float], partial(
+        get_calculator_parameter, key='ecutwfc'))
 
     return ConvergenceVariable('ecutwfc', increment, get_value, set_value, **kwargs)
 
 
 def conv_var_nbnd(increment: int = 1, **kwargs) -> ConvergenceVariable:
 
-    set_value = cast(Callable[[Workflow, int], None], partial(set_calc_value, key='nbnd'))
+    set_value = cast(Callable[[Workflow, int], None],
+                     partial(set_calculator_parameter, key='nbnd'))
 
-    get_value = cast(Callable[[Workflow], int], partial(get_calc_value, key='nbnd'))
+    get_value = cast(Callable[[Workflow], int], partial(
+        get_calculator_parameter, key='nbnd'))
 
     return ConvergenceVariable('nbnd', increment, get_value, set_value, **kwargs)
 
@@ -206,7 +209,8 @@ class ConvergenceWorkflow(Workflow):
 
         # Set the initial value for each of the convergence variables
         for c in self.variables:
-            c.get_initial_value(self)
+            if c.initial_value is None:
+                c.get_initial_value(self)
 
         # Check that everything has been initialized
         if self.observable is None:
@@ -241,8 +245,10 @@ class ConvergenceWorkflow(Workflow):
         if provide_alpha:
             master_alphas = utils.read_alpha_file(directory=Path())
             if self.parameters.orbital_groups is None:
-                self.parameters.orbital_groups = list(range(self.calculator_parameters['kcp'].nbnd))
-            master_orbital_groups = copy.deepcopy(self.parameters.orbital_groups)
+                self.parameters.orbital_groups = list(
+                    range(self.calculator_parameters['kcp'].nbnd))
+            master_orbital_groups = copy.deepcopy(
+                self.parameters.orbital_groups)
 
         while True:
 
@@ -270,7 +276,8 @@ class ConvergenceWorkflow(Workflow):
                         value_str = ''.join([str(x) for x in value])
 
                     # Create new working directory
-                    subdir /= f'{variable.name}_{value_str}'.replace(' ', '_').replace('.', 'd')
+                    subdir /= f'{variable.name}_{value_str}'.replace(
+                        ' ', '_').replace('.', 'd')
 
                     # Set the value
                     variable.set_value(subwf, value)
@@ -316,9 +323,11 @@ class ConvergenceWorkflow(Workflow):
                 # Work out which was the fastest calculation, and propose those variables
 
                 # First, find the indices of the converged array
-                slice_where: List[Union[slice, int]] = [slice(None) for _ in self.variables]
+                slice_where: List[Union[slice, int]] = [
+                    slice(None) for _ in self.variables]
                 slice_where[-1] = 0
-                converged_indices = np.array(np.where(converged[tuple(subarray_slice)]))[tuple(slice_where)]
+                converged_indices = np.array(np.where(converged[tuple(subarray_slice)]))[
+                    tuple(slice_where)]
 
                 # Extract the corresponding variables
                 for index, variable in zip(converged_indices, self.variables):
@@ -333,7 +342,8 @@ class ConvergenceWorkflow(Workflow):
                 # for increased values of those variables
 
                 new_array_shape = list(np.shape(results))
-                new_array_slice: List[Union[int, slice]] = [slice(None) for _ in indices]
+                new_array_slice: List[Union[int, slice]] = [
+                    slice(None) for _ in indices]
                 self.print('Progress update', style='heading')
                 for index, var in enumerate(self.variables):
                     subarray_slice = [slice(None) for _ in self.variables]
@@ -347,11 +357,13 @@ class ConvergenceWorkflow(Workflow):
                     var.extend()
                     new_array_shape[index] += 1
                     new_array_slice[index] = slice(None, -1)
-                    self.print(f'{var.name} still appears unconverged, will reattempt using a finer value')
+                    self.print(
+                        f'{var.name} still appears unconverged, will reattempt using a finer value')
 
                 # Deal with the edge case where all variables appear converged for the finest value of all the other variables
                 if results.shape == tuple([len(v) for v in self.variables]):
-                    self.print('... but the variables are not collectively converged. Cautiously incrementing all variables.')
+                    self.print(
+                        '... but the variables are not collectively converged. Cautiously incrementing all variables.')
                     for index, var in enumerate(self.variables):
                         var.extend()
                         new_array_shape[index] += 1
@@ -376,10 +388,12 @@ def ConvergenceWorkflowFactory(subworkflow: Workflow, observable: Union[str, Cal
     '''
 
     # Ensure variables are all ConvergenceVariables
-    variables = [v if isinstance(v, ConvergenceVariable) else ConvergenceVariableFactory(v) for v in variables]
+    variables = [v if isinstance(
+        v, ConvergenceVariable) else ConvergenceVariableFactory(v) for v in variables]
 
     # Ensure observable is a Callable
-    observable = ObservableFactory(observable) if isinstance(observable, str) else observable
+    observable = ObservableFactory(observable) if isinstance(
+        observable, str) else observable
 
     # Co-opt the fromparent method to use the subworkflow settings to initialize a ConvergenceWorkflow...
     wf = ConvergenceWorkflow.fromparent(subworkflow, subworkflow_class=subworkflow.__class__,

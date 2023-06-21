@@ -1,8 +1,7 @@
 'Workflows for use with koopmans'
 
 from ._anion_dscf import DeltaSCFWorkflow
-from ._convergence import (ConvergenceVariableFactory, ConvergenceWorkflow,
-                           ConvergenceWorkflowFactory)
+from ._convergence import ConvergenceWorkflow
 from ._convergence_ml import ConvergenceMLWorkflow
 from ._dft import DFTBandsWorkflow, DFTCPWorkflow, DFTPhWorkflow, DFTPWWorkflow
 from ._folding import FoldToSupercellWorkflow

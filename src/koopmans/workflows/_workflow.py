@@ -1086,7 +1086,7 @@ class Workflow(ABC):
 
         if parameters.converge:
             # Wrap the workflow in a convergence outer loop
-            from koopmans.workflows import ConvergenceWorkflowFactory
+            from koopmans.convergence import ConvergenceWorkflowFactory
             return ConvergenceWorkflowFactory(wf, **conv_block)
         else:
             return wf
