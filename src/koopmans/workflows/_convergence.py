@@ -69,7 +69,7 @@ class ConvergenceVariable(Generic[T]):
 
     @classmethod
     def fromdict(cls, dct: Dict[str, Any]):
-        return cls.__init__(**dct)
+        return cls(**dct)
 
 
 def get_calculator_parameter(wf: Workflow, key: str) -> None:
@@ -120,55 +120,58 @@ def ObservableFactory(obs_str: str) -> Callable[[Workflow], float]:
         return partial(fetch_result_default, observable=obs_str)
 
 
+def _get_celldm1(wf: Workflow) -> float:
+
+    params = cell.cell_to_parameters(wf.atoms.cell)
+    assert 1 in params['celldms']
+    return params['celldms'][1]
+
+
+def _set_celldm1(wf: Workflow, value: float) -> None:
+    params = cell.cell_to_parameters(wf.atoms.cell)
+    params['celldms'][1] = value
+    wf.atoms.cell = cell.parameters_to_cell(**params)
+
+
 def conv_var_celldm1(increment: float = 1.0, **kwargs) -> ConvergenceVariable:
 
-    def get_value(wf: Workflow) -> float:
+    return ConvergenceVariable('celldm1', increment, _get_celldm1, _set_celldm1, **kwargs)
 
-        params = cell.cell_to_parameters(wf.atoms.cell)
-        assert 1 in params['celldms']
-        return params['celldms'][1]
 
-    def set_value(wf: Workflow, value: float) -> None:
-        params = cell.cell_to_parameters(wf.atoms.cell)
-        params['celldms'][1] = value
-        wf.atoms.cell = cell.parameters_to_cell(**params)
+def _set_ecutwfc(wf: Workflow, value: float) -> None:
+    set_calculator_parameter(wf, 'ecutwfc', value)
+    set_calculator_parameter(wf, 'ecutrho', 4 * value)
 
-    return ConvergenceVariable('celldm1', increment, get_value, set_value, **kwargs)
+
+_get_ecutwfc = cast(Callable[[Workflow], float], partial(get_calculator_parameter, key='ecutwfc'))
 
 
 def conv_var_ecutwfc(increment: float = 10.0, **kwargs) -> ConvergenceVariable:
 
-    def set_value(wf: Workflow, value: float) -> None:
-        set_calculator_parameter(wf, 'ecutwfc', value)
-        set_calculator_parameter(wf, 'ecutrho', 4 * value)
+    return ConvergenceVariable('ecutwfc', increment, _get_ecutwfc, _set_ecutwfc, **kwargs)
 
-    get_value = cast(Callable[[Workflow], float], partial(
-        get_calculator_parameter, key='ecutwfc'))
 
-    return ConvergenceVariable('ecutwfc', increment, get_value, set_value, **kwargs)
+_set_nbnd = cast(Callable[[Workflow, int], None], partial(set_calculator_parameter, key='nbnd'))
+_get_nbnd = cast(Callable[[Workflow], int], partial(get_calculator_parameter, key='nbnd'))
 
 
 def conv_var_nbnd(increment: int = 1, **kwargs) -> ConvergenceVariable:
 
-    set_value = cast(Callable[[Workflow, int], None],
-                     partial(set_calculator_parameter, key='nbnd'))
+    return ConvergenceVariable('nbnd', increment, _get_nbnd, _set_nbnd, **kwargs)
 
-    get_value = cast(Callable[[Workflow], int], partial(
-        get_calculator_parameter, key='nbnd'))
 
-    return ConvergenceVariable('nbnd', increment, get_value, set_value, **kwargs)
+def _get_kgrid(wf: Workflow) -> List[int]:
+    assert wf.kpoints.grid
+    return wf.kpoints.grid
+
+
+def _set_kgrid(wf: Workflow, value: List[int]) -> None:
+    wf.kpoints.grid = value
 
 
 def conv_var_kgrid(increment: List[int] = [2, 2, 2], **kwargs) -> ConvergenceVariable:
 
-    def get_value(wf: Workflow) -> List[int]:
-        assert wf.kpoints.grid
-        return wf.kpoints.grid
-
-    def set_value(wf: Workflow, value: List[int]) -> None:
-        wf.kpoints.grid = value
-
-    return ConvergenceVariable('kgrid', increment, get_value, set_value, **kwargs)
+    return ConvergenceVariable('kgrid', increment, _get_kgrid, _set_kgrid, **kwargs)
 
 
 def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
@@ -201,6 +204,14 @@ class ConvergenceWorkflow(Workflow):
         self.observable = observable
         self.threshold = threshold
         self.variables = variables
+
+    @classmethod
+    def fromdict(cls, dct: Dict[str, Any], **kwargs) -> Workflow:
+        kwargs.update(subworkflow_class=dct.pop('_subworkflow_class'),
+                      observable=dct.pop('observable'),
+                      threshold=dct.pop('threshold'),
+                      variables=dct.pop('variables'))
+        return super(ConvergenceWorkflow, cls).fromdict(dct, **kwargs)
 
     def _run(self, initial_depth: int = 3) -> None:
 

@@ -17,6 +17,7 @@ from typing import TextIO, Union
 from ase.io import jsonio as ase_json
 
 import koopmans.workflows as workflows
+from koopmans import utils
 
 
 class KoopmansEncoder(ase_json.MyEncoder):
@@ -30,7 +31,11 @@ class KoopmansEncoder(ase_json.MyEncoder):
         elif isinstance(obj, functools.partial):
             return {'__partial__': {'func': obj.func, 'args': obj.args, 'keywords': obj.keywords}}
         elif inspect.isfunction(obj):
-            return {'__function__': {'__name__': obj.__name__, '__module__': obj.__module__}}
+            module = import_module(obj.__module__)
+            if hasattr(module, obj.__name__):
+                return {'__function__': {'__name__': obj.__name__, '__module__': obj.__module__}}
+            else:
+                return {'__function__': {}}
         elif hasattr(obj, 'todict'):
             d = obj.todict()
             if '__koopmans_name__' in d:
@@ -56,11 +61,15 @@ def object_hook(dct):
         return getattr(module, subdct['__name__'])
     elif '__partial__' in dct:
         subdct = dct['__partial__']
-        return functools.partial(**subdct)
+        return functools.partial(subdct['func'], **subdct['keywords'])
     elif '__function__' in dct:
-        subdct = dct['__partial__']
-        module = import_module(subdct['__module__'])
-        return getattr(module, subdct['__name__'])
+        subdct = dct['__function__']
+        if '__module__' in subdct:
+            module = import_module(subdct['__module__'])
+            if hasattr(module, subdct['__name__']):
+                return getattr(module, subdct['__name__'])
+        utils.warn('Function was not able to be serialized')
+        return '<placeholder for function lost during serialization>'
     else:
         # Patching bug in ASE where allocating an np.empty(dtype=str) will assume a particular length for each
         # string. dtype=object allows for individual strings to be different lengths
