@@ -11,7 +11,7 @@ atoms = molecule('H2O', vacuum=5.0)
 
 # Create a subworkflow which calculates (among other things) the PBE HOMO energy of water
 subworkflow = workflows.DFTCPWorkflow(atoms=atoms, ecutwfc=30.0, base_functional='pbe',
-                                      pseudo_library='pseudo_dojo_standard', from_scratch=False,
+                                      pseudo_library='pseudo_dojo_standard',
                                       calculator_parameters={'kcp': {'nr1b': 6, 'nr2b': 6, 'nr3b': 6}})
 
 # koopmans doesn't implement convergence with respect to nrb, so we need to define a custom

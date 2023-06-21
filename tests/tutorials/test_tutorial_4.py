@@ -22,6 +22,6 @@ def test_plot():
 
 
 @pytest.mark.tutorials
-def test_custom_convergence():
+def test_custom_convergence(tutorial_patch):
     with chdir(tutorial_dir):
         exec(open('custom_convergence.py', 'r').read(), globals())
