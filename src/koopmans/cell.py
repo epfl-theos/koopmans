@@ -1,11 +1,16 @@
 import copy
-from typing import Dict, Union
+from typing import Dict, TypedDict, Union
 
 import numpy as np
 from ase.cell import Cell
 from ase.lattice import (BCC, BCT, CUB, FCC, HEX, MCL, MCLC, ORC, ORCC, ORCF,
                          ORCI, RHL, TET, TRI, BravaisLattice)
 from ase.units import Bohr
+
+
+class CellParams(TypedDict):
+    ibrav: int
+    celldms: Dict[int, float]
 
 
 def parameters_to_cell(ibrav: int, celldms: Dict[int, float]) -> Cell:
@@ -129,7 +134,7 @@ def parameters_to_cell(ibrav: int, celldms: Dict[int, float]) -> Cell:
     return Cell(new_array)
 
 
-def cell_to_parameters(cell: Cell) -> Dict[str, Union[int, Dict[int, float]]]:
+def cell_to_parameters(cell: Cell) -> CellParams:
     '''
     Identifies a cell in the language of Quantum ESPRESSO
 
@@ -140,8 +145,8 @@ def cell_to_parameters(cell: Cell) -> Dict[str, Union[int, Dict[int, float]]]:
 
     Returns
     -------
-    Dict
-        a dictionary containing the ibrav and celldms
+    CellParams
+        a typed dictionary containing the ibrav and celldms
 
     '''
 
@@ -158,7 +163,7 @@ def cell_to_parameters(cell: Cell) -> Dict[str, Union[int, Dict[int, float]]]:
     return lat_to_parameters(lat)
 
 
-def lat_to_parameters(lat: BravaisLattice) -> Dict[str, Union[int, Dict[int, float]]]:
+def lat_to_parameters(lat: BravaisLattice) -> CellParams:
     '''
     Identifies a cell in the language of Quantum ESPRESSO
 
@@ -169,8 +174,8 @@ def lat_to_parameters(lat: BravaisLattice) -> Dict[str, Union[int, Dict[int, flo
 
     Returns
     -------
-    Dict
-        a dictionary containing the ibrav and celldms
+    CellParams
+        a typed dictionary containing the ibrav and celldms
 
     '''
     celldms: Dict[int, float] = {}
@@ -272,7 +277,7 @@ def lat_to_parameters(lat: BravaisLattice) -> Dict[str, Union[int, Dict[int, flo
     # Convert to Bohr radii
     celldms[1] /= Bohr
 
-    return {'ibrav': ibrav, 'celldms': celldms}
+    return CellParams(ibrav=ibrav, celldms=celldms)
 
 
 def cell_follows_qe_conventions(cell: Cell) -> bool:

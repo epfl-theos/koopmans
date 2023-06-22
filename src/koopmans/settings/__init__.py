@@ -6,6 +6,7 @@ Written by Edward Linscott May 2020
 
 '''
 
+from ._convergence import ConvergenceSettingsDict
 from ._koopmans_cp import KoopmansCPSettingsDict
 from ._koopmans_ham import KoopmansHamSettingsDict
 from ._koopmans_screen import KoopmansScreenSettingsDict

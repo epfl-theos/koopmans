@@ -34,8 +34,6 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}):
     workflow_cls: Type[workflows.Workflow]
     if parameters.task == 'singlepoint':
         workflow_cls = workflows.SinglepointWorkflow
-    elif parameters.task == 'convergence':
-        workflow_cls = workflows.ConvergenceWorkflow
     elif parameters.task == 'wannierize':
         workflow_cls = workflows.WannierizeWorkflow
     elif parameters.task == 'environ_dscf':

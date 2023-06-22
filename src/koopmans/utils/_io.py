@@ -49,7 +49,7 @@ def parse_dict(dct: Dict[str, Any]) -> Dict[str, Any]:
 def construct_cell_parameters_block(atoms: Atoms) -> Dict[str, Any]:
     params: Dict[str, Any]
     if cell_follows_qe_conventions(atoms.cell):
-        params = cell_to_parameters(atoms.cell)
+        params = dict(**cell_to_parameters(atoms.cell))
     else:
         params = {'vectors': [list(row) for row in atoms.cell[:]], 'units': 'angstrom'}
     params['periodic'] = all(atoms.pbc)

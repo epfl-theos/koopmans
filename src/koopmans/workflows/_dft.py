@@ -118,12 +118,16 @@ class DFTBandsWorkflow(DFTWorkflow):
             self.run_calculator(calc_scf)
 
             # Second, a bands calculation
-            calc_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpoints.path)
+            if self.parameters.calculate_bands in (True, None):
+                calc_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpoints.path)
+            else:
+                calc_bands = self.new_calculator('pw', calculation='nscf')
             calc_bands.prefix = 'bands'
             self.run_calculator(calc_bands)
 
             # Prepare the band structure for plotting
-            bs = calc_bands.results['band structure']
+            if self.parameters.calculate_bands in (True, None):
+                bs = calc_bands.results['band structure']
 
             # Third, a PDOS calculation
             pseudos = [pseudopotentials.read_pseudo_file(calc_scf.parameters.pseudo_dir / p) for p in
@@ -135,7 +139,8 @@ class DFTBandsWorkflow(DFTWorkflow):
 
                 # Prepare the DOS for plotting
                 dos = copy.deepcopy(calc_dos.results['dos'])
-                dos._energies -= bs.reference
+                if self.parameters.calculate_bands in (True, None):
+                    dos._energies -= bs.reference
             else:
                 # Skip if the pseudos don't have the requisite PP_PSWFC blocks
                 utils.warn('Some of the pseudopotentials do not have PP_PSWFC blocks, which means a projected DOS '
@@ -143,7 +148,12 @@ class DFTBandsWorkflow(DFTWorkflow):
                 dos = None
 
             # Plot the band structure and DOS
-            self.plot_bandstructure(bs.subtract_reference(), dos)
+            if self.parameters.calculate_bands in (True, None):
+                self.plot_bandstructure(bs.subtract_reference(), dos)
+            elif dos is not None:
+                workflow_name = self.__class__.__name__.lower()
+                filename = f'{self.name}_{workflow_name}_dos'
+                dos.plot(filename=filename)
 
     def new_calculator(self,
                        calc_type: str,
