@@ -239,7 +239,7 @@ class ConvergenceWorkflow(Workflow):
                       variables=dct.pop('variables'))
         return super(ConvergenceWorkflow, cls).fromdict(dct, **kwargs)
 
-    def _run(self, initial_depth: int = 3) -> None:
+    def _run(self) -> None:
 
         # Deferred import to allow for monkeypatching
         from koopmans import workflows
@@ -268,7 +268,7 @@ class ConvergenceWorkflow(Workflow):
                     shutil.rmtree(str(path))
 
         # Create array for storing calculation results
-        results = np.empty([initial_depth for _ in self.variables])
+        results = np.empty([len(v) for v in self.variables])
         results[:] = np.nan
 
         # Continue to increment the convergence variables until convergence in the convergence observable
@@ -290,7 +290,7 @@ class ConvergenceWorkflow(Workflow):
         while True:
 
             # Loop over all possible permutations of convergence variables
-            for indices in itertools.product(*[range(len(x.values)) for x in self.variables]):
+            for indices in itertools.product(*[range(len(x)) for x in self.variables]):
                 # If we already have results for this permutation, don't recalculate it
                 if not np.isnan(results[tuple(indices)]):
                     continue

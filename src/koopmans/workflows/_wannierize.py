@@ -537,9 +537,14 @@ class WannierizeWorkflow(Workflow):
                 i_spin = 1
             remaining_bands = [b for b in self.bands if b.center is None and b.spin == i_spin]
 
-        centers = self.calculations[-1].results['centers']
-        spreads = self.calculations[-1].results['spreads']
-        for band, center, spread in zip(remaining_bands, centers, spreads):
+        # Sometimes the centers and spreads come from several previous calculations, so looking at the centers and
+        # spreads in reverse order allows us to extract these quantities while being agnostic to what calculation
+        # they came from
+        reversed_centers = [center for calc in self.calculations[::-1] for center in calc.results.get('centers', [])[::-1]
+                            if isinstance(calc, calculators.Wannier90Calculator)]
+        reversed_spreads = [spread for calc in self.calculations[::-1] for spread in calc.results.get('spreads', [])[::-1]
+                            if isinstance(calc, calculators.Wannier90Calculator)]
+        for band, center, spread in zip(remaining_bands[::-1], reversed_centers, reversed_spreads):
             band.center = center
             band.spread = spread
 

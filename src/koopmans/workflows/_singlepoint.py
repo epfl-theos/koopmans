@@ -61,7 +61,7 @@ class SinglepointWorkflow(Workflow):
     def _run(self) -> None:
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
-        from koopmans.workflows import (DFTCPWorkflow, DFTPhWorkflow,
+        from koopmans.workflows import (DFTPWWorkflow, DFTPhWorkflow,
                                         KoopmansDFPTWorkflow,
                                         KoopmansDSCFWorkflow)
 
@@ -157,5 +157,5 @@ class SinglepointWorkflow(Workflow):
                 dscf_workflow = KoopmansDSCFWorkflow.fromparent(self)
                 dscf_workflow.run()
             else:
-                dft_workflow = DFTCPWorkflow.fromparent(self)
+                dft_workflow = DFTPWWorkflow.fromparent(self)
                 dft_workflow.run()

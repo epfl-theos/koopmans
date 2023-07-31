@@ -69,7 +69,7 @@ def object_hook(dct):
             if hasattr(module, subdct['__name__']):
                 return getattr(module, subdct['__name__'])
         utils.warn('Function was not able to be serialized')
-        return '<placeholder for function lost during serialization>'
+        return f'<placeholder for function {subdct["__name__"]} lost during serialization>'
     else:
         # Patching bug in ASE where allocating an np.empty(dtype=str) will assume a particular length for each
         # string. dtype=object allows for individual strings to be different lengths
