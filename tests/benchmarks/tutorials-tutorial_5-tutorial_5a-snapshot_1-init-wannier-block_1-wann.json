@@ -129,7 +129,7 @@
   "Im/Re ratio": [],
   "centers": [
    [
-    3.348016,
+    3.348017,
     -3.19214,
     -3.417119
    ],
@@ -151,9 +151,9 @@
   ],
   "spreads": [
    0.51697195,
-   0.47901781,
-   0.50796491,
-   0.50362979
+   0.47901783,
+   0.50796487,
+   0.50362981
   ]
  },
  "_directory": {
@@ -174,5 +174,5 @@
  "calc": {},
  "skip_qc": false,
  "__koopmans_name__": "BenchGenWannier90Calculator",
- "__koopmans_module__": "tests.helpers.patches"
+ "__koopmans_module__": "tests.helpers.patches._benchmark"
 }
