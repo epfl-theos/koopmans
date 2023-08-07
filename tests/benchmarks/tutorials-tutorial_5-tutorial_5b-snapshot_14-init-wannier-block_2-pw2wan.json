@@ -110,5 +110,5 @@
  "calc": {},
  "skip_qc": false,
  "__koopmans_name__": "BenchGenPW2WannierCalculator",
- "__koopmans_module__": "tests.helpers.patches"
+ "__koopmans_module__": "tests.helpers.patches._benchmark"
 }

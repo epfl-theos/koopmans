@@ -150,10 +150,10 @@
    ]
   ],
   "spreads": [
-   0.44419226,
-   0.46440437,
+   0.44419225,
+   0.46440436,
    0.50746321,
-   0.50127287
+   0.5012729
   ]
  },
  "_directory": {
@@ -174,5 +174,5 @@
  "calc": {},
  "skip_qc": false,
  "__koopmans_name__": "BenchGenWannier90Calculator",
- "__koopmans_module__": "tests.helpers.patches"
+ "__koopmans_module__": "tests.helpers.patches._benchmark"
 }

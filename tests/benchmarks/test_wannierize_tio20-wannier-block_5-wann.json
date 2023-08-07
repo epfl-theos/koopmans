@@ -966,7 +966,7 @@
    1.19187443,
    1.25111338,
    1.503274,
-   1.57609773,
+   1.57609772,
    1.19187448,
    1.1918744,
    1.25111312,
@@ -3738,5 +3738,5 @@
  "calc": {},
  "skip_qc": false,
  "__koopmans_name__": "BenchGenWannier90Calculator",
- "__koopmans_module__": "tests.helpers.patches"
+ "__koopmans_module__": "tests.helpers.patches._benchmark"
 }

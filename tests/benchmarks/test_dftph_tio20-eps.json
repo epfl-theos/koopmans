@@ -123,15 +123,15 @@
     ],
     "float64",
     [
-     10.19076547377,
+     10.190765472,
      0.0,
      0.0,
      0.0,
-     10.19076547377,
+     10.190765472,
      0.0,
      0.0,
      0.0,
-     11.767942283925
+     11.767942282
     ]
    ]
   }
@@ -155,5 +155,5 @@
  "calc": {},
  "skip_qc": false,
  "__koopmans_name__": "BenchGenPhCalculator",
- "__koopmans_module__": "tests.helpers.patches"
+ "__koopmans_module__": "tests.helpers.patches._benchmark"
 }
