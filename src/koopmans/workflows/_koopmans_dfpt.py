@@ -20,7 +20,7 @@ from ._workflow import Workflow
 
 class KoopmansDFPTWorkflow(Workflow):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, scf_kgrid=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Check the consistency of keywords
@@ -112,6 +112,8 @@ class KoopmansDFPTWorkflow(Workflow):
 
         self._perform_ham_calc: bool = True
 
+        self._scf_kgrid = scf_kgrid
+
     def _run(self):
         '''
         This function runs the workflow from start to finish
@@ -129,7 +131,7 @@ class KoopmansDFPTWorkflow(Workflow):
 
         if self.parameters.dfpt_coarse_grid is not None:
             self.print('Coarse grid calculations', style='heading')
-            coarse_wf = self.__class__.fromparent(self)
+            coarse_wf = self.__class__.fromparent(self, scf_kgrid=self.kpoints.grid)
             coarse_wf.parameters.dfpt_coarse_grid = None
             coarse_wf.kpoints.grid = self.parameters.dfpt_coarse_grid
             coarse_wf._perform_ham_calc = False
@@ -142,7 +144,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 if key.startswith('w90'):
                     self.calculator_parameters[key].write_u_matrices = True
                     self.calculator_parameters[key].write_xyz = True
-            wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True)
+            wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True, scf_kgrid = self._scf_kgrid)
             wf_workflow.run()
 
         else:
