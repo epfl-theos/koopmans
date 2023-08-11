@@ -28,6 +28,13 @@ from ._workflow import Workflow
 T = TypeVar('T', int, float, List[int], List[float])
 
 
+def generate_values_via_addition(initial_value: T, increment: T, length: int) -> List[T]:
+    if isinstance(initial_value, list):
+        return [[v + i * delta for v, delta in zip(initial_value, increment)] for i in range(length)]
+    else:
+        return [initial_value + i * increment for i in range(length)]
+
+￼
 @dataclass
 class ConvergenceVariable(Generic[T]):
     name: str
@@ -36,6 +43,7 @@ class ConvergenceVariable(Generic[T]):
     set_value: Callable[[Workflow, T], None]
     initial_value: Optional[T] = None
     length: int = 3
+    generate_values: Callable[[T, T, int], List[T]] = generate_values_via_addition
     converged_value: Optional[T] = None
 
     def extend(self):
@@ -50,10 +58,7 @@ class ConvergenceVariable(Generic[T]):
             raise ValueError(
                 f'{self.__class__.__name__}.initial_value has not been set. Use {self.__class__.__name__}.get_initial_value() to set it.')
 
-        if isinstance(self.initial_value, list):
-            return [[v + i * delta for v, delta in zip(self.initial_value, self.increment)] for i in range(self.length)]
-        else:
-            return [self.initial_value + i * self.increment for i in range(self.length)]
+        return self.generate_values(self.initial_value, self.increment, self.length)
 
     def get_initial_value(self, workflow: Workflow):
         if self.initial_value is not None:
@@ -169,9 +174,28 @@ def _set_kgrid(wf: Workflow, value: List[int]) -> None:
     wf.kpoints.grid = value
 
 
-def conv_var_kgrid(increment: List[int] = [2, 2, 2], **kwargs) -> ConvergenceVariable:
+def _generate_kgrid_values(initial_value: List[int], increment: List[int], length: int) -> List[List[int]]:
+    values: List[List[int]] = [initial_value]
 
-    return ConvergenceVariable('kgrid', increment, _get_kgrid, _set_kgrid, **kwargs)
+    while len(values) < length:
+        candidates = []
+        for delta in itertools.product([0, 1], repeat=len(initial_value)):
+            if 1 not in delta:
+                continue
+            candidates.append([x + d * i for x, d, i in zip(values[-1], delta, increment)])
+
+        def cos_angle(c):
+            return np.dot(c, initial_value) / np.linalg.norm(c) / np.linalg.norm(initial_value)
+        best_candidate = sorted(candidates, key=cos_angle)[-1]
+        values.append(best_candidate)
+
+    return values
+
+
+def conv_var_kgrid(increment: List[int] = [1, 1, 1], **kwargs) -> ConvergenceVariable:
+
+    return ConvergenceVariable('kgrid', increment, _get_kgrid, _set_kgrid,
+                               generate_values=_generate_kgrid_values, **kwargs)
 
 
 def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
@@ -213,7 +237,7 @@ class ConvergenceWorkflow(Workflow):
                       variables=dct.pop('variables'))
         return super(ConvergenceWorkflow, cls).fromdict(dct, **kwargs)
 
-    def _run(self, initial_depth: int = 3) -> None:
+    def _run(self) -> None:
 
         # Deferred import to allow for monkeypatching
         from koopmans import workflows
@@ -242,7 +266,7 @@ class ConvergenceWorkflow(Workflow):
                     shutil.rmtree(str(path))
 
         # Create array for storing calculation results
-        results = np.empty([initial_depth for _ in self.variables])
+        results = np.empty([len(v) for v in self.variables])
         results[:] = np.nan
 
         # Continue to increment the convergence variables until convergence in the convergence observable
@@ -264,7 +288,7 @@ class ConvergenceWorkflow(Workflow):
         while True:
 
             # Loop over all possible permutations of convergence variables
-            for indices in itertools.product(*[range(len(x.values)) for x in self.variables]):
+            for indices in itertools.product(*[range(len(x)) for x in self.variables]):
                 # If we already have results for this permutation, don't recalculate it
                 if not np.isnan(results[tuple(indices)]):
                     continue

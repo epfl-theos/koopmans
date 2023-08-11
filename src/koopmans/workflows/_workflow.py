@@ -788,6 +788,10 @@ class Workflow(ABC):
         # Store the calculator
         self.calculations.append(qe_calc)
 
+        # Ensure we inherit any modifications made to the atoms object
+￼       if qe_calc.atoms != self.atoms:
+￼           self.atoms = qe_calc.atoms
+
         # If we reached here, all future calculations should be performed from scratch
         self.parameters.from_scratch = True
 
