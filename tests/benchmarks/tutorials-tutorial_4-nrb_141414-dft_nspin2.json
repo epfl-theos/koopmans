@@ -12,8 +12,8 @@
   "neldw": 4,
   "ecutwfc": 30.0,
   "pseudopotentials": {
-   "O": "O.upf",
-   "H": "H.upf"
+   "H": "H.upf",
+   "O": "O.upf"
   },
   "pseudo_dir": {
    "__path__": "../../../src/koopmans/pseudopotentials/pseudo_dojo_standard_v0.4.1/pbe"

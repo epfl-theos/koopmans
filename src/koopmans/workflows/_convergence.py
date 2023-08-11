@@ -34,7 +34,7 @@ def generate_values_via_addition(initial_value: T, increment: T, length: int) ->
     else:
         return [initial_value + i * increment for i in range(length)]
 
-￼
+
 @dataclass
 class ConvergenceVariable(Generic[T]):
     name: str
