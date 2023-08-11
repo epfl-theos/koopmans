@@ -72,6 +72,7 @@ def bandpaths(draw: Callable) -> BandPath:
 
 _grids = lists(integers(), min_size=3, max_size=3)
 _offsets = lists(integers(min_value=0, max_value=1), min_size=3, max_size=3)
+_offsets_nscf = lists(floats(min_value=0, max_value=1), min_size=3, max_size=3)
 
 
 @composite
@@ -80,11 +81,13 @@ def _kpoints_via_bandpath(draw) -> Kpoints:
     if gamma_only:
         grid = None
         offset = None
+        offset_nscf = None
     else:
         grid = draw(_grids)
         offset = draw(_offsets)
+        offset_nscf = draw(_offsets_nscf)
     path = draw(bandpaths())
-    return Kpoints(grid, offset, path, gamma_only)
+    return Kpoints(grid, offset, offset_nscf, path, gamma_only)
 
 
 @composite
@@ -93,13 +96,15 @@ def _kpoints_via_pathstr(draw) -> Kpoints:
     if gamma_only:
         grid = None
         offset = None
+        offset_nscf = None
     else:
         grid = draw(_grids)
         offset = draw(_offsets)
+        offset_nscf = draw(_offsets_nscf)
     cell = draw(ase_cells())
     density = draw(floats(min_value=1.0, max_value=50.0))
     path = cell.bandpath().path
-    return Kpoints(grid, offset, path, gamma_only, cell, density)
+    return Kpoints(grid, offset, offset_nscf, path, gamma_only, cell, density)
 
 
 kpoints = _kpoints_via_bandpath() | _kpoints_via_pathstr()

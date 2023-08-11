@@ -161,7 +161,7 @@ class Bands(object):
             f'array of length {len(array)}'
         for i, (subarray, n_bands) in enumerate(zip(array, self.n_bands)):
             assert len(subarray) == n_bands, f'Bands.{array_name}[{i}] must be length {n_bands} but you provided an ' \
-                f'array with length {len(subarray)}'
+                f'array with length {len(subarray)}. The file_alpharef files should reflect the number of states in the supercell.'
 
     @property
     def filling(self) -> List[List[bool]]:
