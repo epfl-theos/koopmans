@@ -97,11 +97,15 @@ class TrajectoryWorkflow(Workflow):
             snapshot = self.snapshots[i]
             self.ml.current_snapshot = i
             self.atoms.set_positions(snapshot.positions)
+            
+            # after each snapshot we want to set the from_scratch_parameter to its original value
+            # To do so, we save it here since it might get set from False to True during the calculation
+            # of the snapshot
+            from_scratch = self.parameters.from_scratch
 
             # If we are interested in the prediction of the eigenvalues, delete the final directory to make sure that
             # the final calculation is rerun.
             if self.get_evs:
-                from_scratch = self.parameters.from_scratch
                 shutil.rmtree(Path(subdirectory) / 'final', ignore_errors=True)
 
             # Initialize and run the DSCF workflow
@@ -109,10 +113,8 @@ class TrajectoryWorkflow(Workflow):
             self.bands = workflow.bands  # reset the bands to the initial guesses
             workflow.run(subdirectory=subdirectory)
 
-            # Since we have deleted the final directory and therefore had to rerun, we must now make sure that
-            # from_scratch is set to its original value
-            if self.get_evs:
-                self.parameters.from_scratch = from_scratch
+            # Reset the from_scratch parameter to its original value
+            self.parameters.from_scratch = from_scratch
 
             # If necessary, save the results (e.g. for the convergence analysis)
             alphas = self.bands.alphas
