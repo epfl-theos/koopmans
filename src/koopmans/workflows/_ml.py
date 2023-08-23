@@ -158,12 +158,20 @@ class MLFittingWorkflow(Workflow):
 
     def check_if_bin2xml_is_complete(self) -> bool:
         """
-        Checks if the bin2xml conversion was already performed
+        Checks if the bin2xml conversion was already performed. 
+        
+        For this we first check if the next step is complete, i.e. the decomposition into spherical harmonics and 
+        radial basis functions. If we haven't yet computed the decomposition, we check if this step, i.e. the 
+        conversion to xml, was already performed. This way we can delete the (possibly large) binary and xml files 
+        and only keep the expansion coefficients and still be able to restart the calculation.
         """
 
-        # If there are as many xml files as there are bands to solve, the calculation was already completed
-        return len([name for name in os.listdir(self.dirs['xml']) if os.path.isfile(self.dirs['xml'] / name)]) \
-            == (self.num_bands_to_extract[0] + self.num_bands_to_extract[1] + 1)
+        if self.check_if_compute_decomposition_is_complete():
+            return True
+        else:
+            # If there are as many xml files as there are bands to solve, the calculation was already completed
+            return len([name for name in os.listdir(self.dirs['xml']) if os.path.isfile(self.dirs['xml'] / name)]) \
+                == (self.num_bands_to_extract[0] + self.num_bands_to_extract[1] + 1)
 
     def compute_decomposition(self):
         """
