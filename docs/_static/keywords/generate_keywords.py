@@ -1,6 +1,6 @@
 from koopmans.settings import (MLSettingsDict, PlotSettingsDict,
                                UnfoldAndInterpolateSettingsDict,
-                               WorkflowSettingsDict)
+                               WorkflowSettingsDict, ConvergenceSettingsDict)
 
 
 def print_settings_as_html(settings, table_id, fd):
@@ -53,3 +53,6 @@ if __name__ == '__main__':
 
     with open('ml_keywords.html', 'w') as fd:
         print_settings_as_html(MLSettingsDict(), 'mlTable', fd)
+
+    with open('convergence_keywords.html', 'w') as fd:
+        print_settings_as_html(ConvergenceSettingsDict(), 'convTable', fd)

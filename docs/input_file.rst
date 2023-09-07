@@ -163,6 +163,15 @@ This subblock controls the unfolding and interpolation procedure for generating 
 
   List of valid keywords <input_file/ui_keywords>
 
+The convergence block
+^^^^^^^^^^^^^^^^^^^^^
+This block can be used to customize a convergence calculation.
+
+.. toctree::
+
+  List of valid keywords <input_file/convergence_keywords>
+
+See :ref:`here for a more detailed tutorial on performing convergence calculations <tutorials/tutorial_4:Tutorial 4: running convergence tests>`.
 
 The plotting block
 ^^^^^^^^^^^^^^^^^^
