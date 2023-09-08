@@ -102,6 +102,7 @@ class Workflow(ABC):
     pseudo_dir: Path
     projections: ProjectionBlocks
     parent: Optional[Workflow]
+    version: str
 
     def __init__(self, atoms: Atoms,
                  pseudopotentials: Dict[str, str] = {},
@@ -114,6 +115,7 @@ class Workflow(ABC):
                  plotting: Union[Dict[str, Any], settings.PlotSettingsDict] = {},
                  ml: Union[Dict[str, Any], settings.MLSettingsDict] = {},
                  autogenerate_settings: bool = True,
+                 version: Optional[str] = None,
                  **kwargs: Dict[str, Any]):
 
         # Parsing parameters
@@ -318,6 +320,14 @@ class Workflow(ABC):
                 if spin:
                     label += f'_{spin}'
                 self.projections.exclude_bands[spin] = self.calculator_parameters[label].get('exclude_bands', [])
+
+        # Version number (important when loading workflows from .kwf files)
+        from koopmans import __version__
+        if self.version is None:
+            self.version = __version__
+        elif self.version != __version__:
+            utils.warn(f'You are using version {__version__} of koopmans, but this workflow was generated with '
+                       f'version {self.version}. Proceed with caution.')
 
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
@@ -645,7 +655,7 @@ class Workflow(ABC):
                 elif kw == 'kpath':
                     val = self.kpoints.path
                 elif kw == 'koffset':
-                    if (calc_class == calculators.PWCalculator and all_kwargs['calculation'] == 'nscf' or \
+                    if (calc_class == calculators.PWCalculator and all_kwargs['calculation'] == 'nscf' or
                             calc_class == calculators.Wannier90Calculator) and self.kpoints.offset_nscf is not None:
                         val = self.kpoints.offset_nscf
                     else:
