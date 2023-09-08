@@ -323,9 +323,8 @@ class Workflow(ABC):
 
         # Version number (important when loading workflows from .kwf files)
         from koopmans import __version__
-        if self.version is None:
-            self.version = __version__
-        elif self.version != __version__:
+        self.version = version if version is not None else __version__
+        if self.version != __version__:
             utils.warn(f'You are using version {__version__} of koopmans, but this workflow was generated with '
                        f'version {self.version}. Proceed with caution.')
 
