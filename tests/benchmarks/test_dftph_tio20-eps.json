@@ -3,8 +3,8 @@
   "tr2_ph": 1e-14,
   "fildyn": "tio2.dynG",
   "pseudopotentials": {
-   "Ti": "Ti.upf",
-   "O": "O.upf"
+   "O": "O.upf",
+   "Ti": "Ti.upf"
   },
   "__koopmans_name__": "PhSettingsDict",
   "__koopmans_module__": "koopmans.settings._ph"
@@ -123,15 +123,15 @@
     ],
     "float64",
     [
-     10.19076547377,
+     10.190767627,
      0.0,
      0.0,
      0.0,
-     10.19076547377,
+     10.190767627,
      0.0,
      0.0,
      0.0,
-     11.767942283925
+     11.767942286
     ]
    ]
   }
@@ -155,5 +155,5 @@
  "calc": {},
  "skip_qc": false,
  "__koopmans_name__": "BenchGenPhCalculator",
- "__koopmans_module__": "tests.helpers.patches"
+ "__koopmans_module__": "tests.helpers.patches._benchmark"
 }

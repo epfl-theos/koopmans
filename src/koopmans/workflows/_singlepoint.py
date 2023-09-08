@@ -97,11 +97,17 @@ class SinglepointWorkflow(Workflow):
                 # We only need to do the smooth interpolation the first time (i.e. for KI)
                 redo_smooth_dft = None if functional == 'ki' else False
 
+                # For pKIPZ should not be recalculated
+                if self.parameters.calculate_alpha:
+                    calculate_alpha = (functional != 'pkipz')
+                else:
+                    calculate_alpha = self.parameters.calculate_alpha
+
                 # Create a KC workflow for this particular functional
                 kc_workflow = KoopmansDSCFWorkflow.fromparent(self, functional=functional,
                                                               restart_from_old_ki=restart_from_old_ki,
                                                               redo_smooth_dft=redo_smooth_dft,
-                                                              calculate_alpha=(functional != 'pkipz'))
+                                                              calculate_alpha=calculate_alpha)
 
                 # Transform to the supercell
                 if functional == 'kipz':

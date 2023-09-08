@@ -10,8 +10,8 @@
   "tot_charge": 0,
   "ecutwfc": 30.0,
   "pseudopotentials": {
-   "H": "H.upf",
-   "O": "O.upf"
+   "O": "O.upf",
+   "H": "H.upf"
   },
   "pseudo_dir": {
    "__path__": "../../../src/koopmans/pseudopotentials/pseudo_dojo_standard_v0.4.1/pbe"
