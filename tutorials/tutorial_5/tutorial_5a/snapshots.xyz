@@ -1,100 +1,100 @@
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        3.17640523       3.15916572       3.45632380
 H        3.50148932       4.19880580       3.51512221
 H        3.70180884       2.86571428       2.63122811
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        3.04105985       3.13355436       3.50387735
 H        3.35350377       4.02421750       3.65723632
 H        3.64016743       3.03025791       2.62103417
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        3.03130677       3.03374043       3.10315102
 H        3.34276186       4.09849362       3.53863350
 H        3.83377546       2.73541343       2.64612585
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        2.98128161       3.27242792       3.50538588
 H        3.29289474       4.04986625       3.52407143
 H        3.40872035       2.84605879       2.65718490
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        3.12302907       3.23938798       3.31971732
 H        3.24716972       3.90719470       3.47084821
 H        3.43617298       3.07592754       2.59058478
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        2.95619257       2.99387046       3.43619904
 H        3.11601022       3.99077597       3.52330334
 H        3.64549025       2.82976949       2.52348678
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        2.99718178       3.16198319       3.36510172
 H        3.30764719       3.94861779       3.57657588
 H        3.53955396       2.84489468       2.56023537
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        2.82737174       3.13689261       3.31827191
 H        3.11438017       4.05832823       3.52212016
 H        3.61199454       2.95375906       2.65444829
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        3.11394007       2.99566742       3.39868416
 H        3.20891899       3.92497029       3.55496503
 H        3.57564475       2.88646653       2.52503502
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        3.09008265       3.16571624       3.20482563
 H        3.42622522       4.20163892       3.73072796
 H        3.58880752       2.77377474       2.74699517
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        2.95968231       3.24139451       3.37927750
 H        3.37506390       4.04768664       3.68350732
 H        3.60785000       3.05943705       2.65424121
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        3.04019894       3.30746507       3.22367409
 H        3.15035150       4.10898967       3.49553766
 H        3.80116212       2.83948810       2.56680452
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        3.19229420       3.26720148       3.54520590
 H        3.36800447       3.92592743       3.80385650
 H        3.57999966       2.96109564       2.73627520
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        2.98449899       3.18055794       3.45067067
 H        3.31504255       3.90210992       3.64267382
 H        3.73943859       2.81139321       2.62658655
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        2.95648464       3.30407637       3.42567948
 H        3.31814618       3.93505839       3.66677492
 H        3.53936673       2.88403306       2.57796539
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        3.06764333       3.17680908       3.33762012
 H        3.31700067       3.90274385       3.46372424
 H        3.65073917       2.89751735       2.70505314
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        3.23831448       3.21359795       3.26716778
 H        3.38910163       3.88045926       3.56669154
 H        3.59997584       3.05218427       2.56707452
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        2.91735615       3.10930475       3.29210217
 H        3.39006359       3.90405685       3.49810313
 H        3.56301800       2.83104675       2.83450321
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        3.09494208       3.12790512       3.23590645
 H        3.36183630       3.91202847       3.45837289
 H        3.72560298       2.91254426       2.73363588
 3
-Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="F F F"
+Lattice="6.8929 0.0 0.0 0.0 6.8929 0.0 0.0 0.0 6.8929" Properties=species:S:1:pos:R:3 #=T Configuration=T 1=T pbc="T T T"
 O        3.03187277       3.20483306       3.29334744
 H        3.17397572       4.08020945       3.53250903
 H        3.53784502       2.83529675       2.64329792

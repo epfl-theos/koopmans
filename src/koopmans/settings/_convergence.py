@@ -1,8 +1,4 @@
-import os
-from pathlib import Path
 from typing import Any
-
-from koopmans import pseudopotentials
 
 from ._utils import Setting, SettingsDictWithChecks
 
@@ -20,7 +16,10 @@ class ConvergenceSettingsDict(SettingsDictWithChecks):
             Setting('variables',
                     'The observable of interest will be converged with respect to this (these) '
                     'simulation variable(s)',
-                    (list, str), ['ecutwfc'], None)]
+                    (list, str), ['ecutwfc'], None),
+            Setting('max_steps',
+                    'The maximum number of values of each variable to try when attempting to achieve convergence',
+                    int, 10, None)]
 
         super().__init__(settings=settings, physicals=['threshold'], **kwargs)
 

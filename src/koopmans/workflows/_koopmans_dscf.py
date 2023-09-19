@@ -504,7 +504,7 @@ class KoopmansDSCFWorkflow(Workflow):
             # Do a KI/KIPZ calculation with the updated alpha values
             restart_from_wannier_pwscf = True if self.parameters.init_orbitals in [
                 'mlwfs', 'projwfs'] and not self._restart_from_old_ki and i_sc == 1 else None
-            if self.parameters.task in ['trajectory', 'convergence_ml'] and self.ml.input_data_for_ml_model == 'orbital_density':
+            if self.ml.use_ml and self.ml.input_data_for_ml_model == 'orbital_density':
                 print_real_space_density = True
             else:
                 print_real_space_density = False
@@ -642,13 +642,13 @@ class KoopmansDSCFWorkflow(Workflow):
 
                         alpha, error = self.calculate_alpha_from_list_of_calcs(
                             calcs, trial_calc, band, filled=band.filled)
-                        
+
                         # Mixing
                         alpha = self.parameters.alpha_mixing * alpha + (1 - self.parameters.alpha_mixing) * band.alpha
 
                     warning_message = 'The computed screening parameter is {0}. Proceed with caution.'
                     failure_message = 'The computed screening parameter is significantly {0}. This should not ' \
-                         'happen. Decrease alpha_mixing and/or change alpha_guess.'
+                        'happen. Decrease alpha_mixing and/or change alpha_guess.'
 
                     if alpha < -0.1:
                         raise ValueError(failure_message.format('less than 0'))

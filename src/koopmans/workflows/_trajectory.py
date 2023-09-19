@@ -6,7 +6,7 @@ A workflow for serially running the Koopmans DSCF workflow on multiple atomic co
 
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
 import numpy as np
 from ase import Atoms, io
@@ -15,6 +15,8 @@ from sklearn.metrics import mean_absolute_error, r2_score
 from koopmans import calculators, utils
 
 from ._workflow import Workflow
+
+W = TypeVar('W', bound='Workflow')
 
 
 class TrajectoryWorkflow(Workflow):
@@ -97,7 +99,7 @@ class TrajectoryWorkflow(Workflow):
             snapshot = self.snapshots[i]
             self.ml.current_snapshot = i
             self.atoms.set_positions(snapshot.positions)
-            
+
             # after each snapshot we want to set the from_scratch_parameter to its original value
             # To do so, we save it here since it might get set from False to True during the calculation
             # of the snapshot

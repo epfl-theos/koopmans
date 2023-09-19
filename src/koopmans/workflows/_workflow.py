@@ -19,8 +19,8 @@ from contextlib import contextmanager
 from functools import reduce
 from pathlib import Path
 from types import ModuleType
-from typing import (Any, Callable, Dict, Generator, List, Optional, Type,
-                    TypeVar, Union)
+from typing import (Any, Callable, Dict, Generator, List, Optional, Tuple,
+                    Type, TypeVar, Union)
 
 import numpy as np
 from numpy import typing as npt
@@ -37,6 +37,7 @@ from ase.build.supercells import make_supercell
 from ase.calculators.calculator import CalculationFailed
 from ase.dft.dos import DOS
 from ase.dft.kpoints import BandPath
+from ase.io import read as ase_read
 from ase.io.espresso import contruct_kcp_namelist as construct_namelist
 from ase.spacegroup import symmetrize
 from ase.spectrum.band_structure import BandStructure
@@ -102,6 +103,8 @@ class Workflow(ABC):
     pseudo_dir: Path
     projections: ProjectionBlocks
     parent: Optional[Workflow]
+    snapshots: List[Atoms]
+    _additional_init_variables: List[str] = []
 
     def __init__(self, atoms: Atoms,
                  pseudopotentials: Dict[str, str] = {},
@@ -113,6 +116,7 @@ class Workflow(ABC):
                                                        Dict[str, settings.SettingsDict]]] = None,
                  plotting: Union[Dict[str, Any], settings.PlotSettingsDict] = {},
                  ml: Union[Dict[str, Any], settings.MLSettingsDict] = {},
+                 snapshots: List[Atoms] = [],
                  autogenerate_settings: bool = True,
                  **kwargs: Dict[str, Any]):
 
@@ -160,6 +164,9 @@ class Workflow(ABC):
 
         if all(self.atoms.pbc):
             self.atoms.wrap(pbc=True)
+
+        # Snapshots
+        self.snapshots = snapshots
 
         # kpoints
         if all(self.atoms.pbc):
@@ -397,6 +404,7 @@ class Workflow(ABC):
                        projections=copy.deepcopy(parent_wf.projections),
                        plotting=copy.deepcopy(parent_wf.plotting),
                        ml=copy.deepcopy(parent_wf.ml),
+                       snapshots=copy.deepcopy(parent_wf.snapshots),
                        **other_kwargs)
         child_wf.parent = parent_wf
         return child_wf
@@ -518,9 +526,6 @@ class Workflow(ABC):
         # Make sanity checks for the ML model
         if self.ml.use_ml:
             utils.warn("Predicting screening parameters with machine-learning is an experimental feature; proceed with caution")
-            if self.parameters.task not in ['trajectory', 'convergence_ml']:
-                raise NotImplementedError(
-                    f'Using the ML-prediction for the {self.parameter.task}-task has not yet been implemented.')
             if self.parameters.method != 'dscf':
                 raise NotImplementedError(
                     f"Using the ML-prediction for the {self.parameters.method}-method has not yet been implemented")
@@ -987,7 +992,8 @@ class Workflow(ABC):
         # Loading atoms object
         atoms_dict = bigdct.pop('atoms', None)
         if atoms_dict:
-            atoms = read_atoms_dict(utils.parse_dict(atoms_dict))
+            atoms, snapshots = read_atoms_dict(utils.parse_dict(atoms_dict))
+            kwargs['snapshots'] = snapshots
         else:
             raise ValueError('Please provide an "atoms" block in the json input file')
 
@@ -1080,8 +1086,7 @@ class Workflow(ABC):
         kwargs['pseudopotentials'] = bigdct.pop('pseudopotentials', {})
 
         # Convergence
-        if parameters.converge:
-            conv_block = settings.ConvergenceSettingsDict(**bigdct.pop('convergence', {}))
+        conv_block = settings.ConvergenceSettingsDict(**bigdct.pop('convergence', {}))
 
         # Check for unexpected blocks
         for block in bigdct:
@@ -1092,12 +1097,17 @@ class Workflow(ABC):
         wf = cls(atoms, parameters=parameters, kpoints=kpts, calculator_parameters=calculator_parameters, **kwargs,
                  **calcdict)
 
+        if snapshots:
+            # Wrap the workflow in a snapshot outer loop
+            from koopmans.workflows import SnapshotWorkflowFactory
+            wf = SnapshotWorkflowFactory(subworkflow=wf,
+                                         snapshots=snapshots)
         if parameters.converge:
             # Wrap the workflow in a convergence outer loop
             from koopmans.workflows import ConvergenceWorkflowFactory
-            return ConvergenceWorkflowFactory(wf, **conv_block)
-        else:
-            return wf
+            wf = ConvergenceWorkflowFactory(subworkflow=wf, **conv_block)
+
+        return wf
 
     def print_header(self):
         print(header())
@@ -1442,15 +1452,21 @@ def header():
     return '\n'.join(header)
 
 
-def read_atoms_dict(dct: Dict[str, Any]):
+def read_atoms_dict(dct: Dict[str, Any]) -> Tuple[Atoms, List[Atoms]]:
     '''
     Reads the "atoms" block
     '''
 
     atoms = Atoms()
+    snapshots: List[Atoms] = []
 
     readers: Dict[str, Callable] = {'cell_parameters': utils.read_cell_parameters,
                                     'atomic_positions': utils.read_atomic_positions}
+
+    snapshot_filename = dct['atomic_positions'].pop('snapshots', None)
+    if snapshot_filename:
+        readers.pop('atomic_positions')
+        dct.pop('atomic_positions')
 
     for key, reader in readers.items():
         subdct: Dict[str, Any] = dct.pop(key, {})
@@ -1462,7 +1478,12 @@ def read_atoms_dict(dct: Dict[str, Any]):
     for block in dct:
         raise ValueError(f'Unrecognized subblock atoms: "{block}"')
 
-    return atoms
+    # Read the snapshots
+    if snapshot_filename:
+        snapshots = ase_read(snapshot_filename, index=':')
+        atoms = snapshots[0]
+
+    return atoms, snapshots
 
 
 def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]:

@@ -1,7 +1,6 @@
 import copy
 
 import numpy as np
-
 from ase import io
 
 np.random.seed(0)
@@ -9,6 +8,7 @@ np.random.seed(0)
 cell = np.diag([6.892900, 6.892900, 6.892900])
 unperturbed_h2o = io.read("h2o_unpertubed_positions.xyz", index='0')
 unperturbed_h2o.set_cell(cell)
+unperturbed_h2o.pbc = True
 
 trajectory = []
 for i in range(20):

@@ -12,7 +12,7 @@ from __future__ import annotations
 import copy
 import itertools
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
 from typing import (Any, Callable, Dict, Generic, List, Optional, Type,
@@ -23,6 +23,7 @@ import numpy as np
 from koopmans import cell, utils
 
 from ._workflow import Workflow
+from ._wrapper import WorkflowWrapper, WorkflowWrapperFactory
 
 # T is either an int or a float or a list of ints/floats
 T = TypeVar('T', int, float, List[int], List[float])
@@ -39,12 +40,19 @@ def generate_values_via_addition(initial_value: T, increment: T, length: int) ->
 class ConvergenceVariable(Generic[T]):
     name: str
     increment: T
-    get_value: Callable[[Workflow], T]
-    set_value: Callable[[Workflow, T], None]
+    get_value: Callable[[Workflow], T] = field(repr=False)
+    set_value: Callable[[Workflow, T], None] = field(repr=False)
     initial_value: Optional[T] = None
     length: int = 3
-    generate_values: Callable[[T, T, int], List[T]] = generate_values_via_addition
-    converged_value: Optional[T] = None
+    _length: Optional[int] = field(default=None, repr=False)
+    original_length: Optional[int] = field(init=False)
+    max_length: int = 10
+    generate_values: Callable[[T, T, int], List[T]] = field(repr=False, default=generate_values_via_addition)
+    converged_value: Optional[T] = None,
+
+    def __post_init__(self):
+        self.original_length = self.length
+        self.max_length = max(self.max_length, self.length)
 
     def extend(self):
         self.length += 1
@@ -198,6 +206,21 @@ def conv_var_kgrid(increment: List[int] = [1, 1, 1], **kwargs) -> ConvergenceVar
                                generate_values=_generate_kgrid_values, **kwargs)
 
 
+def _get_ntrain(wf: Workflow) -> int:
+    return wf.ml.number_of_training_snapshots
+
+
+def _set_ntrain(wf: Workflow, value: int) -> None:
+    # Shorten the snapshots list so we always test on the same snapshots
+    wf.ml.number_of_training_snapshots = value
+
+
+def conv_var_ntrain(increment: int = 1, **kwargs) -> ConvergenceVariable:
+
+    return ConvergenceVariable('number_of_training_snapshots', increment, _get_ntrain,
+                               _set_ntrain, **kwargs)
+
+
 def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
 
     if conv_var == 'celldm1':
@@ -208,6 +231,8 @@ def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
         return conv_var_nbnd(**kwargs)
     elif conv_var == 'kgrid':
         return conv_var_kgrid(**kwargs)
+    elif conv_var == 'number_of_training_snapshots':
+        return conv_var_ntrain(**kwargs)
     else:
         raise NotImplementedError(f'Convergence with respect to {conv_var} has not been directly implemented. You '
                                   'can still perform a convergence calculation with respect to this variable, but '
@@ -215,27 +240,16 @@ def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
                                   'construct your ConvergenceWorkflow using the ConvergenceWorkflowFactory')
 
 
-class ConvergenceWorkflow(Workflow):
+class ConvergenceWorkflow(WorkflowWrapper):
 
     '''
     A Workflow class that wraps another workflow in a convergence procedure in order to converge the observable within the specified tolerance with respect to the variables
     '''
 
-    def __init__(self, subworkflow_class: Type[Workflow], observable: Optional[Callable[[Workflow], float]] = None, threshold: Optional[float] = None, variables: List[ConvergenceVariable] = [], *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self._subworkflow_class = subworkflow_class
-        self.observable = observable
-        self.threshold = threshold
-        self.variables = variables
-
-    @classmethod
-    def fromdict(cls, dct: Dict[str, Any], **kwargs) -> Workflow:
-        kwargs.update(subworkflow_class=dct.pop('_subworkflow_class'),
-                      observable=dct.pop('observable'),
-                      threshold=dct.pop('threshold'),
-                      variables=dct.pop('variables'))
-        return super(ConvergenceWorkflow, cls).fromdict(dct, **kwargs)
+    _wrapper_args = ['observable', 'threshold', 'variables']
+    observable: Callable[[Workflow], float]
+    threshold: float
+    variables: List[ConvergenceVariable]
 
     def _run(self) -> None:
 
@@ -285,16 +299,16 @@ class ConvergenceWorkflow(Workflow):
             master_orbital_groups = copy.deepcopy(
                 self.parameters.orbital_groups)
 
-        while True:
+        while all([v.length <= v.max_length for v in self.variables]):
 
             # Loop over all possible permutations of convergence variables
-            for indices in itertools.product(*[range(len(x)) for x in self.variables]):
+            for indices in itertools.product(*[range(x.length - x.original_length, len(x)) for x in self.variables]):
                 # If we already have results for this permutation, don't recalculate it
-                if not np.isnan(results[tuple(indices)]):
+                if not np.all(np.isnan(results[tuple(indices)])):
                     continue
 
                 # Create a new subworkflow
-                subwf = self._subworkflow_class.fromparent(self)
+                subwf = self.subworkflow_class.fromparent(self)
 
                 # For each parameter we're converging wrt...
                 header = ''
@@ -334,7 +348,15 @@ class ConvergenceWorkflow(Workflow):
                 # Perform calculation
                 subwf.run(subdirectory=subdir)
 
+                import ipdb
+                ipdb.set_trace()
+
                 # Store the result
+                result = self.observable(subwf)
+                if not isinstance(result, float) and results[indices].shape != np.shape(result):
+                    # Extend results array to accommodate the new result
+                    results = np.empty(results.shape + np.shape(result))
+                    results[:] = np.nan
                 results[indices] = self.observable(subwf)
 
             # Check convergence
@@ -347,7 +369,15 @@ class ConvergenceWorkflow(Workflow):
                 subarray_slice = [slice(None) for _ in range(len(indices))]
                 for i_index, index in enumerate(indices):
                     subarray_slice[i_index] = slice(index, None)
-                if np.all(np.abs(results[tuple(subarray_slice)] - converged_result) < self.threshold):
+                if isinstance(converged_result, float):
+                    # use absolute difference
+                    def is_converged(x): return np.abs(x - converged_result) < self.threshold
+                else:
+                    # use RMS
+                    def is_converged(x): return np.sqrt(np.mean((x - converged_result)**2)) < self.threshold
+
+                # To be considered converged, all finer values of the variable must also be converged
+                if np.all([is_converged(x) for x in results[tuple(subarray_slice)]]):
                     converged[tuple(indices)] = True
 
             # Check convergence, ignoring the calculations with the most fine variables because
@@ -379,7 +409,6 @@ class ConvergenceWorkflow(Workflow):
                 new_array_shape = list(np.shape(results))
                 new_array_slice: List[Union[int, slice]] = [
                     slice(None) for _ in indices]
-                self.print('Progress update', style='heading')
                 for index, var in enumerate(self.variables):
                     subarray_slice = [slice(None) for _ in self.variables]
                     subarray_slice[index] = slice(0, -1)
@@ -409,11 +438,16 @@ class ConvergenceWorkflow(Workflow):
                 new_results[tuple(new_array_slice)] = results
                 results = new_results
 
+        import ipdb
+        ipdb.set_trace()
+
+        self.print()
+        self.print('The maximum number of iterations has been reached without achieving convergence')
         return
 
 
 def ConvergenceWorkflowFactory(subworkflow: Workflow, observable: Union[str, Callable[[Workflow], float]], threshold: float,
-                               variables: List[Union[str, ConvergenceVariable]]) -> ConvergenceWorkflow:
+                               variables: List[Union[str, ConvergenceVariable]], max_steps: int = 10, **kwargs) -> ConvergenceWorkflow:
     '''
     Generates a ConvergenceWorkflow based on...
         subworkflow_class: the class of the Workflow that we will repeatedly run
@@ -424,15 +458,10 @@ def ConvergenceWorkflowFactory(subworkflow: Workflow, observable: Union[str, Cal
 
     # Ensure variables are all ConvergenceVariables
     variables = [v if isinstance(
-        v, ConvergenceVariable) else ConvergenceVariableFactory(v) for v in variables]
+        v, ConvergenceVariable) else ConvergenceVariableFactory(v, max_length=max_steps) for v in variables]
 
     # Ensure observable is a Callable
     observable = ObservableFactory(observable) if isinstance(
         observable, str) else observable
 
-    # Co-opt the fromparent method to use the subworkflow settings to initialize a ConvergenceWorkflow...
-    wf = ConvergenceWorkflow.fromparent(subworkflow, subworkflow_class=subworkflow.__class__,
-                                        variables=variables, observable=observable, threshold=threshold)
-    wf.parent = None  # ... making sure we remove wf.parent immediately afterwards
-
-    return wf
+    return WorkflowWrapperFactory(ConvergenceWorkflow, subworkflow, variables=variables, observable=observable, threshold=threshold, **kwargs)
