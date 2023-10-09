@@ -945,6 +945,12 @@ class Workflow(ABC):
 
     @classmethod
     def fromdict(cls, dct: Dict[str, Any], **kwargs) -> Workflow:
+
+        # Remove __koopmans_name/module__ if present (won't happen if the encoder was used, but will happen if
+        # todict and fromdict are used directly)
+        dct.pop('__koopmans_name__', None)
+        dct.pop('__koopmans_module__', None)
+
         wf = cls(atoms=dct.pop('atoms'),
                  parameters=dct.pop('parameters'),
                  calculator_parameters=dct.pop('calculator_parameters'),

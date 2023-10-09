@@ -381,8 +381,8 @@ class MLFittingWorkflow(Workflow):
         return super(MLFittingWorkflow, cls).fromdict(
             dct, calc_that_produced_orbital_densities=calc_that_produced_orbital_densities, **kwargs)
 
-    def __eq__(self, other):
-        diff = DeepDiff(self, other)
-        if diff != {}:
-            utils.warn(str(diff))
-        return DeepDiff(self, other) == {}
+    # def __eq__(self, other):
+    #     diff = DeepDiff(self, other)
+    #     if diff != {}:
+    #         utils.warn(str(diff))
+    #     return DeepDiff(self, other) == {}
