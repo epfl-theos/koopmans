@@ -4,7 +4,7 @@ Written by Yannick Schubert Jul 2022
 import copy
 import os
 from pathlib import Path
-from typing import Any, Dict, Tuple, Optional, List
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from deepdiff import DeepDiff
@@ -158,11 +158,11 @@ class MLFittingWorkflow(Workflow):
 
     def check_if_bin2xml_is_complete(self) -> bool:
         """
-        Checks if the bin2xml conversion was already performed. 
-        
-        For this we first check if the next step is complete, i.e. the decomposition into spherical harmonics and 
-        radial basis functions. If we haven't yet computed the decomposition, we check if this step, i.e. the 
-        conversion to xml, was already performed. This way we can delete the (possibly large) binary and xml files 
+        Checks if the bin2xml conversion was already performed.
+
+        For this we first check if the next step is complete, i.e. the decomposition into spherical harmonics and
+        radial basis functions. If we haven't yet computed the decomposition, we check if this step, i.e. the
+        conversion to xml, was already performed. This way we can delete the (possibly large) binary and xml files
         and only keep the expansion coefficients and still be able to restart the calculation.
         """
 
@@ -382,4 +382,7 @@ class MLFittingWorkflow(Workflow):
             dct, calc_that_produced_orbital_densities=calc_that_produced_orbital_densities, **kwargs)
 
     def __eq__(self, other):
+        diff = DeepDiff(self, other)
+        if diff != {}:
+            utils.warn(str(diff))
         return DeepDiff(self, other) == {}
