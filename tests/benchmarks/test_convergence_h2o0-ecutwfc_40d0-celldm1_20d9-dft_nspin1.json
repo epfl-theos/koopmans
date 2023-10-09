@@ -1,0 +1,805 @@
+{
+ "_parameters": {
+  "nspin": 1,
+  "conv_thr": 8e-09,
+  "esic_conv_thr": 8e-09,
+  "nelec": 8,
+  "tot_charge": 0,
+  "ecutwfc": 40.0,
+  "nbnd": 5,
+  "ecutrho": 160.0,
+  "pseudopotentials": {
+   "O": "O_ONCV_PBE-1.2.upf",
+   "H": "H_ONCV_PBE-1.2.upf"
+  },
+  "pseudo_dir": {
+   "__path__": "../../../../../src/koopmans/pseudopotentials/sg15_v1.2/pbe"
+  },
+  "ndr": 98,
+  "ndw": 98,
+  "restart_mode": "from_scratch",
+  "do_orbdep": false,
+  "fixed_state": false,
+  "do_outerloop": true,
+  "which_compensation": "tcc",
+  "maxiter": 300,
+  "do_outerloop_empty": true,
+  "empty_states_maxstep": 300,
+  "ibrav": 8,
+  "celldm(1)": 20.897261258369284,
+  "celldm(2)": 1.0596309,
+  "celldm(3)": 1.1526478,
+  "__koopmans_name__": "KoopmansCPSettingsDict",
+  "__koopmans_module__": "koopmans.settings._koopmans_cp"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "int64",
+    [
+     8,
+     1,
+     1
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     5.0,
+     5.7632390000000004,
+     5.596309,
+     5.0,
+     6.526478000000001,
+     5.0,
+     5.0,
+     5.0,
+     5.0
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     11.058354421127682,
+     0.0,
+     0.0,
+     0.0,
+     11.717774047778503,
+     0.0,
+     0.0,
+     0.0,
+     12.746387895133095
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     false,
+     false,
+     false
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "energy": -463.2318556717015,
+  "odd_energy": 0.0,
+  "homo_energy": -7.2244,
+  "lumo_energy": -1.0131,
+  "mp1_energy": null,
+  "mp2_energy": null,
+  "eigenvalues": [
+   [
+    -25.7643,
+    -13.1904,
+    -9.4431,
+    -7.2244,
+    -1.0131
+   ]
+  ],
+  "lambda_ii": null,
+  "orbital_data": {
+   "charge": [
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   ],
+   "centres": [
+    [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   ],
+   "spreads": [
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   ],
+   "self-Hartree": [
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   ]
+  },
+  "convergence": {
+   "filled": [
+    {
+     "iteration": 1,
+     "eff iteration": 1,
+     "Etot": 1144.275928910078
+    },
+    {
+     "iteration": 2,
+     "eff iteration": 2,
+     "Etot": 412.60628286372116
+    },
+    {
+     "iteration": 3,
+     "eff iteration": 3,
+     "Etot": 57.58785524472155,
+     "delta_E": 731.669646046361
+    },
+    {
+     "iteration": 4,
+     "eff iteration": 4,
+     "Etot": -168.99874769973417,
+     "delta_E": 355.0184276190127
+    },
+    {
+     "iteration": 5,
+     "eff iteration": 5,
+     "Etot": -324.91164553150156,
+     "delta_E": 226.5866029444571
+    },
+    {
+     "iteration": 6,
+     "eff iteration": 6,
+     "Etot": -401.2093835212698,
+     "delta_E": 155.91289783176848
+    },
+    {
+     "iteration": 7,
+     "eff iteration": 7,
+     "Etot": -433.05226664559785,
+     "delta_E": 76.29773798976898
+    },
+    {
+     "iteration": 8,
+     "eff iteration": 8,
+     "Etot": -448.32682970455556,
+     "delta_E": 31.842883124327795
+    },
+    {
+     "iteration": 9,
+     "eff iteration": 9,
+     "Etot": -455.7452677266555,
+     "delta_E": 15.274563058957426
+    },
+    {
+     "iteration": 10,
+     "eff iteration": 10,
+     "Etot": -459.698689561609,
+     "delta_E": 7.418438022100055
+    },
+    {
+     "iteration": 11,
+     "eff iteration": 11,
+     "Etot": -461.70332333192414,
+     "delta_E": 3.9534218349533705
+    },
+    {
+     "iteration": 12,
+     "eff iteration": 12,
+     "Etot": -462.55435031731275,
+     "delta_E": 2.0046337703152233
+    },
+    {
+     "iteration": 13,
+     "eff iteration": 13,
+     "Etot": -462.933941502941,
+     "delta_E": 0.8510269853885194
+    },
+    {
+     "iteration": 14,
+     "eff iteration": 14,
+     "Etot": -463.0979241521041,
+     "delta_E": 0.3795911856283812
+    },
+    {
+     "iteration": 15,
+     "eff iteration": 15,
+     "Etot": -463.17353783285927,
+     "delta_E": 0.16398264916310012
+    },
+    {
+     "iteration": 16,
+     "eff iteration": 16,
+     "Etot": -463.20571467586507,
+     "delta_E": 0.07561368075494598
+    },
+    {
+     "iteration": 17,
+     "eff iteration": 17,
+     "Etot": -463.22052086865364,
+     "delta_E": 0.03217684300593395
+    },
+    {
+     "iteration": 18,
+     "eff iteration": 18,
+     "Etot": -463.2269906948609,
+     "delta_E": 0.014806192788622769
+    },
+    {
+     "iteration": 19,
+     "eff iteration": 19,
+     "Etot": -463.2297673821169,
+     "delta_E": 0.00646982620720149
+    },
+    {
+     "iteration": 20,
+     "eff iteration": 20,
+     "Etot": -463.2309551147217,
+     "delta_E": 0.002776687255993693
+    },
+    {
+     "iteration": 21,
+     "eff iteration": 21,
+     "Etot": -463.2315388636984,
+     "delta_E": 0.0011877326048102981
+    },
+    {
+     "iteration": 22,
+     "eff iteration": 22,
+     "Etot": -463.23175248767944,
+     "delta_E": 0.0005837489766997593
+    },
+    {
+     "iteration": 23,
+     "eff iteration": 23,
+     "Etot": -463.2318185756447,
+     "delta_E": 0.00021362398095824153
+    },
+    {
+     "iteration": 24,
+     "eff iteration": 24,
+     "Etot": -463.2318432200035,
+     "delta_E": 6.608796520503011e-05
+    },
+    {
+     "iteration": 25,
+     "eff iteration": 25,
+     "Etot": -463.23185145584904,
+     "delta_E": 2.464435902989322e-05
+    },
+    {
+     "iteration": 26,
+     "eff iteration": 26,
+     "Etot": -463.2318542952538,
+     "delta_E": 8.235845347558569e-06
+    },
+    {
+     "iteration": 27,
+     "eff iteration": 27,
+     "Etot": -463.2318552542434,
+     "delta_E": 2.8394047723658202e-06
+    },
+    {
+     "iteration": 28,
+     "eff iteration": 28,
+     "Etot": -463.231855536379,
+     "delta_E": 9.589897648487202e-07
+    },
+    {
+     "iteration": 29,
+     "eff iteration": 29,
+     "Etot": -463.2318556238903,
+     "delta_E": 2.821355012110835e-07
+    },
+    {
+     "iteration": 30,
+     "eff iteration": 30,
+     "Etot": -463.23185565413763,
+     "delta_E": 8.751117970232953e-08
+    },
+    {
+     "iteration": 31,
+     "eff iteration": 31,
+     "Etot": -463.2318556684763,
+     "delta_E": 3.02475377908774e-08
+    },
+    {
+     "iteration": 32,
+     "eff iteration": 32,
+     "Etot": -463.2318556715015,
+     "delta_E": 1.4338725602202916e-08
+    }
+   ],
+   "empty": [
+    {
+     "iteration": 1,
+     "eff iteration": 1,
+     "Etot": 257.73432117031217
+    },
+    {
+     "iteration": 2,
+     "eff iteration": 2,
+     "Etot": 85.7711023608447
+    },
+    {
+     "iteration": 3,
+     "eff iteration": 3,
+     "Etot": 43.25213290583674,
+     "delta_E": 171.96321880946803
+    },
+    {
+     "iteration": 4,
+     "eff iteration": 4,
+     "Etot": 26.777337596642802,
+     "delta_E": 42.51896945500877
+    },
+    {
+     "iteration": 5,
+     "eff iteration": 5,
+     "Etot": 18.57517710383321,
+     "delta_E": 16.474795309193933
+    },
+    {
+     "iteration": 6,
+     "eff iteration": 6,
+     "Etot": 13.775339740956007,
+     "delta_E": 8.202160492809867
+    },
+    {
+     "iteration": 7,
+     "eff iteration": 7,
+     "Etot": 10.879018875453312,
+     "delta_E": 4.799837362877202
+    },
+    {
+     "iteration": 8,
+     "eff iteration": 8,
+     "Etot": 8.801635804729925,
+     "delta_E": 2.896320865502423
+    },
+    {
+     "iteration": 9,
+     "eff iteration": 9,
+     "Etot": 7.341673757842207,
+     "delta_E": 2.077383070723414
+    },
+    {
+     "iteration": 10,
+     "eff iteration": 10,
+     "Etot": 6.152904879329237,
+     "delta_E": 1.459962046887664
+    },
+    {
+     "iteration": 11,
+     "eff iteration": 11,
+     "Etot": 5.276680099545648,
+     "delta_E": 1.1887688785131045
+    },
+    {
+     "iteration": 12,
+     "eff iteration": 12,
+     "Etot": 4.576665900842912,
+     "delta_E": 0.8762247797834802
+    },
+    {
+     "iteration": 13,
+     "eff iteration": 13,
+     "Etot": 3.9901665527274557,
+     "delta_E": 0.7000141987028187
+    },
+    {
+     "iteration": 14,
+     "eff iteration": 14,
+     "Etot": 3.5374561306309813,
+     "delta_E": 0.5864993481154827
+    },
+    {
+     "iteration": 15,
+     "eff iteration": 15,
+     "Etot": 3.1444250424678075,
+     "delta_E": 0.4527104220964198
+    },
+    {
+     "iteration": 16,
+     "eff iteration": 16,
+     "Etot": 2.826238228611638,
+     "delta_E": 0.3930310881632829
+    },
+    {
+     "iteration": 17,
+     "eff iteration": 17,
+     "Etot": 2.5149060906858054,
+     "delta_E": 0.3181868138561693
+    },
+    {
+     "iteration": 18,
+     "eff iteration": 18,
+     "Etot": 2.158162787681448,
+     "delta_E": 0.31133213792569686
+    },
+    {
+     "iteration": 19,
+     "eff iteration": 19,
+     "Etot": 1.7619650827648068,
+     "delta_E": 0.3567433030043028
+    },
+    {
+     "iteration": 20,
+     "eff iteration": 20,
+     "Etot": 1.2858026632740067,
+     "delta_E": 0.3961977049166683
+    },
+    {
+     "iteration": 21,
+     "eff iteration": 21,
+     "Etot": 0.5543878372397549,
+     "delta_E": 0.4761624194908545
+    },
+    {
+     "iteration": 22,
+     "eff iteration": 22,
+     "Etot": -0.12856723998634778,
+     "delta_E": 0.731414826034279
+    },
+    {
+     "iteration": 23,
+     "eff iteration": 23,
+     "Etot": -0.6455616452052467,
+     "delta_E": 0.6829550772260755
+    },
+    {
+     "iteration": 24,
+     "eff iteration": 24,
+     "Etot": -1.1100413411981729,
+     "delta_E": 0.5169944052189533
+    },
+    {
+     "iteration": 25,
+     "eff iteration": 25,
+     "Etot": -1.4785582338565721,
+     "delta_E": 0.46447969599295313
+    },
+    {
+     "iteration": 26,
+     "eff iteration": 26,
+     "Etot": -1.7070965057398757,
+     "delta_E": 0.3685168926584539
+    },
+    {
+     "iteration": 27,
+     "eff iteration": 27,
+     "Etot": -1.8377926897315562,
+     "delta_E": 0.22853827188317574
+    },
+    {
+     "iteration": 28,
+     "eff iteration": 28,
+     "Etot": -1.9147446716249463,
+     "delta_E": 0.13069618399177807
+    },
+    {
+     "iteration": 29,
+     "eff iteration": 29,
+     "Etot": -1.9608084549527907,
+     "delta_E": 0.07695198189319448
+    },
+    {
+     "iteration": 30,
+     "eff iteration": 30,
+     "Etot": -1.9846130040901035,
+     "delta_E": 0.046063783327958484
+    },
+    {
+     "iteration": 31,
+     "eff iteration": 31,
+     "Etot": -1.996917498363556,
+     "delta_E": 0.023804549137406254
+    },
+    {
+     "iteration": 32,
+     "eff iteration": 32,
+     "Etot": -2.0085257021367573,
+     "delta_E": 0.012304494273471021
+    },
+    {
+     "iteration": 33,
+     "eff iteration": 33,
+     "Etot": -2.01699055476262,
+     "delta_E": 0.011608203773009983
+    },
+    {
+     "iteration": 34,
+     "eff iteration": 34,
+     "Etot": -2.020636816295759,
+     "delta_E": 0.008464852625992248
+    },
+    {
+     "iteration": 35,
+     "eff iteration": 35,
+     "Etot": -2.022658811861406,
+     "delta_E": 0.0036462615330874145
+    },
+    {
+     "iteration": 36,
+     "eff iteration": 36,
+     "Etot": -2.0239556793636972,
+     "delta_E": 0.0020219955657359862
+    },
+    {
+     "iteration": 37,
+     "eff iteration": 37,
+     "Etot": -2.024829645930669,
+     "delta_E": 0.001296867502089897
+    },
+    {
+     "iteration": 38,
+     "eff iteration": 38,
+     "Etot": -2.025365114518212,
+     "delta_E": 0.0008739665671960305
+    },
+    {
+     "iteration": 39,
+     "eff iteration": 39,
+     "Etot": -2.025666312203405,
+     "delta_E": 0.0005354685873045511
+    },
+    {
+     "iteration": 40,
+     "eff iteration": 40,
+     "Etot": -2.025861408476978,
+     "delta_E": 0.00030119768522181636
+    },
+    {
+     "iteration": 41,
+     "eff iteration": 41,
+     "Etot": -2.0259541498164118,
+     "delta_E": 0.00019509627378115976
+    },
+    {
+     "iteration": 42,
+     "eff iteration": 42,
+     "Etot": -2.026034046605504,
+     "delta_E": 9.27413392043149e-05
+    },
+    {
+     "iteration": 43,
+     "eff iteration": 43,
+     "Etot": -2.026088106706442,
+     "delta_E": 7.98967892730527e-05
+    },
+    {
+     "iteration": 44,
+     "eff iteration": 44,
+     "Etot": -2.02611213787982,
+     "delta_E": 5.406010087564026e-05
+    },
+    {
+     "iteration": 45,
+     "eff iteration": 45,
+     "Etot": -2.0261238204673355,
+     "delta_E": 2.4031173343459975e-05
+    },
+    {
+     "iteration": 46,
+     "eff iteration": 46,
+     "Etot": -2.0261306150092038,
+     "delta_E": 1.1682587436839104e-05
+    },
+    {
+     "iteration": 47,
+     "eff iteration": 47,
+     "Etot": -2.026134260796945,
+     "delta_E": 6.794542011307706e-06
+    },
+    {
+     "iteration": 48,
+     "eff iteration": 48,
+     "Etot": -2.026136591031557,
+     "delta_E": 3.645787560144647e-06
+    },
+    {
+     "iteration": 49,
+     "eff iteration": 49,
+     "Etot": -2.0261376379291423,
+     "delta_E": 2.330234630512331e-06
+    },
+    {
+     "iteration": 50,
+     "eff iteration": 50,
+     "Etot": -2.0261382490826736,
+     "delta_E": 1.0468976050642246e-06
+    },
+    {
+     "iteration": 51,
+     "eff iteration": 51,
+     "Etot": -2.0261385909839156,
+     "delta_E": 6.111534999257501e-07
+    },
+    {
+     "iteration": 52,
+     "eff iteration": 52,
+     "Etot": -2.026138808847779,
+     "delta_E": 3.4190131756620317e-07
+    },
+    {
+     "iteration": 53,
+     "eff iteration": 53,
+     "Etot": -2.0261389578910594,
+     "delta_E": 2.1786399084263803e-07
+    },
+    {
+     "iteration": 54,
+     "eff iteration": 54,
+     "Etot": -2.0261390324592305,
+     "delta_E": 1.490432498140385e-07
+    },
+    {
+     "iteration": 55,
+     "eff iteration": 55,
+     "Etot": -2.0261390708863307,
+     "delta_E": 7.456823096146794e-08
+    },
+    {
+     "iteration": 56,
+     "eff iteration": 56,
+     "Etot": -2.026139095063101,
+     "delta_E": 3.8427128437394094e-08
+    }
+   ]
+  },
+  "job_done": true,
+  "lambda": [
+   {
+    "__ndarray__": [
+     [
+      5,
+      5
+     ],
+     "complex128",
+     [
+      -13.791925395272198,
+      -2.6445430277594256e-15,
+      2.4892937539540525,
+      -3.387682370235816,
+      -4.392244361735297,
+      4.231291058860744,
+      2.0157237268014705,
+      0.1759629716118519,
+      0.0,
+      0.0,
+      2.4892937539540525,
+      3.387682370235816,
+      -13.092339033313587,
+      -5.900528300676448e-16,
+      4.939352208341933,
+      1.2907853185106695,
+      1.1627177286219377,
+      0.7561477636718569,
+      0.0,
+      0.0,
+      -4.392244361735297,
+      -4.231291058860744,
+      4.939352208341933,
+      -1.2907853185106695,
+      -17.353555056519152,
+      -3.6878301879227816e-16,
+      2.487597823030919,
+      0.498085953773864,
+      0.0,
+      0.0,
+      2.0157237268014705,
+      -0.1759629716118519,
+      1.1627177286219377,
+      -0.7561477636718569,
+      2.487597823030919,
+      -0.498085953773864,
+      -11.384274713921634,
+      9.676866413109377e-16,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      -1.0130695533197596,
+      -4.860444942988852e-17
+     ]
+    ]
+   }
+  ]
+ },
+ "_directory": {
+  "__path__": "."
+ },
+ "prefix": "dft_nspin1",
+ "name": "benchgenkoopmanscpcalculator",
+ "command": {
+  "mpi_command": "mpirun -np 8",
+  "_path": {
+   "__path__": "../../../../../../../../../usr/local/bin"
+  },
+  "executable": "kcp.x",
+  "_flags": "",
+  "suffix": "-in PREFIX.cpi > PREFIX.cpo 2>&1",
+  "__koopmans_name__": "ParallelCommand",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "fixed_band": null,
+ "_filling": [
+  [
+   true,
+   true,
+   true,
+   true,
+   false
+  ]
+ ],
+ "kpts": null,
+ "__koopmans_name__": "BenchGenKoopmansCPCalculator",
+ "__koopmans_module__": "tests.helpers.patches._benchmark"
+}

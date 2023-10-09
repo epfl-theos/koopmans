@@ -9,9 +9,11 @@ def test_convergence_h2o(water, workflow_patch, tmp_path, sys2file):
             "functional": "dft",
             "task": "convergence",
             "keep_tmpdirs": False,
-            "convergence_observable": "homo energy",
-            "convergence_threshold": "0.1 eV",
-            "convergence_parameters": ["ecutwfc", "cell_size"]}
+            "converge": True}
 
-        wf = workflows.ConvergenceWorkflow(parameters=parameters, **water)
+        subwf = workflows.DFTCPWorkflow(parameters=parameters, **water)
+        wf = workflows.ConvergenceWorkflowFactory(subworkflow=subwf,
+                                                  observable='homo energy',
+                                                  threshold=0.1,
+                                                  variables=['ecutwfc', 'celldm1'])
         wf.run()

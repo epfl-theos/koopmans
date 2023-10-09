@@ -645,7 +645,7 @@ class Workflow(ABC):
                 elif kw == 'kpath':
                     val = self.kpoints.path
                 elif kw == 'koffset':
-                    if (calc_class == calculators.PWCalculator and all_kwargs['calculation'] == 'nscf' or \
+                    if (calc_class == calculators.PWCalculator and all_kwargs['calculation'] == 'nscf' or
                             calc_class == calculators.Wannier90Calculator) and self.kpoints.offset_nscf is not None:
                         val = self.kpoints.offset_nscf
                     else:
@@ -791,6 +791,10 @@ class Workflow(ABC):
 
         # Store the calculator
         self.calculations.append(qe_calc)
+
+        # Ensure we inherit any modifications made to the atoms object
+        if qe_calc.atoms != self.atoms:
+            self.atoms = qe_calc.atoms
 
         # If we reached here, all future calculations should be performed from scratch
         self.parameters.from_scratch = True
@@ -1075,14 +1079,25 @@ class Workflow(ABC):
 
         kwargs['pseudopotentials'] = bigdct.pop('pseudopotentials', {})
 
+        # Convergence
+        if parameters.converge:
+            conv_block = settings.ConvergenceSettingsDict(**bigdct.pop('convergence', {}))
+
         # Check for unexpected blocks
         for block in bigdct:
             raise ValueError(f'Unrecognized block "{block}" in the json input file')
 
         # Create the workflow. Note that any keywords provided in the calculator_parameters (i.e. whatever is left in
         # calcdict) are provided as kwargs
-        return cls(atoms, parameters=parameters, kpoints=kpts, calculator_parameters=calculator_parameters, **kwargs,
-                   **calcdict)
+        wf = cls(atoms, parameters=parameters, kpoints=kpts, calculator_parameters=calculator_parameters, **kwargs,
+                 **calcdict)
+
+        if parameters.converge:
+            # Wrap the workflow in a convergence outer loop
+            from koopmans.workflows import ConvergenceWorkflowFactory
+            return ConvergenceWorkflowFactory(wf, **conv_block)
+        else:
+            return wf
 
     def print_header(self):
         print(header())

@@ -1,0 +1,420 @@
+{
+ "_parameters": {
+  "nspin": 1,
+  "conv_thr": 8e-09,
+  "esic_conv_thr": 8e-09,
+  "nr1b": 10,
+  "nr2b": 10,
+  "nr3b": 10,
+  "nelec": 8,
+  "tot_charge": 0,
+  "ecutwfc": 30.0,
+  "pseudopotentials": {
+   "O": "O.upf",
+   "H": "H.upf"
+  },
+  "pseudo_dir": {
+   "__path__": "../../../src/koopmans/pseudopotentials/pseudo_dojo_standard_v0.4.1/pbe"
+  },
+  "ndr": 98,
+  "ndw": 98,
+  "restart_mode": "from_scratch",
+  "do_orbdep": false,
+  "fixed_state": false,
+  "do_outerloop": true,
+  "which_compensation": "tcc",
+  "maxiter": 300,
+  "ibrav": 0,
+  "__koopmans_name__": "KoopmansCPSettingsDict",
+  "__koopmans_module__": "koopmans.settings._koopmans_cp"
+ },
+ "atoms": {
+  "numbers": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "int64",
+    [
+     8,
+     1,
+     1
+    ]
+   ]
+  },
+  "positions": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     5.0,
+     5.7632390000000004,
+     5.596309,
+     5.0,
+     6.526478000000001,
+     5.0,
+     5.0,
+     5.0,
+     5.0
+    ]
+   ]
+  },
+  "cell": {
+   "__ndarray__": [
+    [
+     3,
+     3
+    ],
+    "float64",
+    [
+     10.0,
+     0.0,
+     0.0,
+     0.0,
+     11.526478000000001,
+     0.0,
+     0.0,
+     0.0,
+     10.596309
+    ]
+   ]
+  },
+  "pbc": {
+   "__ndarray__": [
+    [
+     3
+    ],
+    "bool",
+    [
+     false,
+     false,
+     false
+    ]
+   ]
+  },
+  "__ase_objtype__": "atoms"
+ },
+ "results": {
+  "energy": -474.30862470555735,
+  "odd_energy": 0.0,
+  "homo_energy": -7.3081,
+  "lumo_energy": null,
+  "mp1_energy": null,
+  "mp2_energy": null,
+  "eigenvalues": [
+   [
+    -26.8263,
+    -13.3003,
+    -9.7214,
+    -7.3081
+   ]
+  ],
+  "lambda_ii": null,
+  "orbital_data": {
+   "charge": [
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   ],
+   "centres": [
+    [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   ],
+   "spreads": [
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   ],
+   "self-Hartree": [
+    [
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   ]
+  },
+  "convergence": {
+   "filled": [
+    {
+     "iteration": 1,
+     "eff iteration": 1,
+     "Etot": 859.7619877878676
+    },
+    {
+     "iteration": 2,
+     "eff iteration": 2,
+     "Etot": 301.72425319730417
+    },
+    {
+     "iteration": 3,
+     "eff iteration": 3,
+     "Etot": -54.31335182205489,
+     "delta_E": 558.0377345905745
+    },
+    {
+     "iteration": 4,
+     "eff iteration": 4,
+     "Etot": -243.82592198459392,
+     "delta_E": 356.03760501936125
+    },
+    {
+     "iteration": 5,
+     "eff iteration": 5,
+     "Etot": -368.353949564729,
+     "delta_E": 189.51257016253933
+    },
+    {
+     "iteration": 6,
+     "eff iteration": 6,
+     "Etot": -427.2985353167031,
+     "delta_E": 124.5280275801362
+    },
+    {
+     "iteration": 7,
+     "eff iteration": 7,
+     "Etot": -453.4061209630885,
+     "delta_E": 58.944585751973825
+    },
+    {
+     "iteration": 8,
+     "eff iteration": 8,
+     "Etot": -465.57242565006595,
+     "delta_E": 26.10758564638529
+    },
+    {
+     "iteration": 9,
+     "eff iteration": 9,
+     "Etot": -470.71159096792985,
+     "delta_E": 12.166304686977549
+    },
+    {
+     "iteration": 10,
+     "eff iteration": 10,
+     "Etot": -472.8714005752641,
+     "delta_E": 5.139165317864141
+    },
+    {
+     "iteration": 11,
+     "eff iteration": 11,
+     "Etot": -473.7437165230069,
+     "delta_E": 2.1598096073342443
+    },
+    {
+     "iteration": 12,
+     "eff iteration": 12,
+     "Etot": -474.080182385264,
+     "delta_E": 0.8723159477427609
+    },
+    {
+     "iteration": 13,
+     "eff iteration": 13,
+     "Etot": -474.2171211024802,
+     "delta_E": 0.3364658622571399
+    },
+    {
+     "iteration": 14,
+     "eff iteration": 14,
+     "Etot": -474.28421113962014,
+     "delta_E": 0.1369387172161113
+    },
+    {
+     "iteration": 15,
+     "eff iteration": 15,
+     "Etot": -474.3017802955333,
+     "delta_E": 0.06709003713981923
+    },
+    {
+     "iteration": 16,
+     "eff iteration": 16,
+     "Etot": -474.30631516919664,
+     "delta_E": 0.01756915591331741
+    },
+    {
+     "iteration": 17,
+     "eff iteration": 17,
+     "Etot": -474.30793112408827,
+     "delta_E": 0.004534873663218074
+    },
+    {
+     "iteration": 18,
+     "eff iteration": 18,
+     "Etot": -474.308406621033,
+     "delta_E": 0.0016159548917354548
+    },
+    {
+     "iteration": 19,
+     "eff iteration": 19,
+     "Etot": -474.308567477792,
+     "delta_E": 0.00047549694458615447
+    },
+    {
+     "iteration": 20,
+     "eff iteration": 20,
+     "Etot": -474.30860792093796,
+     "delta_E": 0.00016085675921961393
+    },
+    {
+     "iteration": 21,
+     "eff iteration": 21,
+     "Etot": -474.3086162977672,
+     "delta_E": 4.044314586148153e-05
+    },
+    {
+     "iteration": 22,
+     "eff iteration": 22,
+     "Etot": -474.30862144555033,
+     "delta_E": 8.376829184910228e-06
+    },
+    {
+     "iteration": 23,
+     "eff iteration": 23,
+     "Etot": -474.3086234945253,
+     "delta_E": 5.14778317537459e-06
+    },
+    {
+     "iteration": 24,
+     "eff iteration": 24,
+     "Etot": -474.3086242915383,
+     "delta_E": 2.0489748862780915e-06
+    },
+    {
+     "iteration": 25,
+     "eff iteration": 25,
+     "Etot": -474.30862456459397,
+     "delta_E": 7.970131128765635e-07
+    },
+    {
+     "iteration": 26,
+     "eff iteration": 26,
+     "Etot": -474.3086246602101,
+     "delta_E": 2.7305575844351323e-07
+    },
+    {
+     "iteration": 27,
+     "eff iteration": 27,
+     "Etot": -474.30862469047383,
+     "delta_E": 9.561596260137354e-08
+    },
+    {
+     "iteration": 28,
+     "eff iteration": 28,
+     "Etot": -474.3086247016898,
+     "delta_E": 3.026377906583031e-08
+    },
+    {
+     "iteration": 29,
+     "eff iteration": 29,
+     "Etot": -474.308624704085,
+     "delta_E": 1.1215953795283123e-08
+    }
+   ],
+   "empty": []
+  },
+  "job_done": true,
+  "lambda": [
+   {
+    "__ndarray__": [
+     [
+      4,
+      4
+     ],
+     "complex128",
+     [
+      -12.119395170896796,
+      -1.3304308381704918e-15,
+      3.2423927088475875,
+      -4.1814298193668895,
+      3.566061940525529,
+      2.7725191055117815,
+      -0.41668419148119024,
+      -1.0878364090198744,
+      3.2423927088475875,
+      4.1814298193668895,
+      -20.689047194164786,
+      -1.6613674996592126e-15,
+      3.3615307663165526,
+      -3.9039964712130844,
+      -1.61492234839001,
+      0.5264958588025217,
+      3.566061940525529,
+      -2.7725191055117815,
+      3.3615307663165526,
+      3.9039964712130844,
+      -14.6290281626058,
+      -9.440845281082317e-17,
+      0.7805412060626021,
+      -0.8655268222849526,
+      -0.41668419148119024,
+      1.0878364090198744,
+      -1.61492234839001,
+      -0.5264958588025217,
+      0.7805412060626021,
+      0.8655268222849526,
+      -9.718553585491021,
+      -7.118434220237946e-16
+     ]
+    ]
+   }
+  ]
+ },
+ "_directory": {
+  "__path__": "."
+ },
+ "prefix": "dft_nspin1",
+ "name": "benchgenkoopmanscpcalculator",
+ "command": {
+  "mpi_command": "mpirun -np 8",
+  "_path": {
+   "__path__": "../../../../../../../usr/local/bin"
+  },
+  "executable": "kcp.x",
+  "_flags": "",
+  "suffix": "-in PREFIX.cpi > PREFIX.cpo 2>&1",
+  "__koopmans_name__": "ParallelCommand",
+  "__koopmans_module__": "koopmans.commands"
+ },
+ "calc": {},
+ "skip_qc": false,
+ "fixed_band": null,
+ "_filling": [
+  [
+   true,
+   true,
+   true,
+   true
+  ]
+ ],
+ "kpts": null,
+ "__koopmans_name__": "BenchGenKoopmansCPCalculator",
+ "__koopmans_module__": "tests.helpers.patches._benchmark"
+}

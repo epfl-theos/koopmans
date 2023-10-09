@@ -1,0 +1,129 @@
+  _
+ | | _____   ___  _ __  _ __ ___   __ _ _ __  ___
+ | |/ / _ \ / _ \| '_ \| '_ ` _ \ / _` | '_ \/ __|
+ |   < (_) | (_) | |_) | | | | | | (_| | | | \__ \ 
+ |_|\_\___/ \___/| .__/|_| |_| |_|\__,_|_| |_|___/
+                 |_|
+
+ Koopmans spectral functional calculations with Quantum ESPRESSO
+
+ version 1.0.0rc1
+
+ Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna
+
+ Please cite the papers listed in h2o_conv.bib in work involving this calculation
+
+ ecutwfc = 20.0, celldm1 = 11.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 20.0, celldm1 = 12.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 20.0, celldm1 = 13.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 30.0, celldm1 = 11.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 30.0, celldm1 = 12.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 30.0, celldm1 = 13.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 40.0, celldm1 = 11.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 40.0, celldm1 = 12.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 40.0, celldm1 = 13.3
+ ------------------------------
+    Running ./dft... done
+
+ Progress update
+ ===============
+  ecutwfc still appears unconverged, will reattempt using a finer value
+  celldm1 still appears unconverged, will reattempt using a finer value
+
+ ecutwfc = 20.0, celldm1 = 14.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 30.0, celldm1 = 14.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 40.0, celldm1 = 14.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 50.0, celldm1 = 11.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 50.0, celldm1 = 12.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 50.0, celldm1 = 13.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 50.0, celldm1 = 14.3
+ ------------------------------
+    Running ./dft... done
+
+ Progress update
+ ===============
+  ecutwfc appears converged
+  celldm1 appears converged
+  ... but the variables are not collectively converged. Cautiously incrementing all variables.
+
+ ecutwfc = 20.0, celldm1 = 15.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 30.0, celldm1 = 15.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 40.0, celldm1 = 15.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 50.0, celldm1 = 15.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 60.0, celldm1 = 11.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 60.0, celldm1 = 12.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 60.0, celldm1 = 13.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 60.0, celldm1 = 14.3
+ ------------------------------
+    Running ./dft... done
+
+ ecutwfc = 60.0, celldm1 = 15.3
+ ------------------------------
+    Running ./dft... done
+  
+   Converged variables are ecutwfc = 50.0, celldm1 = 13.33835675502157
+
+ Workflow complete

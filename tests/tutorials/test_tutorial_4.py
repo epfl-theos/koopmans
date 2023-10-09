@@ -18,4 +18,10 @@ def test_run(tutorial_patch):
 @pytest.mark.tutorials
 def test_plot():
     with chdir(tutorial_dir):
-        exec(open('plot.py', 'r').read())
+        exec(open('plot.py', 'r').read(), globals())
+
+
+@pytest.mark.tutorials
+def test_custom_convergence(tutorial_patch):
+    with chdir(tutorial_dir):
+        exec(open('custom_convergence.py', 'r').read(), globals())

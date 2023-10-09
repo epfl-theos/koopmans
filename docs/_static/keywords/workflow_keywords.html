@@ -38,7 +38,7 @@
    <tr>
       <td><code>pseudo_directory</code></td>
       <td>the folder containing the pseudopotentials to use (mutually exclusive with "pseudo_library")</td>
-      <td><code>str</code>/<code>Path</code></td>
+      <td><code>Path</code></td>
       <td></td>
    </tr>
    <tr>
@@ -132,6 +132,12 @@
       <td><code>0.6</code></td>
    </tr>
    <tr>
+      <td><code>alpha_mixing</code></td>
+      <td>mixing parameter for updating alpha</td>
+      <td><code>float</code></td>
+      <td><code>1.0</code></td>
+   </tr>
+   <tr>
       <td><code>alpha_from_file</code></td>
       <td>if True, uses the file_alpharef.txt from the base directory as a starting guess</td>
       <td><code>bool</code></td>
@@ -162,22 +168,22 @@
       <td></td>
    </tr>
    <tr>
-      <td><code>convergence_observable</code></td>
-      <td>System observable of interest which we converge</td>
-      <td><code>str</code></td>
-      <td><code>total energy</code></td>
-   </tr>
-   <tr>
-      <td><code>convergence_threshold</code></td>
-      <td>Convergence threshold for the system observable of interest</td>
-      <td><code>str</code>/<code>float</code></td>
+      <td><code>orbital_groups_spread_tol</code></td>
+      <td>when calculating alpha parameters, the code will group orbitals together only if their spread is within this threshold</td>
+      <td><code>float</code></td>
       <td></td>
    </tr>
    <tr>
-      <td><code>convergence_parameters</code></td>
-      <td>The observable of interest will be converged with respect to this/these simulation parameter(s)</td>
-      <td><code>list</code>/<code>str</code></td>
-      <td><code>['ecutwfc']</code></td>
+      <td><code>converge</code></td>
+      <td>If True, repeat the workflow increasing the convergence_parameters until the convergence_observable converges within the convergence_threshold</td>
+      <td><code>bool</code></td>
+      <td><code>False</code></td>
+   </tr>
+   <tr>
+      <td><code>dfpt_coarse_grid</code></td>
+      <td>The coarse k-point grid on which to perform the DFPT calculations</td>
+      <td><code>list</code></td>
+      <td></td>
    </tr>
    <tr>
       <td><code>eps_cavity</code></td>

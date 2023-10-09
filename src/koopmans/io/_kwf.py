@@ -6,6 +6,7 @@ Written by Edward Linscott Mar 2021, largely modelled off ase.io.jsonio
 
 """
 
+import functools
 import inspect
 import json
 import os
@@ -16,6 +17,7 @@ from typing import TextIO, Union
 from ase.io import jsonio as ase_json
 
 import koopmans.workflows as workflows
+from koopmans import utils
 
 
 class KoopmansEncoder(ase_json.MyEncoder):
@@ -26,6 +28,14 @@ class KoopmansEncoder(ase_json.MyEncoder):
             return {'__path__': os.path.relpath(obj, '.')}
         elif inspect.isclass(obj):
             return {'__class__': {'__name__': obj.__name__, '__module__': obj.__module__}}
+        elif isinstance(obj, functools.partial):
+            return {'__partial__': {'func': obj.func, 'args': obj.args, 'keywords': obj.keywords}}
+        elif inspect.isfunction(obj):
+            module = import_module(obj.__module__)
+            if hasattr(module, obj.__name__):
+                return {'__function__': {'__name__': obj.__name__, '__module__': obj.__module__}}
+            else:
+                return {'__function__': {}}
         elif hasattr(obj, 'todict'):
             d = obj.todict()
             if '__koopmans_name__' in d:
@@ -49,6 +59,17 @@ def object_hook(dct):
         subdct = dct['__class__']
         module = import_module(subdct['__module__'])
         return getattr(module, subdct['__name__'])
+    elif '__partial__' in dct:
+        subdct = dct['__partial__']
+        return functools.partial(subdct['func'], **subdct['keywords'])
+    elif '__function__' in dct:
+        subdct = dct['__function__']
+        if '__module__' in subdct:
+            module = import_module(subdct['__module__'])
+            if hasattr(module, subdct['__name__']):
+                return getattr(module, subdct['__name__'])
+        utils.warn('Function was not able to be serialized')
+        return f'<placeholder for function {subdct["__name__"]} lost during serialization>'
     else:
         # Patching bug in ASE where allocating an np.empty(dtype=str) will assume a particular length for each
         # string. dtype=object allows for individual strings to be different lengths
