@@ -102,6 +102,7 @@ class Workflow(ABC):
     pseudo_dir: Path
     projections: ProjectionBlocks
     parent: Optional[Workflow]
+    version: str
 
     def __init__(self, atoms: Atoms,
                  pseudopotentials: Dict[str, str] = {},
@@ -114,6 +115,7 @@ class Workflow(ABC):
                  plotting: Union[Dict[str, Any], settings.PlotSettingsDict] = {},
                  ml: Union[Dict[str, Any], settings.MLSettingsDict] = {},
                  autogenerate_settings: bool = True,
+                 version: Optional[str] = None,
                  **kwargs: Dict[str, Any]):
 
         # Parsing parameters
@@ -308,7 +310,8 @@ class Workflow(ABC):
                     calc_params[key] = value
                     match = True
             # if not a calculator, workflow, or plotting keyword, raise an error
-            if not match and not self.parameters.is_valid(key) and not self.plotting.is_valid(key) and not self.ml.is_valid(key):
+            if not match and not self.parameters.is_valid(key) and not self.plotting.is_valid(key) \
+                    and not self.ml.is_valid(key):
                 raise ValueError(f'{key} is not a valid setting')
 
         # Adding excluded_bands info to self.projections
@@ -318,6 +321,13 @@ class Workflow(ABC):
                 if spin:
                     label += f'_{spin}'
                 self.projections.exclude_bands[spin] = self.calculator_parameters[label].get('exclude_bands', [])
+
+        # Version number (important when loading workflows from .kwf files)
+        from koopmans import __version__
+        self.version = version if version is not None else __version__
+        if self.version != __version__:
+            utils.warn(f'You are using version {__version__} of koopmans, but this workflow was generated with '
+                       f'version {self.version}. Proceed with caution.')
 
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
@@ -517,7 +527,8 @@ class Workflow(ABC):
 
         # Make sanity checks for the ML model
         if self.ml.use_ml:
-            utils.warn("Predicting screening parameters with machine-learning is an experimental feature; proceed with caution")
+            utils.warn("Predicting screening parameters with machine-learning is an experimental feature; proceed with "
+                       "caution")
             if self.parameters.task not in ['trajectory', 'convergence_ml']:
                 raise NotImplementedError(
                     f'Using the ML-prediction for the {self.parameter.task}-task has not yet been implemented.')
@@ -526,17 +537,20 @@ class Workflow(ABC):
                     f"Using the ML-prediction for the {self.parameters.method}-method has not yet been implemented")
             if self.parameters.functional != 'ki':
                 raise NotImplementedError(
-                    f'Using the ML-prediction for the {self.parameters.functional}-functional has not yet been implemented.')
+                    f'Using the ML-prediction for the {self.parameters.functional}-functional has not yet been '
+                    'implemented.')
             if self.parameters.init_orbitals != 'mlwfs':
                 raise NotImplementedError(
-                    f'Using the ML-prediction for {self.parameters.init_orbitals}-init orbitals has not yet been implemented.')
+                    f'Using the ML-prediction for {self.parameters.init_orbitals}-init orbitals has not yet been '
+                    'implemented.')
             if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
                 raise NotImplementedError(
-                    f'Using the ML-prediction for using different init orbitals for empty states than for occupied states has not yet been implemented.')
+                    'Using the ML-prediction for using different init orbitals for empty states than for occupied '
+                    'states has not yet been implemented.')
             if self.parameters.spin_polarized:
-                utils.warn(f'Using the ML-prediction for spin-polarised systems has not yet been extensively tested.')
+                utils.warn('Using the ML-prediction for spin-polarised systems has not yet been extensively tested.')
             if not all(self.atoms.pbc):
-                utils.warn(f'Using the ML-prediction for non-periodic systems has not yet been extensively tested.')
+                utils.warn('Using the ML-prediction for non-periodic systems has not yet been extensively tested.')
             if self.parameters.orbital_groups:
                 utils.warn('Using orbital_groups has not yet been extensively tested.')
             if not np.all(self.atoms.cell.angles() == 90.0):
@@ -564,7 +578,8 @@ class Workflow(ABC):
             r_mins = convert_to_list(self.ml.r_min, float)
             r_maxs = convert_to_list(self.ml.r_max, float)
 
-            # check that each n_max, l_max, r_max and r_min are greater or equal to 0 and that r_min is smaller than r_max
+            # check that each n_max, l_max, r_max and r_min are greater or equal to 0 and that r_min is smaller than
+            # r_max
             for n_max in n_maxs:
                 if not n_max > 0:
                     raise ValueError(f"n_max has to be larger than zero. The provided value is n_max={n_max}")
@@ -576,7 +591,8 @@ class Workflow(ABC):
                     raise ValueError(f"r_min has to be equal or larger than zero. The provided value is r_min={r_min}")
                 if r_min < 0.5:
                     utils.warn(
-                        f"Small values of r_min (<0.5) can lead to problems in the construction of the radial basis. The provided value is r_min={r_min}.")
+                        "Small values of r_min (<0.5) can lead to problems in the construction of the radial basis. "
+                        f"The provided value is r_min={r_min}.")
             for r_max in r_maxs:
                 if not any(r_min < r_max for r_min in r_mins):
                     raise ValueError(f"All provided values of r_min are larger or equal to r_max={r_max}.")
@@ -940,6 +956,12 @@ class Workflow(ABC):
 
     @classmethod
     def fromdict(cls, dct: Dict[str, Any], **kwargs) -> Workflow:
+
+        # Remove __koopmans_name/module__ if present (won't happen if the encoder was used, but will happen if
+        # todict and fromdict are used directly)
+        dct.pop('__koopmans_name__', None)
+        dct.pop('__koopmans_module__', None)
+
         wf = cls(atoms=dct.pop('atoms'),
                  parameters=dct.pop('parameters'),
                  calculator_parameters=dct.pop('calculator_parameters'),

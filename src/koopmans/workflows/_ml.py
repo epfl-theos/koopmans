@@ -1,13 +1,11 @@
 """
 Written by Yannick Schubert Jul 2022
 """
-import copy
 import os
 from pathlib import Path
-from typing import Any, Dict, Tuple, Optional, List
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
-from deepdiff import DeepDiff
 from sklearn.metrics import mean_absolute_error as mae
 
 from koopmans import calculators, ml, utils
@@ -75,7 +73,7 @@ class MLFittingWorkflow(Workflow):
 
         # Specify for which bands we want to compute the decomposition
         self.bands_to_extract = self.bands.to_solve
-        self.num_bands_occ = [len([band for band in self.bands if (band.filled == True and band.spin == spin)])
+        self.num_bands_occ = [len([band for band in self.bands if (band.filled and band.spin == spin)])
                               for spin in [0, 1]]
         self.num_bands_to_extract = [len([band for band in self.bands_to_extract if band.filled == filled])
                                      for filled in [True, False]]
@@ -96,7 +94,8 @@ class MLFittingWorkflow(Workflow):
                 self.extract_input_vector_from_self_hartrees()
             else:
                 raise ValueError(
-                    f"{self.ml.input_data_for_ml_model} is currently not implemented as a valid input for the ml model.")
+                    f"{self.ml.input_data_for_ml_model} is currently not implemented as a valid input for the ml "
+                    "model.")
 
     def extract_input_vector_from_self_hartrees(self):
         """
@@ -109,7 +108,7 @@ class MLFittingWorkflow(Workflow):
             else:
                 filled_str = 'emp'
             np.savetxt(self.dirs['SH'] / f"SH.orbital.{filled_str}.{band.index}.txt",
-                       np.array([SH[band.spin][band.index-1]]))
+                       np.array([SH[band.spin][band.index - 1]]))
             self.input_vectors_for_ml[f"SH.orbital.{filled_str}.{band.index}"] = SH
 
         return
@@ -158,11 +157,11 @@ class MLFittingWorkflow(Workflow):
 
     def check_if_bin2xml_is_complete(self) -> bool:
         """
-        Checks if the bin2xml conversion was already performed. 
-        
-        For this we first check if the next step is complete, i.e. the decomposition into spherical harmonics and 
-        radial basis functions. If we haven't yet computed the decomposition, we check if this step, i.e. the 
-        conversion to xml, was already performed. This way we can delete the (possibly large) binary and xml files 
+        Checks if the bin2xml conversion was already performed.
+
+        For this we first check if the next step is complete, i.e. the decomposition into spherical harmonics and
+        radial basis functions. If we haven't yet computed the decomposition, we check if this step, i.e. the
+        conversion to xml, was already performed. This way we can delete the (possibly large) binary and xml files
         and only keep the expansion coefficients and still be able to restart the calculation.
         """
 
@@ -373,13 +372,10 @@ class MLFittingWorkflow(Workflow):
         if self.parameters.spin_polarized:
             raise NotImplementedError('Need to check implementation')
         assert isinstance(band.index, int)
-        return alphas[0][band.index-1], 0.0
+        return alphas[0][band.index - 1], 0.0
 
     @classmethod
     def fromdict(cls, dct: Dict[str, Any], **kwargs) -> Workflow:
         calc_that_produced_orbital_densities = dct.pop('calc_that_produced_orbital_densities')
         return super(MLFittingWorkflow, cls).fromdict(
             dct, calc_that_produced_orbital_densities=calc_that_produced_orbital_densities, **kwargs)
-
-    def __eq__(self, other):
-        return DeepDiff(self, other) == {}
