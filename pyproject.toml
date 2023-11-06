@@ -5,7 +5,7 @@ description = "Koopmans spectral functional calculations with python and Quantum
 readme = "README_pypi.rst"
 requires-python = ">=3.8"
 authors = [
-    { name = "Edward Linscott", email = "edward.linscott@epfl.ch" },
+    { name = "Edward Linscott", email = "edward.linscott@psi.ch" },
     { name = "Riccardo De Gennaro", email = "riccardo.degennaro@epfl.ch" },
     { name = "Nicola Colonna", email = "nicola.colonna@psi.ch" },
 ]
