@@ -687,7 +687,8 @@ class Workflow(ABC):
                 elif self.atoms.pbc == [True, True, False]:
                     calc.parameters.which_compensation = 'tcc2d'
                 else:
-                    raise ValueError('Martyna-Tuckerman correction not implemented for this geometry; for 1D and 2D systems please use z as the unique axis')
+                    raise ValueError('Martyna-Tuckerman correction not implemented for this geometry; for 1D and 2D '
+                                     'systems please use z as the unique axis')
             else:
                 calc.parameters.which_compensation = 'none'
 

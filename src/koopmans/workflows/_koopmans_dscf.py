@@ -23,7 +23,8 @@ from ._workflow import Workflow
 
 class KoopmansDSCFWorkflow(Workflow):
 
-    def __init__(self, *args, redo_smooth_dft: Optional[bool] = None, restart_from_old_ki: bool = False, **kwargs) -> None:
+    def __init__(self, *args, redo_smooth_dft: Optional[bool] = None,
+                 restart_from_old_ki: bool = False, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         # The following two additional keywords allow for some tweaking of the workflow when running a singlepoint
@@ -504,7 +505,8 @@ class KoopmansDSCFWorkflow(Workflow):
             # Do a KI/KIPZ calculation with the updated alpha values
             restart_from_wannier_pwscf = True if self.parameters.init_orbitals in [
                 'mlwfs', 'projwfs'] and not self._restart_from_old_ki and i_sc == 1 else None
-            if self.parameters.task in ['trajectory', 'convergence_ml'] and self.ml.input_data_for_ml_model == 'orbital_density':
+            if self.parameters.task in ['trajectory', 'convergence_ml'] \
+                    and self.ml.input_data_for_ml_model == 'orbital_density':
                 print_real_space_density = True
             else:
                 print_real_space_density = False
@@ -642,13 +644,13 @@ class KoopmansDSCFWorkflow(Workflow):
 
                         alpha, error = self.calculate_alpha_from_list_of_calcs(
                             calcs, trial_calc, band, filled=band.filled)
-                        
+
                         # Mixing
                         alpha = self.parameters.alpha_mixing * alpha + (1 - self.parameters.alpha_mixing) * band.alpha
 
                     warning_message = 'The computed screening parameter is {0}. Proceed with caution.'
                     failure_message = 'The computed screening parameter is significantly {0}. This should not ' \
-                         'happen. Decrease alpha_mixing and/or change alpha_guess.'
+                        'happen. Decrease alpha_mixing and/or change alpha_guess.'
 
                     if alpha < -0.1:
                         raise ValueError(failure_message.format('less than 0'))
@@ -666,7 +668,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
                 # add alpha to training data
                 if self.ml.use_ml and not use_prediction:
-                    mlfit.print_error_of_single_orbital(alpha_predicted, alpha, indent=self.print_indent+2)
+                    mlfit.print_error_of_single_orbital(alpha_predicted, alpha, indent=self.print_indent + 2)
                     mlfit.add_training_data(band)
                     # if the user wants to train on the fly, train the model after the calculation of each orbital
                     if self.ml.train_on_the_fly:
@@ -697,7 +699,8 @@ class KoopmansDSCFWorkflow(Workflow):
         else:
             self.print('Screening parameters have been determined but are not necessarily converged')
 
-    def perform_fixed_band_calculations(self, band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs) -> None:
+    def perform_fixed_band_calculations(self, band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band,
+                                        directory, alpha_indep_calcs) -> None:
         # Perform the fixed-band-dependent calculations
         if self.parameters.functional in ['ki', 'pkipz']:
             if band.filled:
