@@ -1034,11 +1034,6 @@ class KoopmansDSCFWorkflow(Workflow):
         if 'print' in calc.prefix:
             calc.parameters.print_wfc_anion = True
 
-        if self.parameters.mt_correction:
-            calc.parameters.which_compensation = 'tcc'
-        else:
-            calc.parameters.which_compensation = 'none'
-
         # If we are using frozen orbitals, we override the above logic and freeze the variational orbitals
         # post-initialization
         if self.parameters.frozen_orbitals and 'init' not in calc.prefix and not any([s == calc.prefix for s in

@@ -677,6 +677,20 @@ class Workflow(ABC):
         # Create the calculator
         calc = calc_class(atoms=copy.deepcopy(self.atoms), **all_kwargs)
 
+        # Add Martyna-Tuckerman settings for kcp calculators
+        if calc.parameters.is_valid('which_compensation'):
+            if self.parameters.mt_correction:
+                if all(self.atoms.pbc):
+                    calc.parameters.which_compensation = 'tcc'
+                elif self.atoms.pbc == [False, False, True]:
+                    calc.parameters.which_compensation = 'tcc1d'
+                elif self.atoms.pbc == [True, True, False]:
+                    calc.parameters.which_compensation = 'tcc2d'
+                else:
+                    raise ValueError('Martyna-Tuckerman correction not implemented for this geometry; for 1D and 2D systems please use z as the unique axis')
+            else:
+                calc.parameters.which_compensation = 'none'
+
         # Add the directory if provided
         if directory is not None:
             calc.directory = directory

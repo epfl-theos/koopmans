@@ -52,7 +52,7 @@ def construct_cell_parameters_block(atoms: Atoms) -> Dict[str, Any]:
         params = dict(**cell_to_parameters(atoms.cell))
     else:
         params = {'vectors': [list(row) for row in atoms.cell[:]], 'units': 'angstrom'}
-    params['periodic'] = all(atoms.pbc)
+    params['periodic'] = atoms.pbc
     return params
 
 
