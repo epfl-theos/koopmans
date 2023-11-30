@@ -117,7 +117,6 @@ class Workflow(ABC):
                  autogenerate_settings: bool = True,
                  version: Optional[str] = None,
                  **kwargs: Dict[str, Any]):
-
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
         for key, value in kwargs.items():
@@ -229,12 +228,13 @@ class Workflow(ABC):
 
         # Before saving the calculator_parameters, automatically generate some keywords and perform some sanity checks
         if self.parameters.task != 'ui' and autogenerate_settings:
+
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
             nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
-            tot_charge = calculator_parameters['kcp'].get('tot_charge', 0)
+            tot_charge = kwargs.get('tot_charge', calculator_parameters['kcp'].get('tot_charge', 0))
             nelec -= tot_charge
-            tot_mag = calculator_parameters['kcp'].get('tot_magnetization', nelec % 2)
+            tot_mag = kwargs.get('tot_magnetization', calculator_parameters['kcp'].get('tot_magnetization', nelec % 2))
             nelup = int(nelec / 2 + tot_mag / 2)
             neldw = int(nelec / 2 - tot_mag / 2)
 
@@ -435,11 +435,11 @@ class Workflow(ABC):
             self.parameters.calculate_alpha = False
 
         # Checking periodic image correction schemes
-        if not self.parameters.calculate_alpha:
-            # If we are not calculating alpha, we do not consider charged systems and therefore we don't need image
-            # corrections, so we skip the following checks
-            pass
-        elif all(self.atoms.pbc):
+        # if not self.parameters.calculate_alpha:
+        #     # If we are not calculating alpha, we do not consider charged systems and therefore we don't need image
+        #     # corrections, so we skip the following checks
+        #     pass
+        if all(self.atoms.pbc):
             if self.parameters.method == 'dfpt':
                 # For DPFT, we use gb_correction
                 if self.parameters.gb_correction is None:
@@ -676,6 +676,21 @@ class Workflow(ABC):
 
         # Create the calculator
         calc = calc_class(atoms=copy.deepcopy(self.atoms), **all_kwargs)
+
+        # Add Martyna-Tuckerman settings for kcp calculators
+        if calc.parameters.is_valid('which_compensation'):
+            if self.parameters.mt_correction:
+                if not any(self.atoms.pbc):
+                    calc.parameters.which_compensation = 'tcc'
+                elif all(self.atoms.pbc == [False, False, True]):
+                    calc.parameters.which_compensation = 'tcc1d'
+                elif all(self.atoms.pbc == [True, True, False]):
+                    calc.parameters.which_compensation = 'tcc2d'
+                else:
+                    raise ValueError('Martyna-Tuckerman correction not implemented for this geometry; for 1D and 2D '
+                                     'systems please use z as the unique axis')
+            else:
+                calc.parameters.which_compensation = 'none'
 
         # Add the directory if provided
         if directory is not None:

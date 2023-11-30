@@ -36,15 +36,14 @@ class DFTCPWorkflow(DFTWorkflow):
         if self.parameters.from_scratch:
             utils.system_call(f'rm -r {calc.parameters.outdir} 2>/dev/null', False)
 
-        calc.prefix = 'dft'
-        calc.directory = '.'
-        calc.parameters.ndr = 50
-        calc.parameters.ndw = 51
-        calc.parameters.restart_mode = 'from_scratch'
-        calc.parameters.do_orbdep = False
-        calc.parameters.fixed_state = False
-        calc.parameters.do_outerloop = True
-        calc.parameters.which_compensation = 'tcc'
+        # Setting defaults
+        defaults = {'prefix': 'dft', 'directory': '.', 'ndr': 50,
+                    'ndw': 51, 'restart_mode': 'from_scratch', 'do_orbdep': False,
+                    'fixed_state': False, 'do_outerloop': True}
+
+        for key, val in defaults.items():
+            if calc.parameters[key] is None:
+                calc.parameters[key] = val
 
         if calc.parameters.maxiter is None:
             calc.parameters.maxiter = 300
@@ -53,6 +52,7 @@ class DFTCPWorkflow(DFTWorkflow):
             if calc.parameters.empty_states_maxstep is None:
                 calc.parameters.empty_states_maxstep = 300
 
+        # Running the calculator
         self.run_calculator(calc, enforce_ss=self.parameters.fix_spin_contamination)
 
         return calc

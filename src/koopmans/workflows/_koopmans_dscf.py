@@ -23,7 +23,8 @@ from ._workflow import Workflow
 
 class KoopmansDSCFWorkflow(Workflow):
 
-    def __init__(self, *args, redo_smooth_dft: Optional[bool] = None, restart_from_old_ki: bool = False, **kwargs) -> None:
+    def __init__(self, *args, redo_smooth_dft: Optional[bool] = None,
+                 restart_from_old_ki: bool = False, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         # The following two additional keywords allow for some tweaking of the workflow when running a singlepoint
@@ -38,7 +39,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         # If periodic, convert the kcp calculation into a Γ-only supercell calculation
         kcp_params = self.calculator_parameters['kcp']
-        if all(self.atoms.pbc):
+        if any(self.atoms.pbc):
             spins: List[Optional[str]]
             if self.parameters.spin_polarized:
                 spins = ['up', 'down']
@@ -267,7 +268,7 @@ class KoopmansDSCFWorkflow(Workflow):
         self.perform_final_calculations()
 
         # Postprocessing
-        if all(self.atoms.pbc):
+        if any(self.atoms.pbc):
             if self.parameters.calculate_bands in [None, True] and self.projections and self.kpoints.path is not None:
                 # Calculate interpolated band structure and DOS with UI
                 from koopmans import workflows
@@ -393,23 +394,25 @@ class KoopmansDSCFWorkflow(Workflow):
             self.run_calculator(calc, enforce_ss=False)
 
             # Check the consistency between the PW and CP band gaps
-            pw_calc = [c for c in self.calculations if isinstance(
-                c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
-            pw_gap = pw_calc.results['lumo_energy'] - pw_calc.results['homo_energy']
-            cp_gap = calc.results['lumo_energy'] - calc.results['homo_energy']
-            if abs(pw_gap - cp_gap) > 2e-2 * pw_gap:
-                raise ValueError(f'PW and CP band gaps are not consistent: {pw_gap} {cp_gap}')
+            if calc.results['lumo_energy']:
+                pw_calc = [c for c in self.calculations if isinstance(
+                    c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
+                pw_gap = pw_calc.results['lumo_energy'] - pw_calc.results['homo_energy']
+                cp_gap = calc.results['lumo_energy'] - calc.results['homo_energy']
+                if abs(pw_gap - cp_gap) > 2e-2 * pw_gap:
+                    raise ValueError(f'PW and CP band gaps are not consistent: {pw_gap} {cp_gap}')
 
             # The CP restarting from Wannier functions must be already converged
             Eini = calc.results['convergence']['filled'][0]['Etot']
             Efin = calc.results['energy']
             if abs(Efin - Eini) > 1e-6 * abs(Efin):
-                raise ValueError(f'Too much difference between the initial and final CP energies: {Eini} {Efin}')
+                utils.warn(f'There is a large difference ({Efin - Eini:.5f} Ha) between the initial and final CP energies ({Eini:.3f} and {Efin:.3f} Ha). This should not happen.')
 
             # Add to the outdir of dft_init a link to the files containing the Wannier functions
             dst = Path(f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001/')
             for file in ['evc_occupied1.dat', 'evc_occupied2.dat', 'evc0_empty1.dat', 'evc0_empty2.dat']:
-                utils.symlink(f'{restart_dir}/{file}', dst, force=True)
+                if (restart_dir / file).exists():
+                    utils.symlink(f'{restart_dir}/{file}', dst, force=True)
 
         elif self.parameters.functional in ['ki', 'pkipz']:
             calc = self.new_kcp_calculator('dft_init')
@@ -504,7 +507,8 @@ class KoopmansDSCFWorkflow(Workflow):
             # Do a KI/KIPZ calculation with the updated alpha values
             restart_from_wannier_pwscf = True if self.parameters.init_orbitals in [
                 'mlwfs', 'projwfs'] and not self._restart_from_old_ki and i_sc == 1 else None
-            if self.parameters.task in ['trajectory', 'convergence_ml'] and self.ml.input_data_for_ml_model == 'orbital_density':
+            if self.parameters.task in ['trajectory', 'convergence_ml'] \
+                    and self.ml.input_data_for_ml_model == 'orbital_density':
                 print_real_space_density = True
             else:
                 print_real_space_density = False
@@ -642,13 +646,13 @@ class KoopmansDSCFWorkflow(Workflow):
 
                         alpha, error = self.calculate_alpha_from_list_of_calcs(
                             calcs, trial_calc, band, filled=band.filled)
-                        
+
                         # Mixing
                         alpha = self.parameters.alpha_mixing * alpha + (1 - self.parameters.alpha_mixing) * band.alpha
 
                     warning_message = 'The computed screening parameter is {0}. Proceed with caution.'
                     failure_message = 'The computed screening parameter is significantly {0}. This should not ' \
-                         'happen. Decrease alpha_mixing and/or change alpha_guess.'
+                        'happen. Decrease alpha_mixing and/or change alpha_guess.'
 
                     if alpha < -0.1:
                         raise ValueError(failure_message.format('less than 0'))
@@ -666,7 +670,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
                 # add alpha to training data
                 if self.ml.use_ml and not use_prediction:
-                    mlfit.print_error_of_single_orbital(alpha_predicted, alpha, indent=self.print_indent+2)
+                    mlfit.print_error_of_single_orbital(alpha_predicted, alpha, indent=self.print_indent + 2)
                     mlfit.add_training_data(band)
                     # if the user wants to train on the fly, train the model after the calculation of each orbital
                     if self.ml.train_on_the_fly:
@@ -697,7 +701,8 @@ class KoopmansDSCFWorkflow(Workflow):
         else:
             self.print('Screening parameters have been determined but are not necessarily converged')
 
-    def perform_fixed_band_calculations(self, band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs) -> None:
+    def perform_fixed_band_calculations(self, band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band,
+                                        directory, alpha_indep_calcs) -> None:
         # Perform the fixed-band-dependent calculations
         if self.parameters.functional in ['ki', 'pkipz']:
             if band.filled:
@@ -1033,11 +1038,6 @@ class KoopmansDSCFWorkflow(Workflow):
             calc.parameters.which_orbdep = 'nki'
         if 'print' in calc.prefix:
             calc.parameters.print_wfc_anion = True
-
-        if self.parameters.mt_correction:
-            calc.parameters.which_compensation = 'tcc'
-        else:
-            calc.parameters.which_compensation = 'none'
 
         # If we are using frozen orbitals, we override the above logic and freeze the variational orbitals
         # post-initialization
