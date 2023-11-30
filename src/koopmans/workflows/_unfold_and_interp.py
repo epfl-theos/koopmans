@@ -67,6 +67,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         else:
             spins = [None]
 
+        energies_to_merge = []
         for spin, band_filling in zip(spins, self.bands.filling):
             # Extract the centers and spreads corresponding to this particular spin
             centers = np.array([center for c, p in zip(w90_calcs, self.projections)
@@ -74,7 +75,17 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             spreads = np.array([spread for c, p in zip(w90_calcs, self.projections)
                                for spread in c.results['spreads'] if p.spin == spin])
 
-            for filled, filling in zip([True, False], ['occ', 'emp']):
+            energies_to_merge.append([])
+
+            filleds = [True]
+            if not all(band_filling):
+                filleds.append(False)
+
+            for filled in filleds:
+                if filled:
+                    filling = 'occ'
+                else:
+                    filling = 'emp'
                 calc_presets = filling
                 if spin:
                     calc_presets += '_' + spin
@@ -97,17 +108,18 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                 # Run the calculator
                 self.run_calculator(calc, enforce_ss=False)
 
+                # Store the bandstructure energies that we will merge below
+                energies_to_merge[-1].append(self.calculations[-1].results['band structure'].energies)
+
         # Merge the two calculations to print out the DOS and bands
         calc = self.new_ui_calculator('merge')
 
         # Merge the bands
         if self.parameters.spin_polarized:
-            energies = [[c.results['band structure'].energies for c in subset]
-                        for subset in [self.calculations[-4:-2], self.calculations[-2:]]]
-            reference = np.max([e[0] for e in energies])
+            reference = np.max([e[0] for e in energies_to_merge])
             energies_np = np.concatenate([np.concatenate(e, axis=2) for e in energies], axis=0)
         else:
-            energies = [c.results['band structure'].energies for c in self.calculations[-2:]]
+            energies = energies_to_merge[0]
             reference = np.max(energies[0])
             energies_np = np.concatenate(energies, axis=2)
         calc.results['band structure'] = BandStructure(self.kpoints.path, energies_np, reference=reference)

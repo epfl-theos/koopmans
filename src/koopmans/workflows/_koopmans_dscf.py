@@ -39,7 +39,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         # If periodic, convert the kcp calculation into a Γ-only supercell calculation
         kcp_params = self.calculator_parameters['kcp']
-        if all(self.atoms.pbc):
+        if any(self.atoms.pbc):
             spins: List[Optional[str]]
             if self.parameters.spin_polarized:
                 spins = ['up', 'down']
@@ -268,7 +268,7 @@ class KoopmansDSCFWorkflow(Workflow):
         self.perform_final_calculations()
 
         # Postprocessing
-        if all(self.atoms.pbc):
+        if any(self.atoms.pbc):
             if self.parameters.calculate_bands in [None, True] and self.projections and self.kpoints.path is not None:
                 # Calculate interpolated band structure and DOS with UI
                 from koopmans import workflows
@@ -394,23 +394,25 @@ class KoopmansDSCFWorkflow(Workflow):
             self.run_calculator(calc, enforce_ss=False)
 
             # Check the consistency between the PW and CP band gaps
-            pw_calc = [c for c in self.calculations if isinstance(
-                c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
-            pw_gap = pw_calc.results['lumo_energy'] - pw_calc.results['homo_energy']
-            cp_gap = calc.results['lumo_energy'] - calc.results['homo_energy']
-            if abs(pw_gap - cp_gap) > 2e-2 * pw_gap:
-                raise ValueError(f'PW and CP band gaps are not consistent: {pw_gap} {cp_gap}')
+            if calc.results['lumo_energy']:
+                pw_calc = [c for c in self.calculations if isinstance(
+                    c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
+                pw_gap = pw_calc.results['lumo_energy'] - pw_calc.results['homo_energy']
+                cp_gap = calc.results['lumo_energy'] - calc.results['homo_energy']
+                if abs(pw_gap - cp_gap) > 2e-2 * pw_gap:
+                    raise ValueError(f'PW and CP band gaps are not consistent: {pw_gap} {cp_gap}')
 
             # The CP restarting from Wannier functions must be already converged
             Eini = calc.results['convergence']['filled'][0]['Etot']
             Efin = calc.results['energy']
             if abs(Efin - Eini) > 1e-6 * abs(Efin):
-                raise ValueError(f'Too much difference between the initial and final CP energies: {Eini} {Efin}')
+                utils.warn(f'There is a large difference ({Efin - Eini:.5f} Ha) between the initial and final CP energies ({Eini:.3f} and {Efin:.3f} Ha). This should not happen.')
 
             # Add to the outdir of dft_init a link to the files containing the Wannier functions
             dst = Path(f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001/')
             for file in ['evc_occupied1.dat', 'evc_occupied2.dat', 'evc0_empty1.dat', 'evc0_empty2.dat']:
-                utils.symlink(f'{restart_dir}/{file}', dst, force=True)
+                if (restart_dir / file).exists():
+                    utils.symlink(f'{restart_dir}/{file}', dst, force=True)
 
         elif self.parameters.functional in ['ki', 'pkipz']:
             calc = self.new_kcp_calculator('dft_init')
