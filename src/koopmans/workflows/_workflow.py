@@ -1135,6 +1135,7 @@ class Workflow(ABC):
                 entry.fields['note'] = note
                 relevant_references.add_entry(bibkey, entry)
 
+        add_ref('Linscott2023', 'Introduces the koopmans code')
         if self.parameters.functional in ['ki', 'kipz', 'pkipz', 'all']:
             add_ref('Dabo2010', 'One of the founding Koopmans functionals papers')
             add_ref('Borghi2014', 'One of the founding Koopmans functionals papers')
