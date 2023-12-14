@@ -63,8 +63,8 @@ preferred-citation:
     value: https://pubs.acs.org/doi/full/10.1021/acs.jctc.3c00652
   issue: 20
   journal: Journal of Chemical Theory and Computation
-  title: 'koopmans: An Open-Source Package for Accurately and
-    Efficiently Predicting Spectral Properties with Koopmans Functionals'
+  title: 'koopmans: An Open-Source Package for Accurately and Efficiently Predicting
+    Spectral Properties with Koopmans Functionals'
   type: article
   volume: 19
   year: 2023
