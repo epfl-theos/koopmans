@@ -54,7 +54,7 @@ from koopmans.projections import ExplicitProjectionBlock, ProjectionBlocks
 from koopmans.pseudopotentials import (cutoffs_from_pseudos, fetch_pseudo,
                                        nelec_from_pseudos, nwfcs_from_pseudos,
                                        pseudo_contents, pseudo_database,
-                                       pseudos_library_directory)
+                                       pseudos_library_directory, nwfcs_from_projectors)
 from koopmans.references import bib_data
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
@@ -323,8 +323,12 @@ class Workflow(ABC):
             else:
                 spins = [None]
 
-            num_wann = [nwfcs_from_pseudos(self.atoms, self.pseudopotentials,
-                                           self.parameters.pseudo_directory) for _ in spins]
+            if self.calculator_parameters['pw2wannier'].atom_proj_ext:
+                proj_dir = self.calculator_parameters['pw2wannier'].get('atom_proj_dir', self.parameters.pseudo_directory)
+                num_wann = [nwfcs_from_projectors(self.atoms, self.pseudopotentials, proj_dir)]
+            else:
+                num_wann = [nwfcs_from_pseudos(self.atoms, self.pseudopotentials,
+                                               self.parameters.pseudo_directory) for _ in spins]
             self.projections = ProjectionBlocks.fromlist(num_wann, spins, self.atoms)
 
             # Also override various pw2wannier and w90 settings

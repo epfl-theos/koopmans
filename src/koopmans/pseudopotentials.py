@@ -18,6 +18,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from ase import Atoms
 from upf_to_json import upf_to_json
+from upf_tools.projectors import Projectors
 
 
 @dataclass
@@ -175,6 +176,25 @@ def nwfcs_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
         return sum([2 * int(wfc['angular_momentum']) + 1 for wfc in dct['atomic_wave_functions']])
 
     return _quantity_from_pseudos(extract_nwfc, atoms, pseudopotentials, pseudo_dir)
+
+def nwfcs_from_projectors(atoms: Atoms, pseudopotentials: Dict[str, str], projector_dir: Path) -> int:
+    '''
+    Determines the number of wfcs in the system using information from projector files
+    '''
+
+    # Construct a dict mapping the element name to the projector file
+    proj_files = {key: projector_dir / (value.rsplit('.', 1)[0] + '.dat') for key, value in pseudopotentials.items()}
+
+    # Construct a dict mapping the element name to the number of projectors
+    nproj = {key: sum([2 * p.l + 1 for p in Projectors.from_file(value)]) for key, value in proj_files.items()}
+
+    # Calculate the total number of projectors
+    if len(set(atoms.get_tags())) > 1:
+        labels = [s + str(t) if t > 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
+    else:
+        labels = atoms.symbols
+
+    return sum([nproj[l] for l in labels])
 
 
 def cutoffs_from_pseudos(atoms: Atoms, pseudo_dir_in: Optional[Path] = None) -> Dict[str, float]:

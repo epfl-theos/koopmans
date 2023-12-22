@@ -9,7 +9,7 @@ class PW2WannierSettingsDict(SettingsDict):
                                 'atom_proj', 'atom_proj_ext', 'atom_proj_dir'],
                          defaults={'outdir': 'TMP', 'prefix': 'kc', 'seedname': 'wann',
                                    'wan_mode': 'standalone'},
-                         are_paths=['outdir'],
+                         are_paths=['outdir', 'atom_proj_dir'],
                          **kwargs)
 
     @property
