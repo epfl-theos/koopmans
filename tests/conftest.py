@@ -1,10 +1,12 @@
 from pathlib import Path
+
 import pytest
 
-from .helpers.systems import gaas, ozone, silicon, tio2, water
 from .helpers.os import datadir, sys2file
-from .helpers.patches import tutorial_patch, workflow_patch, ui_patch, espresso_patch
+from .helpers.patches import (espresso_patch, tutorial_patch, ui_patch,
+                              workflow_patch)
 from .helpers.strategies import ase_cells, bandpaths, kpoints
+from .helpers.systems import gaas, ozone, silicon, tio2, water
 
 
 def pytest_addoption(parser):

@@ -66,7 +66,7 @@ def good_fft(nr: int) -> int:
 def read_ham_file(filename: Path) -> np.ndarray[Any, np.dtype[np.cfloat]]:
     # Read a single hamiltonian XML file
     if not filename.exists():
-        raise FileExistsError(f'{filename} does not exist')
+        raise FileNotFoundError(f'{filename} does not exist')
 
     with open(filename, 'r') as fd:
         tree = ET.parse(fd)

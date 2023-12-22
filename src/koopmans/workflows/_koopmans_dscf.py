@@ -642,13 +642,13 @@ class KoopmansDSCFWorkflow(Workflow):
 
                         alpha, error = self.calculate_alpha_from_list_of_calcs(
                             calcs, trial_calc, band, filled=band.filled)
-                        
+
                         # Mixing
                         alpha = self.parameters.alpha_mixing * alpha + (1 - self.parameters.alpha_mixing) * band.alpha
 
                     warning_message = 'The computed screening parameter is {0}. Proceed with caution.'
                     failure_message = 'The computed screening parameter is significantly {0}. This should not ' \
-                         'happen. Decrease alpha_mixing and/or change alpha_guess.'
+                        'happen. Decrease alpha_mixing and/or change alpha_guess.'
 
                     if alpha < -0.1:
                         raise ValueError(failure_message.format('less than 0'))

@@ -14,10 +14,11 @@ import re
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from ase import Atoms
 from upf_to_json import upf_to_json
+from upf_tools.projectors import Projectors
 
 
 @dataclass
@@ -103,16 +104,13 @@ def read_pseudo_file(filename: Path) -> Dict[str, Any]:
 
     '''
 
-    upf: Dict[str, Any] = upf_to_json(open(filename, 'r').read(), filename.name)
+    with open(filename, 'r') as fd:
+        upf: Dict[str, Any] = upf_to_json(fd.read(), filename.name)
 
     return upf['pseudo_potential']
 
 
-def valence_from_pseudo(filename: str, pseudo_dir: Optional[Path] = None) -> int:
-    '''
-    Determines the valence of a pseudopotential
-    '''
-
+def get_pseudo_dir(pseudo_dir):
     # Works out the pseudo directory (pseudo_dir is given precedence over $ESPRESSO_PSEUDO)
     if pseudo_dir is None:
         if 'ESPRESSO_PSEUDO' in os.environ:
@@ -121,8 +119,36 @@ def valence_from_pseudo(filename: str, pseudo_dir: Optional[Path] = None) -> int
             pseudo_dir = Path.cwd()
     elif isinstance(pseudo_dir, str):
         pseudo_dir = Path(pseudo_dir)
+    return pseudo_dir
 
-    return int(read_pseudo_file(pseudo_dir / filename)['header']['z_valence'])
+
+def pseudo_contents(filename: str, pseudo_dir: Optional[Path] = None) -> Dict[str, Any]:
+    '''
+    Determines the valence of a pseudopotential
+    '''
+
+    return read_pseudo_file(get_pseudo_dir(pseudo_dir) / filename)
+
+
+def _quantity_from_pseudos(extract_function: Callable[[Dict[str, Any]], Any], atoms: Atoms, pseudopotentials: Dict[str, str],
+                           pseudo_dir: Optional[Path] = None) -> int:
+    '''
+    Determines the number of something in the system using information from pseudopotential files
+    extract_function needs to take the full UPF and returns the quantity of interest
+    '''
+
+    try:
+        value_dct = {at: extract_function(pseudo_contents(psp, pseudo_dir)) for at, psp in pseudopotentials.items()}
+    except KeyError:
+        raise KeyError(f'"{key}" is not present in the header of every pseudopotential')
+
+    if len(set(atoms.get_tags())) > 1:
+        labels = [s + str(t) if t > 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
+    else:
+        labels = atoms.symbols
+
+    values = [value_dct[l] for l in labels]
+    return sum(values)
 
 
 def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
@@ -131,15 +157,72 @@ def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
     Determines the number of electrons in the system using information from pseudopotential files
     '''
 
-    valences_dct = {key: valence_from_pseudo(value, pseudo_dir) for key, value in pseudopotentials.items()}
+    def extract_z_valence(dct: Dict[str, Dict[str, Any]]) -> int:
+        return int(dct['header']['z_valence'])
+    return _quantity_from_pseudos(extract_z_valence, atoms, pseudopotentials, pseudo_dir)
 
+
+def nwfcs_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
+                       pseudo_dir: Optional[Path] = None) -> int:
+    '''
+    Determines the number of wfcs in the system using information from pseudopotential files
+    '''
+
+    for psp in pseudopotentials.values():
+        if pseudo_contents(psp, pseudo_dir)['header']['number_of_wfc'] == 0:
+            raise ValueError(f'The pseudopotential {psp} does not contain wavefunctions')
+
+    def extract_nwfc(dct: Dict[str, List[Dict[str, Any]]]) -> int:
+        return sum([2 * int(wfc['angular_momentum']) + 1 for wfc in dct['atomic_wave_functions']])
+
+    return _quantity_from_pseudos(extract_nwfc, atoms, pseudopotentials, pseudo_dir)
+
+def nwfcs_from_projectors(atoms: Atoms, pseudopotentials: Dict[str, str], projector_dir: Path) -> int:
+    '''
+    Determines the number of wfcs in the system using information from projector files
+    '''
+
+    # Construct a dict mapping the element name to the projector file
+    proj_files = {key: projector_dir / (value.rsplit('.', 1)[0] + '.dat') for key, value in pseudopotentials.items()}
+
+    # Construct a dict mapping the element name to the number of projectors
+    nproj = {key: sum([2 * p.l + 1 for p in Projectors.from_file(value)]) for key, value in proj_files.items()}
+
+    # Calculate the total number of projectors
     if len(set(atoms.get_tags())) > 1:
         labels = [s + str(t) if t > 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
     else:
         labels = atoms.symbols
 
-    valences = [valences_dct[l] for l in labels]
-    return sum(valences)
+    return sum([nproj[l] for l in labels])
+
+
+def cutoffs_from_pseudos(atoms: Atoms, pseudo_dir_in: Optional[Path] = None) -> Dict[str, float]:
+    """
+    Works out a recommended ecutwfc and ecutrho based on the contents of a cutoffs.json file
+    located in the pseudopotential directory
+    """
+
+    pseudo_dir = get_pseudo_dir(pseudo_dir_in)
+
+    cutoff_database_file = pseudo_dir / 'cutoffs.json'
+    if not cutoff_database_file.exists():
+        return {}
+
+    with open(cutoff_database_file, 'r') as fd:
+        cutoff_database = json.load(fd)
+
+    cutoffs = {}
+    for symbol in atoms.symbols:
+        if symbol not in cutoff_database:
+            return {}
+        for k, v in cutoff_database[symbol].items():
+            if k not in cutoffs:
+                cutoffs[k] = v
+            elif cutoffs[k] < v:
+                cutoffs[k] = v
+
+    return cutoffs
 
 
 def expected_subshells(atoms: Atoms, pseudopotentials: Dict[str, str],
@@ -163,7 +246,7 @@ def expected_subshells(atoms: Atoms, pseudopotentials: Dict[str, str],
         if atom.symbol in expected_orbitals:
             continue
         pseudo_file = pseudopotentials[atom.symbol]
-        z_core = atom.number - valence_from_pseudo(pseudo_file, pseudo_dir)
+        z_core = atom.number - pseudo_contents(pseudo_file, pseudo_dir)['header']['z_valence']
         if z_core in z_core_to_first_orbital:
             first_orbital = z_core_to_first_orbital[z_core]
         else:

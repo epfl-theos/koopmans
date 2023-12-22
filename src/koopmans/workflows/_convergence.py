@@ -82,6 +82,8 @@ def fetch_eps_inf(wf: Workflow) -> float:
 
 class ConvergenceWorkflow(Workflow):
 
+    _corresponding_taskname = 'convergence'
+
     def _run(self, initial_depth: int = 3) -> None:
 
         # Deferred import to allow for monkeypatchings

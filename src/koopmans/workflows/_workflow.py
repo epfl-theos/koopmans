@@ -45,14 +45,16 @@ from ase.spectrum.dosdata import GridDOSData
 
 from koopmans import calculators, settings, utils
 from koopmans.bands import Bands
+from koopmans.cell import (cell_follows_qe_conventions, cell_to_parameters,
+                           parameters_to_cell)
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.kpoints import Kpoints
 from koopmans.ml import MLModel
-from koopmans.projections import ProjectionBlocks
-from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
-                                       pseudo_database,
-                                       pseudos_library_directory,
-                                       valence_from_pseudo)
+from koopmans.projections import ExplicitProjectionBlock, ProjectionBlocks
+from koopmans.pseudopotentials import (cutoffs_from_pseudos, fetch_pseudo,
+                                       nelec_from_pseudos, nwfcs_from_pseudos,
+                                       pseudo_contents, pseudo_database,
+                                       pseudos_library_directory, nwfcs_from_projectors)
 from koopmans.references import bib_data
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
@@ -102,6 +104,7 @@ class Workflow(ABC):
     pseudo_dir: Path
     projections: ProjectionBlocks
     parent: Optional[Workflow]
+    _corresponding_taskname: str = ''
 
     def __init__(self, atoms: Atoms,
                  pseudopotentials: Dict[str, str] = {},
@@ -128,7 +131,7 @@ class Workflow(ABC):
         self.print_indent = 1
 
         if projections is None:
-            proj_list: List[List[Any]]
+            proj_list: List[List[str]]
             spins: List[Optional[str]]
             if self.parameters.spin_polarized:
                 proj_list = [[], []]
@@ -171,7 +174,7 @@ class Workflow(ABC):
         if all(self.atoms.pbc):
             # By default, use ASE's default bandpath for this cell (see
             # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
-            default_path = self.atoms.cell.bandpath().path
+            default_path = self.atoms.cell.bandpath(eps=1e-10).path
         else:
             default_path = 'G'
         if kpoints is None:
@@ -235,12 +238,12 @@ class Workflow(ABC):
         if self.parameters.task != 'ui' and autogenerate_settings:
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
-            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
-            tot_charge = calculator_parameters['kcp'].get('tot_charge', 0)
-            nelec -= tot_charge
-            tot_mag = calculator_parameters['kcp'].get('tot_magnetization', nelec % 2)
-            nelup = int(nelec / 2 + tot_mag / 2)
-            neldw = int(nelec / 2 - tot_mag / 2)
+            kcp_params = calculator_parameters['kcp']
+            nelec = self.number_of_electrons(None, kcp_params)
+            nelup = self.number_of_electrons('up', kcp_params)
+            neldw = self.number_of_electrons('down', kcp_params)
+            tot_charge = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory) - nelec
+            tot_mag = nelup - neldw
 
             # Setting up the magnetic moments
             if 'starting_magnetization(1)' in calculator_parameters['kcp']:
@@ -249,14 +252,15 @@ class Workflow(ABC):
                 for i, (l, p) in enumerate(self.pseudopotentials.items()):
                     # ASE uses absolute values; QE uses the fraction of the valence
                     frac_mag = calculator_parameters['kcp'].pop(f'starting_magnetization({i + 1})', 0.0)
-                    valence = valence_from_pseudo(p, self.parameters.pseudo_directory)
+                    valence = pseudo_contents(p, self.parameters.pseudo_directory)['header']['z_valence']
                     starting_magmoms[l] = frac_mag * valence
                 atoms.set_initial_magnetic_moments([starting_magmoms[l] for l in labels])
             elif tot_mag != 0:
                 atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
 
             # Work out the number of bands
-            nbnd = calculator_parameters['kcp'].get('nbnd', nelec // 2 + nelec % 2)
+            nbnd = calculator_parameters['pw'].get(
+                'nbnd', calculator_parameters['kcp'].get('nbnd', nelec // 2 + nelec % 2))
             generated_keywords = {'nelec': nelec, 'tot_charge': tot_charge, 'tot_magnetization': tot_mag,
                                   'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd}
         else:
@@ -267,7 +271,7 @@ class Workflow(ABC):
         for block, params in calculator_parameters.items():
             # Apply auto-generated keywords
             for k, v in generated_keywords.items():
-                # Skipping nbnd for kcp -- it is valid according to ASE but it is not yet properly implemented
+                # Skipping nbnd for kcp; if necessary it will be generated later
                 if k == 'nbnd' and block == 'kcp':
                     continue
                 if k in params.valid and k not in params:
@@ -279,7 +283,7 @@ class Workflow(ABC):
                 # Likewise, if we are not spin-polarized, don't store the spin-dependent w90 blocks
                 if self.parameters.spin_polarized is not ('up' in block or 'down' in block):
                     continue
-                if 'projections' in params or 'projections_blocks' in params:
+                if 'projections' in params:
                     raise ValueError(f'You have provided projection information in the calculator_parameters[{block}] '
                                      f'argument to {self.__class__.__name__}. Please instead specify projections '
                                      'via the "projections" argument')
@@ -317,6 +321,30 @@ class Workflow(ABC):
             if not match and not self.parameters.is_valid(key) and not self.plotting.is_valid(key) and not self.ml.is_valid(key):
                 raise ValueError(f'{key} is not a valid setting')
 
+        # Generating self.projections if auto_projections is True
+        auto = [self.calculator_parameters[s].auto_projections for s in ['w90', 'w90_up', 'w90_down']]
+        if any(auto):
+            if self.parameters.spin_polarized:
+                spins = ['up', 'down']
+            else:
+                spins = [None]
+
+            if self.calculator_parameters['pw2wannier'].atom_proj_ext:
+                proj_dir = self.calculator_parameters['pw2wannier'].get('atom_proj_dir', self.parameters.pseudo_directory)
+                num_wann = [nwfcs_from_projectors(self.atoms, self.pseudopotentials, proj_dir)]
+            else:
+                num_wann = [nwfcs_from_pseudos(self.atoms, self.pseudopotentials,
+                                               self.parameters.pseudo_directory) for _ in spins]
+            self.projections = ProjectionBlocks.fromlist(num_wann, spins, self.atoms)
+
+            # Also override various pw2wannier and w90 settings
+            self.calculator_parameters['pw2wannier'].atom_proj = True
+            for spin in spins:
+                label = 'w90' if spin is None else f'w90_{spin}'
+                self.calculator_parameters[label].guiding_centres = False
+                if self.calculator_parameters[label].dis_proj_max is None:
+                    self.calculator_parameters[label].dis_proj_max = 0.95
+
         # Adding excluded_bands info to self.projections
         if self.projections:
             for spin in ['up', 'down', None]:
@@ -324,6 +352,25 @@ class Workflow(ABC):
                 if spin:
                     label += f'_{spin}'
                 self.projections.exclude_bands[spin] = self.calculator_parameters[label].get('exclude_bands', [])
+
+        # Updating ibrav
+        if cell_follows_qe_conventions(self.atoms.cell):
+            params_dct = cell_to_parameters(self.atoms.cell)
+            for dct in self.calculator_parameters.values():
+                if dct.is_valid('ibrav'):
+                    dct.update(**params_dct)
+
+        # Providing cutoffs based on pseudos if they are not provided already
+        cutoffs = cutoffs_from_pseudos(self.atoms, self.parameters.pseudo_directory)
+        for params in self.calculator_parameters.values():
+            for k, v in cutoffs.items():
+                # Note that we check if 'ecutwfc' is not provided, because if ecutwfc is provided then ecutrho is
+                # (implicitly) provided too because its default is 4 * ecutwfc
+                if params.is_valid(k) and 'ecutwfc' not in params:
+                    utils.warn(f'{k} was not provided; it will be set based on tabulated cutoffs for the individual '
+                               'species. It is *strongly* recommended that you perform a proper convergence test for '
+                               'this parameter instead of relying on this default.')
+                    params[k] = v
 
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
@@ -492,11 +539,12 @@ class Workflow(ABC):
                            'caution')
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] and not self.parameters.task.startswith('dft'):
-            if len(self.projections) == 0:
-                raise ValueError(f'In order to use init_orbitals={self.parameters.init_orbitals}, projections must be '
-                                 'provided')
             spin_set = set([p.spin for p in self.projections])
-            if self.parameters.spin_polarized:
+
+            if len(self.projections) == 0:
+                raise ValueError(f'In order to use init_orbitals={self.parameters.init_orbitals}, "projections" must be '
+                                 'provided or "auto_projections" must be set to True')
+            elif self.parameters.spin_polarized:
                 if spin_set != {'up', 'down'}:
                     raise ValueError('This calculation is spin-polarized; please provide spin-up and spin-down '
                                      'projections')
@@ -504,6 +552,11 @@ class Workflow(ABC):
                 if spin_set != {None}:
                     raise ValueError('This calculation is not spin-polarized; please do not provide spin-indexed '
                                      'projections')
+
+            if self.parameters.block_wannierization_threshold is not None:
+                if not any([v['auto_projections'] for k, v in self.calculator_parameters.items() if 'w90' in k]):
+                    raise ValueError('Automated block detection is only compatible with automated projections. '
+                                     'Either set auto_wannierization=true or remove block_wannierization_threshold')
 
         # Check the consistency between self.kpoints.gamma_only and KCP's do_wf_cmplx
         if not self.kpoints.gamma_only and self.calculator_parameters['kcp'].do_wf_cmplx is False:
@@ -628,6 +681,8 @@ class Workflow(ABC):
             calc_class = calculators.PhCalculator
         elif calc_type == 'projwfc':
             calc_class = calculators.ProjwfcCalculator
+        elif calc_type == 'wjl':
+            calc_class = calculators.WannierJLCalculator
         else:
             raise ValueError(f'Cound not find a calculator of type {calc_type}')
 
@@ -801,7 +856,10 @@ class Workflow(ABC):
 
     def load_old_calculator(self, qe_calc: calculators.Calc) -> bool:
         # This is a separate function so that it can be monkeypatched by the test suite
-        old_calc = qe_calc.__class__.fromfile(qe_calc.directory / qe_calc.prefix)
+        try:
+            old_calc = qe_calc.__class__.fromfile(qe_calc.directory / qe_calc.prefix)
+        except FileNotFoundError:
+            return False
 
         if old_calc.is_complete():
             # If it is complete, load the results
@@ -1156,6 +1214,9 @@ class Workflow(ABC):
 
         bigdct['workflow'] = {}
 
+        if self._corresponding_taskname:
+            self.parameters.task = self._corresponding_taskname
+
         # "workflow" block (not printing any values that match the defaults except for core keywords)
         for k, v in self.parameters.items():
             if v is None:
@@ -1168,15 +1229,17 @@ class Workflow(ABC):
             if v != default or k in ['task', 'functional']:
                 bigdct['workflow'][k] = v
 
-        # "atoms" block
         # Working out ibrav
-        ibrav = self.calculator_parameters['kcp'].get('ibrav', self.calculator_parameters['pw'].get('ibrav', 0))
+        if cell_follows_qe_conventions(self.atoms.cell):
+            ibrav = cell_to_parameters(self.atoms.cell)['ibrav']
+        else:
+            ibrav = 0
 
+        # "atoms" block
         bigdct['atoms'] = {}
 
         # cell parameters
-        if ibrav == 0:
-            bigdct['atoms']['cell_parameters'] = utils.construct_cell_parameters_block(self.atoms)
+        bigdct['atoms']['cell_parameters'] = utils.construct_cell_parameters_block(self.atoms)
 
         # atomic positions
         if len(set(self.atoms.get_tags())) > 1:
@@ -1241,7 +1304,8 @@ class Workflow(ABC):
                     calcdct['w90'] = params_dict
                 projections = self.projections.get_subset(spin)
                 if projections:
-                    proj_kwarg = {'projections': [p.projections for p in projections]}
+                    proj_kwarg = {'projections': [
+                        p.projections for p in projections if isinstance(p, ExplicitProjectionBlock)]}
                 else:
                     proj_kwarg = {}
 
@@ -1396,19 +1460,20 @@ class Workflow(ABC):
         if not self.parameters.keep_tmpdirs:
             self._remove_tmpdirs()
 
-    def number_of_electrons(self, spin: Optional[str] = None) -> int:
+    def number_of_electrons(self, spin: Optional[str] = None, params: Optional[Union[dict, settings.SettingsDict]] = None) -> int:
         # Return the number of electrons in a particular spin channel
         nelec_tot = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
-        pw_params = self.calculator_parameters['pw']
-        if self.parameters.spin_polarized:
-            nelec = nelec_tot - pw_params.get('tot_charge', 0)
-            if spin == 'up':
-                nelec += pw_params.tot_magnetization
-            else:
-                nelec -= pw_params.tot_magnetization
-            nelec = int(nelec // 2)
-        else:
+        if params is None:
+            params = self.calculator_parameters['pw']
+        nelec = nelec_tot - params.get('tot_charge', 0)
+        if spin is None:
             nelec = nelec_tot
+        else:
+            if spin == 'up':
+                nelec += params.get('tot_magnetization', nelec % 2)
+            else:
+                nelec -= params.get('tot_magnetization', nelec % 2)
+            nelec = int(nelec // 2)
         return nelec
 
 
@@ -1471,6 +1536,7 @@ def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]
             'w90': settings.Wannier90SettingsDict(),
             'w90_up': settings.Wannier90SettingsDict(),
             'w90_down': settings.Wannier90SettingsDict(),
+            'wjl': settings.WannierJLSettingsDict(),
             'plot': settings.PlotSettingsDict()}
 
 
@@ -1490,6 +1556,7 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'w90': settings.Wannier90SettingsDict,
                     'w90_up': settings.Wannier90SettingsDict,
                     'w90_down': settings.Wannier90SettingsDict,
+                    'wjl': settings.WannierJLSettingsDict,
                     'plot': settings.PlotSettingsDict}
 
 

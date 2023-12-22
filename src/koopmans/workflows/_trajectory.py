@@ -19,6 +19,8 @@ from ._workflow import Workflow
 
 class TrajectoryWorkflow(Workflow):
 
+    _corresponding_taskname = 'trajectory'
+
     def __init__(self, snapshots: List[Atoms], indices: Optional[List[int]] = None, save_dir: Optional[Path] = None,
                  get_evs: bool = False, overwrite_atoms: bool = True, *args, **kwargs):
 
