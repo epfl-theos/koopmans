@@ -121,11 +121,11 @@ def read_atomic_positions(atoms: Atoms, dct: Dict[str, Any]):
     if units == 'angstrom':
         pass
     elif units == 'bohr':
-        positions /= Bohr
+        positions *= Bohr
     elif units == 'alat':
         celldms = cell_to_parameters(atoms.cell).get('celldms')
         assert isinstance(celldms, dict)
-        positions *= celldms[1] / Bohr
+        positions *= celldms[1] * Bohr
     elif units == 'crystal':
         scale_positions = True
     else:
@@ -156,12 +156,12 @@ def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
     elif units.lower() == 'angstrom':
         pass
     elif units.lower() == 'bohr':
-        cell = np.array(cell) / Bohr
+        cell = np.array(cell) * Bohr
     elif units.lower() == 'alat':
         alat = dct.get('celldms', {}).get(1, None)
         if alat is None:
             raise ValueError('Please provide celldm(1) for a cell specified in units of alat')
-        cell = np.array(cell) * alat / Bohr
+        cell = np.array(cell) * alat * Bohr
     else:
         raise ValueError('The combination of vectors, ibrav, & units in the cell_parameter block is not valid')
     atoms.cell = cell
