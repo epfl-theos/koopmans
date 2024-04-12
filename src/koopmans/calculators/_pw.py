@@ -49,7 +49,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         we suppose that the calculator has an attribute called mode e.g.
         
         pw_calculator.mode = {
-            "code": "pw-7.2-ok@localhost",
+            "pw_code": "pw-7.2-ok@localhost",
             "metadata": {
             "options": {
                 "max_wallclock_seconds": 3600,
@@ -79,10 +79,35 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         for k in ["conv_thr"]:
             if k in calc_params.keys(): pw_overrides["ELECTRONS"][k] = calc_params[k]
             
-        builder = PwBaseWorkChain.get_builder_from_protocol(code=aiida_inputs["code"], structure=structure,overrides={"pw":{"parameters":pw_overrides}})
+        builder = PwBaseWorkChain.get_builder_from_protocol(code=aiida_inputs["pw_code"], structure=structure,overrides={"pw":{"parameters":pw_overrides}})
         builder.pw.metadata = aiida_inputs["metadata"]
             
         return builder
+    
+    # MB mod:
+    def read_results(self, wchain=None):
+        from ase import io
+        if not wchain:
+            output = io.read(self.label + '.pwo')
+        else:
+            import pathlib
+            import tempfile
+            
+            # Create temporary directory
+            retrieved = wchain.outputs.retrieved
+            with tempfile.TemporaryDirectory() as dirpath:
+                # Open the output file from the AiiDA storage and copy content to the temporary file
+                for filename in retrieved.base.repository.list_object_names():
+                    if '.out' in filename:
+                        # Create the file with the desired name
+                        temp_file = pathlib.Path(dirpath) / filename
+                        with retrieved.open(filename, 'rb') as handle:
+                            temp_file.write_bytes(handle.read())
+                    
+                        output = io.read(temp_file)
+        
+        self.calc = output.calc
+        self.results = output.calc.results
     
     def calculate(self):
         # Update ibrav and celldms
@@ -95,9 +120,14 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         if self.mode:
             builder = self.get_builder_from_ase()
             from aiida.engine import run,submit
-            wchain = run(builder)
+            running = run(builder)
             
-            raise NotImplementedError(f"We are just running the PwBaseWorkChain and stop here, for now. Check the calculation with 'verdi process report {wchain['remote_folder'].creator.caller.pk}'.")
+            # once the running if completed
+            wchain = running['remote_folder'].creator.caller
+            self.pk = wchain.pk
+            
+            self.read_results(wchain=wchain)
+            #raise NotImplementedError(f"We are just running the PwBaseWorkChain and stop here, for now. Check the calculation with 'verdi process report {self.pk}'.")
         
         super().calculate()
 
