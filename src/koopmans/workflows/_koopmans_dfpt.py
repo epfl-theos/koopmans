@@ -162,14 +162,14 @@ class KoopmansDFPTWorkflow(Workflow):
             # Run the subworkflow
             
             # MB mod
-            if not self.parameters.mode:
+            if self.parameters.mode == "ase":
                 with utils.chdir('init'):
                     pw_workflow.run()
             else:
                 pw_workflow.run()
 
         # MB mod
-        if not self.parameters.mode:
+        if self.parameters.mode == "ase":
             # Copy the outdir to the base directory
             base_outdir = self.calculator_parameters['pw'].outdir
             base_outdir.mkdir(exist_ok=True)
@@ -187,7 +187,7 @@ class KoopmansDFPTWorkflow(Workflow):
         self.run_calculator(wann2kc_calc)
         
         # MB mod
-        if self.parameters.mode:
+        if not self.parameters.mode == "ase":
             self.wann2kc_calculation = wann2kc_calc.calculation
             raise NotImplementedError(f"We are just running the PwBaseWorkChain and KcwCalculation for wann2kc and stop here, for now. \
                 Check the calculations with 'verdi process report {self.scf_wchain.pk}' and 'verdi process report {self.wann2kc_calculation.pk}'.")

@@ -125,7 +125,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
             self.parameters.ibrav = 0
         
         # MB mod
-        if self.mode:
+        if not self.mode == "ase":
             builder = self.get_builder_from_ase()
             from aiida.engine import run,submit
             running = run(builder)

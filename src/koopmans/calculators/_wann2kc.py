@@ -90,7 +90,7 @@ class Wann2KCCalculator(KCWannCalculator, Wann2KC, CalculatorABC):
     # MB mod:
     def calculate(self):
         
-        if not self.mode:
+        if self.mode == "ase":
             return super().calculate()
         else:
             builder = from_wann2kc_to_KcwCalculation(self)

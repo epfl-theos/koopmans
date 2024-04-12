@@ -682,12 +682,12 @@ class Workflow(ABC):
             calc.directory = directory
 
         # MB mod
-        if "mode" in self.parameters:
+        if not self.parameters.mode == 'ase':
             calc.mode = self.parameters.mode
             if calc_type == 'wann2kc':
                 calc.parent_folder = self.scf_wchain.outputs.remote_folder
         else: # MB comment: I did the following but I don't like it:
-            calc.mode = None
+            calc.mode = "ase"
         
         return calc
 
