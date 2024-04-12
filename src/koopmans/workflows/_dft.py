@@ -78,6 +78,9 @@ class DFTPWWorkflow(DFTWorkflow):
         # Run the calculator
         self.run_calculator(calc)
 
+        # MB mod
+        if calc.mode: self.scf_wchain = calc.wchain
+        
         return
 
 

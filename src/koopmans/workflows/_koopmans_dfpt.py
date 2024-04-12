@@ -160,21 +160,37 @@ class KoopmansDFPTWorkflow(Workflow):
             pw_params.tot_magnetization = 0
 
             # Run the subworkflow
-            with utils.chdir('init'):
+            
+            # MB mod
+            if not self.parameters.mode:
+                with utils.chdir('init'):
+                    pw_workflow.run()
+            else:
                 pw_workflow.run()
 
-        # Copy the outdir to the base directory
-        base_outdir = self.calculator_parameters['pw'].outdir
-        base_outdir.mkdir(exist_ok=True)
-        scf_calcs = [c for c in self.calculations if isinstance(c, PWCalculator) and c.parameters.calculation == 'scf']
-        init_outdir = scf_calcs[-1].parameters.outdir
-        if self.parameters.from_scratch and init_outdir != base_outdir:
-            utils.symlink(f'{init_outdir}/*', base_outdir)
+        # MB mod
+        if not self.parameters.mode:
+            # Copy the outdir to the base directory
+            base_outdir = self.calculator_parameters['pw'].outdir
+            base_outdir.mkdir(exist_ok=True)
+            scf_calcs = [c for c in self.calculations if isinstance(c, PWCalculator) and c.parameters.calculation == 'scf']
+            init_outdir = scf_calcs[-1].parameters.outdir
+            if self.parameters.from_scratch and init_outdir != base_outdir:
+                utils.symlink(f'{init_outdir}/*', base_outdir)
+        else:
+            self.scf_wchain = pw_workflow.scf_wchain
+            
 
         # Convert from wannier to KC
         self.print('Conversion to Koopmans format', style='subheading')
         wann2kc_calc = self.new_calculator('wann2kc')
         self.run_calculator(wann2kc_calc)
+        
+        # MB mod
+        if self.parameters.mode:
+            self.wann2kc_calculation = wann2kc_calc.calculation
+            raise NotImplementedError(f"We are just running the PwBaseWorkChain and KcwCalculation for wann2kc and stop here, for now. \
+                Check the calculations with 'verdi process report {self.scf_wchain.pk}' and 'verdi process report {self.wann2kc_calculation.pk}'.")
 
         # Calculate screening parameters
         if self.parameters.calculate_alpha:

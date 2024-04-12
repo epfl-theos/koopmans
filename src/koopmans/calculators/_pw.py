@@ -41,6 +41,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
     # MB mod:
     def get_builder_from_ase(self,):
         from aiida_quantumespresso.workflows.pw.base import PwCalculation,PwBaseWorkChain
+        from aiida_quantumespresso.common.types import ElectronicType
         from aiida import orm, load_profile
         load_profile()
     
@@ -79,7 +80,14 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         for k in ["conv_thr"]:
             if k in calc_params.keys(): pw_overrides["ELECTRONS"][k] = calc_params[k]
             
-        builder = PwBaseWorkChain.get_builder_from_protocol(code=aiida_inputs["pw_code"], structure=structure,overrides={"pw":{"parameters":pw_overrides}})
+        builder = PwBaseWorkChain.get_builder_from_protocol(
+            code=aiida_inputs["pw_code"], 
+            structure=structure,
+            overrides={
+                "pseudo_family":"PseudoDojo/0.4/PBE/FR/standard/upf",
+                "pw":{"parameters":pw_overrides}},
+            electronic_type = ElectronicType.INSULATOR,
+            )
         builder.pw.metadata = aiida_inputs["metadata"]
             
         return builder
@@ -123,13 +131,11 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
             running = run(builder)
             
             # once the running if completed
-            wchain = running['remote_folder'].creator.caller
-            self.pk = wchain.pk
+            self.wchain = running['remote_folder'].creator.caller
             
-            self.read_results(wchain=wchain)
-            #raise NotImplementedError(f"We are just running the PwBaseWorkChain and stop here, for now. Check the calculation with 'verdi process report {self.pk}'.")
-        
-        super().calculate()
+            self.read_results(wchain=self.wchain)
+        else:
+            super().calculate()
 
     def _calculate(self):
         if self.parameters.calculation == 'bands':
