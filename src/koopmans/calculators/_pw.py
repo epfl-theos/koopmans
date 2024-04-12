@@ -38,12 +38,67 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
             self.command = ParallelCommandWithPostfix(os.environ.get(
                 'ASE_ESPRESSO_COMMAND', self.command))
 
+    # MB mod:
+    def get_builder_from_ase(self,):
+        from aiida_quantumespresso.workflows.pw.base import PwCalculation,PwBaseWorkChain
+        from aiida import orm, load_profile
+        load_profile()
+    
+        """
+        We should check automatically on the accepted keywords in PwCalculation and where are. Should be possible.
+        we suppose that the calculator has an attribute called mode e.g.
+        
+        pw_calculator.mode = {
+            "code": "pw-7.2-ok@localhost",
+            "metadata": {
+            "options": {
+                "max_wallclock_seconds": 3600,
+                "resources": {
+                    "num_machines": 1,
+                    "num_mpiprocs_per_machine": 1,
+                    "num_cores_per_mpiproc": 1
+                },
+                "custom_scheduler_commands": "export OMP_NUM_THREADS=1"
+            }
+        }
+        }
+        """
+        pw_calculator=self
+        aiida_inputs = pw_calculator.mode
+        calc_params = pw_calculator._parameters
+        structure = orm.StructureData(ase=pw_calculator.atoms)
+        
+        pw_overrides = {"CONTROL":{},"SYSTEM":{},"ELECTRONS":{}}
+        
+        for k in ["calculation","verbosity"]: #,"prefix"
+            if k in calc_params.keys(): pw_overrides["CONTROL"][k] = calc_params[k]
+            
+        for k in ["tot_charge","tot_magnetization","nbnd","ecutwfc","ecutrho","nspin"]:
+            if k in calc_params.keys(): pw_overrides["SYSTEM"][k] = calc_params[k]
+            
+        for k in ["conv_thr"]:
+            if k in calc_params.keys(): pw_overrides["ELECTRONS"][k] = calc_params[k]
+            
+        builder = PwBaseWorkChain.get_builder_from_protocol(code=aiida_inputs["code"], structure=structure,overrides={"pw":{"parameters":pw_overrides}})
+        builder.pw.metadata = aiida_inputs["metadata"]
+            
+        return builder
+    
     def calculate(self):
         # Update ibrav and celldms
         if cell_follows_qe_conventions(self.atoms.cell):
             self.parameters.update(**cell_to_parameters(self.atoms.cell))
         else:
             self.parameters.ibrav = 0
+        
+        # MB mod
+        if self.mode:
+            builder = self.get_builder_from_ase()
+            from aiida.engine import run,submit
+            wchain = run(builder)
+            
+            raise NotImplementedError(f"We are just running the PwBaseWorkChain and stop here, for now. Check the calculation with 'verdi process report {wchain['remote_folder'].creator.caller.pk}'.")
+        
         super().calculate()
 
     def _calculate(self):

@@ -681,6 +681,9 @@ class Workflow(ABC):
         if directory is not None:
             calc.directory = directory
 
+        if "mode" in self.parameters:
+            calc.mode = self.parameters.mode
+        
         return calc
 
     def primitive_to_supercell(self, matrix: Optional[npt.NDArray[np.int_]] = None, **kwargs):
