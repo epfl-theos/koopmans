@@ -122,7 +122,8 @@ class KoopmansDFPTWorkflow(Workflow):
         # Import these here so that if they have been monkey-patched, we get the monkey-patched version
         from koopmans.workflows import DFTPWWorkflow, WannierizeWorkflow
 
-        if self.parameters.from_scratch:
+        # MB mod
+        if self.parameters.from_scratch and self.parameters.mode == "ase":
             for output_directory in [self.calculator_parameters['pw'].outdir, 'wannier', 'init', 'screening',
                                      'hamiltonian', 'postproc']:
                 output_directory = Path(output_directory)
