@@ -109,13 +109,17 @@ class WannierizeWorkflow(Workflow):
         using PW and Wannier90
 
         '''
-        if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-            self.print('Wannierization', style='heading')
-        else:
-            self.print('Kohn-Sham orbitals', style='heading')
+        # MB mod
+        if self.parameters.mode == "ase":
+            if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+                self.print('Wannierization', style='heading')
+            else:
+                self.print('Kohn-Sham orbitals', style='heading')
 
-        if self.parameters.from_scratch:
-            utils.system_call("rm -rf wannier", False)
+            if self.parameters.from_scratch:
+                utils.system_call("rm -rf wannier", False)
+        else: 
+            self.dft_wchains = {}
 
         # Run PW scf and nscf calculations
         # PWscf needs only the valence bands
@@ -126,11 +130,19 @@ class WannierizeWorkflow(Workflow):
         if self._scf_kgrid:
             calc_pw.parameters.kpts = self._scf_kgrid
         self.run_calculator(calc_pw)
+        
+        # MB mod
+        if not self.parameters.mode == "ase":
+            self.dft_wchains["scf"] = calc_pw.wchain
 
         calc_pw = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True)
         calc_pw.directory = 'wannier'
         calc_pw.prefix = 'nscf'
         self.run_calculator(calc_pw)
+        
+        if not self.parameters.mode == "ase":
+            raise NotImplementedError(f"We are just running the PwBaseWorkChain and KcwCalculation for wann2kc and stop here, for now. \
+                Check the calculations with 'verdi process report {calc_pw.wchain.pk}'.")
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:

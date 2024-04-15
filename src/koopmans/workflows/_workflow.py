@@ -681,11 +681,17 @@ class Workflow(ABC):
         if directory is not None:
             calc.directory = directory
 
-        # MB mod
+        
+        # MB mod. bad hard coding for now.
         if not self.parameters.mode == 'ase':
             calc.mode = self.parameters.mode
-            if calc_type == 'wann2kc':
-                calc.parent_folder = self.scf_wchain.outputs.remote_folder
+            if not hasattr(self,"dft_wchains"): self.dft_wchains = {}
+            if calc_type == "pw" and "scf" in self.dft_wchains.keys(): # nscf
+                calc.parent_folder = self.dft_wchains["scf"].outputs.remote_folder
+            elif calc_type == 'wann2kc' and "nscf" in self.dft_wchains.keys():
+                calc.parent_folder = self.dft_wchains["nscf"].outputs.remote_folder
+            elif calc_type == 'wann2kc':
+                calc.parent_folder = self.dft_wchains["scf"].outputs.remote_folder
         else: # MB comment: I did the following but I don't like it:
             calc.mode = "ase"
         

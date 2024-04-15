@@ -89,6 +89,8 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
             electronic_type = ElectronicType.INSULATOR,
             )
         builder.pw.metadata = aiida_inputs["metadata"]
+        
+        if hasattr(self,"parent_folder"): builder.pw.parent_folder = self.parent_folder
             
         return builder
     

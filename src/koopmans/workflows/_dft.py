@@ -79,7 +79,7 @@ class DFTPWWorkflow(DFTWorkflow):
         self.run_calculator(calc)
 
         # MB mod
-        if not calc.mode == "ase": self.scf_wchain = calc.wchain
+        if not calc.mode == "ase": self.dft_wchains[f"{calc.parameters.calculation}"] = calc.wchain
         
         return
 

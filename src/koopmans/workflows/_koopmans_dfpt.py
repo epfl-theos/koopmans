@@ -147,6 +147,8 @@ class KoopmansDFPTWorkflow(Workflow):
                     self.calculator_parameters[key].write_xyz = True
             wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True, scf_kgrid = self._scf_kgrid)
             wf_workflow.run()
+            # MB mod
+            if hasattr(wf_workflow,"dft_wchains"): self.dft_wchains = wf_workflow.dft_wchains
 
         else:
             # Run PW
@@ -163,12 +165,14 @@ class KoopmansDFPTWorkflow(Workflow):
             # Run the subworkflow
             
             # MB mod
-            if self.parameters.mode == "ase":
+            if pw_workflow.parameters.mode == "ase":
                 with utils.chdir('init'):
                     pw_workflow.run()
             else:
                 pw_workflow.run()
-
+                # MB mod
+                if hasattr(pw_workflow,"dft_wchains"): self.dft_wchains = pw_workflow.dft_wchains
+                
         # MB mod
         if self.parameters.mode == "ase":
             # Copy the outdir to the base directory
@@ -178,8 +182,6 @@ class KoopmansDFPTWorkflow(Workflow):
             init_outdir = scf_calcs[-1].parameters.outdir
             if self.parameters.from_scratch and init_outdir != base_outdir:
                 utils.symlink(f'{init_outdir}/*', base_outdir)
-        else:
-            self.scf_wchain = pw_workflow.scf_wchain
             
 
         # Convert from wannier to KC
@@ -190,8 +192,9 @@ class KoopmansDFPTWorkflow(Workflow):
         # MB mod
         if not self.parameters.mode == "ase":
             self.wann2kc_calculation = wann2kc_calc.calculation
+            scf = self.dft_wchains["scf"]
             raise NotImplementedError(f"We are just running the PwBaseWorkChain and KcwCalculation for wann2kc and stop here, for now. \
-                Check the calculations with 'verdi process report {self.scf_wchain.pk}' and 'verdi process report {self.wann2kc_calculation.pk}'.")
+                Check the calculations with 'verdi process report {scf.pk}' and 'verdi process report {self.wann2kc_calculation.pk}'.")
 
         # Calculate screening parameters
         if self.parameters.calculate_alpha:
