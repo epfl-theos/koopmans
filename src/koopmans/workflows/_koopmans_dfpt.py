@@ -147,6 +147,7 @@ class KoopmansDFPTWorkflow(Workflow):
                     self.calculator_parameters[key].write_xyz = True
             wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True, scf_kgrid = self._scf_kgrid)
             wf_workflow.run()
+            
             # MB mod
             if hasattr(wf_workflow,"dft_wchains"): self.dft_wchains = wf_workflow.dft_wchains
 
@@ -193,9 +194,9 @@ class KoopmansDFPTWorkflow(Workflow):
         if not self.parameters.mode == "ase":
             self.wann2kc_calculation = wann2kc_calc.calculation
             scf = self.dft_wchains["scf"]
-            raise NotImplementedError(f"We are just running the PwBaseWorkChain and KcwCalculation for wann2kc and stop here, for now. \
+        """    raise NotImplementedError(f"We are just running the PwBaseWorkChain and KcwCalculation for wann2kc and stop here, for now. \
                 Check the calculations with 'verdi process report {scf.pk}' and 'verdi process report {self.wann2kc_calculation.pk}'.")
-
+        """
         # Calculate screening parameters
         if self.parameters.calculate_alpha:
             if self.parameters.dfpt_coarse_grid is None:
@@ -208,6 +209,10 @@ class KoopmansDFPTWorkflow(Workflow):
                     # If there is no orbital grouping, do all orbitals in one calculation
                     # 1) Create the calculator
                     kc_screen_calc = self.new_calculator('kc_screen')
+                    
+                    # MB mod
+                    if not self.parameters.mode == "ase":
+                        kc_screen_calc.parent_folder = self.wann2kc_calculation.outputs.remote_folder
 
                     # 2) Run the calculator
                     self.run_calculator(kc_screen_calc)
@@ -221,6 +226,10 @@ class KoopmansDFPTWorkflow(Workflow):
                         kc_screen_calc = self.new_calculator('kc_screen', i_orb=band.index)
                         kc_screen_calc.directory /= f'band_{band.index}'
 
+                        # MB mod
+                        if not self.parameters.mode == "ase":
+                            kc_screen_calc.parent_folder = self.wann2kc_calculation.outputs.remote_folder
+                        
                         # 2) Run the calculator
                         self.run_calculator(kc_screen_calc)
 

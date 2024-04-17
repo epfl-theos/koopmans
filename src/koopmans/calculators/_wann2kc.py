@@ -94,10 +94,10 @@ class Wann2KCCalculator(KCWannCalculator, Wann2KC, CalculatorABC):
             return super().calculate()
         else:
             builder = from_wann2kc_to_KcwCalculation(self)
-            from aiida.engine import run,submit
-            running = run(builder)
+            from aiida.engine import run_get_node,submit
+            running = run_get_node(builder)
             
             # once the running if completed
-            self.calculation = running['remote_folder'].creator
+            self.calculation = running[-1]
             
             #self.read_results(wchain=self.calculation)

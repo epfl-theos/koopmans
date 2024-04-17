@@ -50,3 +50,43 @@ class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):
         elif not self.is_converged():
             warn(f'{self.directory}/{self.prefix} did not converge; proceed with caution',
                  CalculatorNotConvergedWarning)
+    
+    # MB mod        
+    def calculate(self):
+
+        if not self.mode == "ase":
+            # here I create the builder elsewhere.
+            from aiida.engine import run_get_node,submit
+            running = run_get_node(self.builder_aiida)
+
+            # once the running if completed
+            self.wchain = running[-1]
+            
+            self.read_results(wchain=self.wchain)
+        else:
+            super().calculate()
+            
+    # MB mod:
+    def read_results(self, wchain=None):
+        from ase import io
+        if not wchain:
+            super().read_results()
+        else:
+            import pathlib
+            import tempfile
+            
+            # Create temporary directory
+            retrieved = wchain.outputs.wannier90.retrieved
+            with tempfile.TemporaryDirectory() as dirpath:
+                # Open the output file from the AiiDA storage and copy content to the temporary file
+                for filename in retrieved.base.repository.list_object_names():
+                    if '.wout' in filename:
+                        # Create the file with the desired name
+                        temp_file = pathlib.Path(dirpath) / filename
+                        with retrieved.open(filename, 'rb') as handle:
+                            temp_file.write_bytes(handle.read())
+                    
+                        output = io.read(temp_file)
+        
+        self.calc = output.calc
+        self.results = output.calc.results

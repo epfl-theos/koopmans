@@ -69,7 +69,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         calc_params = pw_calculator._parameters
         structure = orm.StructureData(ase=pw_calculator.atoms)
         
-        pw_overrides = {"CONTROL":{},"SYSTEM":{},"ELECTRONS":{}}
+        pw_overrides = {"CONTROL":{},"SYSTEM":{"nosym":True,"noinv":True},"ELECTRONS":{}}
         
         for k in ["calculation","verbosity"]: #,"prefix"
             if k in calc_params.keys(): pw_overrides["CONTROL"][k] = calc_params[k]
@@ -90,6 +90,9 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
             )
         builder.pw.metadata = aiida_inputs["metadata"]
         
+        builder.kpoints = orm.KpointsData()
+        builder.kpoints.set_kpoints_mesh(calc_params["kpts"])
+        
         if hasattr(self,"parent_folder"): builder.pw.parent_folder = self.parent_folder
             
         return builder
@@ -103,7 +106,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
             import pathlib
             import tempfile
             
-            # Create temporary directory
+            # Create temporary directory. However, see aiida-wannier90-workflows/src/aiida_wannier90_workflows/utils/workflows/pw.py for more advanced and smart ways.
             retrieved = wchain.outputs.retrieved
             with tempfile.TemporaryDirectory() as dirpath:
                 # Open the output file from the AiiDA storage and copy content to the temporary file
@@ -129,11 +132,11 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         # MB mod
         if not self.mode == "ase":
             builder = self.get_builder_from_ase()
-            from aiida.engine import run,submit
-            running = run(builder)
+            from aiida.engine import run_get_node,submit
+            running = run_get_node(builder)
             
             # once the running if completed
-            self.wchain = running['remote_folder'].creator.caller
+            self.wchain = running[-1]
             
             self.read_results(wchain=self.wchain)
         else:
