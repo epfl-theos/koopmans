@@ -70,7 +70,13 @@ class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):
     def read_results(self, wchain=None):
         from ase import io
         if not wchain:
-            super().read_results()
+            output = io.read(self.label + '.wout')
+            
+            self.calc = output.calc
+            self.results = output.calc.results
+            
+            if self.parameters.get('bands_plot', False):
+                self.read_bandstructure()
         else:
             import pathlib
             import tempfile
@@ -88,5 +94,5 @@ class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):
                     
                         output = io.read(temp_file)
         
-        self.calc = output.calc
-        self.results = output.calc.results
+            self.calc = output.calc
+            self.results = output.calc.results

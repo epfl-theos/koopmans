@@ -150,6 +150,8 @@ class KoopmansDFPTWorkflow(Workflow):
             
             # MB mod
             if hasattr(wf_workflow,"dft_wchains"): self.dft_wchains = wf_workflow.dft_wchains
+            if hasattr(wf_workflow,"w90_wchains"): self.w90_wchains = wf_workflow.w90_wchains
+            if hasattr(wf_workflow,"wannier90_files"): self.wannier90_files = wf_workflow.wannier90_files
 
         else:
             # Run PW
@@ -188,15 +190,17 @@ class KoopmansDFPTWorkflow(Workflow):
         # Convert from wannier to KC
         self.print('Conversion to Koopmans format', style='subheading')
         wann2kc_calc = self.new_calculator('wann2kc')
+        
+        # MB mod
+        if not self.parameters.mode == "ase":
+            if hasattr(self,"wannier90_files"): wann2kc_calc.wannier90_files = self.wannier90_files           
+        
         self.run_calculator(wann2kc_calc)
         
         # MB mod
         if not self.parameters.mode == "ase":
             self.wann2kc_calculation = wann2kc_calc.calculation
-            scf = self.dft_wchains["scf"]
-        """    raise NotImplementedError(f"We are just running the PwBaseWorkChain and KcwCalculation for wann2kc and stop here, for now. \
-                Check the calculations with 'verdi process report {scf.pk}' and 'verdi process report {self.wann2kc_calculation.pk}'.")
-        """
+        
         # Calculate screening parameters
         if self.parameters.calculate_alpha:
             if self.parameters.dfpt_coarse_grid is None:
@@ -213,6 +217,7 @@ class KoopmansDFPTWorkflow(Workflow):
                     # MB mod
                     if not self.parameters.mode == "ase":
                         kc_screen_calc.parent_folder = self.wann2kc_calculation.outputs.remote_folder
+                        if hasattr(self,"wannier90_files"): kc_screen_calc.wannier90_files = self.wannier90_files  
 
                     # 2) Run the calculator
                     self.run_calculator(kc_screen_calc)
@@ -229,6 +234,7 @@ class KoopmansDFPTWorkflow(Workflow):
                         # MB mod
                         if not self.parameters.mode == "ase":
                             kc_screen_calc.parent_folder = self.wann2kc_calculation.outputs.remote_folder
+                            if hasattr(self,"wannier90_files"): kc_screen_calc.wannier90_files = self.wannier90_files
                         
                         # 2) Run the calculator
                         self.run_calculator(kc_screen_calc)
@@ -240,6 +246,10 @@ class KoopmansDFPTWorkflow(Workflow):
                                 b.alpha = alpha[band.spin]
             else:
                 self.bands.alphas = coarse_wf.bands.alphas
+            
+            # MB mod
+            self.kc_screen_calculation = kc_screen_calc.calculation
+        
         else:
             # Load the alphas
             if self.parameters.alpha_from_file:
@@ -255,18 +265,33 @@ class KoopmansDFPTWorkflow(Workflow):
             if self.parameters.calculate_alpha and self.parameters.dfpt_coarse_grid is None:
                 if kc_ham_calc.parameters.lrpa != kc_screen_calc.parameters.lrpa:
                     raise ValueError('Do not set "lrpa" to different values in the "screen" and "ham" blocks')
+            
+            # MB mod
+            if not self.parameters.mode == "ase":
+                if hasattr(self, "kc_screen_calculation"):
+                    kc_ham_calc.parent_folder = self.kc_screen_calculation.outputs.remote_folder
+                else:
+                    kc_ham_calc.parent_folder = self.wann2kc_calculation.outputs.remote_folder
+                if hasattr(self,"wannier90_files"): kc_ham_calc.wannier90_files = self.wannier90_files
+            
             self.run_calculator(kc_ham_calc)
+            
+            # MB mod
+            if not self.parameters.mode == "ase":
+                self.kc_ham_calculation = kc_ham_calc.calculation
 
-            # Postprocessing
-            if all(self.atoms.pbc) and self.projections and self.kpoints.path is not None \
-                    and self.calculator_parameters['ui'].do_smooth_interpolation:
-                from koopmans.workflows import UnfoldAndInterpolateWorkflow
-                self.print(f'\nPostprocessing', style='heading')
-                ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(self)
-                ui_workflow.run(subdirectory='postproc')
+            # MB mod : for now we do not support the postprocessing in the AiiDA mode.
+            if self.parameters.mode == "ase":
+                # Postprocessing
+                if all(self.atoms.pbc) and self.projections and self.kpoints.path is not None \
+                        and self.calculator_parameters['ui'].do_smooth_interpolation:
+                    from koopmans.workflows import UnfoldAndInterpolateWorkflow
+                    self.print(f'\nPostprocessing', style='heading')
+                    ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(self)
+                    ui_workflow.run(subdirectory='postproc')
 
-            # Plotting
-            self.plot_bandstructure()
+                # Plotting
+                self.plot_bandstructure()
 
     def plot_bandstructure(self):
         if not all(self.atoms.pbc):
@@ -334,18 +359,21 @@ class KoopmansDFPTWorkflow(Workflow):
         return calc
 
     def run_calculator(self, calc):
-        # Create this (possibly nested) directory
-        calc.directory.mkdir(parents=True, exist_ok=True)
+        
+        # MB mod
+        if self.parameters.mode == "ase":
+            # Create this (possibly nested) directory
+            calc.directory.mkdir(parents=True, exist_ok=True)
 
-        # Provide the rotation matrices and the wannier centers
-        if all(self.atoms.pbc):
-            utils.symlink(f'wannier/occ/wann_u.mat', f'{calc.directory}/', exist_ok=True)
-            utils.symlink(f'wannier/emp/wann_u.mat', f'{calc.directory}/wann_emp_u.mat', exist_ok=True)
-            if Path('wannier/emp/wann_u_dis.mat').exists():
-                utils.symlink(f'wannier/emp/wann_u_dis.mat',
-                              f'{calc.directory}/wann_emp_u_dis.mat', exist_ok=True)
-            utils.symlink(f'wannier/occ/wann_centres.xyz', f'{calc.directory}/', exist_ok=True)
-            utils.symlink(f'wannier/emp/wann_centres.xyz',
-                          f'{calc.directory}/wann_emp_centres.xyz', exist_ok=True)
+            # Provide the rotation matrices and the wannier centers
+            if all(self.atoms.pbc):
+                utils.symlink(f'wannier/occ/wann_u.mat', f'{calc.directory}/', exist_ok=True)
+                utils.symlink(f'wannier/emp/wann_u.mat', f'{calc.directory}/wann_emp_u.mat', exist_ok=True)
+                if Path('wannier/emp/wann_u_dis.mat').exists():
+                    utils.symlink(f'wannier/emp/wann_u_dis.mat',
+                                f'{calc.directory}/wann_emp_u_dis.mat', exist_ok=True)
+                utils.symlink(f'wannier/occ/wann_centres.xyz', f'{calc.directory}/', exist_ok=True)
+                utils.symlink(f'wannier/emp/wann_centres.xyz',
+                            f'{calc.directory}/wann_emp_centres.xyz', exist_ok=True)
 
         super().run_calculator(calc)

@@ -29,41 +29,61 @@ def from_wann2kc_to_KcwCalculation(wann2kc_calculator):
     
     builder = KcwCalculation.get_builder()
     
-    control_namelist = {
-                    'kcw_iverbosity': wann2kc_calculator.parameters.kcw_iverbosity,
-                    'kcw_at_ks'      :wann2kc_calculator.parameters.kcw_at_ks,
-                    'calculation'    :wann2kc_calculator.parameters.calculation,
-                    'lrpa'           :wann2kc_calculator.parameters.lrpa,
-                    'mp1'            :wann2kc_calculator.parameters.mp1,
-                    'mp2'            :wann2kc_calculator.parameters.mp2,
-                    'mp3'            :wann2kc_calculator.parameters.mp3,
-                    'homo_only'      :wann2kc_calculator.parameters.homo_only,
-                    'read_unitary_matrix' : wann2kc_calculator.parameters.read_unitary_matrix,
-                    'l_vcut'         :wann2kc_calculator.parameters.l_vcut,
-                    'spin_component' :wann2kc_calculator.parameters.spin_component,
-                    }
+    control_namelist = [
+                    'kcw_iverbosity',
+                    'kcw_at_ks'      ,
+                    'lrpa'           ,
+                    'mp1'            ,
+                    'mp2'            ,
+                    'mp3'            ,
+                    'homo_only'      ,
+                    'read_unitary_matrix' ,
+                    'l_vcut'         ,
+                    'spin_component' ,
+                    ]
+    
+    control_dict = {k:v if k in control_namelist else None for k,v in wann2kc_calculator.parameters.items()}
+    control_dict['calculation'] = "wann2kcw"
 
-    if any(wann2kc_calculator.atoms.pbc): control_namelist['assume_isolated'] = "m-t"
+    if not any(wann2kc_calculator.atoms.pbc): control_dict['assume_isolated'] = "m-t"
+    
+    for k in list(control_dict):
+        if control_dict[k] is None:
+            control_dict.pop(k)
 
-    wannier_dict = {
-                    "check_ks"       : wann2kc_calculator.parameters.check_ks,
-                    "num_wann_occ"   : wann2kc_calculator.parameters.num_wann_occ,
-                    "num_wann_emp"   : wann2kc_calculator.parameters.num_wann_emp,
-                    "have_empty"     : wann2kc_calculator.parameters.have_empty,
-                    "has_disentangle": wann2kc_calculator.parameters.has_disentangle,
-                        }
+    wannier_namelist = [
+                    "check_ks"       ,
+                    "num_wann_occ"   ,
+                    "num_wann_emp"   ,
+                    "have_empty"     ,
+                    "has_disentangle",
+    ]
 
+    wannier_dict = {k:v if k in wannier_namelist else None for k,v in wann2kc_calculator.parameters.items()}
 
+    for k in list(wannier_dict):
+        if wannier_dict[k] is None:
+            wannier_dict.pop(k)
+            
     wann2kcw_params = {
-            "CONTROL":control_namelist,
+            "CONTROL":control_dict,
             "WANNIER":wannier_dict,
         }
+    
     
     builder.parameters = orm.Dict(wann2kcw_params)
     builder.code = orm.load_code(wann2kc_calculator.mode["kcw_code"])
     builder.metadata = wann2kc_calculator.mode["metadata"]
+    if "metadata_kcw" in wann2kc_calculator.mode: builder.metadata = wann2kc_calculator.mode["metadata_kcw"]
     builder.parent_folder = wann2kc_calculator.parent_folder
-
+    
+    if hasattr(wann2kc_calculator, "wannier90_files"):
+        builder.wann_u_mat = wann2kc_calculator.wannier90_files["occ"]["u_mat"]
+        builder.wann_emp_u_mat = wann2kc_calculator.wannier90_files["emp"]["u_mat"]
+        builder.wann_emp_u_dis_mat = wann2kc_calculator.wannier90_files["emp"]["u_dis_mat"]
+        builder.wann_centres_xyz = wann2kc_calculator.wannier90_files["occ"]["centres_xyz"]
+        builder.wann_emp_centres_xyz = wann2kc_calculator.wannier90_files["emp"]["centres_xyz"]
+        
     return builder
 
 class Wann2KCCalculator(KCWannCalculator, Wann2KC, CalculatorABC):

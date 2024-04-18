@@ -97,7 +97,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
             
         return builder
     
-    # MB mod:
+    # MB mod: this is taken from https://github.com/elinscott/ase_koopmans/blob/master/ase/calculators/espresso/_espresso.py
     def read_results(self, wchain=None):
         from ase import io
         if not wchain:
@@ -121,6 +121,8 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         
         self.calc = output.calc
         self.results = output.calc.results
+        if hasattr(output.calc, 'kpts'):
+            self.kpts = output.calc.kpts
     
     def calculate(self):
         # Update ibrav and celldms

@@ -516,14 +516,14 @@ class WannierizeWorkflow(Workflow):
                 self.merge_wannier_centers_files(dirs_in, dir_out, prefix)
         else:
             # Merging the hr (Hamiltonian) files
-            self.wannier90_files[merge_directory.name]["hr_file"] = self.merge_wannier_hr_files(dirs_in, dir_out, prefix=merge_directory.name, aiida_calculations = self.w90_wchains[merge_directory.name])
+            self.wannier90_files[merge_directory.name]["hr_dat"] = self.merge_wannier_hr_files(dirs_in, dir_out, prefix=merge_directory.name, aiida_calculations = self.w90_wchains[merge_directory.name])
             
             if self.parameters.method == 'dfpt':
                 # Merging the U (rotation matrix) files
-                self.wannier90_files[merge_directory.name]["u_file"] = self.merge_wannier_u_files(dirs_in, dir_out, prefix=merge_directory.name, aiida_calculations = self.w90_wchains[merge_directory.name])
+                self.wannier90_files[merge_directory.name]["u_mat"] = self.merge_wannier_u_files(dirs_in, dir_out, prefix=merge_directory.name, aiida_calculations = self.w90_wchains[merge_directory.name])
 
                 # Merging the wannier centers files
-                self.wannier90_files[merge_directory.name]["centers_file"] = self.merge_wannier_centers_files(dirs_in, dir_out, prefix=merge_directory.name, aiida_calculations = self.w90_wchains[merge_directory.name])
+                self.wannier90_files[merge_directory.name]["centres_xyz"] = self.merge_wannier_centers_files(dirs_in, dir_out, prefix=merge_directory.name, aiida_calculations = self.w90_wchains[merge_directory.name])
                 
             
 
@@ -777,4 +777,4 @@ class WannierizeWorkflow(Workflow):
         if self.parameters.mode == "ase":
             utils.write_wannier_u_file(fname_out, udis_mat_large, kpts)
         else:
-            self.wannier90_files[merge_directory.name]["u_dis_file"] = utils.write_wannier_u_file(fname_out, udis_mat_large, kpts, "aiida_u_dis.mat")
+            self.wannier90_files[merge_directory.name]["u_dis_mat"] = utils.write_wannier_u_file(fname_out, udis_mat_large, kpts, "aiida_u_dis.mat")
