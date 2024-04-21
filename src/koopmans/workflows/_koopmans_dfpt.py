@@ -248,7 +248,8 @@ class KoopmansDFPTWorkflow(Workflow):
                 self.bands.alphas = coarse_wf.bands.alphas
             
             # MB mod
-            self.kc_screen_calculation = kc_screen_calc.calculation
+            if not self.parameters.mode == "ase":
+                self.kc_screen_calculation = kc_screen_calc.calculation
         
         else:
             # Load the alphas
@@ -292,6 +293,14 @@ class KoopmansDFPTWorkflow(Workflow):
 
                 # Plotting
                 self.plot_bandstructure()
+            else:
+                if hasattr(self,'dft_wchains'): del self.dft_wchains
+                if hasattr(self, 'w90_wchains'): del self.w90_wchains
+                if hasattr(self,'wann2kc_calculation'): del self.wann2kc_calculation
+                if hasattr(self,'kc_screen_calculation'): del self.kc_screen_calculation
+                if hasattr(self,'kc_ham_calculation'): 
+                    self.kc_ham_calculation = self.kc_ham_calculation.pk
+                    print(f"The last AiiDA calculation was the kcw-ham one, with pk <{self.kc_ham_calculation}>")
 
     def plot_bandstructure(self):
         if not all(self.atoms.pbc):

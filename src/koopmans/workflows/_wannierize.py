@@ -118,7 +118,19 @@ def get_wannier90bandsworkchain_builder_from_ase(wannierize_workflow, w90_calcul
 
     #resources
     builder.pw2wannier90.pw2wannier90.metadata = aiida_inputs["metadata"]
-    builder.wannier90.wannier90.metadata = aiida_inputs["metadata"]
+    
+    default_w90_metadata = {
+          "options": {
+            "max_wallclock_seconds": 3600,
+            "resources": {
+                "num_machines": 1,
+                "num_mpiprocs_per_machine": 1,
+                "num_cores_per_mpiproc": 1
+            },
+            "custom_scheduler_commands": "export OMP_NUM_THREADS=1"
+        }
+      }
+    builder.wannier90.wannier90.metadata = aiida_inputs.get('metadata_w90', default_w90_metadata)
     
     builder.pw2wannier90.pw2wannier90.parent_folder = nscf.outputs.remote_folder
     
