@@ -9,6 +9,7 @@ Written by Edward Linscott Sep 2020
 import os
 
 import numpy as np
+from aiida_koopmans.helpers import get_builder_from_ase
 from ase import Atoms
 from ase.calculators.espresso import Espresso
 from ase.dft.kpoints import BandPath
@@ -37,66 +38,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         if not isinstance(self.command, Command):
             self.command = ParallelCommandWithPostfix(os.environ.get(
                 'ASE_ESPRESSO_COMMAND', self.command))
-
-    # MB mod:
-    def get_builder_from_ase(self,):
-        from aiida_quantumespresso.workflows.pw.base import PwCalculation,PwBaseWorkChain
-        from aiida_quantumespresso.common.types import ElectronicType
-        from aiida import orm, load_profile
-        load_profile()
-    
-        """
-        We should check automatically on the accepted keywords in PwCalculation and where are. Should be possible.
-        we suppose that the calculator has an attribute called mode e.g.
-        
-        pw_calculator.mode = {
-            "pw_code": "pw-7.2-ok@localhost",
-            "metadata": {
-            "options": {
-                "max_wallclock_seconds": 3600,
-                "resources": {
-                    "num_machines": 1,
-                    "num_mpiprocs_per_machine": 1,
-                    "num_cores_per_mpiproc": 1
-                },
-                "custom_scheduler_commands": "export OMP_NUM_THREADS=1"
-            }
-        }
-        }
-        """
-        pw_calculator=self
-        aiida_inputs = pw_calculator.mode
-        calc_params = pw_calculator._parameters
-        structure = orm.StructureData(ase=pw_calculator.atoms)
-        
-        pw_overrides = {"CONTROL":{},"SYSTEM":{"nosym":True,"noinv":True},"ELECTRONS":{}}
-        
-        for k in ["calculation","verbosity"]: #,"prefix"
-            if k in calc_params.keys(): pw_overrides["CONTROL"][k] = calc_params[k]
-            
-        for k in ["tot_charge","tot_magnetization","nbnd","ecutwfc","ecutrho","nspin"]:
-            if k in calc_params.keys(): pw_overrides["SYSTEM"][k] = calc_params[k]
-            
-        for k in ["conv_thr"]:
-            if k in calc_params.keys(): pw_overrides["ELECTRONS"][k] = calc_params[k]
-            
-        builder = PwBaseWorkChain.get_builder_from_protocol(
-            code=aiida_inputs["pw_code"], 
-            structure=structure,
-            overrides={
-                "pseudo_family":"PseudoDojo/0.4/PBE/FR/standard/upf",
-                "pw":{"parameters":pw_overrides}},
-            electronic_type = ElectronicType.INSULATOR,
-            )
-        builder.pw.metadata = aiida_inputs["metadata"]
-        
-        builder.kpoints = orm.KpointsData()
-        builder.kpoints.set_kpoints_mesh(calc_params["kpts"])
-        
-        if hasattr(self,"parent_folder"): builder.pw.parent_folder = self.parent_folder
-            
-        return builder
-    
+ 
     # MB mod: this is taken from https://github.com/elinscott/ase_koopmans/blob/master/ase/calculators/espresso/_espresso.py
     def read_results(self, wchain=None):
         from ase import io
@@ -133,8 +75,8 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         
         # MB mod
         if not self.mode == "ase":
-            builder = self.get_builder_from_ase()
-            from aiida.engine import run_get_node,submit
+            builder = get_builder_from_ase(pw_calculator=self)
+            from aiida.engine import run_get_node, submit
             running = run_get_node(builder)
             
             # once the running if completed
