@@ -128,24 +128,44 @@ class CalculatorExt():
         self.parameters.directory = self._directory
 
     def calculate(self):
-        # Generic function for running a calculation
+        """Generic function for running a calculator"""
 
-        # First, check the corresponding program is installed
-        self.check_code_is_installed()
+        # First run any pre-calculation steps
+        self._pre_calculate()
 
         # Then call the relevant ASE calculate() function
         self._calculate()
 
-        # Then check if the calculation completed
-        if not self.is_complete():
+        # Then run any post-calculation steps
+        self._post_calculate()
 
+    def _post_calculate(self):
+        """Perform any necessary post-calculation steps after running the calculation"""
+
+        # Check if the calculation completed
+        if not self.is_complete():
             raise CalculationFailed(
                 f'{self.directory}/{self.prefix} failed; check the Quantum ESPRESSO output file for more details')
 
-        # Then check convergence
+        # Check convergence
         self.check_convergence()
 
+        return
+
+    def _pre_calculate(self):
+        """Perform any necessary pre-calculation steps before running the calculation"""
+
+        # By default, check the corresponding program is installed
+        self.check_code_is_installed()
+
+        return
+
     def _calculate(self):
+        """Run the calculation using the ASE calculator's calculate() method
+        
+        This method should NOT be overwritten by child classes. Child classes should only modify _pre_calculate() and
+        _post_calculate() to perform any necessary pre- and post-calculation steps."""
+
         # ASE expects self.command to be a string
         command = copy.deepcopy(self.command)
         self.command = str(command)

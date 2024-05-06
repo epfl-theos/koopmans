@@ -166,15 +166,23 @@ class CheckCalc:
                 message = message.replace('disagreements', 'disagreement')
 
             raise CalculationFailed(message)
-
-    def _calculate(self):
-        # Before running the calculation, check the settings are the same
-
+        
+    def _load_benchmark(self) -> Calc:
         with utils.chdir(self.directory):  # type: ignore[attr-defined]
             # By moving into the directory where the calculation was run, we ensure when we read in the settings that
             # paths are interpreted relative to this particular working directory
             with open(benchmark_filename(self), 'r') as fd:
                 benchmark = read_encoded_json(fd)
+        return benchmark
+
+    def _pre_calculate(self):
+        """Before running the calculation, check the settings are the same"""
+        
+        # Perform the pre_calculate first, as sometimes this function modifies the input parameters
+        super()._pre_calculate()
+
+        # Load the benchmark
+        benchmark = self._load_benchmark()
 
         # Compare the settings
         unique_keys: Set[str] = set(list(self.parameters.keys()) + list(benchmark.parameters.keys()))
@@ -208,8 +216,9 @@ class CheckCalc:
         # Check that the right files exist
         # TODO
 
-        # Run the calculation
-        super()._calculate()
+    def _post_calculate(self):
+        # Perform the post_calculate first, as sometimes this function adds extra entries to self.results
+        super()._post_calculate()
 
         # Check the results
         if self.skip_qc:
@@ -218,6 +227,7 @@ class CheckCalc:
             # the corresponding workflow
             pass
         else:
+            benchmark = self._load_benchmark()
             self._check_results(benchmark)
 
         # Check the expected files were produced

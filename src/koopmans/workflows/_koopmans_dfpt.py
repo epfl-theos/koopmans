@@ -196,15 +196,19 @@ class KoopmansDFPTWorkflow(Workflow):
                     self.bands.alphas = kc_screen_calc.results['alphas']
                 else:
                     # If there is orbital grouping, do the orbitals one-by-one
+
+                    kc_screen_calcs = []
+                    # 1) Create the calculators (in subdirectories)
                     for band in self.bands.to_solve:
-                        # 1) Create the calculator (in a subdirectory)
                         kc_screen_calc = self.new_calculator('kc_screen', i_orb=band.index)
                         kc_screen_calc.directory /= f'band_{band.index}'
+                        kc_screen_calcs.append(kc_screen_calc)
 
-                        # 2) Run the calculator
-                        self.run_calculator(kc_screen_calc)
+                    # 2) Run the calculators (possibly in parallel)
+                    self.run_calculators(kc_screen_calcs)
 
-                        # 3) Store the computed screening parameter (accounting for band groupings)
+                    # 3) Store the computed screening parameters (accounting for band groupings)
+                    for band, kc_screen_calc in zip(self.bands.to_solve, kc_screen_calcs):
                         for b in self.bands:
                             if b.group == band.group:
                                 alpha = kc_screen_calc.results['alphas'][band.spin]

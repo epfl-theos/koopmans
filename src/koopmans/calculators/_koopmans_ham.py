@@ -49,9 +49,12 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
         filling = [True for _ in range(len(alphas))]
         utils.write_alpha_file(self.directory, alphas, filling)
 
-    def _calculate(self):
+    def _pre_calculate(self):
+        super()._pre_calculate()
         self.write_alphas()
-        super()._calculate()
+    
+    def _post_calculate(self):
+        super()._post_calculate()
         if isinstance(self.parameters.kpts, BandPath) and len(self.parameters.kpts.kpts) > 1:
             # Add the bandstructure to the results
             self.generate_band_structure()

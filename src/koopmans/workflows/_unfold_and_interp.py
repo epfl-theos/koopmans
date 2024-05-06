@@ -95,7 +95,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                 calc.spreads = spreads[mask].tolist()
 
                 # Run the calculator
-                self.run_calculator(calc, enforce_ss=False)
+                self.run_calculator(calc)
 
         # Merge the two calculations to print out the DOS and bands
         calc = self.new_ui_calculator('merge')

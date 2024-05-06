@@ -119,16 +119,16 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # koopmans.workflows._koopmans_dscf.py for more details)
         self.fixed_band: Optional[bands.Band] = None
 
-    def calculate(self):
+        # Create a private attribute to keep track of whether the spin channels have been swapped
+        self._spin_channels_are_swapped: bool = False
+
+    def _pre_calculate(self):
         # kcp.x imposes nelup >= neldw, so if we try to run a calcualtion with neldw > nelup, swap the spin channels
         if self.parameters.nspin == 2:
-            spin_channels_are_swapped = self.parameters.nelup < self.parameters.neldw
-        else:
-            spin_channels_are_swapped = False
-
-        # Swap the spin channels
-        if spin_channels_are_swapped:
-            self._swap_spin_channels()
+            self._spin_channels_are_swapped = self.parameters.nelup < self.parameters.neldw
+            # Swap the spin channels if required
+            if self._spin_channels_are_swapped:
+                self._swap_spin_channels()
 
         # Write out screening parameters to file
         if self.parameters.get('do_orbdep', False):
@@ -143,7 +143,11 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # Autogenerate the nr keywords
         self._autogenerate_nr()
 
-        super().calculate()
+        super()._pre_calculate()
+
+    def _post_calculate(self):
+
+        super()._post_calculate()
 
         # Check spin-up and spin-down eigenvalues match
         if 'eigenvalues' in self.results and self.parameters.do_outerloop \
@@ -154,7 +158,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 utils.warn('Spin-up and spin-down eigenvalues differ substantially')
 
         # Swap the spin channels back
-        if spin_channels_are_swapped:
+        if self._spin_channels_are_swapped:
             self._swap_spin_channels()
 
     def _swap_spin_channels(self):

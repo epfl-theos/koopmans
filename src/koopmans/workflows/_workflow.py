@@ -716,58 +716,65 @@ class Workflow(ABC):
 
         self.atoms = self.atoms[mask]
 
-    def run_calculator(self, master_qe_calc: calculators.Calc, enforce_ss=False):
-        '''
-        Wrapper for run_calculator_single that manages the optional enforcing of spin symmetry
+    def run_calculator(self, master_calc: calculators.Calc, enforce_spin_symmetry: bool = False):
+        ''' Run a calculator.
+        
+        If enforce_spin_symmetry is True, the calculation will be run with spin symmetry enforced.
+        Ultimately this wraps self.run_calculators
+
+        :param master_calc: the calculator to run
+        :param enforce_spin_symmetry: whether to enforce spin symmetry
         '''
 
-        if enforce_ss:
-            if not isinstance(master_qe_calc, calculators.CalculatorCanEnforceSpinSym):
-                raise NotImplementedError(f'{master_qe_calc.__class__.__name__} cannot enforce spin symmetry')
+        if enforce_spin_symmetry:
+            if not isinstance(master_calc, calculators.CalculatorCanEnforceSpinSym):
+                raise NotImplementedError(f'{master_calc.__class__.__name__} cannot enforce spin symmetry')
 
-            if not master_qe_calc.from_scratch:
+            if not master_calc.from_scratch:
                 # PBE with nspin=1 dummy
-                qe_calc = master_qe_calc.nspin1_dummy_calculator()
+                qe_calc = master_calc.nspin1_dummy_calculator()
                 qe_calc.skip_qc = True
-                self.run_calculator_single(qe_calc)
+                self.run_calculator(qe_calc)
                 # Copy over nspin=2 wavefunction to nspin=1 tmp directory (if it has not been done already)
                 if self.parameters.from_scratch:
-                    master_qe_calc.convert_wavefunction_2to1()
+                    master_calc.convert_wavefunction_2to1()
 
             # PBE with nspin=1
-            qe_calc = master_qe_calc.nspin1_calculator()
-            self.run_calculator_single(qe_calc)
+            qe_calc = master_calc.nspin1_calculator()
+            self.run_calculator(qe_calc)
 
             # PBE from scratch with nspin=2 (dummy run for creating files of appropriate size)
-            qe_calc = master_qe_calc.nspin2_dummy_calculator()
+            qe_calc = master_calc.nspin2_dummy_calculator()
             qe_calc.skip_qc = True
-            self.run_calculator_single(qe_calc)
+            self.run_calculator(qe_calc)
 
             # Copy over nspin=1 wavefunction to nspin=2 tmp directory (if it has not been done already)
             if self.parameters.from_scratch:
-                master_qe_calc.convert_wavefunction_1to2()
+                master_calc.convert_wavefunction_1to2()
 
             # PBE with nspin=2, reading in the spin-symmetric nspin=1 wavefunction
-            master_qe_calc.prepare_to_read_nspin1()
-            self.run_calculator_single(master_qe_calc)
+            master_calc.prepare_to_read_nspin1()
+            self.run_calculator(master_calc)
 
         else:
 
-            self.run_calculator_single(master_qe_calc)
+            self.run_calculators([master_calc])
 
         return
 
-    def run_calculator_single(self, qe_calc: calculators.Calc):
-        # Runs qe_calc.calculate with additional checks
+    def _pre_run_calculator(self, qe_calc: calculators.Calc) -> bool:
+        """Perform operations that need to occur before a calculation is run
+
+        :param qe_calc: The calculator to run
+        :return: Whether the calculation should be run
+        """
 
         # If an output file already exists, check if the run completed successfully
-        verb = 'Running'
         if not self.parameters.from_scratch:
 
             calc_file = qe_calc.directory / qe_calc.prefix
 
             if calc_file.with_suffix(qe_calc.ext_out).is_file():
-                verb = 'Rerunning'
 
                 is_complete = self.load_old_calculator(qe_calc)
                 if is_complete:
@@ -785,37 +792,72 @@ class Workflow(ABC):
 
                     if isinstance(qe_calc, calculators.PhCalculator):
                         qe_calc.read_dynG()
-                    return
-
-        if not self.silent:
-            dir_str = os.path.relpath(qe_calc.directory) + '/'
-            self.print(f'{verb} {dir_str}{qe_calc.prefix}...', end='', flush=True)
+                    return False
 
         # Update postfix if relevant
         if self.parameters.npool:
             if isinstance(qe_calc.command, ParallelCommandWithPostfix):
                 qe_calc.command.postfix = f'-npool {self.parameters.npool}'
 
-        try:
-            qe_calc.calculate()
-        except CalculationFailed:
-            self.print(' failed')
-            raise
+        return True
+    
+    def _run_calculators(self, calcs: List[calculators.Calc]) -> None:
+        """Run a list of calculators, without doing anything else (other than printing messages.)
 
-        if not self.silent:
-            self.print(' done')
+        Any pre- or post-processing of each calculator should have been done in _pre_run_calculator and _post_run_calculator.
 
+        :param calcs: The calculators to run
+        """
+
+        for calc in calcs:
+            verb = "Running" if self.parameters.from_scratch else "Rerunning"
+
+            if not self.silent:
+                dir_str = os.path.relpath(calc.directory) + '/'
+                self.print(f'{verb} {dir_str}{calc.prefix}...', end='', flush=True)
+
+            try:
+                calc.calculate()
+            except CalculationFailed:
+                self.print(' failed')
+                raise
+
+            if not self.silent:
+                self.print(' done')
+
+        return
+
+    def _post_run_calculator(self, calc: calculators.Calc) -> None:
+        """
+        Perform any operations that need to be performed after a calculation has run.
+        """
         # Store the calculator
-        self.calculations.append(qe_calc)
+        self.calculations.append(calc)
 
         # Ensure we inherit any modifications made to the atoms object
-        if qe_calc.atoms != self.atoms:
-            self.atoms = qe_calc.atoms
+        if calc.atoms != self.atoms:
+            self.atoms = calc.atoms
 
         # If we reached here, all future calculations should be performed from scratch
         self.parameters.from_scratch = True
 
         return
+    
+    def run_calculators(self, calcs: List[calculators.Calc]):
+        '''
+        Run a list of *independent* calculators (default implementation is to run them in sequence)
+        '''
+
+        calcs_to_run = []
+        for calc in calcs:
+            proceed = self._pre_run_calculator(calc)
+            if proceed:
+                calcs_to_run.append(calc)
+
+        self._run_calculators(calcs_to_run)
+        
+        for calc in calcs_to_run:
+            self._post_run_calculator(calc)
 
     def load_old_calculator(self, qe_calc: calculators.Calc) -> bool:
         # This is a separate function so that it can be monkeypatched by the test suite
