@@ -162,7 +162,7 @@ class CalculatorExt():
 
     def _calculate(self):
         """Run the calculation using the ASE calculator's calculate() method
-        
+
         This method should NOT be overwritten by child classes. Child classes should only modify _pre_calculate() and
         _post_calculate() to perform any necessary pre- and post-calculation steps."""
 

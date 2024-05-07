@@ -134,9 +134,9 @@ class ConvergenceMLWorkflow(Workflow):
                 return [param]
             else:
                 # If param is not an int or a float check that it is a list of ints / floats
-                assert(isinstance(param, list))
+                assert (isinstance(param, list))
                 for value in param:
-                    assert(isinstance(value, type))
+                    assert (isinstance(value, type))
                 return param
 
         n_maxs = convert_to_list(self.ml.n_max, int)

@@ -28,7 +28,7 @@ def write_xsf(filename: Path, atoms: Atoms, arrays: List[np.ndarray], nr_xml: Tu
         out.write('CRYSTAL\n\n')
         out.write('PRIMVEC\n\n')
         for vec in cell_parameters:
-            out.write("\t" + " ".join([f"{x:13.10f}" for x in vec])+ " \n")
+            out.write("\t" + " ".join([f"{x:13.10f}" for x in vec]) + " \n")
         out.write('PRIMCOORD\n')
         out.write(f"\t{len(symbols)}\t1\n")
         for symbol, pos in zip(symbols, positions):

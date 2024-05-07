@@ -14,7 +14,7 @@ import numpy as np
 from ase import Atoms
 from ase.calculators.espresso import EspressoPh
 
-from koopmans.commands import ParallelCommand, Command
+from koopmans.commands import Command, ParallelCommand
 from koopmans.settings import PhSettingsDict
 
 from ._utils import CalculatorABC, CalculatorExt

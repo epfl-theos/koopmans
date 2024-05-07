@@ -2,7 +2,8 @@ from typing import Any
 
 import numpy as np
 from ase.dft.kpoints import BandPath, monkhorst_pack
-from ase.io.wannier90 import construct_kpoint_path, proj_string_to_dict, formatted_str_to_list
+from ase.io.wannier90 import (construct_kpoint_path, formatted_str_to_list,
+                              proj_string_to_dict)
 
 from ._utils import SettingsDict
 
@@ -55,8 +56,8 @@ class Wannier90SettingsDict(SettingsDict):
             self.kpoints = kpts
         elif key == 'koffset':
             if self.mp_grid is None:
-                raise ValueError('Cannot offset the list of k-points if "kpoints" has not been defined yet. ' + \
-                    'Check that "kgrid" is provided before "koffset"')
+                raise ValueError('Cannot offset the list of k-points if "kpoints" has not been defined yet. ' +
+                                 'Check that "kgrid" is provided before "koffset"')
             if isinstance(value, int) or isinstance(value, list) and all([isinstance(k, int) for k in value]):
                 # For koffset = [1, 1, 1], PW shifts the k-grid by half a grid step
                 self.kpoints += np.array(value) / self.mp_grid / 2

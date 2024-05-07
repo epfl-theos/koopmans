@@ -11,7 +11,7 @@ import copy
 import math
 import shutil
 from pathlib import Path
-from typing import List, TypeVar, Optional
+from typing import List, Optional, TypeVar
 
 # isort: off
 import koopmans.mpl_config

@@ -50,7 +50,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
             if not isinstance(self.parameters.kpts, BandPath):
                 raise KeyError('You are running a calculation that requires a kpoint path; please provide a BandPath '
                                'as the kpts parameter')
-            
+
         super()._pre_calculate()
 
         return
@@ -62,7 +62,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         if isinstance(self.parameters.kpts, BandPath):
             # Add the bandstructure to the results. This is very un-ASE-y and might eventually be replaced
             self.generate_band_structure()
-        
+
         return
 
     def is_complete(self):

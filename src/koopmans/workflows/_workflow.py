@@ -568,9 +568,9 @@ class Workflow(ABC):
                 if isinstance(param, type):  # if param is an int or a float convert it for the checks to a list
                     return [param]
                 else:  # if param is not an int or a float check that it is a list of ints / floats
-                    assert(isinstance(param, list))
+                    assert (isinstance(param, list))
                     for value in param:
-                        assert(isinstance(value, type))
+                        assert (isinstance(value, type))
                     return param
 
             n_maxs = convert_to_list(self.ml.n_max, int)
@@ -718,7 +718,7 @@ class Workflow(ABC):
 
     def run_calculator(self, master_calc: calculators.Calc, enforce_spin_symmetry: bool = False):
         ''' Run a calculator.
-        
+
         If enforce_spin_symmetry is True, the calculation will be run with spin symmetry enforced.
         Ultimately this wraps self.run_calculators
 
@@ -800,7 +800,7 @@ class Workflow(ABC):
                 qe_calc.command.postfix = f'-npool {self.parameters.npool}'
 
         return True
-    
+
     def _run_calculators(self, calcs: List[calculators.Calc]) -> None:
         """Run a list of calculators, without doing anything else (other than printing messages.)
 
@@ -842,7 +842,7 @@ class Workflow(ABC):
         self.parameters.from_scratch = True
 
         return
-    
+
     def run_calculators(self, calcs: List[calculators.Calc]):
         '''
         Run a list of *independent* calculators (default implementation is to run them in sequence)
@@ -855,7 +855,7 @@ class Workflow(ABC):
                 calcs_to_run.append(calc)
 
         self._run_calculators(calcs_to_run)
-        
+
         for calc in calcs_to_run:
             self._post_run_calculator(calc)
 

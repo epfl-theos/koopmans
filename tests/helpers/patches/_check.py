@@ -166,7 +166,7 @@ class CheckCalc:
                 message = message.replace('disagreements', 'disagreement')
 
             raise CalculationFailed(message)
-        
+
     def _load_benchmark(self) -> Calc:
         with utils.chdir(self.directory):  # type: ignore[attr-defined]
             # By moving into the directory where the calculation was run, we ensure when we read in the settings that
@@ -177,7 +177,7 @@ class CheckCalc:
 
     def _pre_calculate(self):
         """Before running the calculation, check the settings are the same"""
-        
+
         # Perform the pre_calculate first, as sometimes this function modifies the input parameters
         super()._pre_calculate()
 

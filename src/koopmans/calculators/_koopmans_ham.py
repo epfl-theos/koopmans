@@ -52,7 +52,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
     def _pre_calculate(self):
         super()._pre_calculate()
         self.write_alphas()
-    
+
     def _post_calculate(self):
         super()._post_calculate()
         if isinstance(self.parameters.kpts, BandPath) and len(self.parameters.kpts.kpts) > 1:

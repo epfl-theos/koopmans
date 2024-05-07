@@ -55,7 +55,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
             if not hasattr(self, attr):
                 raise ValueError(f'Please set {self.__class__.__name__}.{attr} before calling '
                                  f'{self.__class__.__name__.calculate()}')
-    
+
     def _post_calculate(self):
         super()._post_calculate()
         self.generate_dos()

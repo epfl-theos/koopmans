@@ -14,9 +14,9 @@ from pathlib import Path
 import numpy as np
 
 from koopmans import utils
+from koopmans.calculators import ProjwfcCalculator
 
 from ._workflow import Workflow
-from koopmans.calculators import ProjwfcCalculator
 
 load_results_from_output = True
 

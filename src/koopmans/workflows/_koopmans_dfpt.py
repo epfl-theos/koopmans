@@ -10,7 +10,7 @@ import shutil
 from pathlib import Path
 from typing import Dict
 
-from koopmans import utils, pseudopotentials
+from koopmans import pseudopotentials, utils
 from koopmans.bands import Bands
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
                                   Wann2KCCalculator)
@@ -144,7 +144,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 if key.startswith('w90'):
                     self.calculator_parameters[key].write_u_matrices = True
                     self.calculator_parameters[key].write_xyz = True
-            wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True, scf_kgrid = self._scf_kgrid)
+            wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True, scf_kgrid=self._scf_kgrid)
             wf_workflow.run()
 
         else:
