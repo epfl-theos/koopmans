@@ -144,7 +144,7 @@ class CalculatorExt():
 
         # Then check convergence
         self.check_convergence()
-
+    
     def _calculate(self):
         # ASE expects self.command to be a string
         command = copy.deepcopy(self.command)

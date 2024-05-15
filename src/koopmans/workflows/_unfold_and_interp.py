@@ -59,6 +59,10 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             # overrides the value of wannier_workflow.from_scratch, as well as preventing the inheritance of
             # self.from_scratch to wannier_workflow.from_scratch and back again after the subworkflow finishes
             wannier_workflow.run(from_scratch=self._redo_smooth_dft)
+            # MB mod
+            if not self.parameters.mode == "ase": 
+                if hasattr(wannier_workflow,"w90_wchains"): self.w90_wchains = wannier_workflow.w90_wchains
+                return
 
         calc: calculators.UnfoldAndInterpolateCalculator
         spins: List[Optional[str]]

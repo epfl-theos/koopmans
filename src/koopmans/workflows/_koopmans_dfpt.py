@@ -186,7 +186,6 @@ class KoopmansDFPTWorkflow(Workflow):
             if self.parameters.from_scratch and init_outdir != base_outdir:
                 utils.symlink(f'{init_outdir}/*', base_outdir)
             
-
         # Convert from wannier to KC
         self.print('Conversion to Koopmans format', style='subheading')
         wann2kc_calc = self.new_calculator('wann2kc')
@@ -273,7 +272,11 @@ class KoopmansDFPTWorkflow(Workflow):
                     kc_ham_calc.parent_folder = self.kc_screen_calculation.outputs.remote_folder
                 else:
                     kc_ham_calc.parent_folder = self.wann2kc_calculation.outputs.remote_folder
-                if hasattr(self,"wannier90_files"): kc_ham_calc.wannier90_files = self.wannier90_files
+                if hasattr(self,"wannier90_files"): 
+                    kc_ham_calc.wannier90_files = self.wannier90_files
+                    
+                    #the kcw.x internal interpolation is done on the same path of the DFT wannierized
+                    kc_ham_calc.kpoints = self.w90_wchains["occ"][0].outputs.band_structure.get_kpoints() # just an array for now.
             
             self.run_calculator(kc_ham_calc)
             
@@ -281,7 +284,7 @@ class KoopmansDFPTWorkflow(Workflow):
             if not self.parameters.mode == "ase":
                 self.kc_ham_calculation = kc_ham_calc.calculation
 
-            # MB mod : for now we do not support the postprocessing in the AiiDA mode.
+            # MB mod
             if self.parameters.mode == "ase":
                 # Postprocessing
                 if all(self.atoms.pbc) and self.projections and self.kpoints.path is not None \
@@ -294,13 +297,43 @@ class KoopmansDFPTWorkflow(Workflow):
                 # Plotting
                 self.plot_bandstructure()
             else:
-                if hasattr(self,'dft_wchains'): del self.dft_wchains
-                if hasattr(self, 'w90_wchains'): del self.w90_wchains
+                """
+                # Postprocessing
+                if all(self.atoms.pbc) and self.projections and self.kpoints.path is not None \
+                        and self.calculator_parameters['ui'].do_smooth_interpolation:
+                    from koopmans.workflows import UnfoldAndInterpolateWorkflow
+                    self.print(f'\nPostprocessing', style='heading')
+                    ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(self)
+                    ui_workflow.run(subdirectory='postproc')
+                    if hasattr(ui_workflow,"w90_wchains"): self.w90_wchains_kcw = ui_workflow.w90_wchains
+                """
+                pass    
+
+                # Plotting
+                #self.plot_bandstructure()
+                
+                if hasattr(self,'dft_wchains'): 
+                    self.dft_wchains_pk = [] 
+                    for label,wchain in self.dft_wchains.items():
+                        self.dft_wchains_pk.append(wchain.pk)
+                    del self.dft_wchains
+                if hasattr(self, 'w90_wchains'):
+                    self.w90_wchains_pk = [] 
+                    for label,wchains in self.w90_wchains.items():
+                        for wchain in wchains:
+                            self.w90_wchains_pk.append(wchain.pk)
+                    del self.w90_wchains
+                if hasattr(self, 'w90_wchains_kcw'):
+                    self.w90_wchains_kcw_pk = [] 
+                    for label,wchains in self.w90_wchains_kcw.items():
+                        for wchain in wchains:
+                            self.w90_wchains_kcw_pk.append(wchain.pk)
+                    del self.w90_wchains_kcw
                 if hasattr(self,'wann2kc_calculation'): del self.wann2kc_calculation
                 if hasattr(self,'kc_screen_calculation'): del self.kc_screen_calculation
                 if hasattr(self,'kc_ham_calculation'): 
                     self.kc_ham_calculation = self.kc_ham_calculation.pk
-                    print(f"The last AiiDA calculation was the kcw-ham one, with pk <{self.kc_ham_calculation}>")
+                    print(f"The last kcw AiiDA calculation was the one with pk <{self.kc_ham_calculation}>")
 
     def plot_bandstructure(self):
         if not all(self.atoms.pbc):
