@@ -239,19 +239,21 @@ class WannierizeWorkflow(Workflow):
             # Calculate a projected DOS
             pseudos = [read_pseudo_file(calc_pw_bands.directory / calc_pw_bands.parameters.pseudo_dir / p) for p in
                        self.pseudopotentials.values()]
-            if all([p['header']['number_of_wfc'] > 0 for p in pseudos]):
+            if all([p['header']['number_of_wfc'] > 0 for p in pseudos]) and False:
                 calc_dos = self.new_calculator('projwfc', filpdos=self.name)
                 calc_dos.directory = 'pdos'
                 calc_dos.pseudopotentials = self.pseudopotentials
                 calc_dos.spin_polarized = self.parameters.spin_polarized
                 calc_dos.pseudo_dir = calc_pw_bands.parameters.pseudo_dir
                 calc_dos.parameters.prefix = calc_pw_bands.parameters.prefix
+                self.link(calc_pw_bands, calc_pw_bands.parameters.outdir, calc_dos, calc_dos.parameters.outdir)
                 self.run_calculator(calc_dos)
 
                 # Prepare the DOS for plotting
                 dos = copy.deepcopy(calc_dos.results['dos'])
             else:
                 # Skip if the pseudos don't have the requisite PP_PSWFC blocks
+                utils.warn('Manually disabling pDOS')
                 utils.warn('Some of the pseudopotentials do not have PP_PSWFC blocks, which means a projected DOS '
                            'calculation is not possible. Skipping...')
                 dos = None
