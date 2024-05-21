@@ -130,14 +130,14 @@ class SettingsDict(UserDict):
             self.pop(key, None)
             return
 
-        # Insisting that all values corresponding to paths are absolute and are Path objects
+        # Insisting that all values corresponding to paths are relative and are Path objects
         if key in self.are_paths:
             if isinstance(value, str):
                 value = Path(value)
             elif not isinstance(value, Path):
                 raise ValueError(f'{key} must be either a string or a Path')
-            if not value.is_absolute():
-                value = (self.directory / value).resolve()
+            if value.is_absolute() and key not in ['pseudo_dir', 'pseudo_directory']:
+                raise ValueError(f'{key} must be a relative path')
 
         # Parse any units provided
         if key in self.physicals:

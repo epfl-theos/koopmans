@@ -167,13 +167,14 @@ class KoopmansDFPTWorkflow(Workflow):
         base_outdir = self.calculator_parameters['pw'].outdir
         base_outdir.mkdir(exist_ok=True)
         scf_calcs = [c for c in self.calculations if isinstance(c, PWCalculator) and c.parameters.calculation == 'scf']
-        init_outdir = scf_calcs[-1].parameters.outdir
-        if self.parameters.from_scratch and init_outdir != base_outdir:
-            utils.symlink(f'{init_outdir}/*', base_outdir)
+        init_scf = scf_calcs[-1]
+        # if self.parameters.from_scratch and init_outdir != base_outdir:
+        #     utils.symlink(f'{init_outdir}/*', base_outdir)
 
         # Convert from wannier to KC
         self.print('Conversion to Koopmans format', style='subheading')
         wann2kc_calc = self.new_calculator('wann2kc')
+        self.link(init_scf, init_scf.parameters.outdir, wann2kc_calc, wann2kc_calc.parameters.outdir)
         self.run_calculator(wann2kc_calc)
 
         # Calculate screening parameters

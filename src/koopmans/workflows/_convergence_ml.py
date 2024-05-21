@@ -42,7 +42,7 @@ class ConvergenceMLWorkflow(Workflow):
         """
         try:
             snapshots_file = bigdct['atoms']['atomic_positions'].pop('snapshots')
-        except:
+        except KeyError:
             raise ValueError(f'To calculate a trajectory, please provide a xyz-file containing the atomic positions '
                              'of the snapshots in the setup-block of the json-input file.')
 
@@ -98,10 +98,11 @@ class ConvergenceMLWorkflow(Workflow):
             if not (grid_search_mode and convergence_point != self.convergence_points[-1]):
                 self.dirs[f'convergence_{convergence_point}'] = self.dirs[f'convergence_pred'] / \
                     f"predicted_after_{convergence_point+1}"
-            # in case of the grid search we won't produce all the plots, hence we also don't need the corresponding folders
+            # in case of the grid search we won't produce all the plots, hence we also don't need the corresponding
+            # folders
             if not grid_search_mode:
-                self.dirs[f'convergence_final_results_{convergence_point}'] = self.dirs[f'convergence_final_results'] / \
-                    f"predicted_after_{convergence_point+1}"
+                self.dirs[f'convergence_final_results_{convergence_point}'] = \
+                    self.dirs[f'convergence_final_results'] / f"predicted_after_{convergence_point+1}"
 
         # create all directories
         for dir in self.dirs.values():
@@ -184,7 +185,7 @@ class ConvergenceMLWorkflow(Workflow):
             try:
                 precompute_parameters_of_radial_basis(
                     self.ml.n_max, self.ml.l_max, self.ml.r_min, self.ml.r_max)
-            except:
+            except ValueError:
                 # skip this set of parameters if it is not possible to find the coefficients of the radial basis
                 # function
                 utils.warn(

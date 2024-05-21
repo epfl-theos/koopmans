@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 
@@ -60,7 +60,7 @@ def read_xml_array(
     # Extract the array
     array_xml = np.zeros((nr_xml[2], nr_xml[1], nr_xml[0]), dtype=float)
     for k in range(nr_xml[2]):
-        current_name = 'z.' + str(k % (nr_xml[2]-1)+1)
+        current_name = 'z.' + str(k % (nr_xml[2] - 1) + 1)
         entry = branch.find(current_name)
         assert isinstance(entry, ET.Element)
         text = entry.text
@@ -68,7 +68,7 @@ def read_xml_array(
         rho_tmp = np.array(text.split('\n')[1:-1], dtype=float)
         for j in range(nr_xml[1]):
             for i in range(nr_xml[0]):
-                array_xml[k, j, i] = rho_tmp[(j % (nr_xml[1]-1))*(nr_xml[0]-1)+(i % (nr_xml[0]-1))]
+                array_xml[k, j, i] = rho_tmp[(j % (nr_xml[1] - 1))*(nr_xml[0] - 1) + (i % (nr_xml[0] - 1))]
     array_xml *= norm_const
 
     if retain_final_element:

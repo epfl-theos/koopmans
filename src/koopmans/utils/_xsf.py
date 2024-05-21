@@ -17,7 +17,7 @@ def write_xsf(filename: Path, atoms: Atoms, arrays: List[np.ndarray], nr_xml: Tu
         for k in range(nr_xml[2]):
             for j in range(nr_xml[1]):
                 for i in range(nr_xml[0]):
-                    array_xsf[k, j, i] = array[k % (nr_xml[2]-1), j % (nr_xml[1]-1), i % (nr_xml[0]-1)]
+                    array_xsf[k, j, i] = array[k % (nr_xml[2] - 1), j % (nr_xml[1] - 1), i % (nr_xml[0] - 1)]
         arrays_xsf.append(array_xsf)
 
     cell_parameters = atoms.get_cell()

@@ -24,7 +24,8 @@ import copy
 import os
 from abc import ABC, abstractmethod, abstractproperty
 from pathlib import Path
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+from typing import (Any, Dict, Generic, List, Optional, Tuple, Type, TypeVar,
+                    Union)
 
 import ase.io as ase_io
 import numpy as np
@@ -83,6 +84,9 @@ class CalculatorExt():
         # Some calculations we don't want to check their results for when performing tests; for such calculations, set
         # skip_qc = True
         self.skip_qc = skip_qc
+
+        # Prepare a dictionary to store a record of linked files
+        self._linked_files: Dict[str, Tuple[CalculatorExt | None, Path]] = {}
 
     def __repr__(self):
         entries = []
@@ -152,11 +156,32 @@ class CalculatorExt():
 
         return
 
+    def _fetch_linked_files(self):
+        """Link all files provided in self._linked_files
+
+        This function is called in _pre_calculate() i.e. immediately before a calculation is run.
+        """
+        for dest_filename, (src_calc, src_filename) in self._linked_files.items():
+            if src_calc is None:
+                src_filename = src_filename.resolve()
+            else:
+                src_filename = (src_calc.directory / src_filename).resolve()
+            if not src_filename.exists():
+                raise FileNotFoundError(
+                    f'Tried to link {src_filename} with the {self.prefix} calculator but it does not exist')
+            dest_filename = (self.directory / dest_filename).resolve()
+            if not dest_filename.exists():
+                dest_filename.parent.mkdir(parents=True, exist_ok=True)
+                utils.symlink(src_filename, dest_filename)
+
     def _pre_calculate(self):
         """Perform any necessary pre-calculation steps before running the calculation"""
 
         # By default, check the corresponding program is installed
         self.check_code_is_installed()
+
+        # Copy over all files linked to this calculation
+        self._fetch_linked_files()
 
         return
 
@@ -235,6 +260,14 @@ class CalculatorExt():
         for k, v in dct.items():
             setattr(calc, k.lstrip('_'), v)
         return calc
+
+    def link_file(self, src_calc: CalculatorExt | None, src_filename: Path, dest_filename: Path):
+        if src_filename.is_absolute() and src_calc is not None:
+            raise ValueError(f'"src_filename" in {self.__class__.__name__}.link_file() must be a relative path if a '
+                             f'"src_calc" is provided')
+        if dest_filename.is_absolute():
+            raise ValueError(f'"dest_filename" in {self.__class__.__name__}.link_file() must be a relative path')
+        self._linked_files[str(dest_filename)] = (src_calc, src_filename)
 
 
 class CalculatorABC(ABC, Generic[TCalc]):

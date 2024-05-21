@@ -612,9 +612,9 @@ class Workflow(ABC):
                        calc_type: str,
                        directory: Optional[Path] = None,
                        kpts: Optional[Union[List[int], BandPath]] = None,
-                       **kwargs) -> T:  # type: ignore[type-var, misc]
+                       **kwargs) -> calculators.Calc:  # type: ignore[type-var, misc]
 
-        calc_class: Type[T]
+        calc_class: calculators.CalcType
 
         if calc_type == 'kcp':
             calc_class = calculators.KoopmansCPCalculator
@@ -653,7 +653,7 @@ class Workflow(ABC):
             all_kwargs['kpts'] = kpts if kpts is not None else self.kpoints.grid
 
         # Add further information to the calculator as required
-        for kw in ['pseudopotentials', 'pseudo_dir', 'gamma_only', 'kgrid', 'kpath', 'koffset', 'plotting']:
+        for kw in ['pseudopotentials', 'gamma_only', 'kgrid', 'kpath', 'koffset', 'plotting']:
             if kw not in all_kwargs and calculator_parameters.is_valid(kw):
                 val: Any
                 if kw == 'kgrid':
@@ -668,8 +668,6 @@ class Workflow(ABC):
                         val = self.kpoints.offset
                 elif kw == 'gamma_only':
                     val = self.kpoints.gamma_only
-                elif kw == 'pseudo_dir':
-                    val = self.parameters.pseudo_directory
                 else:
                     val = getattr(self, kw)
                 all_kwargs[kw] = val
@@ -680,6 +678,12 @@ class Workflow(ABC):
         # Add the directory if provided
         if directory is not None:
             calc.directory = directory
+
+        # Link the pseudopotentials if relevant
+        if calculator_parameters.is_valid('pseudo_dir'):
+            for pseudo in self.pseudopotentials.values():
+                self.link(None, self.parameters.pseudo_directory / pseudo, calc, Path('pseudopotentials') / pseudo)
+            calc.parameters.pseudo_dir = 'pseudopotentials'
 
         return calc
 
@@ -881,6 +885,21 @@ class Workflow(ABC):
             self.calculations.append(qe_calc)
 
         return old_calc.is_complete()
+
+    def link(self, src_calc: calculators.Calc | None, src_path: Path, dest_calc: calculators.Calc, dest_path: Path) -> None:
+        """
+        Link a file from one calculator to another
+
+        Paths must be provided relative to the the calculator's directory i.e. calc.directory, unless src_calc is None
+        """
+
+        if src_path.is_absolute() and src_calc is not None:
+            raise ValueError(f'"src_path" in {self.__class__.__name__}.link() must be a relative path if a '
+                             f'"src_calc" is provided')
+        if dest_path.is_absolute():
+            raise ValueError(f'"dest_path" in {self.__class__.__name__}.link() must be a relative path')
+
+        dest_calc.link_file(src_calc, src_path, dest_path)
 
     def print(self, text: str = '', style: str = 'body', **kwargs: Any):
         if style == 'body':

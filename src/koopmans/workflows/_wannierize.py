@@ -119,18 +119,19 @@ class WannierizeWorkflow(Workflow):
 
         # Run PW scf and nscf calculations
         # PWscf needs only the valence bands
-        calc_pw = self.new_calculator('pw')
-        calc_pw.parameters.pop('nbnd', None)
-        calc_pw.directory = 'wannier'
-        calc_pw.prefix = 'scf'
+        calc_scf = self.new_calculator('pw')
+        calc_scf.parameters.pop('nbnd', None)
+        calc_scf.directory = 'wannier'
+        calc_scf.prefix = 'scf'
         if self._scf_kgrid:
-            calc_pw.parameters.kpts = self._scf_kgrid
-        self.run_calculator(calc_pw)
+            calc_scf.parameters.kpts = self._scf_kgrid
+        self.run_calculator(calc_scf)
 
-        calc_pw = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True)
-        calc_pw.directory = 'wannier'
-        calc_pw.prefix = 'nscf'
-        self.run_calculator(calc_pw)
+        calc_nscf = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True)
+        calc_nscf.directory = 'wannier'
+        calc_nscf.prefix = 'nscf'
+        self.link(calc_scf, calc_scf.parameters.outdir, calc_nscf, calc_nscf.parameters.outdir)
+        self.run_calculator(calc_nscf)
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
@@ -170,8 +171,8 @@ class WannierizeWorkflow(Workflow):
 
                 # 2) standard pw2wannier90 calculation
                 calc_p2w = self.new_calculator('pw2wannier', directory=w90_dir,
-                                               spin_component=block.spin,
-                                               outdir=calc_pw.parameters.outdir)
+                                               spin_component=block.spin)
+                self.link(calc_nscf, calc_nscf.parameters.outdir, calc_p2w, calc_p2w.parameters.outdir)
                 calc_p2w.prefix = 'pw2wan'
                 self.run_calculator(calc_p2w)
 
@@ -231,17 +232,12 @@ class WannierizeWorkflow(Workflow):
             calc_pw_bands.parameters.prefix += '_bands'
 
             # Link the save directory so that the bands calculation can use the old density
-            if self.parameters.from_scratch:
-                [src, dest] = [(c.parameters.outdir / c.parameters.prefix).with_suffix('.save')
-                               for c in [calc_pw, calc_pw_bands]]
-
-                if dest.exists():
-                    shutil.rmtree(str(dest))
-                shutil.copytree(src, dest)
+            self.link(calc_nscf, (calc_nscf.parameters.outdir / calc_nscf.parameters.prefix).with_suffix('.save'),
+                      calc_pw_bands, (calc_pw_bands.parameters.outdir / calc_pw_bands.parameters.prefix).with_suffix('.save'))
             self.run_calculator(calc_pw_bands)
 
             # Calculate a projected DOS
-            pseudos = [read_pseudo_file(calc_pw_bands.parameters.pseudo_dir / p) for p in
+            pseudos = [read_pseudo_file(calc_pw_bands.directory / calc_pw_bands.parameters.pseudo_dir / p) for p in
                        self.pseudopotentials.values()]
             if all([p['header']['number_of_wfc'] > 0 for p in pseudos]):
                 calc_dos = self.new_calculator('projwfc', filpdos=self.name)
