@@ -170,7 +170,7 @@ class CalculatorExt():
                 raise FileNotFoundError(
                     f'Tried to link {src_filename} with the {self.prefix} calculator but it does not exist')
             dest_filename = (self.directory / dest_filename).resolve()
-            if not dest_filename.exists():
+            if not dest_filename.exists() and not dest_filename.is_symlink():
                 dest_filename.parent.mkdir(parents=True, exist_ok=True)
                 utils.symlink(src_filename, dest_filename)
 

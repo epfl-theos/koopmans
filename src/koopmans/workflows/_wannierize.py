@@ -10,8 +10,12 @@ Written by Riccardo De Gennaro Nov 2020
 import copy
 import math
 import shutil
+from functools import partial
 from pathlib import Path
-from typing import List, Optional, TypeVar
+from typing import Callable, List, Optional, Tuple, TypeVar
+
+from ase import Atoms
+from pydantic import BaseModel
 
 # isort: off
 import koopmans.mpl_config
@@ -21,8 +25,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from koopmans import calculators, projections, utils
+from koopmans.process import Process
 from koopmans.pseudopotentials import nelec_from_pseudos, read_pseudo_file
 
+from ._merge_wannier import (MergeProcess, merge_wannier_centers_file_contents,
+                             merge_wannier_hr_file_contents,
+                             merge_wannier_u_file_contents)
 from ._workflow import Workflow
 
 CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
@@ -208,7 +216,8 @@ class WannierizeWorkflow(Workflow):
                             match.spread = spread
 
             # Merging Hamiltonian files, U matrix files, centers files if necessary
-            if self.parent is not None:
+            if True:  # self.parent is not None:
+                utils.warn('manually forcing the merging of the wannier files')
                 for merge_directory, block in self.projections.to_merge.items():
                     if len(block) == 1:
                         with utils.chdir('wannier'):
@@ -221,7 +230,9 @@ class WannierizeWorkflow(Workflow):
                         num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
                         num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
                         if num_bands > num_wann and self.parameters.method == 'dfpt':
-                            self.extend_wannier_u_dis_file(block, merge_directory, prefix=calc_w90.prefix)
+                            raise NotImplementedError()
+                            # extend_proc = Process(merge_function=extend_wannier_u_dis_file)
+                            # self.extend_wannier_u_dis_file(block, merge_directory, prefix=calc_w90.prefix)
 
         if self.parameters.calculate_bands:
             # Run a "bands" calculation, making sure we don't overwrite
@@ -346,141 +357,33 @@ class WannierizeWorkflow(Workflow):
         share the same filling and spin
         """
 
-        # Working out the directories where to read in files and where to write out files to
-        dirs_in: List[Path] = []
+        # Working out the calculations from which to fetch the files, where to write out files to
+        src_calcs: List[calculators.Wannier90Calculator] = []
         for b in block:
             assert b.directory is not None, 'The block which you are trying to merge is missing a directory; this ' \
                 'should not happen'
-            dirs_in.append(Path('wannier') / b.directory)
+            matching_calc = [c for c in self.calculations[::-1]
+                             if isinstance(c, calculators.Wannier90Calculator) and c.directory.name == b.directory.name][0]
+            src_calcs.append(matching_calc)
+
         assert merge_directory is not None, 'The block which you are trying to merge is missing a ' \
             'merge_directory; this should not happen'
-        dir_out = Path('wannier') / merge_directory
 
-        # Merging the hr (Hamiltonian) files
-        self.merge_wannier_hr_files(dirs_in, dir_out, prefix)
+        # Merging the wannier_hr (Hamiltonian) files
+        merge_hr_proc = MergeProcess(merge_function=merge_wannier_hr_file_contents,
+                                     src_files=[(calc, Path(prefix + '_hr.dat')) for calc in src_calcs],
+                                     dst_file=Path('wannier') / merge_directory / (prefix + '_hr.dat'))
+        self.run_process(merge_hr_proc)
 
-        if self.parameters.method == 'dfpt':
+        if self.parameters.method == 'dfpt' and self.parent is not None:
             # Merging the U (rotation matrix) files
-            self.merge_wannier_u_files(dirs_in, dir_out, prefix)
+            merge_u_proc = MergeProcess(merge_function=merge_wannier_u_file_contents,
+                                        src_files=[(calc, Path(prefix + '_u.mat')) for calc in src_calcs],
+                                        dst_file=Path('wannier') / merge_directory / (prefix + '_u.mat'))
+            self.run_process(merge_u_proc)
 
             # Merging the wannier centers files
-            self.merge_wannier_centers_files(dirs_in, dir_out, prefix)
-
-    @staticmethod
-    def merge_wannier_hr_files(dirs_in: List[Path], dir_out: Path, prefix: str):
-        # Reading in each hr file in turn
-        hr_list = []
-        weights_out = None
-        rvect_out = None
-        for dir_in in dirs_in:
-            # Reading the hr file
-            fname_in = dir_in / (prefix + '_hr.dat')
-            hr, rvect, weights, nrpts = utils.read_wannier_hr_file(fname_in)
-
-            # Sanity checking
-            if weights_out is None:
-                weights_out = weights
-            elif weights != weights_out:
-                raise ValueError(f'{fname_in} contains weights that differ from the other blocks. This should not '
-                                 'happen.')
-            if rvect_out is None:
-                rvect_out = rvect
-            elif np.all(rvect != rvect_out):
-                raise ValueError(f'{fname_in} contains a set of R-vectors that differ from the other blocks. This '
-                                 'should not happen.')
-
-            # Reshaping this block of the Hamiltonian in preparation for constructing the block matrix, and storing it
-            num_wann2 = hr.size // nrpts
-            num_wann = int(math.sqrt(num_wann2))
-            hr_list.append(hr.reshape(nrpts, num_wann, num_wann))
-
-        # Constructing the block matrix hr_out which is dimensions (nrpts, num_wann_tot, num_wann_tot)
-        num_wann_tot = sum([hr.shape[-1] for hr in hr_list])
-        hr_out = np.zeros((nrpts, num_wann_tot, num_wann_tot), dtype=complex)
-        start = 0
-        for hr in hr_list:
-            end = start + hr.shape[1]
-            for irpt in range(nrpts):
-                hr_out[irpt, start:end, start:end] = hr[irpt, :, :]
-            start = end
-
-        assert rvect_out is not None
-        assert weights_out is not None
-
-        utils.write_wannier_hr_file(dir_out / (prefix + '_hr.dat'), hr_out, rvect_out.tolist(), weights_out)
-
-    @staticmethod
-    def merge_wannier_u_files(dirs_in: List[Path], dir_out: Path, prefix: str):
-        u_list = []
-        kpts_master = None
-        for dir_in in dirs_in:
-            # Reading the U file
-            fname_in = dir_in / (prefix + '_u.mat')
-
-            umat, kpts, nkpts = utils.read_wannier_u_file(fname_in)
-
-            if kpts_master is None:
-                kpts_master = kpts
-            elif nkpts == len(kpts_master) and np.allclose(kpts, kpts_master):
-                pass
-            else:
-                raise ValueError(f'{fname_in} has an inconsistent set of k-points with the other files you are merging')
-
-            u_list.append(umat)
-
-        shape_u_merged = [nkpts] + np.sum([u.shape for u in u_list], axis=0)[1:].tolist()
-        u_merged = np.zeros(shape_u_merged, dtype=complex)
-
-        # Constructing a large block-diagonal U matrix from all the individual matrices in u_list
-        i_start = 0
-        j_start = 0
-        for u in u_list:
-            i_end = i_start + u.shape[1]
-            j_end = j_start + u.shape[2]
-            u_merged[:, i_start:i_end, j_start:j_end] = u
-            i_start = i_end
-            j_start = j_end
-
-        # Writing out the large U file
-        utils.write_wannier_u_file(dir_out / (prefix + '_u.mat'), u_merged, kpts)
-
-    def merge_wannier_centers_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
-        centers_list = []
-        for dir_in in dirs_in:
-            # Reading the centers file
-            fname_in = dir_in / (prefix + '_centres.xyz')
-
-            centers, _ = utils.read_wannier_centers_file(fname_in)
-
-            centers_list += centers
-
-        # Writing the centers file
-        utils.write_wannier_centers_file(dir_out / (prefix + '_centres.xyz'), centers_list, self.atoms)
-
-    def extend_wannier_u_dis_file(self, block: List[projections.ProjectionBlock], merge_directory: Path, prefix: str = 'wann'):
-        # Read in
-        assert block[-1].directory is not None
-        fname_in = Path('wannier') / block[-1].directory / (prefix + '_u_dis.mat')
-        udis_mat, kpts, _ = utils.read_wannier_u_file(fname_in)
-
-        # Calculate how many empty bands we have
-        spin = block[0].spin
-        if spin:
-            nbnd_occ = self.number_of_electrons(spin)
-        else:
-            nbnd_occ = self.number_of_electrons() // 2
-        nbnd_tot = self.calculator_parameters['pw'].nbnd - nbnd_occ
-
-        # Calculate how many empty wannier functions we have
-        nwann_tot = sum([len(p) for p in block])
-
-        # Build up the larger U_dis matrix, which is a nkpts x nwann_emp x nbnd_emp matrix...
-        udis_mat_large = np.zeros((len(kpts), nwann_tot, nbnd_tot), dtype=complex)
-        # ... with the diagonal entries equal to 1...
-        udis_mat_large[:, :nwann_tot, :nwann_tot] = np.identity(nwann_tot)
-        # ... except for the last block, where we insert the contents of the corresponding u_dis file
-        udis_mat_large[:, -udis_mat.shape[1]:, -udis_mat.shape[2]:] = udis_mat
-
-        # Write out
-        fname_out = Path('wannier') / merge_directory / (prefix + '_u_dis.mat')
-        utils.write_wannier_u_file(fname_out, udis_mat_large, kpts)
+            merge_centers_proc = MergeProcess(merge_function=partial(merge_wannier_centers_file_contents, atoms=self.atoms),
+                                              src_files=[(calc, Path(prefix + '_centres.xyz')) for calc in src_calcs],
+                                              dst_file=Path('wannier') / merge_directory / (prefix + '_centres.xyz'))
+            self.run_process(merge_centers_proc)

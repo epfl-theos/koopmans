@@ -48,6 +48,7 @@ from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.kpoints import Kpoints
 from koopmans.ml import MLModel
+from koopmans.process import Process
 from koopmans.projections import ProjectionBlocks
 from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
                                        pseudo_database,
@@ -126,6 +127,7 @@ class Workflow(ABC):
         self.atoms: Atoms = atoms
         self.name = name
         self.calculations: List[calculators.Calc] = []
+        self.processes: List[Process] = []
         self.silent = False
         self.print_indent = 1
 
@@ -863,6 +865,14 @@ class Workflow(ABC):
         for calc in calcs_to_run:
             self._post_run_calculator(calc)
 
+    def run_process(self, process: Process):
+        '''
+        Run a Process
+        '''
+
+        process.run()
+        self.processes.append(process)
+
     def load_old_calculator(self, qe_calc: calculators.Calc) -> bool:
         # This is a separate function so that it can be monkeypatched by the test suite
         old_calc = qe_calc.__class__.fromfile(qe_calc.directory / qe_calc.prefix)
@@ -886,7 +896,7 @@ class Workflow(ABC):
 
         return old_calc.is_complete()
 
-    def link(self, src_calc: calculators.Calc | None, src_path: Path, dest_calc: calculators.Calc, dest_path: Path) -> None:
+    def link(self, src_calc: calculators.Calc | Process | None, src_path: Path, dest_calc: calculators.Calc, dest_path: Path) -> None:
         """
         Link a file from one calculator to another
 
@@ -943,8 +953,9 @@ class Workflow(ABC):
         else:
             self.parameters.from_scratch = from_scratch
 
-        # Link the list of calculations
+        # Link the lists of calculations and processes
         self.calculations = self.parent.calculations
+        self.processes = self.parent.processes
 
         # Link the ML_Model
         if self.ml.use_ml:
