@@ -48,7 +48,7 @@ from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.kpoints import Kpoints
 from koopmans.ml import MLModel
-from koopmans.process import Process
+from koopmans.processes import Process
 from koopmans.projections import ProjectionBlocks
 from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
                                        pseudo_database,
@@ -104,6 +104,7 @@ class Workflow(ABC):
     projections: ProjectionBlocks
     parent: Optional[Workflow]
     version: str
+    _step_counter: int
 
     def __init__(self, atoms: Atoms,
                  pseudopotentials: Dict[str, str] = {},
@@ -331,6 +332,9 @@ class Workflow(ABC):
             utils.warn(f'You are using version {__version__} of koopmans, but this workflow was generated with '
                        f'version {self.version}. Proceed with caution.')
 
+        # Initialize the step counter
+        self._step_counter = 0
+
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
             return self.__dict__ == other.__dict__
@@ -352,7 +356,7 @@ class Workflow(ABC):
         entries.append(f'pseudopotentials={self.pseudopotentials}')
         return f'{self.__class__.__name__}(' + ',\n   '.join(entries) + ')'
 
-    def run(self, subdirectory: Optional[Union[str, Path]] = None, from_scratch: Optional[bool] = None) -> None:
+    def run(self, subdirectory: Optional[str] = None, from_scratch: Optional[bool] = None) -> None:
         '''
         Run the workflow
         '''
@@ -366,7 +370,9 @@ class Workflow(ABC):
 
         if self.parent:
             with self._parent_context(subdirectory, from_scratch):
+                self.print(f'{self.__class__.__name__}', style='heading')
                 self._run()
+                self.print()
         else:
             self._run()
 
@@ -397,19 +403,19 @@ class Workflow(ABC):
 
         parameters = copy.deepcopy(parent_wf.parameters)
         parameter_kwargs = {k: v for k, v in kwargs.items() if parameters.is_valid(k)}
-        other_kwargs = {k: v for k, v in kwargs.items() if not parameters.is_valid(k)}
+        wf_kwargs = dict(atoms=copy.deepcopy(parent_wf.atoms),
+                         parameters=parameters,
+                         calculator_parameters=copy.deepcopy(parent_wf.calculator_parameters),
+                         name=copy.deepcopy(parent_wf.name),
+                         pseudopotentials=copy.deepcopy(parent_wf.pseudopotentials),
+                         kpoints=copy.deepcopy(parent_wf.kpoints),
+                         projections=copy.deepcopy(parent_wf.projections),
+                         plotting=copy.deepcopy(parent_wf.plotting),
+                         ml=copy.deepcopy(parent_wf.ml))
+        wf_kwargs.update(**{k: v for k, v in kwargs.items() if not parameters.is_valid(k)})
         parameters.update(**parameter_kwargs)
 
-        child_wf = cls(atoms=copy.deepcopy(parent_wf.atoms),
-                       parameters=parameters,
-                       calculator_parameters=copy.deepcopy(parent_wf.calculator_parameters),
-                       name=copy.deepcopy(parent_wf.name),
-                       pseudopotentials=copy.deepcopy(parent_wf.pseudopotentials),
-                       kpoints=copy.deepcopy(parent_wf.kpoints),
-                       projections=copy.deepcopy(parent_wf.projections),
-                       plotting=copy.deepcopy(parent_wf.plotting),
-                       ml=copy.deepcopy(parent_wf.ml),
-                       **other_kwargs)
+        child_wf = cls(**wf_kwargs)
         child_wf.parent = parent_wf
         return child_wf
 
@@ -558,7 +564,7 @@ class Workflow(ABC):
             if not np.all(self.atoms.cell.angles() == 90.0):
                 raise ValueError(f"The ML-workflow has only been implemented for simulation cells that have 90° angles")
 
-            if self.parameters.task is not 'convergence_ml':
+            if self.parameters.task != 'convergence_ml':
                 assert isinstance(self.ml.n_max, int)
                 assert isinstance(self.ml.l_max, int)
                 assert isinstance(self.ml.r_min, float)
@@ -612,7 +618,6 @@ class Workflow(ABC):
 
     def new_calculator(self,
                        calc_type: str,
-                       directory: Optional[Path] = None,
                        kpts: Optional[Union[List[int], BandPath]] = None,
                        **kwargs) -> calculators.Calc:  # type: ignore[type-var, misc]
 
@@ -676,10 +681,6 @@ class Workflow(ABC):
 
         # Create the calculator
         calc = calc_class(atoms=copy.deepcopy(self.atoms), **all_kwargs)
-
-        # Add the directory if provided
-        if directory is not None:
-            calc.directory = directory
 
         # Link the pseudopotentials if relevant
         if calculator_parameters.is_valid('pseudo_dir'):
@@ -775,6 +776,24 @@ class Workflow(ABC):
         :return: Whether the calculation should be run
         """
 
+        # Check that calc.directory was not set
+        if qe_calc.directory is not None:
+            raise ValueError(
+                f'calc.directory should not be set manually, but it was set to {os.path.relpath(qe_calc.directory)}')
+
+        # Prepend calc.directory with a counter
+        self._step_counter += 1
+        qe_calc.directory = Path(f'{self._step_counter:02}-{qe_calc.prefix}').resolve()
+
+        # Check that another calculation hasn't already been run in this directory
+        if any([calc.directory == qe_calc.directory for calc in self.calculations]):
+            raise ValueError(
+                f'A calculation has already been run in {os.path.relpath(qe_calc.directory)}; this should not happen')
+
+        # Remove the directory if it already exists and we are running from scratch
+        if self.parameters.from_scratch and qe_calc.directory.exists():
+            shutil.rmtree(qe_calc.directory)
+
         # If an output file already exists, check if the run completed successfully
         if not self.parameters.from_scratch:
 
@@ -819,8 +838,8 @@ class Workflow(ABC):
             verb = "Running" if self.parameters.from_scratch else "Rerunning"
 
             if not self.silent:
-                dir_str = os.path.relpath(calc.directory) + '/'
-                self.print(f'{verb} {dir_str}{calc.prefix}...', end='', flush=True)
+                dir_str = os.path.relpath(calc.directory)
+                self.print(f'{verb} {dir_str}...', end='', flush=True)
 
             try:
                 calc.calculate()
@@ -870,7 +889,11 @@ class Workflow(ABC):
         Run a Process
         '''
 
+        self._step_counter += 1
+        process.directory = Path(f'{self._step_counter:02}-{process.name}').resolve()
+        self.print('Running ' + os.path.relpath(process.directory) + '...', end='', flush=True)
         process.run()
+        self.print(' done')
         self.processes.append(process)
 
     def load_old_calculator(self, qe_calc: calculators.Calc) -> bool:
@@ -896,12 +919,27 @@ class Workflow(ABC):
 
         return old_calc.is_complete()
 
-    def link(self, src_calc: calculators.Calc | Process | None, src_path: Path, dest_calc: calculators.Calc, dest_path: Path) -> None:
-        """
-        Link a file from one calculator to another
+    def link(self, src_calc: calculators.Calc | Process | None, src_path: Path | str, dest_calc: calculators.Calc, dest_path: Path | str, symlink=False, recursive_symlink=False) -> None:
+        """Link a file from one calculator to another
 
         Paths must be provided relative to the the calculator's directory i.e. calc.directory, unless src_calc is None
+
+        :param src_calc: The prior calculation or process which generated the file (None if it was not generated by a process/calculation)
+        :type src_calc: calculators.Calc | Process | None
+        :param src_path: The path of the file, relative to the directory of the calculation/process
+        :type src_path: Path
+        :param dest_calc: The calculator which requires this file
+        :type dest_calc: calculators.Calc
+        :param dest_path: The path (relative to dest_calc's directory) where this file should appear
+        :type dest_path: Path
+        :param symlink: Whether to create a symlink instead of copying the file. Only do this if the file is not going to be modified by the dest_calc
+        :type symlink: bool
         """
+
+        if isinstance(src_path, str):
+            src_path = Path(src_path)
+        if isinstance(dest_path, str):
+            dest_path = Path(dest_path)
 
         if src_path.is_absolute() and src_calc is not None:
             raise ValueError(f'"src_path" in {self.__class__.__name__}.link() must be a relative path if a '
@@ -909,11 +947,11 @@ class Workflow(ABC):
         if dest_path.is_absolute():
             raise ValueError(f'"dest_path" in {self.__class__.__name__}.link() must be a relative path')
 
-        dest_calc.link_file(src_calc, src_path, dest_path)
+        dest_calc.link_file(src_calc, src_path, dest_path, symlink=symlink, recursive_symlink=recursive_symlink)
 
     def print(self, text: str = '', style: str = 'body', **kwargs: Any):
         if style == 'body':
-            utils.indented_print(str(text), self.print_indent + 1, **kwargs)
+            utils.indented_print(str(text), self.print_indent + 2, **kwargs)
         else:
             if style == 'heading':
                 underline = '='
@@ -922,12 +960,11 @@ class Workflow(ABC):
             else:
                 raise ValueError(f'Invalid choice "{style}" for style; must be heading/subheading/body')
             assert kwargs.get('end', '\n') == '\n'
-            utils.indented_print()
             utils.indented_print(str(text), self.print_indent, **kwargs)
             utils.indented_print(underline * len(text), self.print_indent, **kwargs)
 
     @contextmanager
-    def _parent_context(self, subdirectory: Optional[Union[str, Path]] = None,
+    def _parent_context(self, subdirectory: Optional[str] = None,
                         from_scratch: Optional[bool] = None) -> Generator[None, None, None]:
         '''
         Context for calling self._run(), within which self inherits relevant information from self.parent, runs, and
@@ -941,7 +978,7 @@ class Workflow(ABC):
             self.name = self.parent.name
 
         # Increase the indent level
-        self.print_indent = self.parent.print_indent + 1
+        self.print_indent = self.parent.print_indent + 2
 
         # Ensure altering self.calculator_parameters won't affect self.parent.calculator_parameters
         if self.calculator_parameters is self.parent.calculator_parameters:
@@ -976,8 +1013,11 @@ class Workflow(ABC):
 
         try:
             if subdirectory is not None:
-                # Ensure subdirectory is a Path
-                subdirectory = Path(subdirectory)
+                # Prepend the step counter to the subdirectory name
+                self.parent._step_counter += 1
+                subdirectory_path = Path(f'{self.parent._step_counter:02}-{subdirectory}')
+                if self.parameters.from_scratch and subdirectory_path.is_dir():
+                    shutil.rmtree(subdirectory_path)
                 # Update directories
                 for key in self.calculator_parameters.keys():
                     params = self.calculator_parameters[key]
@@ -986,7 +1026,7 @@ class Workflow(ABC):
                             continue
                         path = getattr(params, setting, None)
                         if path is not None and Path.cwd() in path.parents:
-                            new_path = subdirectory.resolve() / os.path.relpath(path)
+                            new_path = subdirectory_path.resolve() / os.path.relpath(path)
                             setattr(params, setting, new_path)
 
                 # Run the workflow

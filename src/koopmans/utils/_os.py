@@ -8,6 +8,7 @@ Written by Edward Linscott May 2020
 
 import contextlib
 import os
+import shutil
 import subprocess
 from glob import glob
 from pathlib import Path
@@ -64,6 +65,56 @@ def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True
                 pass
         else:
             dest.symlink_to(src)
+
+
+def symlink_tree(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool = False):
+    if isinstance(src, str):
+        src = Path(src)
+    if isinstance(dest, str):
+        dest = Path(dest)
+
+    if not src.exists():
+        raise FileNotFoundError(src)
+    if not src.is_dir():
+        raise NotADirectoryError(src)
+
+    if not dest.exists():
+        dest.mkdir(parents=True, exist_ok=exist_ok)
+
+    for f in src.rglob('*'):
+        if f.is_dir():
+            (dest / f.relative_to(src)).mkdir(exist_ok=exist_ok)
+        else:
+            symlink(f, dest / f.relative_to(src), exist_ok=exist_ok)
+
+
+def copy(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool = False):
+    # Copy a file from "src" to "dest"
+    if '*' in str(src) or '?' in str(src):
+        raise ValueError('Do not use wildcards in utils.copy()')
+
+    # Sanitize input
+    if isinstance(src, str):
+        src = Path(src)
+    if isinstance(dest, str):
+        dest = Path(dest)
+
+    if dest.is_dir() and not src.is_dir():
+        dest /= src.name
+    dest = dest.absolute()
+    src = src.absolute()
+
+    # Check if the src exists
+    if not src.exists():
+        raise FileNotFoundError(src)
+
+    if dest.exists() and not exist_ok:
+        raise FileExistsError(dest)
+    else:
+        if src.is_file():
+            shutil.copy(src, dest)
+        else:
+            shutil.copytree(src, dest)
 
 
 @contextlib.contextmanager

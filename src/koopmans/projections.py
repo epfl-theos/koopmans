@@ -5,6 +5,8 @@ from ase import Atoms
 from ase.io.wannier90 import (list_to_formatted_str, num_wann_from_projections,
                               proj_string_to_dict)
 
+from koopmans import calculators
+
 
 class ProjectionBlock(object):
     # This simple object contains the projections, filling, and spin corresponding to a block of bands
@@ -28,6 +30,7 @@ class ProjectionBlock(object):
         self.num_bands = num_bands
         self.include_bands = include_bands
         self.exclude_bands = exclude_bands
+        self.w90_calc: calculators.Wannier90Calculator | None = None
 
     def __repr__(self) -> str:
         out = f'ProjectionBlock({[self.projections]}'
@@ -50,6 +53,7 @@ class ProjectionBlock(object):
 
     def todict(self) -> dict:
         dct = {k: v for k, v in self.__dict__.items()}
+        dct.pop('w90_calc')
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
@@ -223,9 +227,9 @@ class ProjectionBlocks(object):
         return new_bandblock
 
     @property
-    def to_merge(self) -> Dict[Path, List[ProjectionBlock]]:
+    def to_merge(self) -> Dict[str, List[ProjectionBlock]]:
         # Group the blocks by their correspondence to occupied/empty bands, and by their spin
-        dct: Dict[Path, List[ProjectionBlock]] = {}
+        dct: Dict[str, List[ProjectionBlock]] = {}
         for block in self.blocks:
             try:
                 n_occ_bands = self.num_occ_bands[block.spin]
@@ -240,9 +244,8 @@ class ProjectionBlocks(object):
                 raise ValueError('Block spans both occupied and empty manifolds')
             if block.spin:
                 label += f'_{block.spin}'
-            directory = Path(label)
-            if directory in dct:
-                dct[directory].append(block)
+            if label in dct:
+                dct[label].append(block)
             else:
-                dct[directory] = [block]
+                dct[label] = [block]
         return dct

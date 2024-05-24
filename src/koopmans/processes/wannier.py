@@ -1,13 +1,14 @@
 import math
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple, TypeVar
+from typing import Callable, List, Tuple
 
 import numpy as np
 from ase import Atoms
 from pydantic import BaseModel
 
-from koopmans import calculators, projections, utils
-from koopmans.process import Process
+from koopmans import calculators, utils
+
+from ._process import Process
 
 
 def merge_wannier_hr_file_contents(filecontents: List[List[str]]) -> List[str]:
@@ -94,36 +95,22 @@ def merge_wannier_centers_file_contents(filecontents: List[List[str]], atoms: At
     return utils.generate_wannier_centers_file_contents(centers_list, atoms)
 
 
-# def extend_wannier_u_dis_file(self, block: List[projections.ProjectionBlock], merge_directory: Path, prefix: str = 'wann'):
-#     # Read in
-#     assert block[-1].directory is not None
-#     fname_in = Path('wannier') / block[-1].directory / (prefix + '_u_dis.mat')
-#     udis_mat, kpts, _ = utils.read_wannier_u_file(fname_in)
-#
-#     # Calculate how many empty bands we have
-#     spin = block[0].spin
-#     if spin:
-#         nbnd_occ = self.number_of_electrons(spin)
-#     else:
-#         nbnd_occ = self.number_of_electrons() // 2
-#     nbnd_tot = self.calculator_parameters['pw'].nbnd - nbnd_occ
-#
-#     # Calculate how many empty wannier functions we have
-#     nwann_tot = sum([len(p) for p in block])
-#
-#     # Build up the larger U_dis matrix, which is a nkpts x nwann_emp x nbnd_emp matrix...
-#     udis_mat_large = np.zeros((len(kpts), nwann_tot, nbnd_tot), dtype=complex)
-#     # ... with the diagonal entries equal to 1...
-#     udis_mat_large[:, :nwann_tot, :nwann_tot] = np.identity(nwann_tot)
-#     # ... except for the last block, where we insert the contents of the corresponding u_dis file
-#     udis_mat_large[:, -udis_mat.shape[1]:, -udis_mat.shape[2]:] = udis_mat
-#
-#     # Write out
-#     fname_out = Path('wannier') / merge_directory / (prefix + '_u_dis.mat')
-#     utils.write_wannier_u_file(fname_out, udis_mat_large, kpts)
+def extend_wannier_u_dis_file_content(filecontent: List[str], nbnd: int, nwann: int) -> List[str]:
+    # Parse the file content
+    udis_mat, kpts, _ = utils.parse_wannier_u_file_contents(filecontent)
+
+    # Build up the larger U_dis matrix, which is a nkpts x nwann_emp x nbnd_emp matrix...
+    udis_mat_large = np.zeros((len(kpts), nwann, nbnd), dtype=complex)
+    # ... with the diagonal entries equal to 1...
+    udis_mat_large[:, :nwann, :nwann] = np.identity(nwann)
+    # ... except for the last block, where we insert the contents of the corresponding u_dis file
+    udis_mat_large[:, -udis_mat.shape[1]:, -udis_mat.shape[2]:] = udis_mat
+
+    # Generate the contents of the extended U_dis file
+    return utils.generate_wannier_u_file_contents(udis_mat_large, kpts)
 
 
-class InputModel(BaseModel):
+class MergeInputModel(BaseModel):
     src_files: List[Tuple[calculators.Wannier90Calculator, Path]]
     dst_file: Path
 
@@ -131,13 +118,13 @@ class InputModel(BaseModel):
         arbitrary_types_allowed = True
 
 
-class OutputModel(BaseModel):
+class MergeOutputModel(BaseModel):
     dst_file: Path
 
 
 class MergeProcess(Process):
-    _input_model = InputModel
-    _output_model = OutputModel
+    _input_model = MergeInputModel
+    _output_model = MergeOutputModel
 
     def __init__(self, merge_function: Callable[[List[List[str]]], List[str]], **kwargs):
         self.merge_function = merge_function
@@ -153,7 +140,61 @@ class MergeProcess(Process):
         self.outputs = self._output_model(dst_file=self.inputs.dst_file)
 
 
+class ExtendInputModel(BaseModel):
+    src_file: Tuple[calculators.Wannier90Calculator, Path]
+    dst_file: Path
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+class ExtendOutputModel(BaseModel):
+    dst_file: Path
+
+
+class ExtendProcess(Process):
+    _input_model = ExtendInputModel
+    _output_model = ExtendOutputModel
+
+    def __init__(self, extend_function: Callable[[List[str]], List[str]], **kwargs):
+        self.extend_function = extend_function
+        super().__init__(**kwargs)
+
+    def _run(self):
+
+        filecontent = get_content(self.inputs.src_file[0], self.inputs.src_file[1])
+
+        extended_filecontent = self.extend_function(filecontent)
+
+        write_content(self.inputs.dst_file, extended_filecontent)
+
+        self.outputs = self._output_model(dst_file=self.inputs.dst_file)
+
+
+class CopyInputModel(BaseModel):
+    src_file: Tuple[calculators.Wannier90Calculator, Path]
+    dst_file: Path
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+class CopyOutputModel(BaseModel):
+    dst_file: Path
+
+
+class CopyProcess(Process):
+    _input_model = CopyInputModel
+    _output_model = CopyOutputModel
+
+    def _run(self):
+        filecontent = get_content(self.inputs.src_file[0], self.inputs.src_file[1])
+        write_content(self.inputs.dst_file, extended_filecontent)
+        self.outputs = self._output_model(dst_file=self.inputs.dst_file)
+
+
 def get_content(calc: calculators.Calc | Process, relpath: Path) -> List[str]:
+    assert calc.directory is not None
     with open(calc.directory / relpath, 'r') as f:
         flines = f.readlines()
     return flines

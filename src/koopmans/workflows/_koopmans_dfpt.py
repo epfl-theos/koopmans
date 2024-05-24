@@ -13,7 +13,7 @@ from typing import Dict
 from koopmans import pseudopotentials, utils
 from koopmans.bands import Bands
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
-                                  Wann2KCCalculator)
+                                  Wann2KCCalculator, Wannier90Calculator)
 
 from ._workflow import Workflow
 
@@ -145,7 +145,11 @@ class KoopmansDFPTWorkflow(Workflow):
                     self.calculator_parameters[key].write_u_matrices = True
                     self.calculator_parameters[key].write_xyz = True
             wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True, scf_kgrid=self._scf_kgrid)
-            wf_workflow.run()
+            wf_workflow.run(subdirectory='wannier')
+
+            # Store the NSCF calculation because it uses nosym, so we can use its outdir for subsequent calculations
+            init_pw = [c for c in self.calculations if isinstance(
+                c, PWCalculator) and c.parameters.calculation == 'nscf'][-1]
 
         else:
             # Run PW
@@ -163,18 +167,12 @@ class KoopmansDFPTWorkflow(Workflow):
             with utils.chdir('init'):
                 pw_workflow.run()
 
-        # Copy the outdir to the base directory
-        base_outdir = self.calculator_parameters['pw'].outdir
-        base_outdir.mkdir(exist_ok=True)
-        scf_calcs = [c for c in self.calculations if isinstance(c, PWCalculator) and c.parameters.calculation == 'scf']
-        init_scf = scf_calcs[-1]
-        # if self.parameters.from_scratch and init_outdir != base_outdir:
-        #     utils.symlink(f'{init_outdir}/*', base_outdir)
+            init_pw = pw_workflow.calculations[0]
 
         # Convert from wannier to KC
         self.print('Conversion to Koopmans format', style='subheading')
         wann2kc_calc = self.new_calculator('wann2kc')
-        self.link(init_scf, init_scf.parameters.outdir, wann2kc_calc, wann2kc_calc.parameters.outdir)
+        self.link(init_pw, init_pw.parameters.outdir, wann2kc_calc, wann2kc_calc.parameters.outdir)
         self.run_calculator(wann2kc_calc)
 
         # Calculate screening parameters
@@ -185,10 +183,16 @@ class KoopmansDFPTWorkflow(Workflow):
                 # Group the bands by spread
                 self.bands.assign_groups(sort_by='spread', allow_reassignment=True)
 
-                if len(self.bands.to_solve) == len(self.bands):
+                if len(self.bands.to_solve) == len(self.bands) and False:
                     # If there is no orbital grouping, do all orbitals in one calculation
                     # 1) Create the calculator
                     kc_screen_calc = self.new_calculator('kc_screen')
+                    self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.save'),
+                              kc_screen_calc, kc_screen_calc.parameters.outdir / (kc_screen_calc.parameters.prefix + '.save'), symlink=True)
+                    self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.xml'),
+                              kc_screen_calc, kc_screen_calc.parameters.outdir / (kc_screen_calc.parameters.prefix + '.xml'), symlink=True)
+                    self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / 'kcw', kc_screen_calc,
+                              kc_screen_calc.parameters.outdir / 'kcw', recursive_symlink=True)
 
                     # 2) Run the calculator
                     self.run_calculator(kc_screen_calc)
@@ -202,7 +206,13 @@ class KoopmansDFPTWorkflow(Workflow):
                     # 1) Create the calculators (in subdirectories)
                     for band in self.bands.to_solve:
                         kc_screen_calc = self.new_calculator('kc_screen', i_orb=band.index)
-                        kc_screen_calc.directory /= f'band_{band.index}'
+                        kc_screen_calc.prefix += f'band_{band.index}'
+                        self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.save'),
+                                  kc_screen_calc, kc_screen_calc.parameters.outdir / (kc_screen_calc.parameters.prefix + '.save'), symlink=True)
+                        self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.xml'),
+                                  kc_screen_calc, kc_screen_calc.parameters.outdir / (kc_screen_calc.parameters.prefix + '.xml'), symlink=True)
+                        self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / 'kcw', kc_screen_calc,
+                                  kc_screen_calc.parameters.outdir / 'kcw', recursive_symlink=True)
                         kc_screen_calcs.append(kc_screen_calc)
 
                     # 2) Run the calculators (possibly in parallel)
@@ -264,27 +274,25 @@ class KoopmansDFPTWorkflow(Workflow):
 
         calc = super().new_calculator(calc_presets)
 
-        calc.prefix = 'kc'
+        calc.prefix = calc_presets
         calc.parameters.prefix = 'kc'
         calc.parameters.outdir = 'TMP'
-        calc.parameters.seedname = 'wann'
+        if all(self.atoms.pbc):
+            calc.parameters.seedname = [c for c in self.calculations if isinstance(c, Wannier90Calculator)][-1].prefix
+        else:
+            raise NotImplementedError()
         calc.parameters.spin_component = 1
         calc.parameters.kcw_at_ks = not all(self.atoms.pbc)
         calc.parameters.read_unitary_matrix = all(self.atoms.pbc)
 
         if calc_presets == 'wann2kc':
-            if all(self.atoms.pbc):
-                calc.directory = 'wannier'
-            else:
-                calc.directory = 'init'
+            pass
         elif calc_presets == 'kc_screen':
-            calc.directory = 'screening'
             # If eps_inf is not provided in the kc_wann:screen subdictionary but there is a value provided in the
             # workflow parameters, adopt that value
             if self.parameters.eps_inf is not None and calc.parameters.eps_inf is None and all(self.atoms.pbc):
                 calc.parameters.eps_inf = self.parameters.eps_inf
         else:
-            calc.directory = 'hamiltonian'
             calc.parameters.do_bands = all(self.atoms.pbc)
             calc.alphas = self.bands.alphas
 
@@ -303,25 +311,13 @@ class KoopmansDFPTWorkflow(Workflow):
         calc.parameters.have_empty = have_empty
         calc.parameters.has_disentangle = has_disentangle
 
+        # Provide the rotation matrices and the wannier centers if required
+        if all(self.atoms.pbc):
+            for process in self.processes:
+                self.link(process, process.outputs.dst_file, calc, process.outputs.dst_file, symlink=True)
+
         # Apply any additional calculator keywords passed as kwargs
         for k, v in kwargs.items():
             setattr(calc.parameters, k, v)
 
         return calc
-
-    def run_calculator(self, calc):
-        # Create this (possibly nested) directory
-        calc.directory.mkdir(parents=True, exist_ok=True)
-
-        # Provide the rotation matrices and the wannier centers
-        if all(self.atoms.pbc):
-            utils.symlink(f'wannier/occ/wann_u.mat', f'{calc.directory}/', exist_ok=True)
-            utils.symlink(f'wannier/emp/wann_u.mat', f'{calc.directory}/wann_emp_u.mat', exist_ok=True)
-            if Path('wannier/emp/wann_u_dis.mat').exists():
-                utils.symlink(f'wannier/emp/wann_u_dis.mat',
-                              f'{calc.directory}/wann_emp_u_dis.mat', exist_ok=True)
-            utils.symlink(f'wannier/occ/wann_centres.xyz', f'{calc.directory}/', exist_ok=True)
-            utils.symlink(f'wannier/emp/wann_centres.xyz',
-                          f'{calc.directory}/wann_emp_centres.xyz', exist_ok=True)
-
-        super().run_calculator(calc)

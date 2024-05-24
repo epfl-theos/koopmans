@@ -86,7 +86,7 @@ class CalculatorExt():
         self.skip_qc = skip_qc
 
         # Prepare a dictionary to store a record of linked files
-        self._linked_files: Dict[str, Tuple[CalculatorExt | None, Path]] = {}
+        self._linked_files: Dict[str, Tuple[CalculatorExt | None, Path, bool, bool]] = {}
 
     def __repr__(self):
         entries = []
@@ -95,7 +95,8 @@ class CalculatorExt():
         entries.append(f'prefix={self.prefix}')
 
         # directory
-        entries.append(f'directory={os.path.relpath(self.directory, ".")}')
+        if self.directory is not None:
+            entries.append(f'directory={os.path.relpath(self.directory, ".")}')
 
         entries.append(f'parameters={self.parameters.briefrepr()}')
 
@@ -122,14 +123,12 @@ class CalculatorExt():
         return self._directory
 
     @directory.setter
-    def directory(self, value: Union[Path, str]):
+    def directory(self, value: Path | str | None):
+        if value is None or value in ['', '.', 'None']:
+            return
         if not isinstance(value, Path):
             value = Path(value)
-        # Insist on directory being an absolute path
-        self._directory = value.resolve()
-
-        # Update parameters' record of self.directory
-        self.parameters.directory = self._directory
+        self._directory = value
 
     def calculate(self):
         """Generic function for running a calculator"""
@@ -161,18 +160,31 @@ class CalculatorExt():
 
         This function is called in _pre_calculate() i.e. immediately before a calculation is run.
         """
-        for dest_filename, (src_calc, src_filename) in self._linked_files.items():
+        for dest_filename, (src_calc, src_filename, symlink, recursive_symlink) in self._linked_files.items():
+            # Convert to absolute paths
             if src_calc is None:
                 src_filename = src_filename.resolve()
             else:
                 src_filename = (src_calc.directory / src_filename).resolve()
+            dest_filename = (self.directory / dest_filename).resolve()
+
+            # Sanity checks
             if not src_filename.exists():
                 raise FileNotFoundError(
                     f'Tried to link {src_filename} with the {self.prefix} calculator but it does not exist')
-            dest_filename = (self.directory / dest_filename).resolve()
+
+            # Create the copy/symlink
             if not dest_filename.exists() and not dest_filename.is_symlink():
                 dest_filename.parent.mkdir(parents=True, exist_ok=True)
-                utils.symlink(src_filename, dest_filename)
+                if recursive_symlink:
+                    assert src_filename.is_dir(), 'recursive_symlink=True requires src to be a directory'
+                    utils.symlink_tree(src_filename, dest_filename)
+                elif symlink:
+                    utils.symlink(src_filename, dest_filename)
+                else:
+                    utils.copy(src_filename, dest_filename)
+            else:
+                raise FileExistsError(f'{dest_filename} already exists')
 
     def _pre_calculate(self):
         """Perform any necessary pre-calculation steps before running the calculation"""
@@ -261,13 +273,13 @@ class CalculatorExt():
             setattr(calc, k.lstrip('_'), v)
         return calc
 
-    def link_file(self, src_calc: CalculatorExt | None, src_filename: Path, dest_filename: Path):
+    def link_file(self, src_calc: CalculatorExt | None, src_filename: Path, dest_filename: Path, symlink: bool = False, recursive_symlink: bool = False):
         if src_filename.is_absolute() and src_calc is not None:
             raise ValueError(f'"src_filename" in {self.__class__.__name__}.link_file() must be a relative path if a '
                              f'"src_calc" is provided')
         if dest_filename.is_absolute():
             raise ValueError(f'"dest_filename" in {self.__class__.__name__}.link_file() must be a relative path')
-        self._linked_files[str(dest_filename)] = (src_calc, src_filename)
+        self._linked_files[str(dest_filename)] = (src_calc, src_filename, symlink, recursive_symlink)
 
 
 class CalculatorABC(ABC, Generic[TCalc]):
