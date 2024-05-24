@@ -35,7 +35,7 @@ from ase.dft.kpoints import BandPath
 from ase.spectrum.band_structure import BandStructure
 from numpy import typing as npt
 
-from koopmans import settings, utils
+from koopmans import processes, settings, utils
 
 
 def sanitize_filenames(filenames: Union[str, Path, List[str], List[Path]], ext_in: str, ext_out: str) -> List[Path]:
@@ -86,7 +86,7 @@ class CalculatorExt():
         self.skip_qc = skip_qc
 
         # Prepare a dictionary to store a record of linked files
-        self._linked_files: Dict[str, Tuple[CalculatorExt | None, Path, bool, bool]] = {}
+        self._linked_files: Dict[str, Tuple[CalculatorExt | processes.Process | None, Path, bool, bool]] = {}
 
     def __repr__(self):
         entries = []

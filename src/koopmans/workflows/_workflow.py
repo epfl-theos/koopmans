@@ -947,7 +947,8 @@ class Workflow(ABC):
         if dest_path.is_absolute():
             raise ValueError(f'"dest_path" in {self.__class__.__name__}.link() must be a relative path')
 
-        dest_calc.link_file(src_calc, src_path, dest_path, symlink=symlink, recursive_symlink=recursive_symlink)
+        dest_calc.link_file(src_calc, src_path, dest_path, symlink=symlink,  # type: ignore
+                            recursive_symlink=recursive_symlink)
 
     def print(self, text: str = '', style: str = 'body', **kwargs: Any):
         if style == 'body':
@@ -960,6 +961,7 @@ class Workflow(ABC):
             else:
                 raise ValueError(f'Invalid choice "{style}" for style; must be heading/subheading/body')
             assert kwargs.get('end', '\n') == '\n'
+            utils.indented_print()
             utils.indented_print(str(text), self.print_indent, **kwargs)
             utils.indented_print(underline * len(text), self.print_indent, **kwargs)
 
@@ -1011,28 +1013,27 @@ class Workflow(ABC):
                     b.alpha_history = [b.alpha]
                 b.error_history = []
 
-        try:
-            if subdirectory is not None:
-                # Prepend the step counter to the subdirectory name
-                self.parent._step_counter += 1
-                subdirectory_path = Path(f'{self.parent._step_counter:02}-{subdirectory}')
-                if self.parameters.from_scratch and subdirectory_path.is_dir():
-                    shutil.rmtree(subdirectory_path)
-                # Update directories
-                for key in self.calculator_parameters.keys():
-                    params = self.calculator_parameters[key]
-                    for setting in params.are_paths:
-                        if setting == 'pseudo_dir':
-                            continue
-                        path = getattr(params, setting, None)
-                        if path is not None and Path.cwd() in path.parents:
-                            new_path = subdirectory_path.resolve() / os.path.relpath(path)
-                            setattr(params, setting, new_path)
+        subdirectory = self.__class__.__name__.lower() if subdirectory is None else subdirectory
 
-                # Run the workflow
-                with utils.chdir(subdirectory):
-                    yield
-            else:
+        try:
+            # Prepend the step counter to the subdirectory name
+            self.parent._step_counter += 1
+            subdirectory_path = Path(f'{self.parent._step_counter:02}-{subdirectory}')
+            if self.parameters.from_scratch and subdirectory_path.is_dir():
+                shutil.rmtree(subdirectory_path)
+            # Update directories
+            for key in self.calculator_parameters.keys():
+                params = self.calculator_parameters[key]
+                for setting in params.are_paths:
+                    if setting == 'pseudo_dir':
+                        continue
+                    path = getattr(params, setting, None)
+                    if path is not None and Path.cwd() in path.parents:
+                        new_path = subdirectory_path.resolve() / os.path.relpath(path)
+                        setattr(params, setting, new_path)
+
+            # Run the workflow
+            with utils.chdir(subdirectory_path):
                 yield
         finally:
             # ... and will prevent inheritance of from_scratch
