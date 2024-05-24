@@ -818,6 +818,9 @@ class Workflow(ABC):
                     if isinstance(qe_calc, calculators.PhCalculator):
                         qe_calc.read_dynG()
                     return False
+                else:
+                    # Remove the directory in anticipation of starting again
+                    shutil.rmtree(qe_calc.directory)
 
         # Update postfix if relevant
         if self.parameters.npool:
@@ -850,6 +853,9 @@ class Workflow(ABC):
             if not self.silent:
                 self.print(' done')
 
+            # If we reached here, all future calculations should be performed from scratch
+            self.parameters.from_scratch = True
+
         return
 
     def _post_run_calculator(self, calc: calculators.Calc) -> None:
@@ -862,9 +868,6 @@ class Workflow(ABC):
         # Ensure we inherit any modifications made to the atoms object
         if calc.atoms != self.atoms:
             self.atoms = calc.atoms
-
-        # If we reached here, all future calculations should be performed from scratch
-        self.parameters.from_scratch = True
 
         return
 
