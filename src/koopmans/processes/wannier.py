@@ -131,11 +131,11 @@ class MergeProcess(Process):
         super().__init__(**kwargs)
 
     def _run(self):
-        filecontents = [get_content(calc, relpath) for calc, relpath in self.inputs.src_files]
+        filecontents = [utils.get_content(calc, relpath) for calc, relpath in self.inputs.src_files]
 
         merged_filecontents = self.merge_function(filecontents)
 
-        write_content(self.inputs.dst_file, merged_filecontents)
+        utils.write_content(self.inputs.dst_file, merged_filecontents)
 
         self.outputs = self._output_model(dst_file=self.inputs.dst_file)
 
@@ -162,11 +162,11 @@ class ExtendProcess(Process):
 
     def _run(self):
 
-        filecontent = get_content(self.inputs.src_file[0], self.inputs.src_file[1])
+        filecontent = utils.get_content(self.inputs.src_file[0], self.inputs.src_file[1])
 
         extended_filecontent = self.extend_function(filecontent)
 
-        write_content(self.inputs.dst_file, extended_filecontent)
+        utils.write_content(self.inputs.dst_file, extended_filecontent)
 
         self.outputs = self._output_model(dst_file=self.inputs.dst_file)
 
@@ -188,19 +188,6 @@ class CopyProcess(Process):
     _output_model = CopyOutputModel
 
     def _run(self):
-        filecontent = get_content(self.inputs.src_file[0], self.inputs.src_file[1])
-        write_content(self.inputs.dst_file, extended_filecontent)
+        filecontent = utils.get_content(self.inputs.src_file[0], self.inputs.src_file[1])
+        utils.write_content(self.inputs.dst_file, extended_filecontent)
         self.outputs = self._output_model(dst_file=self.inputs.dst_file)
-
-
-def get_content(calc: calculators.Calc | Process, relpath: Path) -> List[str]:
-    assert calc.directory is not None
-    with open(calc.directory / relpath, 'r') as f:
-        flines = f.readlines()
-    return flines
-
-
-def write_content(dst_file: Path, merged_filecontents: List[str]):
-    dst_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(dst_file, 'w') as f:
-        f.write('\n'.join(merged_filecontents))

@@ -12,7 +12,7 @@ import shutil
 import subprocess
 from glob import glob
 from pathlib import Path
-from typing import Optional, Union
+from typing import List, Optional, Protocol, Union
 
 
 def system_call(command: str, check_ierr: bool = True):
@@ -177,3 +177,20 @@ def find_executable(program: Union[Path, str]) -> Optional[Path]:
             return exe_file
 
     return None
+
+
+class HasDirectoryAttr(Protocol):
+    directory: Path | None
+
+
+def get_content(source: HasDirectoryAttr, relpath: Path) -> List[str]:
+    assert source.directory is not None
+    with open(source.directory / relpath, 'r') as f:
+        flines = f.readlines()
+    return flines
+
+
+def write_content(dst_file: Path, merged_filecontents: List[str]):
+    dst_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(dst_file, 'w') as f:
+        f.write('\n'.join(merged_filecontents))
