@@ -8,6 +8,7 @@ Written by Edward Linscott Feb 2021
 
 import os
 
+from aiida_koopmans.helpers import from_wann2kc_to_KcwCalculation
 from ase import Atoms
 from ase.calculators.espresso import Wann2KC
 
@@ -37,3 +38,18 @@ class Wann2KCCalculator(KCWannCalculator, Wann2KC, CalculatorABC):
 
     def is_complete(self):
         return self.results['job_done']
+       
+    # MB mod:
+    def calculate(self):
+        
+        if self.mode == "ase":
+            return super().calculate()
+        else:
+            builder = from_wann2kc_to_KcwCalculation(wann2kc_calculator=self)
+            from aiida.engine import run_get_node, submit
+            running = run_get_node(builder)
+            
+            # once the running if completed
+            self.calculation = running[-1]
+            
+            #self.read_results(wchain=self.calculation)

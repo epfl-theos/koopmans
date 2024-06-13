@@ -21,7 +21,6 @@ from ase.units import Bohr
 from koopmans.cell import (cell_follows_qe_conventions, cell_to_parameters,
                            parameters_to_cell)
 
-
 def parse_dict(dct: Dict[str, Any]) -> Dict[str, Any]:
     '''
 
@@ -181,8 +180,8 @@ def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '
             print(substring, sep=sep, end=end, flush=flush)
     print_call_end = end
 
-
-def write_wannier_hr_file(fname: Path, ham: np.ndarray, rvect: List[List[int]], weights: List[int]) -> None:
+                                                                                                        # MB mod
+def write_wannier_hr_file(fname: Path, ham: np.ndarray, rvect: List[List[int]], weights: List[int], aiida_tag: str = None) -> None:
 
     nrpts = len(rvect)
     num_wann = np.size(ham, -1)
@@ -202,6 +201,12 @@ def write_wannier_hr_file(fname: Path, ham: np.ndarray, rvect: List[List[int]], 
         flines += [f'{r[0]:5d}{r[1]:5d}{r[2]:5d}{j+1:5d}{i+1:5d}{val.real:12.6f}{val.imag:12.6f}' for i,
                    row in enumerate(ham_block) for j, val in enumerate(row)]
 
+    # MB mod
+    if aiida_tag:
+        from aiida_koopmans.data.utils import generate_singlefiledata
+        # Write the Hamiltonian to file    
+        return generate_singlefiledata(aiida_tag, flines)
+        
     # Make sure the parent directory exists
     fname.parent.mkdir(exist_ok=True, parents=True)
 
@@ -209,8 +214,8 @@ def write_wannier_hr_file(fname: Path, ham: np.ndarray, rvect: List[List[int]], 
     with open(fname, 'w') as fd:
         fd.write('\n'.join(flines))
 
-
-def read_wannier_hr_file(fname: Path) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
+                                            # MB mod:
+def read_wannier_hr_file(fname: Path, file: list = None) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
     """
     Reads in a hr file, but does not reshape the hamiltonian (because we want to reshape different Hamiltonians
     differently)
@@ -223,8 +228,13 @@ def read_wannier_hr_file(fname: Path) -> Tuple[np.ndarray, np.ndarray, List[int]
 
     """
 
-    with open(fname, 'r') as fd:
-        lines = fd.readlines()
+    # MB mod
+    if file:
+        fname = 'aiida'
+        lines = file
+    elif fname:
+        with open(fname, 'r') as fd:
+            lines = fd.readlines()
 
     if 'written on' in lines[0].lower():
         pass
@@ -264,11 +274,16 @@ def read_wannier_hr_file(fname: Path) -> Tuple[np.ndarray, np.ndarray, List[int]
 
     return hr_np, rvect_np, weights, nrpts
 
+                                      # MB mod:
+def read_wannier_u_file(fname: Path, file: list = None) -> Tuple[npt.NDArray[np.complex_], npt.NDArray[np.float_], int]:
 
-def read_wannier_u_file(fname: Path) -> Tuple[npt.NDArray[np.complex_], npt.NDArray[np.float_], int]:
-
-    with open(fname, 'r') as fd:
-        lines = fd.readlines()
+    # MB mod
+    if file:
+        fname = 'aiida'
+        lines = file
+    elif fname:
+        with open(fname, 'r') as fd:
+            lines = fd.readlines()
 
     nk, m, n = [int(x) for x in lines[1].split()]
 
@@ -286,7 +301,8 @@ def read_wannier_u_file(fname: Path) -> Tuple[npt.NDArray[np.complex_], npt.NDAr
     return umat, kpts, nk
 
 
-def write_wannier_u_file(fname: Path, umat: npt.NDArray[np.complex_], kpts: npt.NDArray[np.float_]):
+                                                                                                        # MB mod
+def write_wannier_u_file(fname: Path, umat: npt.NDArray[np.complex_], kpts: npt.NDArray[np.float_], aiida_tag: str = None):
 
     flines = [f' Written on {datetime.now().isoformat(timespec="seconds")}']
     flines.append(''.join([f'{x:12d}' for x in umat.shape]))
@@ -296,14 +312,25 @@ def write_wannier_u_file(fname: Path, umat: npt.NDArray[np.complex_], kpts: npt.
         flines.append(''.join([f'{k:15.10f}' for k in kpt]))
         flines += [f'{c.real:15.10f}{c.imag:15.10f}' for c in umatk.flatten()]
 
+    # MB mod
+    if aiida_tag:
+        from aiida_koopmans.data.utils import generate_singlefiledata
+        # Write the Hamiltonian to file    
+        return generate_singlefiledata(aiida_tag, flines)
+    
     with open(fname, 'w') as fd:
         fd.write('\n'.join(flines))
 
+                                             # MB mod:
+def read_wannier_centers_file(fname: Path, file: list = None):
 
-def read_wannier_centers_file(fname: Path):
-
-    with open(fname, 'r') as fd:
-        lines = fd.readlines()
+    # MB mod
+    if file:
+        fname = 'aiida'
+        lines = file
+    elif fname:
+        with open(fname, 'r') as fd:
+            lines = fd.readlines()
 
     centers = []
     symbols = []
@@ -316,8 +343,8 @@ def read_wannier_centers_file(fname: Path):
             positions.append([float(x) for x in line.split()[1:]])
     return centers, Atoms(symbols=symbols, positions=positions, pbc=True)
 
-
-def write_wannier_centers_file(fname: Path, centers: List[List[float]], atoms: Atoms):
+                                                                                            # MB mod
+def write_wannier_centers_file(fname: Path, centers: List[List[float]], atoms: Atoms, aiida_tag: str = None):
     length = len(centers) + len(atoms)
 
     # Add the header
@@ -332,6 +359,12 @@ def write_wannier_centers_file(fname: Path, centers: List[List[float]], atoms: A
     for atom in atoms:
         flines.append(f'{atom.symbol: <5}' + ''.join([f'{x:16.8f}' for x in atom.position]))
 
+    # MB mod
+    if aiida_tag:
+        from aiida_koopmans.data.utils import generate_singlefiledata
+        # Write the Hamiltonian to file    
+        return generate_singlefiledata(aiida_tag, flines)
+    
     # Write to file
     with open(fname, 'w') as fd:
         fd.write('\n'.join(flines))

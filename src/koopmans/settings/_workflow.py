@@ -117,7 +117,11 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     list, None, None),
             Setting('eps_cavity',
                     'a list of epsilon_infinity values for the cavity in dscf calculations',
-                    list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None)]
+                    list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None),
+            # MB mod:
+            Setting('mode',
+                    'if you want ot use AiiDA, set it to "aiida". For the standard local run, do not set it.',
+                    (dict,str),"ase",None),]
 
         # Defer storing init_empty_orbitals...
         init_empty_orbitals = kwargs.pop('init_empty_orbitals', 'same')
@@ -126,7 +130,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
 
         # ... until we are sure that init_orbitals has been defined
         self.init_empty_orbitals = init_empty_orbitals
-
+        
     @property
     def _other_valid_keywords(self):
         return []

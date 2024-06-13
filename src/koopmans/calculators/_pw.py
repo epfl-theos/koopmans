@@ -9,6 +9,7 @@ Written by Edward Linscott Sep 2020
 import os
 
 import numpy as np
+from aiida_koopmans.helpers import get_builder_from_ase
 from ase import Atoms
 from ase.calculators.espresso import Espresso
 from ase.dft.kpoints import BandPath
@@ -37,14 +38,53 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         if not isinstance(self.command, Command):
             self.command = ParallelCommandWithPostfix(os.environ.get(
                 'ASE_ESPRESSO_COMMAND', self.command))
-
+ 
+    # MB mod: this is taken from https://github.com/elinscott/ase_koopmans/blob/master/ase/calculators/espresso/_espresso.py
+    def read_results(self, wchain=None):
+        from ase import io
+        if not wchain:
+            output = io.read(self.label + '.pwo')
+        else:
+            import pathlib
+            import tempfile
+            
+            # Create temporary directory. However, see aiida-wannier90-workflows/src/aiida_wannier90_workflows/utils/workflows/pw.py for more advanced and smart ways.
+            retrieved = wchain.outputs.retrieved
+            with tempfile.TemporaryDirectory() as dirpath:
+                # Open the output file from the AiiDA storage and copy content to the temporary file
+                for filename in retrieved.base.repository.list_object_names():
+                    if '.out' in filename:
+                        # Create the file with the desired name
+                        temp_file = pathlib.Path(dirpath) / filename
+                        with retrieved.open(filename, 'rb') as handle:
+                            temp_file.write_bytes(handle.read())
+                    
+                        output = io.read(temp_file)
+        
+        self.calc = output.calc
+        self.results = output.calc.results
+        if hasattr(output.calc, 'kpts'):
+            self.kpts = output.calc.kpts
+    
     def calculate(self):
         # Update ibrav and celldms
         if cell_follows_qe_conventions(self.atoms.cell):
             self.parameters.update(**cell_to_parameters(self.atoms.cell))
         else:
             self.parameters.ibrav = 0
-        super().calculate()
+        
+        # MB mod
+        if not self.mode == "ase":
+            builder = get_builder_from_ase(pw_calculator=self)
+            from aiida.engine import run_get_node, submit
+            running = run_get_node(builder)
+            
+            # once the running if completed
+            self.wchain = running[-1]
+            
+            self.read_results(wchain=self.wchain)
+        else:
+            super().calculate()
 
     def _calculate(self):
         if self.parameters.calculation == 'bands':

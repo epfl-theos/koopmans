@@ -72,12 +72,15 @@ class DFTPWWorkflow(DFTWorkflow):
         calc.parameters.restart_mode = 'from_scratch'
 
         # Remove old directories
-        if self.parameters.from_scratch:
+        if self.parameters.from_scratch and calc.mode == 'ase':
             utils.system_call(f'rm -r {calc.parameters.outdir} 2>/dev/null', False)
 
         # Run the calculator
         self.run_calculator(calc)
 
+        # MB mod
+        if not calc.mode == "ase": self.dft_wchains[f"{calc.parameters.calculation}"] = calc.wchain
+        
         return
 
 
