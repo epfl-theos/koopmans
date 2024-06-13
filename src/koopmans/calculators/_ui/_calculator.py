@@ -172,12 +172,14 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         return np.ones(len(self.parameters.kpath.kpts))
 
     def get_number_of_spins(self):
-        return 1
+        if 'band structure' not in self.results:
+            raise ValueError('Cannot tell the number of spins without a band structure in the results dictionary')
+        return len(self.results['band structure'].energies)
 
     def get_eigenvalues(self, kpt=None, spin=0):
-        if spin != 0:
-            raise NotImplementedError(
-                f'Unfolding and interpolating calculator is not implemented for spin-polarized systems')
+        # if spin != 0:
+        #     raise NotImplementedError(
+        #         f'Unfolding and interpolating calculator is not implemented for spin-polarized systems')
 
         if 'band structure' not in self.results:
             raise ValueError('You must first calculate the band structure before you try to access the KS eigenvalues')
@@ -646,6 +648,8 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         self.results['dos'] = DOS(self, width=self.parameters.plotting.degauss, window=(
             self.parameters.plotting.Emin, self.parameters.plotting.Emax),
             npts=self.parameters.plotting.nstep + 1)
+
+        import ipdb; ipdb.set_trace()
 
         return
 
