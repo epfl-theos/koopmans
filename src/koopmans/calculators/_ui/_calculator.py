@@ -649,8 +649,6 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             self.parameters.plotting.Emin, self.parameters.plotting.Emax),
             npts=self.parameters.plotting.nstep + 1)
 
-        import ipdb; ipdb.set_trace()
-
         return
 
     def correct_phase(self) -> NDArray[np.complex_]:
