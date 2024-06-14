@@ -19,12 +19,14 @@ First, let us inspect the input file:
   :emphasize-lines: 4,6,10
 
 Here we tell the code to calculate the KI bandstructure using the DSCF supercell cell approach. We will not actually calculate the screening parameters in this tutorial (because this calculation takes a bit of time) so we have set ``calculate_alpha`` to ``False`` and we have provided some reasonable screening parameters in the ``alpha_guess`` field. This value is given by the inverse of the (average of the) macroscopic dielectric function computed at DFT level. 
-CrI3 in its bulk low temperature phase is a Ferromagnetic semiconductor with 3 umpaired d electrons on each of the two Cr atoms in the primitive cell. We provide this information to Koopmans by setting ``spin_polarized`` to ``true`` and by specify the expected total magnetization in the calculator parameters. We also provide some initial values for the starting_magnetization on the Cr and I sites: 
+
+CrI3 in its bulk low temperature phase is a ferromagnetic semiconductor with 3 unpaired d electrons on each of the two Cr atoms in the primitive cell. 
+We provide this information to Koopmans by setting ``spin_polarized`` to ``true`` and by specify the expected total magnetization in the calculator parameters. We also provide some initial values for the starting_magnetization on the Cr and I sites: 
 
 .. literalinclude:: ../../tutorials/tutorial_6/cri3.json
   :lines: 45-53
   :lineno-start: 45
-  :emphasize-lines: 47, 51, 52
+  :emphasize-lines: 3, 7,8
 
 
 The rest of the file contains the atomic coordinates, k-point configuration, and the Wannier projectors (one set for each spin channel), which we will discuss later.
