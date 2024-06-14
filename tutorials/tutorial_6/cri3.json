@@ -1,0 +1,80 @@
+{
+    "workflow": {
+        "task": "singlepoint",
+        "functional": "ki",
+        "base_functional": "lda",
+        "method": "dscf",
+        "init_orbitals": "mlwfs",
+        "calculate_alpha" : false,
+	"alpha_guess" : 0.122,
+        "pseudo_library": "pseudo_dojo_standard",
+        "gb_correction" : true,
+        "from_scratch": true,
+	"spin_polarized": true
+    },
+    "atoms": {
+       "cell_parameters": {
+         "periodic": true,
+         "units": "angstrom",
+         "vectors": [[ 3.4335000000,   1.9823321493,    6.6023333333],
+                     [-3.4335000000,   1.9823321493,    6.6023333333],
+                     [ 0.0000000000,  -3.9646642985,    6.6023333333]]
+        },
+        "atomic_positions": {
+            "units": "crystal",
+            "positions": [
+		[ "Cr",     0.333676666700,     0.333676666700,   -0.666323333300],
+                [ "Cr",     0.666323333300,     0.666323333300,   -0.333676666700],
+                [ "I",      0.569940000100,     0.922230000000,   -0.729070000000],
+                [ "I",      0.922230000000,     0.270930000000,   -0.430059999900],
+                [ "I",      0.270930000000,     0.569940000100,   -0.077770000000],
+                [ "I",      0.430059999900,     0.077770000000,   -0.270930000000],
+		[ "I",      1.077770000000,    -0.270930000000,   -0.569940000100],
+		[ "I",      0.729070000000,    -0.569940000100,    0.077770000000]
+
+            ]
+        }
+    },
+    "kpoints": {
+        "grid": [
+            2,
+            2,
+            2
+        ],
+	"path": "GLFG",
+	"density": 30
+    },
+    "calculator_parameters": {
+        "ecutwfc": 30.0,
+	"tot_magnetization": 6,
+        "pw": {
+            "system": {
+                "nbnd": 42,
+                "starting_magnetization(1)":    3.5714285714e-01, 
+                "starting_magnetization(2)":   1.0000000000e-01
+            }
+        },
+        "w90": {
+	    "up":{
+            "projections": [
+               	[{"site": "Cr", "ang_mtm": "l=0"}], 
+               	[{"site": "Cr", "ang_mtm": "l=1"}], 
+                [{"site": "I",  "ang_mtm": "l=0"}], 
+                [{"site": "I",  "ang_mtm": "l=1"},"Cr:l=2,mr=1", "Cr:l=2,mr=4", "Cr:l=2,mr=5"],
+		["Cr:l=2,mr=2", "Cr:l=2,mr=3"]
+            ]
+        },
+	"down":{
+            "projections": [
+                [{"site": "Cr", "ang_mtm": "l=0"}],
+                [{"site": "Cr", "ang_mtm": "l=1"}],
+                [{"site": "I" , "ang_mtm": "l=0"}],
+                [{"site": "I" , "ang_mtm": "l=1"}],
+                ["Cr:l=2,mr=1", "Cr:l=2,mr=4", "Cr:l=2,mr=5"],
+     		["Cr:l=2,mr=2", "Cr:l=2,mr=3"]
+            ]
+        }
+	}
+    }
+}
+
