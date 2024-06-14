@@ -13,7 +13,7 @@ ki_bs_shifted = ki_bs.subtract_reference()
 
 
 # Plot the two band structures
-ax = ki_bs_shifted.plot( spin=0, label='KI@LDA-up', color='tab:red', ls="-")
+ax = ki_bs_shifted.plot(spin=0, label='KI@LDA-up', color='tab:red', ls="-")
 ax = ki_bs_shifted.plot(ax=ax, spin=1, label='KI@LDA-down', color='tab:red', ls="--")
 
 ax.legend(loc='lower right', ncol=2, bbox_to_anchor=(1, 1))
