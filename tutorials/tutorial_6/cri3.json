@@ -6,8 +6,8 @@
         "method": "dscf",
         "init_orbitals": "mlwfs",
         "calculate_alpha" : false,
-	"alpha_guess" : 0.122,
-	"spin_polarized": true,
+        "alpha_guess" : 0.122,
+        "spin_polarized": true,
         "pseudo_library": "pseudo_dojo_standard"
     },
     "atoms": {
@@ -39,12 +39,12 @@
             2,
             2
         ],
-	"path": "GLFG",
-	"density": 30
+        "path": "GLFG",
+        "density": 30
     },
     "calculator_parameters": {
         "ecutwfc": 30.0,
-	"tot_magnetization": 6,
+        "tot_magnetization": 6,
         "pw": {
             "system": {
                 "nbnd": 42,
@@ -52,27 +52,27 @@
                 "starting_magnetization(2)":   1.0000000000e-01
             }
         },
-        "w90": {
-	    "up":{
-            "projections": [
-               	[{"site": "Cr", "ang_mtm": "l=0"}], 
-               	[{"site": "Cr", "ang_mtm": "l=1"}], 
-                [{"site": "I",  "ang_mtm": "l=0"}], 
-                [{"site": "I",  "ang_mtm": "l=1"},"Cr:l=2,mr=1", "Cr:l=2,mr=4", "Cr:l=2,mr=5"],
-		["Cr:l=2,mr=2", "Cr:l=2,mr=3"]
-            ]
-        },
-	"down":{
-            "projections": [
-                [{"site": "Cr", "ang_mtm": "l=0"}],
-                [{"site": "Cr", "ang_mtm": "l=1"}],
-                [{"site": "I" , "ang_mtm": "l=0"}],
-                [{"site": "I" , "ang_mtm": "l=1"}],
-                ["Cr:l=2,mr=1", "Cr:l=2,mr=4", "Cr:l=2,mr=5"],
-     		["Cr:l=2,mr=2", "Cr:l=2,mr=3"]
-            ]
+        "w90":
+            "up":{
+                "projections": [
+			[{"site": "Cr", "ang_mtm": "l=0"}], 
+			[{"site": "Cr", "ang_mtm": "l=1"}], 
+			[{"site": "I",  "ang_mtm": "l=0"}], 
+			[{"site": "I",  "ang_mtm": "l=1"},"Cr:l=2,mr=1", "Cr:l=2,mr=4", "Cr:l=2,mr=5"],
+			["Cr:l=2,mr=2", "Cr:l=2,mr=3"]
+                ]
+            },
+            "down":{
+                "projections": [
+			[{"site": "Cr", "ang_mtm": "l=0"}],
+			[{"site": "Cr", "ang_mtm": "l=1"}],
+			[{"site": "I" , "ang_mtm": "l=0"}],
+			[{"site": "I" , "ang_mtm": "l=1"}],
+			["Cr:l=2,mr=1", "Cr:l=2,mr=4", "Cr:l=2,mr=5"],
+			["Cr:l=2,mr=2", "Cr:l=2,mr=3"]
+                ]
+            }
         }
-	}
     }
 }
 

@@ -3,7 +3,7 @@
 Tutorial 6: the band structure of bulk CrI3
 =========================================================================
 
-In this tutorial we will calculate the band structure of the bulk ferromagnetic semiconductor CrI3 using supercell formulation of Koopmans. The input file for this tutorial can be downloaded :download:`here <../../tutorials/tutorial_6/cri3.json>`.
+In this tutorial we will calculate the band structure of the bulk ferromagnetic semiconductor CrI3 using the supercell formulation of Koopmans. The input file for this tutorial can be downloaded :download:`here <../../tutorials/tutorial_6/cri3.json>`.
 
 Calculating the Koopmans band structure
 ---------------------------------------
@@ -28,8 +28,14 @@ We provide this information to Koopmans by setting ``spin_polarized`` to ``true`
   :lineno-start: 45
   :emphasize-lines: 3, 7,8
 
+For a ferromagnetic systems two sets of Wannier projections need to be provided. This is specified in the wannier parameter splitting the ``w90`` list into an up and down blocks:
 
-The rest of the file contains the atomic coordinates, k-point configuration, and the Wannier projectors (one set for each spin channel), which we will discuss later.
+.. literalinclude:: ../../tutorials/tutorial_6/cri3.json
+  :lines: 55-75
+  :lineno-start: 55
+  :emphasize-lines: 2, 11
+
+The rest of the file contains the atomic coordinates and k-point configuration., 
 
 Running the calculation
 ^^^^^^^^^^^^^^^^^^^^^^^
