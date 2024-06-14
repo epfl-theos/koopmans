@@ -7,10 +7,8 @@
         "init_orbitals": "mlwfs",
         "calculate_alpha" : false,
 	"alpha_guess" : 0.122,
-        "pseudo_library": "pseudo_dojo_standard",
-        "gb_correction" : true,
-        "from_scratch": true,
-	"spin_polarized": true
+	"spin_polarized": true,
+        "pseudo_library": "pseudo_dojo_standard"
     },
     "atoms": {
        "cell_parameters": {
