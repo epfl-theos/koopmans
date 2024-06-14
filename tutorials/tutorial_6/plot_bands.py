@@ -19,6 +19,5 @@ ax = ki_bs_shifted.plot(ax=ax, spin=1, label='KI@LDA-down', color='tab:red', ls=
 ax.legend(loc='lower right', ncol=2, bbox_to_anchor=(1, 1))
 ax.set_ylim([-5, 5])
 
-#plt.show()
 plt.savefig('cri3_bandstructures.png')
 
