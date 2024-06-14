@@ -1,6 +1,6 @@
 .. _tutorial_6:
 
-Tutorial 3: the band structure of bulk CrI3
+Tutorial 6: the band structure of bulk CrI3
 =========================================================================
 
 In this tutorial we will calculate the band structure of the bulk ferromagnetic semiconductor CrI3 using supercell formulation of Koopmans. The input file for this tutorial can be downloaded :download:`here <../../tutorials/tutorial_6/cri3.json>`.
