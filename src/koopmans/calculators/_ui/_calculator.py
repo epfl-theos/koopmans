@@ -50,7 +50,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         self.atoms.calc = self
 
         # Intermediate variables
-        self.centers: NDArray[np.float_] = np.array([])
+        self.centers: NDArray[np.float64] = np.array([])
         self.spreads: List[float] = []
         self.phases: List[complex] = []
         self.hr: NDArray[np.complex128] = np.array([])
@@ -308,7 +308,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             self.phases = []
         return
 
-    def print_centers(self, centers: NDArray[np.float_] = np.array([])) -> None:
+    def print_centers(self, centers: NDArray[np.float64] = np.array([])) -> None:
         """
         print_centers simply prints out the centers in the following Xcrysden-readable format:
 
