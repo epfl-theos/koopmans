@@ -52,7 +52,7 @@
                 "starting_magnetization(2)":   1.0000000000e-01
             }
         },
-        "w90":
+        "w90":{
             "up":{
                 "projections": [
 			[{"site": "Cr", "ang_mtm": "l=0"}], 
