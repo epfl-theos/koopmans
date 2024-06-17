@@ -9,7 +9,7 @@
 import os
 import sys
 import locale
-locale.setlocale(locale.LC_ALL, 'en_US.utf8')
+locale.setlocale(locale.LC_ALL, 'en_US.UTF8')
 from calendar import month_name
 from datetime import date
 
