@@ -72,11 +72,7 @@
     Merging the occupied spin up band blocks... done
     Merging the occupied spin down band blocks... done
     Merging the empty spin down band blocks... done
-   Running init/dft_dummy...UserWarning: Small box parameters "nrb" not provided in input: these will be automatically set to safe default values. These values can probably be decreased, but this would require convergence tests.
-   Estimated real mesh dimension (nr1, nr2, nr3) = 108 108 108 
-   Small box mesh dimension (nr1b, nr2b, nr3b) = 24 24 24
-
- done
+   Running init/dft_dummy... done
    Running init/dft_init... done
 
   Calculating screening parameters
@@ -93,11 +89,7 @@
 
   Final KI calculation
   ====================
-   Running final/ki_final...UserWarning: Small box parameters "nrb" not provided in input: these will be automatically set to safe default values. These values can probably be decreased, but this would require convergence tests.
-   Estimated real mesh dimension (nr1, nr2, nr3) = 108 108 108 
-   Small box mesh dimension (nr1b, nr2b, nr3b) = 24 24 24
-
- done
+   Running final/ki_final... done
 
   
   Postprocessing
@@ -108,4 +100,3 @@
     Running emp_down/ki... done
 
  Workflow complete
-

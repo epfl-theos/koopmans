@@ -52,6 +52,11 @@
                 "starting_magnetization(2)":   1.0000000000e-01
             }
         },
+	"kcp": {
+            "nr1b" : 24,
+            "nr2b" : 24,
+            "nr3b" : 24
+	},
         "w90":{
             "up":{
                 "projections": [
