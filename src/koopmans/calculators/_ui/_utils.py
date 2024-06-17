@@ -33,7 +33,8 @@ def crys_to_cart(vec: NDArray[np.float64], trmat: NDArray[np.float64], typ: int)
     return vec_tr
 
 
-def extract_hr(hr: NDArray[np.complex128], rvect: NDArray[np.int_], nr1: int, nr2: int, nr3: int) -> NDArray[np.complex128]:
+def extract_hr(hr: NDArray[np.complex128], rvect: NDArray[np.int_],
+               nr1: int, nr2: int, nr3: int) -> NDArray[np.complex128]:
     """
     Function to select the Wannier Hamiltonian only on the primitive cell R-vectors.
     The Hamiltonian coming from a Wannier90 calculation with k-points is indeed
