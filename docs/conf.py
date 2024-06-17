@@ -8,6 +8,8 @@
 
 import os
 import sys
+import locale
+locale.setlocale(locale.LC_ALL, 'en_US.utf8')
 from calendar import month_name
 from datetime import date
 
@@ -83,7 +85,8 @@ class ChronoSortingStyle(BaseSortingStyle):
         def get_date(entry):
             month_lookup = list(month_name)
             year = int(entry.fields['year'])
-            month = month_lookup.index(entry.fields.get('month', 'January'))
+            default_month = month_lookup[0]
+            month = month_lookup.index(entry.fields.get('month', default_month))
             return date(year, month, 1)
         return sorted(entries, key=get_date)
 
