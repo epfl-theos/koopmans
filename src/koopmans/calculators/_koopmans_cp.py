@@ -63,7 +63,7 @@ def good_fft(nr: int) -> int:
     return nr
 
 
-def read_ham_file(filename: Path) -> np.ndarray[Any, np.dtype[np.cfloat]]:
+def read_ham_file(filename: Path) -> np.ndarray[Any, np.dtype[np.complex128]]:
     # Read a single hamiltonian XML file
     if not filename.exists():
         raise FileExistsError(f'{filename} does not exist')
