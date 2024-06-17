@@ -11,8 +11,6 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-    - run: locale -a
-    - run: locale
     - uses: actions/checkout@v3
     - uses: ammaraskar/sphinx-action@master
       with:
