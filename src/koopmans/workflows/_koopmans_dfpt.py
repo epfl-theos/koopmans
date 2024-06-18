@@ -300,13 +300,38 @@ class KoopmansDFPTWorkflow(Workflow):
             calc.alphas = self.bands.alphas
 
         if all(self.atoms.pbc):
-            nocc = self.bands.num(filled=True)
-            nemp = self.bands.num(filled=False)
+            import ipdb
+            ipdb.set_trace()
+            if self.parameters.spin_polarized:
+                if calc.parameters.spin_component == 1:
+                    ntot = self.projections.num_wann(spin='up')
+                    nocc = self.calculator_parameters['kcp'].nelup
+                    nemp = self.projections.num_wann(spin='up')-nocc
+                    nemp_pw = self.calculator_parameters['pw'].nbnd - nocc
+                else:
+                    ntot = self.projections.num_wann(spin='down')
+                    nocc = self.calculator_parameters['kcp'].neldw
+                    nemp = self.projections.num_wann(spin='down')-nocc
+                    nemp_pw = self.calculator_parameters['pw'].nbnd - nocc
+            else:
+                nocc = self.bands.num(filled=True)
+                nemp = self.bands.num(filled=False)
+                nemp_pw = self.calculator_parameters['pw'].nbnd - nocc
+
             have_empty = (nemp > 0)
-            has_disentangle = (self.projections.num_bands() != nocc + nemp)
+            #has_disentangle = (self.projections.num_bands() != nocc + nemp)
+            has_disentangle = (nemp != nemp_pw)
         else:
-            nocc = self.calculator_parameters['kcp'].nelec // 2
-            nemp = self.calculator_parameters['pw'].nbnd - nocc
+            if self.parameters.spin_polarized:
+                if calc.parameters.spin_component == 1:
+                    nocc = self.calculator_parameters['kcp'].nelup
+                    nemp = self.calculator_parameters['pw'].nbnd - nocc
+                else:
+                    nocc = self.calculator_parameters['kcp'].neldw
+                    nemp = self.calculator_parameters['pw'].nbnd - nocc
+            else:
+                nocc = self.calculator_parameters['kcp'].nelec // 2
+                nemp = self.calculator_parameters['pw'].nbnd - nocc
             have_empty = (nemp > 0)
             has_disentangle = False
         calc.parameters.num_wann_occ = nocc
