@@ -164,8 +164,7 @@ class KoopmansDFPTWorkflow(Workflow):
             pw_params.tot_magnetization = 0
 
             # Run the subworkflow
-            with utils.chdir('init'):
-                pw_workflow.run()
+            pw_workflow.run()
 
             init_pw = pw_workflow.calculations[0]
 
@@ -190,9 +189,8 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Calculate the Hamiltonian
         if self._perform_ham_calc:
-            self.print('Construction of the Hamiltonian', style='heading')
             kc_ham_calc = self.new_calculator('kc_ham', kpts=self.kpoints.path)
-
+            self.link(wann2kc_calc, wann2kc_calc.parameters.outdir, kc_ham_calc, kc_ham_calc.parameters.outdir)
             if self.parameters.calculate_alpha and self.parameters.dfpt_coarse_grid is None:
                 if kc_ham_calc.parameters.lrpa != kc_screen_calc.parameters.lrpa:
                     raise ValueError('Do not set "lrpa" to different values in the "screen" and "ham" blocks')

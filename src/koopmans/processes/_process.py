@@ -41,3 +41,8 @@ class Process(ABC):
 
     def __repr__(self):
         return f'{self.__class__.__name__}(inputs={self.inputs.__dict__}, outputs={self.outputs.__dict__})'
+
+    def todict(self):
+        utils.warn(
+            f'Serialization of {self.__class__.__name__} is not implemented (would require rewriting the serialization module to support circular references)')
+        return {}

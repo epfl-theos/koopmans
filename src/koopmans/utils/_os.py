@@ -186,7 +186,7 @@ class HasDirectoryAttr(Protocol):
 def get_content(source: HasDirectoryAttr, relpath: Path) -> List[str]:
     assert source.directory is not None
     with open(source.directory / relpath, 'r') as f:
-        flines = f.readlines()
+        flines = [l.strip('\n') for l in f.readlines()]
     return flines
 
 

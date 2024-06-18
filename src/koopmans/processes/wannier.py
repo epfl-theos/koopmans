@@ -189,5 +189,5 @@ class CopyProcess(Process):
 
     def _run(self):
         filecontent = utils.get_content(self.inputs.src_file[0], self.inputs.src_file[1])
-        utils.write_content(self.inputs.dst_file, extended_filecontent)
+        utils.write_content(self.inputs.dst_file, filecontent)
         self.outputs = self._output_model(dst_file=self.inputs.dst_file)

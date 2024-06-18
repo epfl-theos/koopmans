@@ -260,7 +260,7 @@ def read_wannier_hr_file(file: Union[str, Path]) -> Tuple[np.ndarray, np.ndarray
     return parse_wannier_hr_file_contents(lines)
 
 
-def parse_wannier_u_file_contents(lines: List[str]) -> Tuple[npt.NDArray[np.complex_], npt.NDArray[np.float_], int]:
+def parse_wannier_u_file_contents(lines: List[str]) -> Tuple[npt.NDArray[np.complex128], npt.NDArray[np.float64], int]:
 
     nk, m, n = [int(x) for x in lines[1].split()]
 
@@ -278,7 +278,7 @@ def parse_wannier_u_file_contents(lines: List[str]) -> Tuple[npt.NDArray[np.comp
     return umat, kpts, nk
 
 
-def generate_wannier_u_file_contents(umat: npt.NDArray[np.complex_], kpts: npt.NDArray[np.float_]) -> List[str]:
+def generate_wannier_u_file_contents(umat: npt.NDArray[np.complex128], kpts: npt.NDArray[np.float64]) -> List[str]:
 
     flines = [f' Written on {datetime.now().isoformat(timespec="seconds")}']
     flines.append(''.join([f'{x:12d}' for x in umat.shape]))

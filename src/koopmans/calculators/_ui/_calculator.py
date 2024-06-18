@@ -50,13 +50,13 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
         self.atoms.calc = self
 
         # Intermediate variables
-        self.centers: NDArray[np.float_] = np.array([])
+        self.centers: NDArray[np.float64] = np.array([])
         self.spreads: List[float] = []
         self.phases: List[complex] = []
-        self.hr: NDArray[np.complex_] = np.array([])
-        self.hr_coarse: NDArray[np.complex_] = np.array([])
-        self.hr_smooth: NDArray[np.complex_] = np.array([])
-        self.hk: NDArray[np.complex_] = np.array([])
+        self.hr: NDArray[np.complex128] = np.array([])
+        self.hr_coarse: NDArray[np.complex128] = np.array([])
+        self.hr_smooth: NDArray[np.complex128] = np.array([])
+        self.hk: NDArray[np.complex128] = np.array([])
         self.Rvec: NDArray[np.int_] = np.array([])
         self.Rsmooth: NDArray[np.int_] = np.array([])
         self.wRs: List[int] = []
@@ -308,7 +308,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
             self.phases = []
         return
 
-    def print_centers(self, centers: NDArray[np.float_] = np.array([])) -> None:
+    def print_centers(self, centers: NDArray[np.float64] = np.array([])) -> None:
         """
         print_centers simply prints out the centers in the following Xcrysden-readable format:
 
@@ -649,7 +649,7 @@ class UnfoldAndInterpolateCalculator(CalculatorExt, Calculator, CalculatorABC):
 
         return
 
-    def correct_phase(self) -> NDArray[np.complex_]:
+    def correct_phase(self) -> NDArray[np.complex128]:
         """
         correct_phase calculate the correct phase factor to put in the Fourier transform
                       to get the interpolated k-space hamiltonian. The correction consists

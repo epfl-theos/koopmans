@@ -63,7 +63,7 @@ def good_fft(nr: int) -> int:
     return nr
 
 
-def read_ham_file(filename: Path) -> np.ndarray[Any, np.dtype[np.cfloat]]:
+def read_ham_file(filename: Path) -> np.ndarray[Any, np.dtype[np.complex128]]:
     # Read a single hamiltonian XML file
     if not filename.exists():
         raise FileExistsError(f'{filename} does not exist')
@@ -77,7 +77,7 @@ def read_ham_file(filename: Path) -> np.ndarray[Any, np.dtype[np.cfloat]]:
     assert ham_xml.text is not None, f'{filename} is empty'
 
     ham_array = np.array([complex(*[float(x) for x in line.split(',')])
-                          for line in ham_xml.text.strip().split('\n')], dtype=np.cfloat) * utils.units.Hartree
+                          for line in ham_xml.text.strip().split('\n')], dtype=np.complex128) * utils.units.Hartree
 
     return ham_array.reshape((length, length))
 

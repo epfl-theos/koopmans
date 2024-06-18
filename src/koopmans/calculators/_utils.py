@@ -376,7 +376,7 @@ class ReturnsBandStructure(ABC):
     """
 
     @abstractmethod
-    def eigenvalues_from_results(self) -> npt.NDArray[np.float_]:
+    def eigenvalues_from_results(self) -> npt.NDArray[np.float64]:
         ...
 
     @abstractmethod

@@ -230,6 +230,19 @@ class Workflow(ABC):
 
             self.parameters.pseudo_directory = pseudo_dir.resolve()
 
+        # For any kwargs...
+        for key, value in kwargs.items():
+            match = False
+            # if they correspond to any valid calculator parameter, set it
+            for calc_params in calculator_parameters.values():
+                if calc_params.is_valid(key):
+                    calc_params[key] = value
+                    match = True
+            # if not a calculator, workflow, or plotting keyword, raise an error
+            if not match and not self.parameters.is_valid(key) and not self.plotting.is_valid(key) \
+                    and not self.ml.is_valid(key):
+                raise ValueError(f'{key} is not a valid setting')
+
         # Before saving the calculator_parameters, automatically generate some keywords and perform some sanity checks
         if self.parameters.task != 'ui' and autogenerate_settings:
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
@@ -303,19 +316,6 @@ class Workflow(ABC):
 
         # Initialize self.parent
         self.parent: Optional[Workflow] = None
-
-        # For any kwargs...
-        for key, value in kwargs.items():
-            match = False
-            # if they correspond to any valid calculator parameter, set it
-            for calc_params in self.calculator_parameters.values():
-                if calc_params.is_valid(key):
-                    calc_params[key] = value
-                    match = True
-            # if not a calculator, workflow, or plotting keyword, raise an error
-            if not match and not self.parameters.is_valid(key) and not self.plotting.is_valid(key) \
-                    and not self.ml.is_valid(key):
-                raise ValueError(f'{key} is not a valid setting')
 
         # Adding excluded_bands info to self.projections
         if self.projections:

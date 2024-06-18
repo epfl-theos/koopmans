@@ -148,10 +148,11 @@ class WannierizeWorkflow(Workflow):
                         # If there is only one block, we can just copy the files into a directory we will access later.
                         # We do this by creating a null process that does nothing, and linking the files we want to copy
                         # to that process
+                        filling_label = '_emp' if label == 'emp' else ''
                         for ext in ['_hr.dat', '_u.mat', '_centres.xyz']:
                             copy_process = CopyProcess(src_file=(block[0].w90_calc, block[0].w90_calc.prefix + ext),
-                                                       dst_file=block[0].w90_calc.prefix + ext)
-                            copy_process.name = f'copy_{label}_wannier_{ext.split(".")[0]}'
+                                                       dst_file=block[0].w90_calc.prefix + filling_label + ext)
+                            copy_process.name = f'copy_{label}_wannier{ext.split(".")[0]}'
                             self.run_process(copy_process)
                     else:
                         self.merge_wannier_files(block, label, prefix=self.calculations[-1].prefix)
