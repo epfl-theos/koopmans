@@ -244,7 +244,7 @@ class ComputeScreeningViaDFPTWorkflow(Workflow):
             # If there is orbital grouping, do the orbitals one-by-one
 
             kc_screen_calcs = []
-            # 1) Create the calculators (in subdirectories)
+            # 1) Create the calculators
             for band in self.bands.to_solve:
                 kc_screen_calc = self.new_calculator('kc_screen', i_orb=band.index)
                 kc_screen_calc.prefix += f'_band_{band.index}'
@@ -300,7 +300,7 @@ def internal_new_calculator(workflow, calc_presets, **kwargs):
     elif calc_presets == 'kc_screen':
         # If eps_inf is not provided in the kc_wann:screen subdictionary but there is a value provided in the
         # workflow parameters, adopt that value
-        if workflow.parameters.eps_inf is not None and calc.parameters.eps_inf is None and all(self.atoms.pbc):
+        if workflow.parameters.eps_inf is not None and calc.parameters.eps_inf is None and all(workflow.atoms.pbc):
             calc.parameters.eps_inf = workflow.parameters.eps_inf
     else:
         calc.parameters.do_bands = all(workflow.atoms.pbc)
