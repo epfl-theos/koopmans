@@ -115,8 +115,9 @@ class KoopmansDFPTWorkflow(Workflow):
                 val = self.parameters.get(f'orbital_groups_{key}_tol', None)
                 if val is not None:
                     tols[key] = val
-            self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2, spin_polarized=self.parameters.spin_polarized,
-                               filling=filling, groups=self.parameters.orbital_groups, tolerances=tols)
+            self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2, 
+                         spin_polarized=self.parameters.spin_polarized,
+                         filling=filling, groups=self.parameters.orbital_groups, tolerances=tols)
         else:
             nocc = pseudopotentials.nelec_from_pseudos(
                 self.atoms, self.pseudopotentials, self.parameters.pseudo_directory) // 2
@@ -357,12 +358,12 @@ class KoopmansDFPTWorkflow(Workflow):
                 if calc.parameters.spin_component == 1:
                     ntot = self.projections.num_wann(spin='up')
                     nocc = self.calculator_parameters['kcp'].nelup
-                    nemp = self.projections.num_wann(spin='up')-nocc
+                    nemp = self.projections.num_wann(spin='up') - nocc
                     nemp_pw = self.calculator_parameters['pw'].nbnd - nocc
                 else:
                     ntot = self.projections.num_wann(spin='down')
                     nocc = self.calculator_parameters['kcp'].neldw
-                    nemp = self.projections.num_wann(spin='down')-nocc
+                    nemp = self.projections.num_wann(spin='down') - nocc
                     nemp_pw = self.calculator_parameters['pw'].nbnd - nocc
             else:
                 nocc = self.bands.num(filled=True)
