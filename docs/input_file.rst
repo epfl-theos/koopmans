@@ -147,6 +147,9 @@ See :ref:`here for a more detailed tutorial on projections <projections_blocks_e
 .. note::
   If disentanglement keywords such as ``dis_win_max`` are provided, these will only be used during the Wannierization of the final block of projections 
 
+.. note::
+  If running a spin-polarized calculation, you need to provide separately the spin-up and spin-down projections. You can specify this by splitting the ``w90`` block into an ``up`` and ``down`` subblocks, each containing the spin dependent ``projections``. See :ref:`here for an example of a spin-polarized set-up <tutorial_6>` 
+
 The pw2wannier subblock
 ~~~~~~~~~~~~~~~~~~~~~~~
 This subblock contains ``pw2wannier90.x`` keywords, in a single dictionary with no subdictionaries.
