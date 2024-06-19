@@ -44,6 +44,8 @@ Running ``koopmans cri3.json`` should produce an output with several sections pr
   :lineno-start: 23
   :language: text
 
+...
+
 .. literalinclude:: ../../tutorials/tutorial_6/cri3.out
   :lines: 38-40
   :lineno-start: 38
