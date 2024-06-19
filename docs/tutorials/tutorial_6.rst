@@ -3,7 +3,7 @@
 Tutorial 6: the band structure of ferromagnetic bulk CrI\ :sub:`3`
 ==================================================================
 
-In this tutorial we will calculate the band structure of the bulk ferromagnetic semiconductor CrI\ :sub:`3` using the supercell formulation of Koopmans. The input file for this tutorial can be downloaded :download:`here <../../tutorials/tutorial_6/cri3.json>`.
+In this tutorial we will calculate the band structure of the bulk ferromagnetic semiconductor CrI\ :sub:`3` using the supercell approach. The input file for this tutorial can be downloaded :download:`here <../../tutorials/tutorial_6/cri3.json>`.
 
 The input file
 ^^^^^^^^^^^^^^
@@ -21,7 +21,7 @@ In its low-temperature phase, bulk CrI\ :sub:`3` is a ferromagnetic semiconducto
 
 .. note::
 
-  When running magnetic systems, the ``Quantum ESPRESSO`` keyword ``starting_magnetization`` (documented `here <https://www.quantum-espresso.org/Doc/INPUT_PW.html#idm301>`_) can help it find the ground state faster. As an optional exercise, try providing this keyword in your input file, choosing an appropriate value.
+  When running magnetic systems, the keyword ``starting_magnetization`` (documented `here <https://www.quantum-espresso.org/Doc/INPUT_PW.html#idm301>`_) can help ``Quantum ESPRESSO`` find the ground state faster. As an optional exercise, try providing this keyword in your input file, choosing appropriate values based on the above description of the expected magnetic state of CrI\ :sub:`3`.
 
 For a magnetic systems two sets of Wannier projections need to be provided, one for each spin channel. This is specified by splitting the ``w90`` block into an ``up`` and ``down`` sub-blocks:
 
@@ -73,9 +73,9 @@ To plot the final KI band structure, we will load all of the information from th
 .. figure:: ../../tutorials/tutorial_6/cri3_bandstructures.png
   :width: 600
   :align: center
-  :alt: the band structure of ferromagnetic CrI\ :sub:`3`
+  :alt: the KI\@LDA band structure of ferromagnetic CrI\ :sub:`3`
 
-  The band structure of ferromagnetic CrI\ :sub:`3`
+  The KI\@LDA band structure of ferromagnetic CrI\ :sub:`3`
 
 .. warning:: 
 
