@@ -12,7 +12,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 
-def crys_to_cart(vec: NDArray[np.float_], trmat: NDArray[np.float_], typ: int) -> NDArray[np.float_]:
+def crys_to_cart(vec: NDArray[np.float64], trmat: NDArray[np.float64], typ: int) -> NDArray[np.float64]:
     """
     Function to transform the numpy array vec (or a list/array of numpy arrays) from
     crystal to cartesian (in alat units), or viceversa, as it is done in QE: typ=+1
@@ -33,7 +33,8 @@ def crys_to_cart(vec: NDArray[np.float_], trmat: NDArray[np.float_], typ: int) -
     return vec_tr
 
 
-def extract_hr(hr: NDArray[np.complex_], rvect: NDArray[np.int_], nr1: int, nr2: int, nr3: int) -> NDArray[np.complex_]:
+def extract_hr(hr: NDArray[np.complex128], rvect: NDArray[np.int_],
+               nr1: int, nr2: int, nr3: int) -> NDArray[np.complex128]:
     """
     Function to select the Wannier Hamiltonian only on the primitive cell R-vectors.
     The Hamiltonian coming from a Wannier90 calculation with k-points is indeed

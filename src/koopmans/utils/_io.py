@@ -265,7 +265,7 @@ def read_wannier_hr_file(fname: Path) -> Tuple[np.ndarray, np.ndarray, List[int]
     return hr_np, rvect_np, weights, nrpts
 
 
-def read_wannier_u_file(fname: Path) -> Tuple[npt.NDArray[np.complex_], npt.NDArray[np.float_], int]:
+def read_wannier_u_file(fname: Path) -> Tuple[npt.NDArray[np.complex128], npt.NDArray[np.float64], int]:
 
     with open(fname, 'r') as fd:
         lines = fd.readlines()
@@ -286,7 +286,7 @@ def read_wannier_u_file(fname: Path) -> Tuple[npt.NDArray[np.complex_], npt.NDAr
     return umat, kpts, nk
 
 
-def write_wannier_u_file(fname: Path, umat: npt.NDArray[np.complex_], kpts: npt.NDArray[np.float_]):
+def write_wannier_u_file(fname: Path, umat: npt.NDArray[np.complex128], kpts: npt.NDArray[np.float64]):
 
     flines = [f' Written on {datetime.now().isoformat(timespec="seconds")}']
     flines.append(''.join([f'{x:12d}' for x in umat.shape]))
