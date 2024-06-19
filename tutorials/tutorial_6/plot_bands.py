@@ -1,5 +1,6 @@
-from koopmans.io import read
 import matplotlib.pyplot as plt
+
+from koopmans.io import read
 
 # Load the workflow
 wf = read('cri3.kwf')
@@ -11,13 +12,11 @@ ui_calc = wf.calculations[-1]
 ki_bs = ui_calc.results['band structure']
 ki_bs_shifted = ki_bs.subtract_reference()
 
-
 # Plot the two band structures
-ax = ki_bs_shifted.plot(spin=0, label='KI@LDA-up', color='tab:red', ls="-")
-ax = ki_bs_shifted.plot(ax=ax, spin=1, label='KI@LDA-down', color='tab:red', ls="--")
+ax = ki_bs_shifted.plot(spin=0, label='spin up', color='tab:red', ls="-")
+ax = ki_bs_shifted.plot(ax=ax, spin=1, label='spin down', color='tab:blue', ls="-")
 
 ax.legend(loc='lower right', ncol=2, bbox_to_anchor=(1, 1))
 ax.set_ylim([-5, 5])
 
 plt.savefig('cri3_bandstructures.png')
-
