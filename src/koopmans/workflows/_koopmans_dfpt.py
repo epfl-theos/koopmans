@@ -115,9 +115,9 @@ class KoopmansDFPTWorkflow(Workflow):
                 val = self.parameters.get(f'orbital_groups_{key}_tol', None)
                 if val is not None:
                     tols[key] = val
-            self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2, 
-                         spin_polarized=self.parameters.spin_polarized,
-                         filling=filling, groups=self.parameters.orbital_groups, tolerances=tols)
+            self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2,
+                    spin_polarized=self.parameters.spin_polarized,
+                    filling=filling, groups=self.parameters.orbital_groups, tolerances=tols)
         else:
             nocc = pseudopotentials.nelec_from_pseudos(
                 self.atoms, self.pseudopotentials, self.parameters.pseudo_directory) // 2
