@@ -15,6 +15,7 @@ import os
 import shutil
 import subprocess
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from contextlib import contextmanager
 from functools import reduce
 from pathlib import Path
@@ -69,7 +70,7 @@ class Workflow(ABC):
 
     atoms : Atoms
         an ASE ``Atoms`` object defining the atomic positions, cell, etc
-    pseudopotentials : Dict[str, str]
+    pseudopotentials : OrderedDict[str, str]
         a dictionary mapping atom labels to pseudopotential filenames
     kpoints : koopmans.kpoints.Kpoints
         a dataclass defining the k-point sampling and paths
@@ -98,7 +99,7 @@ class Workflow(ABC):
     calculator_parameters: Dict[str, settings.SettingsDict]
     name: str
     kpoints: Kpoints
-    _pseudopotentials: Dict[str, str]
+    _pseudopotentials: OrderedDict[str, str]
     pseudo_dir: Path
     projections: ProjectionBlocks
     parent: Optional[Workflow]
@@ -245,21 +246,32 @@ class Workflow(ABC):
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
             nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
-            tot_charge = calculator_parameters['kcp'].get('tot_charge', 0)
+            tot_charge = calculator_parameters['pw'].get(
+                'tot_charge', calculator_parameters['kcp'].get('tot_charge', 0))
             nelec -= tot_charge
-            tot_mag = calculator_parameters['kcp'].get('tot_magnetization', nelec % 2)
+            tot_mag = calculator_parameters['pw'].get(
+                'tot_magnetization', calculator_parameters['kcp'].get('tot_charge', nelec % 2))
             nelup = int(nelec / 2 + tot_mag / 2)
             neldw = int(nelec / 2 - tot_mag / 2)
 
             # Setting up the magnetic moments
-            if 'starting_magnetization(1)' in calculator_parameters['kcp']:
-                labels = [s + str(t) if t > 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
-                starting_magmoms = {}
+            starting_mags = {k: v for k, v in calculator_parameters['kcp'].items(
+            ) if k.startswith('starting_magnetization')}
+            starting_mags.update(
+                {k: v for k, v in calculator_parameters['pw'].items() if k.startswith('starting_magnetization')})
+            if starting_mags:
+                labels = [a.symbol + str(a.tag) if a.tag > 0 else a.symbol for a in self.atoms]
+                starting_magmoms: Dict[str, float] = {}
                 for i, (l, p) in enumerate(self.pseudopotentials.items()):
-                    # ASE uses absolute values; QE uses the fraction of the valence
-                    frac_mag = calculator_parameters['kcp'].pop(f'starting_magnetization({i + 1})', 0.0)
-                    valence = valence_from_pseudo(p, self.parameters.pseudo_directory)
-                    starting_magmoms[l] = frac_mag * valence
+                    mag = starting_mags.pop(f'starting_magnetization({i + 1})', 0.0)
+                    if abs(mag) < 1.0:
+                        # If |mag| < 1, QE interprets this as site magnetization *per valence electron*, whereas ASE
+                        # expects simply the site magnetization
+                        valence = valence_from_pseudo(p, self.parameters.pseudo_directory)
+                        starting_magmoms[l] = mag * valence
+                    else:
+                        # If |mag| >= 1, QE interprets this as site magnetization
+                        starting_magmoms[l] = mag
                 atoms.set_initial_magnetic_moments([starting_magmoms[l] for l in labels])
             elif tot_mag != 0:
                 atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
@@ -382,7 +394,9 @@ class Workflow(ABC):
         return self._pseudopotentials
 
     @pseudopotentials.setter
-    def pseudopotentials(self, value: Dict[str, str]):
+    def pseudopotentials(self, value: Union[Dict[str, str], OrderedDict[str, str]]):
+        if not isinstance(value, OrderedDict):
+            value = OrderedDict(value)
         self._pseudopotentials = value
 
     @classmethod
@@ -556,7 +570,7 @@ class Workflow(ABC):
             if not np.all(self.atoms.cell.angles() == 90.0):
                 raise ValueError(f"The ML-workflow has only been implemented for simulation cells that have 90° angles")
 
-            if self.parameters.task is not 'convergence_ml':
+            if self.parameters.task != 'convergence_ml':
                 assert isinstance(self.ml.n_max, int)
                 assert isinstance(self.ml.l_max, int)
                 assert isinstance(self.ml.r_min, float)
