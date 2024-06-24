@@ -191,9 +191,6 @@ class KoopmansDFPTWorkflow(Workflow):
         if self._perform_ham_calc:
             kc_ham_calc = self.new_calculator('kc_ham', kpts=self.kpoints.path)
             self.link(wann2kc_calc, wann2kc_calc.parameters.outdir, kc_ham_calc, kc_ham_calc.parameters.outdir)
-            if self.parameters.calculate_alpha and self.parameters.dfpt_coarse_grid is None:
-                if kc_ham_calc.parameters.lrpa != kc_screen_calc.parameters.lrpa:
-                    raise ValueError('Do not set "lrpa" to different values in the "screen" and "ham" blocks')
             self.run_calculator(kc_ham_calc)
 
             # Postprocessing

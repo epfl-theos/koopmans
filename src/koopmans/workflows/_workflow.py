@@ -1049,7 +1049,7 @@ class Workflow(ABC):
                     # Add the alpha and error history if the length of the bands match
                     if len(self.parent.bands) == len(self.bands):
                         for b, b_sub in zip(self.parent.bands, self.bands):
-                            b.alpha_history += b_sub.alpha_history[1:]
+                            b.alpha_history += b_sub.alpha_history
                             b.error_history += b_sub.error_history
                             b.self_hartree = b_sub.self_hartree
                             b.spread = b_sub.spread
