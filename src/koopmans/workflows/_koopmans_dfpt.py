@@ -195,7 +195,7 @@ class KoopmansDFPTWorkflow(Workflow):
             # Update settings
             pw_params = pw_workflow.calculator_parameters['pw']
             pw_params.nspin = 2
-            pw_params.tot_magnetization = 0
+            #pw_params.tot_magnetization = 0
 
             # Run the subworkflow
             with utils.chdir('init'):
