@@ -38,8 +38,6 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}):
         workflow_cls = workflows.WannierizeWorkflow
     elif parameters.task == 'environ_dscf':
         workflow_cls = workflows.DeltaSCFWorkflow
-    elif parameters.task == 'ui':
-        workflow_cls = workflows.SingleUnfoldAndInterpolateWorkflow
     elif parameters.task == 'dft_bands':
         workflow_cls = workflows.DFTBandsWorkflow
     elif parameters.task == 'dft_eps':

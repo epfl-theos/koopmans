@@ -53,7 +53,7 @@ class Setting(NamedTuple):
     name: str
     description: str
     kind: Union[Type, Tuple[Type, ...]]
-    default: Union[str, bool, float, list, None]
+    default: Union[str, bool, float, list, Path, None]
     options: Union[tuple, None]
 
 

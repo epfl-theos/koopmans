@@ -162,7 +162,7 @@ class ExtendProcess(Process):
 
     def _run(self):
 
-        filecontent = utils.get_content(self.inputs.src_file[0], self.inputs.src_file[1])
+        filecontent = utils.get_content(*self.inputs.src_file)
 
         extended_filecontent = self.extend_function(filecontent)
 

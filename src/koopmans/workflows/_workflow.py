@@ -633,8 +633,6 @@ class Workflow(ABC):
             calc_class = calculators.PW2WannierCalculator
         elif calc_type == 'wann2kcp':
             calc_class = calculators.Wann2KCPCalculator
-        elif calc_type.startswith('ui'):
-            calc_class = calculators.UnfoldAndInterpolateCalculator
         elif calc_type == 'wann2kc':
             calc_class = calculators.Wann2KCCalculator
         elif calc_type == 'kc_screen':
@@ -910,13 +908,6 @@ class Workflow(ABC):
             # Load kpts if relevant
             if hasattr(old_calc, 'kpts'):
                 qe_calc.kpts = old_calc.kpts
-
-            # Load bandstructure if present, too
-            if isinstance(qe_calc, calculators.UnfoldAndInterpolateCalculator):
-                qe_calc.read_bands()
-                # If the band structure file does not exist, we must re-run
-                if 'band structure' not in qe_calc.results:
-                    return False
 
             self.calculations.append(qe_calc)
 

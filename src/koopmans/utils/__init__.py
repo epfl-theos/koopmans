@@ -19,8 +19,8 @@ from ._io import (construct_atomic_positions_block,
                   read_atomic_positions, read_cell_parameters,
                   read_wannier_hr_file, write_alpha_file)
 from ._misc import flatten, update_nested_dict
-from ._os import (chdir, copy, find_executable, get_content, set_env, symlink,
-                  symlink_tree, system_call, write_content)
+from ._os import (HasDirectoryAttr, chdir, copy, find_executable, get_content,
+                  set_env, symlink, symlink_tree, system_call, write_content)
 from ._units import units
 from ._warnings import CalculatorNotConvergedWarning, warn
 from ._xml import read_xml_array, read_xml_nr

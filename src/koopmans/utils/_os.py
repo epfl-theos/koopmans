@@ -12,7 +12,7 @@ import shutil
 import subprocess
 from glob import glob
 from pathlib import Path
-from typing import List, Optional, Protocol, Union
+from typing import List, Optional, Protocol, Union, runtime_checkable
 
 
 def system_call(command: str, check_ierr: bool = True):
@@ -179,6 +179,7 @@ def find_executable(program: Union[Path, str]) -> Optional[Path]:
     return None
 
 
+@runtime_checkable
 class HasDirectoryAttr(Protocol):
     directory: Path | None
 

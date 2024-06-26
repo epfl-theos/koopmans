@@ -13,6 +13,8 @@ from koopmans import calculators, utils
 
 class Process(ABC):
 
+    __slots__ = ['inputs', 'outputs', 'name', 'directory']
+
     def __init__(self, **kwargs):
         self.inputs = self._input_model(**kwargs)
         self.outputs = None
@@ -32,8 +34,8 @@ class Process(ABC):
     def run(self):
         assert self.directory is not None, 'Process directory must be set before running'
         with utils.chdir(self.directory):
-            # self._fetch_linked_files()
             self._run()
+        assert self.outputs is not None, 'Process outputs must be set when running'
 
     @abstractmethod
     def _run(self):

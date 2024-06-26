@@ -35,7 +35,7 @@ from ase.dft.kpoints import BandPath
 from ase.spectrum.band_structure import BandStructure
 from numpy import typing as npt
 
-from koopmans import processes, settings, utils
+from koopmans import settings, utils
 
 
 def sanitize_filenames(filenames: Union[str, Path, List[str], List[Path]], ext_in: str, ext_out: str) -> List[Path]:
@@ -86,7 +86,7 @@ class CalculatorExt():
         self.skip_qc = skip_qc
 
         # Prepare a dictionary to store a record of linked files
-        self._linked_files: Dict[str, Tuple[CalculatorExt | processes.Process | None, Path, bool, bool]] = {}
+        self._linked_files: Dict[str, Tuple[utils.HasDirectoryAttr | None, Path, bool, bool]] = {}
 
     def __repr__(self):
         entries = []
@@ -273,7 +273,7 @@ class CalculatorExt():
             setattr(calc, k.lstrip('_'), v)
         return calc
 
-    def link_file(self, src_calc: CalculatorExt | None, src_filename: Path, dest_filename: Path, symlink: bool = False, recursive_symlink: bool = False):
+    def link_file(self, src_calc: utils.HasDirectoryAttr | None, src_filename: Path, dest_filename: Path, symlink: bool = False, recursive_symlink: bool = False):
         if src_filename.is_absolute() and src_calc is not None:
             raise ValueError(f'"src_filename" in {self.__class__.__name__}.link_file() must be a relative path if a '
                              f'"src_calc" is provided')
