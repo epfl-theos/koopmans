@@ -815,6 +815,7 @@ class Workflow(ABC):
 
                     if isinstance(qe_calc, calculators.PhCalculator):
                         qe_calc.read_dynG()
+
                     return False
                 else:
                     # Remove the directory in anticipation of starting again
