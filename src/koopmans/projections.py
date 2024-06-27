@@ -13,7 +13,7 @@ class ProjectionBlock(object):
     def __init__(self,
                  projections: List[Union[str, Dict[str, Any]]],
                  spin: Optional[str] = None,
-                 directory: Optional[Path] = None,
+                 name: Optional[str] = None,
                  num_wann: Optional[int] = None,
                  num_bands: Optional[int] = None,
                  include_bands: Optional[List[int]] = None,
@@ -25,7 +25,7 @@ class ProjectionBlock(object):
                 proj = proj_string_to_dict(proj)
             self.projections.append(proj)
         self.spin = spin
-        self.directory = directory
+        self.name = name
         self.num_wann = num_wann
         self.num_bands = num_bands
         self.include_bands = include_bands
@@ -114,6 +114,12 @@ class ProjectionBlocks(object):
             return self.__dict__ == other.__dict__
         return False
 
+    def __getitem__(self, key):
+        return self._blocks[key]
+
+    def __setitem__(self, key, value):
+        self._blocks[key] = value
+
     def divisions(self, spin: Optional[str]) -> List[int]:
         # This algorithm works out the size of individual "blocks" in the set of bands
         divs: List[int] = []
@@ -166,11 +172,11 @@ class ProjectionBlocks(object):
                 if len(to_exclude) > 0:
                     b.exclude_bands = list_to_formatted_str(to_exclude)
 
-                # Construct directory
+                # Construct name
                 label = f'block_{iblock + 1}'
                 if spin:
                     label = f'spin_{spin}_{label}'
-                b.directory = Path(label)
+                b.name = label
 
         return self._blocks
 

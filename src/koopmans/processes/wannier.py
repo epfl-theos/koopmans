@@ -131,6 +131,9 @@ class MergeProcess(Process):
         super().__init__(**kwargs)
 
     def _run(self):
+        if len(self.inputs.src_files) == 0:
+            raise ValueError('No input files provided to merge.')
+
         filecontents = [utils.get_content(calc, relpath) for calc, relpath in self.inputs.src_files]
 
         merged_filecontents = self.merge_function(filecontents)

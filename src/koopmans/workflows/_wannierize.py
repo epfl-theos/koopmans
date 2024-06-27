@@ -137,8 +137,12 @@ class WannierizeWorkflow(Workflow):
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
-            wannierize_blocks_subworkflow = WannierizeBlocksWorkflow.fromparent(self, force_nspin2=self._force_nspin2)
-            wannierize_blocks_subworkflow.run()
+
+            for block in self.projections:
+                wannierize_block_subworkflow = WannierizeBlockWorkflow.fromparent(
+                    self, force_nspin2=self._force_nspin2, block=block)
+                wannierize_block_subworkflow.name = f'wannierize_{block.name}'
+                wannierize_block_subworkflow.run()
 
             # Merging Hamiltonian files, U matrix files, centers files if necessary
             if self.parent is not None:
@@ -199,7 +203,7 @@ class WannierizeWorkflow(Workflow):
             # Calculate a projected DOS
             pseudos = [read_pseudo_file(calc_pw_bands.directory / calc_pw_bands.parameters.pseudo_dir / p) for p in
                        self.pseudopotentials.values()]
-            if all([p['header']['number_of_wfc'] > 0 for p in pseudos]) and False:
+            if all([p['header']['number_of_wfc'] > 0 for p in pseudos]):
                 calc_dos = self.new_calculator('projwfc', filpdos=self.name)
                 calc_dos.directory = 'pdos'
                 calc_dos.pseudopotentials = self.pseudopotentials
@@ -213,7 +217,6 @@ class WannierizeWorkflow(Workflow):
                 dos = copy.deepcopy(calc_dos.results['dos'])
             else:
                 # Skip if the pseudos don't have the requisite PP_PSWFC blocks
-                utils.warn('Manually disabling pDOS')
                 utils.warn('Some of the pseudopotentials do not have PP_PSWFC blocks, which means a projected DOS '
                            'calculation is not possible. Skipping...')
                 dos = None
@@ -301,82 +304,81 @@ class WannierizeWorkflow(Workflow):
             self.run_process(merge_centers_proc)
 
 
-class WannierizeBlocksWorkflow(Workflow):
+class WannierizeBlockWorkflow(Workflow):
 
-    def __init__(self, *args, force_nspin2=False, **kwargs):
+    def __init__(self, *args, block: projections.ProjectionBlock, force_nspin2=False, **kwargs):
         self._force_nspin2 = force_nspin2
+        self.block = block
         super().__init__(*args, **kwargs)
 
     def _run(self):
-        # Loop over the various subblocks that we must wannierize separately
-        for block in self.projections:
-            n_occ_bands = self.number_of_electrons(block.spin)
-            if not block.spin:
-                n_occ_bands /= 2
+        n_occ_bands = self.number_of_electrons(self.block.spin)
+        if not self.block.spin:
+            n_occ_bands /= 2
 
-            if max(block.include_bands) <= n_occ_bands:
-                # Block consists purely of occupied bands
-                init_orbs = self.parameters.init_orbitals
-            elif min(block.include_bands) > n_occ_bands:
-                # Block consists purely of empty bands
-                init_orbs = self.parameters.init_empty_orbitals
+        if max(self.block.include_bands) <= n_occ_bands:
+            # Block consists purely of occupied bands
+            init_orbs = self.parameters.init_orbitals
+        elif min(self.block.include_bands) > n_occ_bands:
+            # Block consists purely of empty bands
+            init_orbs = self.parameters.init_empty_orbitals
+        else:
+            # Block contains both occupied and empty bands
+            raise ValueError(f'{self.block} contains both occupied and empty bands. This should not happen.')
+        # Store the number of electrons in the ProjectionBlocks object so that it can work out which blocks to
+        # merge with one another
+        self.projections.num_occ_bands[self.block.spin] = n_occ_bands
+
+        calc_type = 'w90'
+        if self.block.spin:
+            calc_type += f'_{self.block.spin}'
+
+        # 1) pre-processing Wannier90 calculation
+        calc_w90_pp = self.new_calculator(calc_type, init_orbitals=init_orbs, **self.block.w90_kwargs)
+        calc_w90_pp.prefix = 'wannier90_preproc'
+        calc_w90_pp.command.flags = '-pp'
+        self.run_calculator(calc_w90_pp)
+
+        # 2) standard pw2wannier90 calculation
+        calc_p2w = self.new_calculator('pw2wannier', spin_component=self.block.spin)
+        calc_p2w.prefix = 'pw2wannier90'
+        calc_nscf = [c for c in self.calculations if isinstance(
+            c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
+        self.link(calc_nscf, calc_nscf.parameters.outdir, calc_p2w, calc_p2w.parameters.outdir)
+        self.link(calc_w90_pp, calc_w90_pp.prefix + '.nnkp', calc_p2w, calc_p2w.parameters.seedname + '.nnkp')
+        self.run_calculator(calc_p2w)
+
+        # 3) Wannier90 calculation
+        calc_w90 = self.new_calculator(calc_type, init_orbitals=init_orbs,
+                                       bands_plot=self.parameters.calculate_bands, **self.block.w90_kwargs)
+        calc_w90.prefix = 'wannier90'
+        for ext in ['.eig', '.amn', '.eig', '.mmn']:
+            self.link(calc_p2w, calc_p2w.parameters.seedname + ext, calc_w90, calc_w90.prefix + ext)
+        self.run_calculator(calc_w90)
+        self.block.w90_calc = calc_w90
+
+        if hasattr(self, 'bands'):
+            # Add centers and spreads info to self.bands
+            if self.block.spin is None:
+                remaining_bands = [b for b in self.bands if b.center is None and b.spin == 0]
             else:
-                # Block contains both occupied and empty bands
-                raise ValueError(f'{block} contains both occupied and empty bands. This should not happen.')
-            # Store the number of electrons in the ProjectionBlocks object so that it can work out which blocks to
-            # merge with one another
-            self.projections.num_occ_bands[block.spin] = n_occ_bands
-
-            calc_type = 'w90'
-            if block.spin:
-                calc_type += f'_{block.spin}'
-
-            # 1) pre-processing Wannier90 calculation
-            calc_w90_pp = self.new_calculator(calc_type, init_orbitals=init_orbs, **block.w90_kwargs)
-            calc_w90_pp.prefix = 'wannier90_preproc'
-            calc_w90_pp.command.flags = '-pp'
-            self.run_calculator(calc_w90_pp)
-
-            # 2) standard pw2wannier90 calculation
-            calc_p2w = self.new_calculator('pw2wannier', spin_component=block.spin)
-            calc_p2w.prefix = 'pw2wannier90'
-            calc_nscf = [c for c in self.calculations if isinstance(
-                c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
-            self.link(calc_nscf, calc_nscf.parameters.outdir, calc_p2w, calc_p2w.parameters.outdir)
-            self.link(calc_w90_pp, calc_w90_pp.prefix + '.nnkp', calc_p2w, calc_p2w.parameters.seedname + '.nnkp')
-            self.run_calculator(calc_p2w)
-
-            # 3) Wannier90 calculation
-            calc_w90 = self.new_calculator(calc_type, init_orbitals=init_orbs,
-                                           bands_plot=self.parameters.calculate_bands, **block.w90_kwargs)
-            calc_w90.prefix = 'wannier90'
-            for ext in ['.eig', '.amn', '.eig', '.mmn']:
-                self.link(calc_p2w, calc_p2w.parameters.seedname + ext, calc_w90, calc_w90.prefix + ext)
-            self.run_calculator(calc_w90)
-            block.w90_calc = calc_w90
-
-            if hasattr(self, 'bands'):
-                # Add centers and spreads info to self.bands
-                if block.spin is None:
-                    remaining_bands = [b for b in self.bands if b.center is None and b.spin == 0]
+                if self.block.spin == 'up':
+                    i_spin = 0
                 else:
-                    if block.spin == 'up':
-                        i_spin = 0
-                    else:
-                        i_spin = 1
-                    remaining_bands = [b for b in self.bands if b.center is None and b.spin == i_spin]
+                    i_spin = 1
+                remaining_bands = [b for b in self.bands if b.center is None and b.spin == i_spin]
 
-                centers = calc_w90.results['centers']
-                spreads = calc_w90.results['spreads']
-                for band, center, spread in zip(remaining_bands, centers, spreads):
-                    band.center = center
-                    band.spread = spread
+            centers = calc_w90.results['centers']
+            spreads = calc_w90.results['spreads']
+            for band, center, spread in zip(remaining_bands, centers, spreads):
+                band.center = center
+                band.spread = spread
 
-                    if block.spin is None and len(self.bands.get(spin=1)) > 0:
-                        # Copy over spin-up results to spin-down
-                        [match] = [b for b in self.bands if b.index == band.index and b.spin == 1]
-                        match.center = center
-                        match.spread = spread
+                if self.block.spin is None and len(self.bands.get(spin=1)) > 0:
+                    # Copy over spin-up results to spin-down
+                    [match] = [b for b in self.bands if b.index == band.index and b.spin == 1]
+                    match.center = center
+                    match.spread = spread
 
     def new_calculator(self, calc_type, *args, **kwargs) -> CalcExtType:  # type: ignore[type-var, misc]
         init_orbs = kwargs.pop('init_orbitals', None)

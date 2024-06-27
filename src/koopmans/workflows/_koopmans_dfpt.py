@@ -244,7 +244,7 @@ class ComputeScreeningViaDFPTWorkflow(Workflow):
             # 1) Create the calculators
             for band in self.bands.to_solve:
                 kc_screen_calc = self.new_calculator('kc_screen', i_orb=band.index)
-                kc_screen_calc.prefix += f'_band_{band.index}'
+                kc_screen_calc.prefix += f'_orbital_{band.index}'
                 kc_screen_calcs.append(kc_screen_calc)
 
             # 2) Run the calculators (possibly in parallel)

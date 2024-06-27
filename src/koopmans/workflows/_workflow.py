@@ -110,7 +110,7 @@ class Workflow(ABC):
                  pseudopotentials: Dict[str, str] = {},
                  kpoints: Optional[Kpoints] = None,
                  projections: Optional[ProjectionBlocks] = None,
-                 name: str = 'koopmans_workflow',
+                 name: Optional[str] = None,
                  parameters: Union[Dict[str, Any], settings.WorkflowSettingsDict] = {},
                  calculator_parameters: Optional[Union[Dict[str, Dict[str, Any]],
                                                        Dict[str, settings.SettingsDict]]] = None,
@@ -126,7 +126,7 @@ class Workflow(ABC):
             if self.parameters.is_valid(key):
                 self.parameters[key] = value
         self.atoms: Atoms = atoms
-        self.name = name
+        self.name: str = self.__class__.__name__.lower() if name is None else name
         self.calculations: List[calculators.Calc] = []
         self.processes: List[Process] = []
         self.silent = False
@@ -406,10 +406,9 @@ class Workflow(ABC):
         wf_kwargs = dict(atoms=copy.deepcopy(parent_wf.atoms),
                          parameters=parameters,
                          calculator_parameters=copy.deepcopy(parent_wf.calculator_parameters),
-                         name=copy.deepcopy(parent_wf.name),
                          pseudopotentials=copy.deepcopy(parent_wf.pseudopotentials),
                          kpoints=copy.deepcopy(parent_wf.kpoints),
-                         projections=copy.deepcopy(parent_wf.projections),
+                         projections=parent_wf.projections,
                          plotting=copy.deepcopy(parent_wf.plotting),
                          ml=copy.deepcopy(parent_wf.ml))
         wf_kwargs.update(**{k: v for k, v in kwargs.items() if not parameters.is_valid(k)})
@@ -802,7 +801,7 @@ class Workflow(ABC):
                 is_complete = self.load_old_calculator(qe_calc)
                 if is_complete:
                     if not self.silent:
-                        self.print(f'Not running {os.path.relpath(calc_file)} as it is already complete')
+                        self.print(f'Not running {os.path.relpath(qe_calc.directory)} as it is already complete')
 
                     # Check the convergence of the calculation
                     qe_calc.check_convergence()
@@ -970,10 +969,6 @@ class Workflow(ABC):
 
         assert self.parent is not None
 
-        # Automatically pass along the name of the overall workflow
-        if self.name is None:
-            self.name = self.parent.name
-
         # Increase the indent level
         self.print_indent = self.parent.print_indent + 2
 
@@ -1008,7 +1003,7 @@ class Workflow(ABC):
                     b.alpha_history = [b.alpha]
                 b.error_history = []
 
-        subdirectory = self.__class__.__name__.lower() if subdirectory is None else subdirectory
+        subdirectory = self.name if subdirectory is None else subdirectory
 
         try:
             # Prepend the step counter to the subdirectory name
@@ -1049,9 +1044,6 @@ class Workflow(ABC):
                 else:
                     # Copy the entire bands object
                     self.parent.bands = self.bands
-
-            # Make sure any updates to the projections are passed along
-            self.parent.projections = self.projections
 
     def todict(self):
         # Shallow copy
@@ -1510,10 +1502,10 @@ class Workflow(ABC):
             plt.subplots_adjust(right=0.85, wspace=0.05)
 
         # Saving the figure to file (as png and also in editable form)
-        workflow_name = self.__class__.__name__.lower()
+        workflow_name = self.name
         for s in ['workflow', 'mock', 'benchgen', 'stumbling', 'check']:
             workflow_name = workflow_name.replace(s, '')
-        filename = filename if filename is not None else f'{self.name}_{workflow_name}_bandstructure'
+        filename = filename if filename is not None else f'{workflow_name}_bandstructure'
         legends = [ax.get_legend() for ax in axes if ax.get_legend() is not None]
         utils.savefig(fname=filename + '.png', bbox_extra_artists=legends, bbox_inches='tight')
 
