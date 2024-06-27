@@ -190,7 +190,12 @@ class KoopmansDFPTWorkflow(Workflow):
         # Calculate the Hamiltonian
         if self._perform_ham_calc:
             kc_ham_calc = self.new_calculator('kc_ham', kpts=self.kpoints.path)
-            self.link(wann2kc_calc, wann2kc_calc.parameters.outdir, kc_ham_calc, kc_ham_calc.parameters.outdir)
+            self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.save'),
+                      kc_ham_calc, kc_ham_calc.parameters.outdir / (kc_ham_calc.parameters.prefix + '.save'), symlink=True)
+            self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.xml'),
+                      kc_ham_calc, kc_ham_calc.parameters.outdir / (kc_ham_calc.parameters.prefix + '.xml'), symlink=True)
+            self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / 'kcw', kc_ham_calc,
+                      kc_ham_calc.parameters.outdir / 'kcw', recursive_symlink=True)
             self.run_calculator(kc_ham_calc)
 
             # Postprocessing

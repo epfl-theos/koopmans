@@ -15,7 +15,7 @@ from ase.calculators.espresso import KoopmansScreen
 from koopmans import settings, utils
 from koopmans.commands import ParallelCommandWithPostfix
 
-from ._utils import CalculatorABC, KCWannCalculator
+from ._calculator import CalculatorABC, KCWannCalculator
 
 
 class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):

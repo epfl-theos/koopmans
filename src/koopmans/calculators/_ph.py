@@ -17,7 +17,7 @@ from ase.calculators.espresso import EspressoPh
 from koopmans.commands import Command, ParallelCommand
 from koopmans.settings import PhSettingsDict
 
-from ._utils import CalculatorABC, CalculatorExt
+from ._calculator import CalculatorABC, CalculatorExt
 
 
 class PhCalculator(CalculatorExt, EspressoPh, CalculatorABC):

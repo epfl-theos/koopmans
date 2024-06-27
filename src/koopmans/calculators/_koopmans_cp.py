@@ -27,7 +27,8 @@ from koopmans import bands, pseudopotentials, settings, utils
 from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.commands import ParallelCommand
 
-from ._utils import CalculatorABC, CalculatorCanEnforceSpinSym, CalculatorExt
+from ._calculator import (CalculatorABC, CalculatorCanEnforceSpinSym,
+                          CalculatorExt)
 
 
 def allowed(nr: int) -> bool:
@@ -140,10 +141,10 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         else:
             self.parameters.ibrav = 0
 
+        super()._pre_calculate()
+
         # Autogenerate the nr keywords
         self._autogenerate_nr()
-
-        super()._pre_calculate()
 
     def _post_calculate(self):
 
@@ -219,7 +220,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         has_nlcc = False
         for p in self.parameters.pseudopotentials.values():
-            upf = pseudopotentials.read_pseudo_file(self.parameters.pseudo_dir / p)
+            upf = pseudopotentials.read_pseudo_file(self.directory / self.parameters.pseudo_dir / p)
             if upf['header']['core_correction']:
                 has_nlcc = True
         if has_nlcc and (self.parameters.nr1b is None or self.parameters.nr2b is None or self.parameters.nr3b is None):
@@ -290,7 +291,8 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
     def read_ham_xml_files(self, bare=False) -> List[np.ndarray]:
         # Reads all expected hamiltonian XML files
-        ham_dir = self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndw}.save/K00001'
+        ham_dir = self.directory / self.parameters.outdir / \
+            f'{self.parameters.prefix}_{self.parameters.ndw}.save/K00001'
         ham_matrix: List[np.ndarray] = []
 
         for ispin in range(1, self.parameters.nspin + 1):
@@ -565,8 +567,8 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                     fd.write(contents)
 
     def convert_wavefunction_1to2(self):
-        nspin1_tmpdir = self.parameters.outdir / f'{self.parameters.prefix}_98.save/K00001'
-        nspin2_tmpdir = self.parameters.outdir / f'{self.parameters.prefix}_99.save/K00001'
+        nspin1_tmpdir = self.directory / self.parameters.outdir / f'{self.parameters.prefix}_98.save/K00001'
+        nspin2_tmpdir = self.directory / self.parameters.outdir / f'{self.parameters.prefix}_99.save/K00001'
 
         for directory in [nspin2_tmpdir, nspin1_tmpdir]:
             if not directory.is_dir():

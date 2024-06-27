@@ -18,7 +18,7 @@ from koopmans.commands import Command, ParallelCommandWithPostfix
 from koopmans.pseudopotentials import nelec_from_pseudos
 from koopmans.settings import PWSettingsDict
 
-from ._utils import CalculatorABC, CalculatorExt, ReturnsBandStructure
+from ._calculator import CalculatorABC, CalculatorExt, ReturnsBandStructure
 
 
 class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC):

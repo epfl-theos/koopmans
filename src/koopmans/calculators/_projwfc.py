@@ -20,7 +20,7 @@ from koopmans import pseudopotentials
 from koopmans.commands import Command, ParallelCommand
 from koopmans.settings import ProjwfcSettingsDict
 
-from ._utils import CalculatorABC, CalculatorExt
+from ._calculator import CalculatorABC, CalculatorExt
 
 
 class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):

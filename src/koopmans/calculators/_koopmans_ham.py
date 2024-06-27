@@ -17,7 +17,7 @@ from ase.dft.kpoints import BandPath
 from koopmans import settings, utils
 from koopmans.commands import ParallelCommand
 
-from ._utils import CalculatorABC, KCWannCalculator, ReturnsBandStructure
+from ._calculator import CalculatorABC, KCWannCalculator, ReturnsBandStructure
 
 
 class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure, CalculatorABC):
