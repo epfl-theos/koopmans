@@ -13,7 +13,6 @@ from ._koopmans_dscf import KoopmansDSCFWorkflow
 from ._ml import MLFittingWorkflow
 from ._singlepoint import SinglepointWorkflow
 from ._trajectory import TrajectoryWorkflow
-from ._unfold_and_interp import (SingleUnfoldAndInterpolateWorkflow,
-                                 UnfoldAndInterpolateWorkflow)
+from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
 from ._wannierize import WannierizeWorkflow
 from ._workflow import Workflow

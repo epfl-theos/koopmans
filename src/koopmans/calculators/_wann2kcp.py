@@ -14,7 +14,7 @@ from ase.calculators.espresso import Wann2KCP
 from koopmans.commands import ParallelCommand
 from koopmans.settings import Wann2KCPSettingsDict
 
-from ._utils import CalculatorABC, CalculatorExt
+from ._calculator import CalculatorABC, CalculatorExt
 
 
 class Wann2KCPCalculator(CalculatorExt, Wann2KCP, CalculatorABC):

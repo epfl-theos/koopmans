@@ -1,7 +1,6 @@
 import copy
 
 import numpy as np
-
 from ase import io
 
 np.random.seed(0)

@@ -21,7 +21,7 @@ valid_settings: List[Setting] = [
     Setting('w90_seedname',
             'w90_seedname must be equal to the seedname used in the previous Wannier90 calculation. The code '
             'will look for a file called w90_seedname.wout',
-            Path, None, None),
+            Path, Path('wannier90'), None),
     Setting('w90_calc',
             'Specifies the type of PW/Wannier90 calculation preceding the koopmans calculation. If the latter '
             'is done in a supercell at Gamma then w90_calc must be equal to \'sc\', otherwise if it comes from '

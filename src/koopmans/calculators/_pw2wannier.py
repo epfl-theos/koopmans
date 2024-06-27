@@ -14,7 +14,7 @@ from ase.calculators.espresso import PW2Wannier
 from koopmans.commands import ParallelCommand
 from koopmans.settings import PW2WannierSettingsDict
 
-from ._utils import CalculatorABC, CalculatorExt
+from ._calculator import CalculatorABC, CalculatorExt
 
 
 class PW2WannierCalculator(CalculatorExt, PW2Wannier, CalculatorABC):

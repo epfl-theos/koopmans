@@ -10,8 +10,12 @@ Written by Riccardo De Gennaro Nov 2020
 import copy
 import math
 import shutil
+from functools import partial
 from pathlib import Path
-from typing import List, TypeVar, Optional
+from typing import Callable, List, Optional, Tuple, TypeVar
+
+from ase import Atoms
+from pydantic import BaseModel
 
 # isort: off
 import koopmans.mpl_config
@@ -21,6 +25,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from koopmans import calculators, projections, utils
+from koopmans.processes import Process
+from koopmans.processes.wannier import (CopyProcess, ExtendProcess,
+                                        MergeProcess,
+                                        extend_wannier_u_dis_file_content,
+                                        merge_wannier_centers_file_contents,
+                                        merge_wannier_hr_file_contents,
+                                        merge_wannier_u_file_contents)
 from koopmans.pseudopotentials import nelec_from_pseudos, read_pseudo_file
 
 from ._workflow import Workflow
@@ -109,139 +120,88 @@ class WannierizeWorkflow(Workflow):
         using PW and Wannier90
 
         '''
-        if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-            self.print('Wannierization', style='heading')
-        else:
-            self.print('Kohn-Sham orbitals', style='heading')
-
-        if self.parameters.from_scratch:
-            utils.system_call("rm -rf wannier", False)
 
         # Run PW scf and nscf calculations
         # PWscf needs only the valence bands
-        calc_pw = self.new_calculator('pw')
-        calc_pw.parameters.pop('nbnd', None)
-        calc_pw.directory = 'wannier'
-        calc_pw.prefix = 'scf'
+        calc_scf = self.new_calculator('pw')
+        calc_scf.parameters.pop('nbnd', None)
+        calc_scf.prefix = 'scf'
         if self._scf_kgrid:
-            calc_pw.parameters.kpts = self._scf_kgrid
-        self.run_calculator(calc_pw)
+            calc_scf.parameters.kpts = self._scf_kgrid
+        self.run_calculator(calc_scf)
 
-        calc_pw = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True)
-        calc_pw.directory = 'wannier'
-        calc_pw.prefix = 'nscf'
-        self.run_calculator(calc_pw)
+        calc_nscf = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True)
+        calc_nscf.prefix = 'nscf'
+        self.link(calc_scf, calc_scf.parameters.outdir, calc_nscf, calc_nscf.parameters.outdir)
+        self.run_calculator(calc_nscf)
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
-            # Loop over the various subblocks that we must wannierize separately
+
             for block in self.projections:
-                n_occ_bands = self.number_of_electrons(block.spin)
-                if not block.spin:
-                    n_occ_bands /= 2
-
-                if max(block.include_bands) <= n_occ_bands:
-                    # Block consists purely of occupied bands
-                    init_orbs = self.parameters.init_orbitals
-                elif min(block.include_bands) > n_occ_bands:
-                    # Block consists purely of empty bands
-                    init_orbs = self.parameters.init_empty_orbitals
-                else:
-                    # Block contains both occupied and empty bands
-                    raise ValueError(f'{block} contains both occupied and empty bands. This should not happen.')
-                # Store the number of electrons in the ProjectionBlocks object so that it can work out which blocks to
-                # merge with one another
-                self.projections.num_occ_bands[block.spin] = n_occ_bands
-
-                calc_type = 'w90'
-                if block.spin:
-                    calc_type += f'_{block.spin}'
-
-                # Construct the subdirectory label
-                w90_dir = Path('wannier') / block.directory
-
-                # 1) pre-processing Wannier90 calculation
-                calc_w90 = self.new_calculator(calc_type, init_orbitals=init_orbs, directory=w90_dir,
-                                               **block.w90_kwargs)
-                calc_w90.prefix = 'wann_preproc'
-                calc_w90.command.flags = '-pp'
-                self.run_calculator(calc_w90)
-                utils.system_call(f'rsync -a {calc_w90.directory}/wann_preproc.nnkp {calc_w90.directory}/wann.nnkp')
-
-                # 2) standard pw2wannier90 calculation
-                calc_p2w = self.new_calculator('pw2wannier', directory=w90_dir,
-                                               spin_component=block.spin,
-                                               outdir=calc_pw.parameters.outdir)
-                calc_p2w.prefix = 'pw2wan'
-                self.run_calculator(calc_p2w)
-
-                # 3) Wannier90 calculation
-                calc_w90 = self.new_calculator(calc_type, directory=w90_dir,
-                                               init_orbitals=init_orbs,
-                                               bands_plot=self.parameters.calculate_bands,
-                                               **block.w90_kwargs)
-                calc_w90.prefix = 'wann'
-                self.run_calculator(calc_w90)
-
-                if hasattr(self, 'bands'):
-                    # Add centers and spreads info to self.bands
-                    if block.spin is None:
-                        remaining_bands = [b for b in self.bands if b.center is None and b.spin == 0]
-                    else:
-                        if block.spin == 'up':
-                            i_spin = 0
-                        else:
-                            i_spin = 1
-                        remaining_bands = [b for b in self.bands if b.center is None and b.spin == i_spin]
-
-                    centers = calc_w90.results['centers']
-                    spreads = calc_w90.results['spreads']
-                    for band, center, spread in zip(remaining_bands, centers, spreads):
-                        band.center = center
-                        band.spread = spread
-
-                        if block.spin is None and len(self.bands.get(spin=1)) > 0:
-                            # Copy over spin-up results to spin-down
-                            [match] = [b for b in self.bands if b.index == band.index and b.spin == 1]
-                            match.center = center
-                            match.spread = spread
+                wannierize_block_subworkflow = WannierizeBlockWorkflow.fromparent(
+                    self, force_nspin2=self._force_nspin2, block=block)
+                wannierize_block_subworkflow.name = f'wannierize_{block.name}'
+                wannierize_block_subworkflow.run()
 
             # Merging Hamiltonian files, U matrix files, centers files if necessary
             if self.parent is not None:
-                for merge_directory, block in self.projections.to_merge.items():
-                    if len(block) == 1:
-                        with utils.chdir('wannier'):
-                            utils.symlink(block[0].directory, merge_directory,
-                                          exist_ok=not self.parameters.from_scratch)
-                    else:
-                        self.merge_wannier_files(block, merge_directory, prefix=calc_w90.prefix)
 
-                        # Extending the U_dis matrix file, if necessary
-                        num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
-                        num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
-                        if num_bands > num_wann and self.parameters.method == 'dfpt':
-                            self.extend_wannier_u_dis_file(block, merge_directory, prefix=calc_w90.prefix)
+                for label, block in self.projections.to_merge.items():
+                    if len(block) == 1:
+                        # If there is only one block, we can just copy the files into a directory we will access later.
+                        # We do this by creating a null process that does nothing, and linking the files we want to copy
+                        # to that process
+                        filling_label = '_emp' if label == 'emp' else ''
+                        for ext in ['_hr.dat', '_u.mat', '_centres.xyz']:
+                            copy_process = CopyProcess(src_file=(block[0].w90_calc, block[0].w90_calc.prefix + ext),
+                                                       dst_file=block[0].w90_calc.prefix + filling_label + ext)
+                            copy_process.name = f'copy_{label}_wannier{ext.split(".")[0]}'
+                            self.run_process(copy_process)
+                    else:
+                        self.merge_wannier_files(block, label, prefix=self.calculations[-1].prefix)
+
+                # For the last block, extend the U_dis matrix file
+                num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
+                num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
+                if num_bands > num_wann and self.parameters.method == 'dfpt':
+                    # Extend the u_dis file
+
+                    # First, calculate how many empty bands we have
+                    spin = block[0].spin
+                    if spin:
+                        nbnd_occ = self.number_of_electrons(spin)
+                    else:
+                        nbnd_occ = self.number_of_electrons() // 2
+                    nbnd_tot = self.calculator_parameters['pw'].nbnd - nbnd_occ
+
+                    # Second, calculate how many empty wannier functions we have
+                    nwann_tot = sum([p.num_wann for p in block])
+
+                    # Finally, construct and run a Process to perform the file manipulation
+                    calc_with_u_dis = block[-1].w90_calc
+                    filling_label = '_emp' if label == 'emp' else ''
+                    extend_function = partial(extend_wannier_u_dis_file_content, nbnd=nbnd_tot, nwann=nwann_tot)
+                    extend_proc = ExtendProcess(extend_function=extend_function,
+                                                src_file=(calc_with_u_dis, calc_with_u_dis.prefix + '_u_dis.mat'),
+                                                dst_file=calc_with_u_dis.prefix + f'{filling_label}_u_dis.mat')
+                    extend_proc.name = f'extend_{label}_wannier_u_dis'
+                    self.run_process(extend_proc)
 
         if self.parameters.calculate_bands:
             # Run a "bands" calculation, making sure we don't overwrite
             # the scf/nscf tmp files by setting a different prefix
             calc_pw_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpoints.path)
-            calc_pw_bands.directory = 'wannier'
             calc_pw_bands.prefix = 'bands'
             calc_pw_bands.parameters.prefix += '_bands'
 
             # Link the save directory so that the bands calculation can use the old density
-            if self.parameters.from_scratch:
-                [src, dest] = [(c.parameters.outdir / c.parameters.prefix).with_suffix('.save')
-                               for c in [calc_pw, calc_pw_bands]]
-
-                if dest.exists():
-                    shutil.rmtree(str(dest))
-                shutil.copytree(src, dest)
+            self.link(calc_nscf, (calc_nscf.parameters.outdir / calc_nscf.parameters.prefix).with_suffix('.save'),
+                      calc_pw_bands, (calc_pw_bands.parameters.outdir / calc_pw_bands.parameters.prefix).with_suffix('.save'))
             self.run_calculator(calc_pw_bands)
 
             # Calculate a projected DOS
-            pseudos = [read_pseudo_file(calc_pw_bands.parameters.pseudo_dir / p) for p in
+            pseudos = [read_pseudo_file(calc_pw_bands.directory / calc_pw_bands.parameters.pseudo_dir / p) for p in
                        self.pseudopotentials.values()]
             if all([p['header']['number_of_wfc'] > 0 for p in pseudos]):
                 calc_dos = self.new_calculator('projwfc', filpdos=self.name)
@@ -250,6 +210,7 @@ class WannierizeWorkflow(Workflow):
                 calc_dos.spin_polarized = self.parameters.spin_polarized
                 calc_dos.pseudo_dir = calc_pw_bands.parameters.pseudo_dir
                 calc_dos.parameters.prefix = calc_pw_bands.parameters.prefix
+                self.link(calc_pw_bands, calc_pw_bands.parameters.outdir, calc_dos, calc_dos.parameters.outdir)
                 self.run_calculator(calc_dos)
 
                 # Prepare the DOS for plotting
@@ -310,6 +271,115 @@ class WannierizeWorkflow(Workflow):
 
         return
 
+    def merge_wannier_files(self, block: List[projections.ProjectionBlock], filling_label: str, prefix: str = 'wann'):
+        """
+        Merges the hr (Hamiltonian), u (rotation matrix), and wannier centers files of a collection of blocks that
+        share the same filling and spin
+        """
+
+        # Fetching the list of calculations for this block
+        src_calcs: List[calculators.Wannier90Calculator] = [b.w90_calc for b in block if b.w90_calc is not None]
+        emp_label = '_emp' if filling_label == 'emp' else ''
+
+        # Merging the wannier_hr (Hamiltonian) files
+        merge_hr_proc = MergeProcess(merge_function=merge_wannier_hr_file_contents,
+                                     src_files=[(calc, Path(prefix + '_hr.dat')) for calc in src_calcs],
+                                     dst_file=prefix + f'{emp_label}_hr.dat')
+        merge_hr_proc.name = f'merge_{filling_label}_wannier_hamiltonian'
+        self.run_process(merge_hr_proc)
+
+        if self.parameters.method == 'dfpt' and self.parent is not None:
+            # Merging the U (rotation matrix) files
+            merge_u_proc = MergeProcess(merge_function=merge_wannier_u_file_contents,
+                                        src_files=[(calc, Path(prefix + '_u.mat')) for calc in src_calcs],
+                                        dst_file=prefix + f'{emp_label}_u.mat')
+            merge_u_proc.name = f'merge_{filling_label}_wannier_u'
+            self.run_process(merge_u_proc)
+
+            # Merging the wannier centers files
+            merge_centers_proc = MergeProcess(merge_function=partial(merge_wannier_centers_file_contents, atoms=self.atoms),
+                                              src_files=[(calc, Path(prefix + '_centres.xyz')) for calc in src_calcs],
+                                              dst_file=prefix + f'{emp_label}_centres.xyz')
+            merge_centers_proc.name = f'merge_{filling_label}_wannier_centers'
+            self.run_process(merge_centers_proc)
+
+
+class WannierizeBlockWorkflow(Workflow):
+
+    def __init__(self, *args, block: projections.ProjectionBlock, force_nspin2=False, **kwargs):
+        self._force_nspin2 = force_nspin2
+        self.block = block
+        super().__init__(*args, **kwargs)
+
+    def _run(self):
+        n_occ_bands = self.number_of_electrons(self.block.spin)
+        if not self.block.spin:
+            n_occ_bands /= 2
+
+        if max(self.block.include_bands) <= n_occ_bands:
+            # Block consists purely of occupied bands
+            init_orbs = self.parameters.init_orbitals
+        elif min(self.block.include_bands) > n_occ_bands:
+            # Block consists purely of empty bands
+            init_orbs = self.parameters.init_empty_orbitals
+        else:
+            # Block contains both occupied and empty bands
+            raise ValueError(f'{self.block} contains both occupied and empty bands. This should not happen.')
+        # Store the number of electrons in the ProjectionBlocks object so that it can work out which blocks to
+        # merge with one another
+        self.projections.num_occ_bands[self.block.spin] = n_occ_bands
+
+        calc_type = 'w90'
+        if self.block.spin:
+            calc_type += f'_{self.block.spin}'
+
+        # 1) pre-processing Wannier90 calculation
+        calc_w90_pp = self.new_calculator(calc_type, init_orbitals=init_orbs, **self.block.w90_kwargs)
+        calc_w90_pp.prefix = 'wannier90_preproc'
+        calc_w90_pp.command.flags = '-pp'
+        self.run_calculator(calc_w90_pp)
+
+        # 2) standard pw2wannier90 calculation
+        calc_p2w = self.new_calculator('pw2wannier', spin_component=self.block.spin)
+        calc_p2w.prefix = 'pw2wannier90'
+        calc_nscf = [c for c in self.calculations if isinstance(
+            c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
+        self.link(calc_nscf, calc_nscf.parameters.outdir, calc_p2w, calc_p2w.parameters.outdir)
+        self.link(calc_w90_pp, calc_w90_pp.prefix + '.nnkp', calc_p2w, calc_p2w.parameters.seedname + '.nnkp')
+        self.run_calculator(calc_p2w)
+
+        # 3) Wannier90 calculation
+        calc_w90 = self.new_calculator(calc_type, init_orbitals=init_orbs,
+                                       bands_plot=self.parameters.calculate_bands, **self.block.w90_kwargs)
+        calc_w90.prefix = 'wannier90'
+        for ext in ['.eig', '.amn', '.eig', '.mmn']:
+            self.link(calc_p2w, calc_p2w.parameters.seedname + ext, calc_w90, calc_w90.prefix + ext)
+        self.run_calculator(calc_w90)
+        self.block.w90_calc = calc_w90
+
+        if hasattr(self, 'bands'):
+            # Add centers and spreads info to self.bands
+            if self.block.spin is None:
+                remaining_bands = [b for b in self.bands if b.center is None and b.spin == 0]
+            else:
+                if self.block.spin == 'up':
+                    i_spin = 0
+                else:
+                    i_spin = 1
+                remaining_bands = [b for b in self.bands if b.center is None and b.spin == i_spin]
+
+            centers = calc_w90.results['centers']
+            spreads = calc_w90.results['spreads']
+            for band, center, spread in zip(remaining_bands, centers, spreads):
+                band.center = center
+                band.spread = spread
+
+                if self.block.spin is None and len(self.bands.get(spin=1)) > 0:
+                    # Copy over spin-up results to spin-down
+                    [match] = [b for b in self.bands if b.index == band.index and b.spin == 1]
+                    match.center = center
+                    match.spread = spread
+
     def new_calculator(self, calc_type, *args, **kwargs) -> CalcExtType:  # type: ignore[type-var, misc]
         init_orbs = kwargs.pop('init_orbitals', None)
         calc: CalcExtType = super().new_calculator(calc_type, *args, **kwargs)
@@ -341,148 +411,3 @@ class WannierizeWorkflow(Workflow):
                 calc.parameters.spin_component = 'up'
 
         return calc
-
-    def merge_wannier_files(self, block: List[projections.ProjectionBlock], merge_directory: Path, prefix: str = 'wann'):
-        """
-        Merges the hr (Hamiltonian), u (rotation matrix), and wannier centers files of a collection of blocks that
-        share the same filling and spin
-        """
-
-        # Working out the directories where to read in files and where to write out files to
-        dirs_in: List[Path] = []
-        for b in block:
-            assert b.directory is not None, 'The block which you are trying to merge is missing a directory; this ' \
-                'should not happen'
-            dirs_in.append(Path('wannier') / b.directory)
-        assert merge_directory is not None, 'The block which you are trying to merge is missing a ' \
-            'merge_directory; this should not happen'
-        dir_out = Path('wannier') / merge_directory
-
-        # Merging the hr (Hamiltonian) files
-        self.merge_wannier_hr_files(dirs_in, dir_out, prefix)
-
-        if self.parameters.method == 'dfpt':
-            # Merging the U (rotation matrix) files
-            self.merge_wannier_u_files(dirs_in, dir_out, prefix)
-
-            # Merging the wannier centers files
-            self.merge_wannier_centers_files(dirs_in, dir_out, prefix)
-
-    @staticmethod
-    def merge_wannier_hr_files(dirs_in: List[Path], dir_out: Path, prefix: str):
-        # Reading in each hr file in turn
-        hr_list = []
-        weights_out = None
-        rvect_out = None
-        for dir_in in dirs_in:
-            # Reading the hr file
-            fname_in = dir_in / (prefix + '_hr.dat')
-            hr, rvect, weights, nrpts = utils.read_wannier_hr_file(fname_in)
-
-            # Sanity checking
-            if weights_out is None:
-                weights_out = weights
-            elif weights != weights_out:
-                raise ValueError(f'{fname_in} contains weights that differ from the other blocks. This should not '
-                                 'happen.')
-            if rvect_out is None:
-                rvect_out = rvect
-            elif np.all(rvect != rvect_out):
-                raise ValueError(f'{fname_in} contains a set of R-vectors that differ from the other blocks. This '
-                                 'should not happen.')
-
-            # Reshaping this block of the Hamiltonian in preparation for constructing the block matrix, and storing it
-            num_wann2 = hr.size // nrpts
-            num_wann = int(math.sqrt(num_wann2))
-            hr_list.append(hr.reshape(nrpts, num_wann, num_wann))
-
-        # Constructing the block matrix hr_out which is dimensions (nrpts, num_wann_tot, num_wann_tot)
-        num_wann_tot = sum([hr.shape[-1] for hr in hr_list])
-        hr_out = np.zeros((nrpts, num_wann_tot, num_wann_tot), dtype=complex)
-        start = 0
-        for hr in hr_list:
-            end = start + hr.shape[1]
-            for irpt in range(nrpts):
-                hr_out[irpt, start:end, start:end] = hr[irpt, :, :]
-            start = end
-
-        assert rvect_out is not None
-        assert weights_out is not None
-
-        utils.write_wannier_hr_file(dir_out / (prefix + '_hr.dat'), hr_out, rvect_out.tolist(), weights_out)
-
-    @staticmethod
-    def merge_wannier_u_files(dirs_in: List[Path], dir_out: Path, prefix: str):
-        u_list = []
-        kpts_master = None
-        for dir_in in dirs_in:
-            # Reading the U file
-            fname_in = dir_in / (prefix + '_u.mat')
-
-            umat, kpts, nkpts = utils.read_wannier_u_file(fname_in)
-
-            if kpts_master is None:
-                kpts_master = kpts
-            elif nkpts == len(kpts_master) and np.allclose(kpts, kpts_master):
-                pass
-            else:
-                raise ValueError(f'{fname_in} has an inconsistent set of k-points with the other files you are merging')
-
-            u_list.append(umat)
-
-        shape_u_merged = [nkpts] + np.sum([u.shape for u in u_list], axis=0)[1:].tolist()
-        u_merged = np.zeros(shape_u_merged, dtype=complex)
-
-        # Constructing a large block-diagonal U matrix from all the individual matrices in u_list
-        i_start = 0
-        j_start = 0
-        for u in u_list:
-            i_end = i_start + u.shape[1]
-            j_end = j_start + u.shape[2]
-            u_merged[:, i_start:i_end, j_start:j_end] = u
-            i_start = i_end
-            j_start = j_end
-
-        # Writing out the large U file
-        utils.write_wannier_u_file(dir_out / (prefix + '_u.mat'), u_merged, kpts)
-
-    def merge_wannier_centers_files(self, dirs_in: List[Path], dir_out: Path, prefix: str):
-        centers_list = []
-        for dir_in in dirs_in:
-            # Reading the centers file
-            fname_in = dir_in / (prefix + '_centres.xyz')
-
-            centers, _ = utils.read_wannier_centers_file(fname_in)
-
-            centers_list += centers
-
-        # Writing the centers file
-        utils.write_wannier_centers_file(dir_out / (prefix + '_centres.xyz'), centers_list, self.atoms)
-
-    def extend_wannier_u_dis_file(self, block: List[projections.ProjectionBlock], merge_directory: Path, prefix: str = 'wann'):
-        # Read in
-        assert block[-1].directory is not None
-        fname_in = Path('wannier') / block[-1].directory / (prefix + '_u_dis.mat')
-        udis_mat, kpts, _ = utils.read_wannier_u_file(fname_in)
-
-        # Calculate how many empty bands we have
-        spin = block[0].spin
-        if spin:
-            nbnd_occ = self.number_of_electrons(spin)
-        else:
-            nbnd_occ = self.number_of_electrons() // 2
-        nbnd_tot = self.calculator_parameters['pw'].nbnd - nbnd_occ
-
-        # Calculate how many empty wannier functions we have
-        nwann_tot = sum([len(p) for p in block])
-
-        # Build up the larger U_dis matrix, which is a nkpts x nwann_emp x nbnd_emp matrix...
-        udis_mat_large = np.zeros((len(kpts), nwann_tot, nbnd_tot), dtype=complex)
-        # ... with the diagonal entries equal to 1...
-        udis_mat_large[:, :nwann_tot, :nwann_tot] = np.identity(nwann_tot)
-        # ... except for the last block, where we insert the contents of the corresponding u_dis file
-        udis_mat_large[:, -udis_mat.shape[1]:, -udis_mat.shape[2]:] = udis_mat
-
-        # Write out
-        fname_out = Path('wannier') / merge_directory / (prefix + '_u_dis.mat')
-        utils.write_wannier_u_file(fname_out, udis_mat_large, kpts)

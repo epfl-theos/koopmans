@@ -8,16 +8,14 @@ Written by Edward Linscott Sep 2020
 
 import os
 
-import numpy as np
 from ase import Atoms
 from ase.calculators.wannier90 import Wannier90
-from ase.dft.kpoints import BandPath
 
 from koopmans.commands import Command
 from koopmans.settings import Wannier90SettingsDict
 from koopmans.utils import CalculatorNotConvergedWarning, warn
 
-from ._utils import CalculatorABC, CalculatorExt
+from ._calculator import CalculatorABC, CalculatorExt
 
 
 class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):

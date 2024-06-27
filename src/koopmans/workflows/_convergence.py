@@ -332,7 +332,7 @@ class ConvergenceWorkflow(Workflow):
                 self.print(header.rstrip(', '), style='subheading')
 
                 # Perform calculation
-                subwf.run(subdirectory=subdir)
+                subwf.run()
 
                 # Store the result
                 results[indices] = self.observable(subwf)

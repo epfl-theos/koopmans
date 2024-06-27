@@ -6,4 +6,4 @@ Integrated within koopmans by Edward Linscott Jan 2021
 
 """
 
-from ._calculator import UnfoldAndInterpolateCalculator
+from ._process import UnfoldAndInterpolateProcess, generate_dos

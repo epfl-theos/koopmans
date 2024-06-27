@@ -20,7 +20,7 @@ from koopmans import pseudopotentials
 from koopmans.commands import Command, ParallelCommand
 from koopmans.settings import ProjwfcSettingsDict
 
-from ._utils import CalculatorABC, CalculatorExt
+from ._calculator import CalculatorABC, CalculatorExt
 
 
 class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
@@ -49,12 +49,15 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         self.pseudo_dir: Optional[Path] = None
         self.spin_polarized: Optional[bool] = None
 
-    def _calculate(self):
+    def _pre_calculate(self):
+        super()._pre_calculate()
         for attr in ['pseudopotentials', 'pseudo_dir', 'spin_polarized']:
             if not hasattr(self, attr):
                 raise ValueError(f'Please set {self.__class__.__name__}.{attr} before calling '
                                  f'{self.__class__.__name__.calculate()}')
-        super()._calculate()
+
+    def _post_calculate(self):
+        super()._post_calculate()
         self.generate_dos()
 
     @property

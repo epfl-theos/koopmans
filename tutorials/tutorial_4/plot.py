@@ -12,8 +12,11 @@ wf = io.read('h2o_conv.kwf')
 calcs = wf.calculations
 
 # Create a simple function for extracting celldm1 from a calculator
+
+
 def get_celldm1(calc):
     return cell_to_parameters(calc.atoms.cell)['celldms'][1]
+
 
 # Extract the list of ecutwfcs and cell sizes tested
 ecutwfcs = sorted(list(set([c.parameters.ecutwfc for c in calcs])))

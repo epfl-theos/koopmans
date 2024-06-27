@@ -48,6 +48,7 @@ from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.kpoints import Kpoints
 from koopmans.ml import MLModel
+from koopmans.processes import Process
 from koopmans.projections import ProjectionBlocks
 from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
                                        pseudo_database,
@@ -103,12 +104,13 @@ class Workflow(ABC):
     projections: ProjectionBlocks
     parent: Optional[Workflow]
     version: str
+    _step_counter: int
 
     def __init__(self, atoms: Atoms,
                  pseudopotentials: Dict[str, str] = {},
                  kpoints: Optional[Kpoints] = None,
                  projections: Optional[ProjectionBlocks] = None,
-                 name: str = 'koopmans_workflow',
+                 name: Optional[str] = None,
                  parameters: Union[Dict[str, Any], settings.WorkflowSettingsDict] = {},
                  calculator_parameters: Optional[Union[Dict[str, Dict[str, Any]],
                                                        Dict[str, settings.SettingsDict]]] = None,
@@ -124,8 +126,9 @@ class Workflow(ABC):
             if self.parameters.is_valid(key):
                 self.parameters[key] = value
         self.atoms: Atoms = atoms
-        self.name = name
+        self.name: str = self.__class__.__name__.lower() if name is None else name
         self.calculations: List[calculators.Calc] = []
+        self.processes: List[Process] = []
         self.silent = False
         self.print_indent = 1
 
@@ -329,6 +332,9 @@ class Workflow(ABC):
             utils.warn(f'You are using version {__version__} of koopmans, but this workflow was generated with '
                        f'version {self.version}. Proceed with caution.')
 
+        # Initialize the step counter
+        self._step_counter = 0
+
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
             return self.__dict__ == other.__dict__
@@ -350,7 +356,7 @@ class Workflow(ABC):
         entries.append(f'pseudopotentials={self.pseudopotentials}')
         return f'{self.__class__.__name__}(' + ',\n   '.join(entries) + ')'
 
-    def run(self, subdirectory: Optional[Union[str, Path]] = None, from_scratch: Optional[bool] = None) -> None:
+    def run(self, subdirectory: Optional[str] = None, from_scratch: Optional[bool] = None) -> None:
         '''
         Run the workflow
         '''
@@ -364,7 +370,9 @@ class Workflow(ABC):
 
         if self.parent:
             with self._parent_context(subdirectory, from_scratch):
+                self.print(f'{self.__class__.__name__}', style='heading')
                 self._run()
+                self.print()
         else:
             self._run()
 
@@ -395,19 +403,18 @@ class Workflow(ABC):
 
         parameters = copy.deepcopy(parent_wf.parameters)
         parameter_kwargs = {k: v for k, v in kwargs.items() if parameters.is_valid(k)}
-        other_kwargs = {k: v for k, v in kwargs.items() if not parameters.is_valid(k)}
+        wf_kwargs = dict(atoms=copy.deepcopy(parent_wf.atoms),
+                         parameters=parameters,
+                         calculator_parameters=copy.deepcopy(parent_wf.calculator_parameters),
+                         pseudopotentials=copy.deepcopy(parent_wf.pseudopotentials),
+                         kpoints=copy.deepcopy(parent_wf.kpoints),
+                         projections=parent_wf.projections,
+                         plotting=copy.deepcopy(parent_wf.plotting),
+                         ml=copy.deepcopy(parent_wf.ml))
+        wf_kwargs.update(**{k: v for k, v in kwargs.items() if not parameters.is_valid(k)})
         parameters.update(**parameter_kwargs)
 
-        child_wf = cls(atoms=copy.deepcopy(parent_wf.atoms),
-                       parameters=parameters,
-                       calculator_parameters=copy.deepcopy(parent_wf.calculator_parameters),
-                       name=copy.deepcopy(parent_wf.name),
-                       pseudopotentials=copy.deepcopy(parent_wf.pseudopotentials),
-                       kpoints=copy.deepcopy(parent_wf.kpoints),
-                       projections=copy.deepcopy(parent_wf.projections),
-                       plotting=copy.deepcopy(parent_wf.plotting),
-                       ml=copy.deepcopy(parent_wf.ml),
-                       **other_kwargs)
+        child_wf = cls(**wf_kwargs)
         child_wf.parent = parent_wf
         return child_wf
 
@@ -556,7 +563,7 @@ class Workflow(ABC):
             if not np.all(self.atoms.cell.angles() == 90.0):
                 raise ValueError(f"The ML-workflow has only been implemented for simulation cells that have 90° angles")
 
-            if self.parameters.task is not 'convergence_ml':
+            if self.parameters.task != 'convergence_ml':
                 assert isinstance(self.ml.n_max, int)
                 assert isinstance(self.ml.l_max, int)
                 assert isinstance(self.ml.r_min, float)
@@ -568,9 +575,9 @@ class Workflow(ABC):
                 if isinstance(param, type):  # if param is an int or a float convert it for the checks to a list
                     return [param]
                 else:  # if param is not an int or a float check that it is a list of ints / floats
-                    assert(isinstance(param, list))
+                    assert (isinstance(param, list))
                     for value in param:
-                        assert(isinstance(value, type))
+                        assert (isinstance(value, type))
                     return param
 
             n_maxs = convert_to_list(self.ml.n_max, int)
@@ -610,11 +617,10 @@ class Workflow(ABC):
 
     def new_calculator(self,
                        calc_type: str,
-                       directory: Optional[Path] = None,
                        kpts: Optional[Union[List[int], BandPath]] = None,
-                       **kwargs) -> T:  # type: ignore[type-var, misc]
+                       **kwargs) -> calculators.Calc:  # type: ignore[type-var, misc]
 
-        calc_class: Type[T]
+        calc_class: calculators.CalcType
 
         if calc_type == 'kcp':
             calc_class = calculators.KoopmansCPCalculator
@@ -626,8 +632,6 @@ class Workflow(ABC):
             calc_class = calculators.PW2WannierCalculator
         elif calc_type == 'wann2kcp':
             calc_class = calculators.Wann2KCPCalculator
-        elif calc_type.startswith('ui'):
-            calc_class = calculators.UnfoldAndInterpolateCalculator
         elif calc_type == 'wann2kc':
             calc_class = calculators.Wann2KCCalculator
         elif calc_type == 'kc_screen':
@@ -653,7 +657,7 @@ class Workflow(ABC):
             all_kwargs['kpts'] = kpts if kpts is not None else self.kpoints.grid
 
         # Add further information to the calculator as required
-        for kw in ['pseudopotentials', 'pseudo_dir', 'gamma_only', 'kgrid', 'kpath', 'koffset', 'plotting']:
+        for kw in ['pseudopotentials', 'gamma_only', 'kgrid', 'kpath', 'koffset', 'plotting']:
             if kw not in all_kwargs and calculator_parameters.is_valid(kw):
                 val: Any
                 if kw == 'kgrid':
@@ -668,8 +672,6 @@ class Workflow(ABC):
                         val = self.kpoints.offset
                 elif kw == 'gamma_only':
                     val = self.kpoints.gamma_only
-                elif kw == 'pseudo_dir':
-                    val = self.parameters.pseudo_directory
                 else:
                     val = getattr(self, kw)
                 all_kwargs[kw] = val
@@ -677,9 +679,11 @@ class Workflow(ABC):
         # Create the calculator
         calc = calc_class(atoms=copy.deepcopy(self.atoms), **all_kwargs)
 
-        # Add the directory if provided
-        if directory is not None:
-            calc.directory = directory
+        # Link the pseudopotentials if relevant
+        if calculator_parameters.is_valid('pseudo_dir'):
+            for pseudo in self.pseudopotentials.values():
+                self.link(None, self.parameters.pseudo_directory / pseudo, calc, Path('pseudopotentials') / pseudo)
+            calc.parameters.pseudo_dir = 'pseudopotentials'
 
         return calc
 
@@ -716,63 +720,88 @@ class Workflow(ABC):
 
         self.atoms = self.atoms[mask]
 
-    def run_calculator(self, master_qe_calc: calculators.Calc, enforce_ss=False):
-        '''
-        Wrapper for run_calculator_single that manages the optional enforcing of spin symmetry
+    def run_calculator(self, master_calc: calculators.Calc, enforce_spin_symmetry: bool = False):
+        ''' Run a calculator.
+
+        If enforce_spin_symmetry is True, the calculation will be run with spin symmetry enforced.
+        Ultimately this wraps self.run_calculators
+
+        :param master_calc: the calculator to run
+        :param enforce_spin_symmetry: whether to enforce spin symmetry
         '''
 
-        if enforce_ss:
-            if not isinstance(master_qe_calc, calculators.CalculatorCanEnforceSpinSym):
-                raise NotImplementedError(f'{master_qe_calc.__class__.__name__} cannot enforce spin symmetry')
+        if enforce_spin_symmetry:
+            if not isinstance(master_calc, calculators.CalculatorCanEnforceSpinSym):
+                raise NotImplementedError(f'{master_calc.__class__.__name__} cannot enforce spin symmetry')
 
-            if not master_qe_calc.from_scratch:
+            if not master_calc.from_scratch:
                 # PBE with nspin=1 dummy
-                qe_calc = master_qe_calc.nspin1_dummy_calculator()
+                qe_calc = master_calc.nspin1_dummy_calculator()
                 qe_calc.skip_qc = True
-                self.run_calculator_single(qe_calc)
+                self.run_calculator(qe_calc)
                 # Copy over nspin=2 wavefunction to nspin=1 tmp directory (if it has not been done already)
                 if self.parameters.from_scratch:
-                    master_qe_calc.convert_wavefunction_2to1()
+                    master_calc.convert_wavefunction_2to1()
 
             # PBE with nspin=1
-            qe_calc = master_qe_calc.nspin1_calculator()
-            self.run_calculator_single(qe_calc)
+            qe_calc = master_calc.nspin1_calculator()
+            self.run_calculator(qe_calc)
 
             # PBE from scratch with nspin=2 (dummy run for creating files of appropriate size)
-            qe_calc = master_qe_calc.nspin2_dummy_calculator()
+            qe_calc = master_calc.nspin2_dummy_calculator()
             qe_calc.skip_qc = True
-            self.run_calculator_single(qe_calc)
+            self.run_calculator(qe_calc)
 
             # Copy over nspin=1 wavefunction to nspin=2 tmp directory (if it has not been done already)
             if self.parameters.from_scratch:
-                master_qe_calc.convert_wavefunction_1to2()
+                master_calc.convert_wavefunction_1to2()
 
             # PBE with nspin=2, reading in the spin-symmetric nspin=1 wavefunction
-            master_qe_calc.prepare_to_read_nspin1()
-            self.run_calculator_single(master_qe_calc)
+            master_calc.prepare_to_read_nspin1()
+            self.run_calculator(master_calc)
 
         else:
 
-            self.run_calculator_single(master_qe_calc)
+            self.run_calculators([master_calc])
 
         return
 
-    def run_calculator_single(self, qe_calc: calculators.Calc):
-        # Runs qe_calc.calculate with additional checks
+    def _pre_run_calculator(self, qe_calc: calculators.Calc) -> bool:
+        """Perform operations that need to occur before a calculation is run
+
+        :param qe_calc: The calculator to run
+        :return: Whether the calculation should be run
+        """
+
+        # Check that calc.directory was not set
+        if qe_calc.directory is not None:
+            raise ValueError(
+                f'calc.directory should not be set manually, but it was set to {os.path.relpath(qe_calc.directory)}')
+
+        # Prepend calc.directory with a counter
+        self._step_counter += 1
+        qe_calc.directory = Path(f'{self._step_counter:02}-{qe_calc.prefix}').resolve()
+
+        # Check that another calculation hasn't already been run in this directory
+        if any([calc.directory == qe_calc.directory for calc in self.calculations]):
+            raise ValueError(
+                f'A calculation has already been run in {os.path.relpath(qe_calc.directory)}; this should not happen')
+
+        # Remove the directory if it already exists and we are running from scratch
+        if self.parameters.from_scratch and qe_calc.directory.exists():
+            shutil.rmtree(qe_calc.directory)
 
         # If an output file already exists, check if the run completed successfully
-        verb = 'Running'
         if not self.parameters.from_scratch:
 
             calc_file = qe_calc.directory / qe_calc.prefix
 
             if calc_file.with_suffix(qe_calc.ext_out).is_file():
-                verb = 'Rerunning'
 
                 is_complete = self.load_old_calculator(qe_calc)
                 if is_complete:
                     if not self.silent:
-                        self.print(f'Not running {os.path.relpath(calc_file)} as it is already complete')
+                        self.print(f'Not running {os.path.relpath(qe_calc.directory)} as it is already complete')
 
                     # Check the convergence of the calculation
                     qe_calc.check_convergence()
@@ -785,37 +814,88 @@ class Workflow(ABC):
 
                     if isinstance(qe_calc, calculators.PhCalculator):
                         qe_calc.read_dynG()
-                    return
 
-        if not self.silent:
-            dir_str = os.path.relpath(qe_calc.directory) + '/'
-            self.print(f'{verb} {dir_str}{qe_calc.prefix}...', end='', flush=True)
+                    return False
+                else:
+                    # Remove the directory in anticipation of starting again
+                    shutil.rmtree(qe_calc.directory)
 
         # Update postfix if relevant
         if self.parameters.npool:
             if isinstance(qe_calc.command, ParallelCommandWithPostfix):
                 qe_calc.command.postfix = f'-npool {self.parameters.npool}'
 
-        try:
-            qe_calc.calculate()
-        except CalculationFailed:
-            self.print(' failed')
-            raise
+        return True
 
-        if not self.silent:
-            self.print(' done')
+    def _run_calculators(self, calcs: List[calculators.Calc]) -> None:
+        """Run a list of calculators, without doing anything else (other than printing messages.)
 
-        # Store the calculator
-        self.calculations.append(qe_calc)
+        Any pre- or post-processing of each calculator should have been done in _pre_run_calculator and _post_run_calculator.
 
-        # Ensure we inherit any modifications made to the atoms object
-        if qe_calc.atoms != self.atoms:
-            self.atoms = qe_calc.atoms
+        :param calcs: The calculators to run
+        """
 
-        # If we reached here, all future calculations should be performed from scratch
-        self.parameters.from_scratch = True
+        for calc in calcs:
+            verb = "Running" if self.parameters.from_scratch else "Rerunning"
+
+            if not self.silent:
+                dir_str = os.path.relpath(calc.directory)
+                self.print(f'{verb} {dir_str}...', end='', flush=True)
+
+            try:
+                calc.calculate()
+            except CalculationFailed:
+                self.print(' failed')
+                raise
+
+            if not self.silent:
+                self.print(' done')
+
+            # If we reached here, all future calculations should be performed from scratch
+            self.parameters.from_scratch = True
 
         return
+
+    def _post_run_calculator(self, calc: calculators.Calc) -> None:
+        """
+        Perform any operations that need to be performed after a calculation has run.
+        """
+        # Store the calculator
+        self.calculations.append(calc)
+
+        # Ensure we inherit any modifications made to the atoms object
+        if calc.atoms != self.atoms:
+            self.atoms = calc.atoms
+
+        return
+
+    def run_calculators(self, calcs: List[calculators.Calc]):
+        '''
+        Run a list of *independent* calculators (default implementation is to run them in sequence)
+        '''
+
+        calcs_to_run = []
+        for calc in calcs:
+            proceed = self._pre_run_calculator(calc)
+            if proceed:
+                calcs_to_run.append(calc)
+
+        self._run_calculators(calcs_to_run)
+
+        for calc in calcs_to_run:
+            self._post_run_calculator(calc)
+
+    def run_process(self, process: Process):
+        '''
+        Run a Process
+        '''
+
+        self._step_counter += 1
+        process.directory = Path(f'{self._step_counter:02}-{process.name}').resolve()
+        self.print('Running ' + os.path.relpath(process.directory) + '...', end='', flush=True)
+        process.run()
+        self.print(' done')
+        self.processes.append(process)
 
     def load_old_calculator(self, qe_calc: calculators.Calc) -> bool:
         # This is a separate function so that it can be monkeypatched by the test suite
@@ -829,20 +909,44 @@ class Workflow(ABC):
             if hasattr(old_calc, 'kpts'):
                 qe_calc.kpts = old_calc.kpts
 
-            # Load bandstructure if present, too
-            if isinstance(qe_calc, calculators.UnfoldAndInterpolateCalculator):
-                qe_calc.read_bands()
-                # If the band structure file does not exist, we must re-run
-                if 'band structure' not in qe_calc.results:
-                    return False
-
             self.calculations.append(qe_calc)
 
         return old_calc.is_complete()
 
+    def link(self, src_calc: calculators.Calc | Process | None, src_path: Path | str, dest_calc: calculators.Calc, dest_path: Path | str, symlink=False, recursive_symlink=False) -> None:
+        """Link a file from one calculator to another
+
+        Paths must be provided relative to the the calculator's directory i.e. calc.directory, unless src_calc is None
+
+        :param src_calc: The prior calculation or process which generated the file (None if it was not generated by a process/calculation)
+        :type src_calc: calculators.Calc | Process | None
+        :param src_path: The path of the file, relative to the directory of the calculation/process
+        :type src_path: Path
+        :param dest_calc: The calculator which requires this file
+        :type dest_calc: calculators.Calc
+        :param dest_path: The path (relative to dest_calc's directory) where this file should appear
+        :type dest_path: Path
+        :param symlink: Whether to create a symlink instead of copying the file. Only do this if the file is not going to be modified by the dest_calc
+        :type symlink: bool
+        """
+
+        if isinstance(src_path, str):
+            src_path = Path(src_path)
+        if isinstance(dest_path, str):
+            dest_path = Path(dest_path)
+
+        if src_path.is_absolute() and src_calc is not None:
+            raise ValueError(f'"src_path" in {self.__class__.__name__}.link() must be a relative path if a '
+                             f'"src_calc" is provided')
+        if dest_path.is_absolute():
+            raise ValueError(f'"dest_path" in {self.__class__.__name__}.link() must be a relative path')
+
+        dest_calc.link_file(src_calc, src_path, dest_path, symlink=symlink,  # type: ignore
+                            recursive_symlink=recursive_symlink)
+
     def print(self, text: str = '', style: str = 'body', **kwargs: Any):
         if style == 'body':
-            utils.indented_print(str(text), self.print_indent + 1, **kwargs)
+            utils.indented_print(str(text), self.print_indent + 2, **kwargs)
         else:
             if style == 'heading':
                 underline = '='
@@ -856,7 +960,7 @@ class Workflow(ABC):
             utils.indented_print(underline * len(text), self.print_indent, **kwargs)
 
     @contextmanager
-    def _parent_context(self, subdirectory: Optional[Union[str, Path]] = None,
+    def _parent_context(self, subdirectory: Optional[str] = None,
                         from_scratch: Optional[bool] = None) -> Generator[None, None, None]:
         '''
         Context for calling self._run(), within which self inherits relevant information from self.parent, runs, and
@@ -865,12 +969,8 @@ class Workflow(ABC):
 
         assert self.parent is not None
 
-        # Automatically pass along the name of the overall workflow
-        if self.name is None:
-            self.name = self.parent.name
-
         # Increase the indent level
-        self.print_indent = self.parent.print_indent + 1
+        self.print_indent = self.parent.print_indent + 2
 
         # Ensure altering self.calculator_parameters won't affect self.parent.calculator_parameters
         if self.calculator_parameters is self.parent.calculator_parameters:
@@ -882,8 +982,9 @@ class Workflow(ABC):
         else:
             self.parameters.from_scratch = from_scratch
 
-        # Link the list of calculations
+        # Link the lists of calculations and processes
         self.calculations = self.parent.calculations
+        self.processes = self.parent.processes
 
         # Link the ML_Model
         if self.ml.use_ml:
@@ -902,25 +1003,27 @@ class Workflow(ABC):
                     b.alpha_history = [b.alpha]
                 b.error_history = []
 
-        try:
-            if subdirectory is not None:
-                # Ensure subdirectory is a Path
-                subdirectory = Path(subdirectory)
-                # Update directories
-                for key in self.calculator_parameters.keys():
-                    params = self.calculator_parameters[key]
-                    for setting in params.are_paths:
-                        if setting == 'pseudo_dir':
-                            continue
-                        path = getattr(params, setting, None)
-                        if path is not None and Path.cwd() in path.parents:
-                            new_path = subdirectory.resolve() / os.path.relpath(path)
-                            setattr(params, setting, new_path)
+        subdirectory = self.name if subdirectory is None else subdirectory
 
-                # Run the workflow
-                with utils.chdir(subdirectory):
-                    yield
-            else:
+        try:
+            # Prepend the step counter to the subdirectory name
+            self.parent._step_counter += 1
+            subdirectory_path = Path(f'{self.parent._step_counter:02}-{subdirectory}')
+            if self.parameters.from_scratch and subdirectory_path.is_dir():
+                shutil.rmtree(subdirectory_path)
+            # Update directories
+            for key in self.calculator_parameters.keys():
+                params = self.calculator_parameters[key]
+                for setting in params.are_paths:
+                    if setting == 'pseudo_dir':
+                        continue
+                    path = getattr(params, setting, None)
+                    if path is not None and Path.cwd() in path.parents:
+                        new_path = subdirectory_path.resolve() / os.path.relpath(path)
+                        setattr(params, setting, new_path)
+
+            # Run the workflow
+            with utils.chdir(subdirectory_path):
                 yield
         finally:
             # ... and will prevent inheritance of from_scratch
@@ -933,7 +1036,7 @@ class Workflow(ABC):
                     # Add the alpha and error history if the length of the bands match
                     if len(self.parent.bands) == len(self.bands):
                         for b, b_sub in zip(self.parent.bands, self.bands):
-                            b.alpha_history += b_sub.alpha_history[1:]
+                            b.alpha_history += b_sub.alpha_history
                             b.error_history += b_sub.error_history
                             b.self_hartree = b_sub.self_hartree
                             b.spread = b_sub.spread
@@ -941,9 +1044,6 @@ class Workflow(ABC):
                 else:
                     # Copy the entire bands object
                     self.parent.bands = self.bands
-
-            # Make sure any updates to the projections are passed along
-            self.parent.projections = self.projections
 
     def todict(self):
         # Shallow copy
@@ -1402,10 +1502,10 @@ class Workflow(ABC):
             plt.subplots_adjust(right=0.85, wspace=0.05)
 
         # Saving the figure to file (as png and also in editable form)
-        workflow_name = self.__class__.__name__.lower()
+        workflow_name = self.name
         for s in ['workflow', 'mock', 'benchgen', 'stumbling', 'check']:
             workflow_name = workflow_name.replace(s, '')
-        filename = filename if filename is not None else f'{self.name}_{workflow_name}_bandstructure'
+        filename = filename if filename is not None else f'{workflow_name}_bandstructure'
         legends = [ax.get_legend() for ax in axes if ax.get_legend() is not None]
         utils.savefig(fname=filename + '.png', bbox_extra_artists=legends, bbox_inches='tight')
 

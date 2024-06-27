@@ -5,6 +5,7 @@ Tests for koopmans.io._json
 '''
 
 from ase.build import molecule
+
 from koopmans import utils
 from koopmans.io import read, write
 from koopmans.workflows import (ConvergenceMLWorkflow, SinglepointWorkflow,

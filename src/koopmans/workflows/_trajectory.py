@@ -97,7 +97,7 @@ class TrajectoryWorkflow(Workflow):
             snapshot = self.snapshots[i]
             self.ml.current_snapshot = i
             self.atoms.set_positions(snapshot.positions)
-            
+
             # after each snapshot we want to set the from_scratch_parameter to its original value
             # To do so, we save it here since it might get set from False to True during the calculation
             # of the snapshot

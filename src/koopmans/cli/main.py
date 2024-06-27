@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import sys
 import argparse
+import sys
 import textwrap
 
 import koopmans.mpl_config
@@ -28,7 +28,6 @@ def main():
     # Set traceback behaviour
     if not args.traceback:
         sys.tracebacklimit = 0
-    
 
     # Run workflow
     workflow.run()

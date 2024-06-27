@@ -26,10 +26,9 @@ class EnvironCalculator(PWCalculator):
         # Add dictionary of environ settings
         self.environ_settings = copy.deepcopy(_default_settings)
 
-    def calculate(self):
-        # Generic function for running a calculation
+    def _pre_calculate(self):
         self.write_environ_in()
-        super().calculate()
+        super()._pre_calculate()
 
     def set_environ_settings(self, settings, use_defaults=True):
         self.environ_settings = settings

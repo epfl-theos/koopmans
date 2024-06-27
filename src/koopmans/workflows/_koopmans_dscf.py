@@ -352,7 +352,7 @@ class KoopmansDSCFWorkflow(Workflow):
             # to copy the previously calculated Wannier functions
             calc = self.new_kcp_calculator('dft_dummy')
             calc.directory = Path('init')
-            self.run_calculator(calc, enforce_ss=False)
+            self.run_calculator(calc)
 
             # DFT restarting from Wannier functions (after copying the Wannier functions)
             calc = self.new_kcp_calculator('dft_init', restart_mode='restart',
@@ -390,7 +390,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     else:
                         raise OSError(f'Could not find {evcw_file}')
 
-            self.run_calculator(calc, enforce_ss=False)
+            self.run_calculator(calc)
 
             # Check the consistency between the PW and CP band gaps
             pw_calc = [c for c in self.calculations if isinstance(
@@ -414,7 +414,7 @@ class KoopmansDSCFWorkflow(Workflow):
         elif self.parameters.functional in ['ki', 'pkipz']:
             calc = self.new_kcp_calculator('dft_init')
             calc.directory = Path('init')
-            self.run_calculator(calc, enforce_ss=self.parameters.fix_spin_contamination)
+            self.run_calculator(calc, enforce_spin_symmetry=self.parameters.fix_spin_contamination)
 
             # Use the KS eigenfunctions as better guesses for the variational orbitals
             self._overwrite_canonical_with_variational_orbitals(calc)
@@ -440,7 +440,7 @@ class KoopmansDSCFWorkflow(Workflow):
             # DFT from scratch
             calc = self.new_kcp_calculator('dft_init')
             calc.directory = Path('init')
-            self.run_calculator(calc, enforce_ss=self.parameters.fix_spin_contamination)
+            self.run_calculator(calc, enforce_spin_symmetry=self.parameters.fix_spin_contamination)
 
             if self.parameters.init_orbitals == 'kohn-sham':
                 # Initialize the density with DFT and use the KS eigenfunctions as guesses for the variational orbitals
@@ -525,7 +525,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
             # Run the calculation and store the result. Note that we only need to continue
             # enforcing the spin symmetry if the density will change
-            self.run_calculator(trial_calc, enforce_ss=self.parameters.fix_spin_contamination and i_sc > 1)
+            self.run_calculator(trial_calc, enforce_spin_symmetry=self.parameters.fix_spin_contamination and i_sc > 1)
 
             alpha_dep_calcs = [trial_calc]
 
@@ -642,13 +642,13 @@ class KoopmansDSCFWorkflow(Workflow):
 
                         alpha, error = self.calculate_alpha_from_list_of_calcs(
                             calcs, trial_calc, band, filled=band.filled)
-                        
+
                         # Mixing
                         alpha = self.parameters.alpha_mixing * alpha + (1 - self.parameters.alpha_mixing) * band.alpha
 
                     warning_message = 'The computed screening parameter is {0}. Proceed with caution.'
                     failure_message = 'The computed screening parameter is significantly {0}. This should not ' \
-                         'happen. Decrease alpha_mixing and/or change alpha_guess.'
+                        'happen. Decrease alpha_mixing and/or change alpha_guess.'
 
                     if alpha < -0.1:
                         raise ValueError(failure_message.format('less than 0'))
