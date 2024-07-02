@@ -116,8 +116,8 @@ class KoopmansDFPTWorkflow(Workflow):
                 if val is not None:
                     tols[key] = val
             self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2,
-                    spin_polarized=self.parameters.spin_polarized,
-                    filling=filling, groups=self.parameters.orbital_groups, tolerances=tols)
+                               spin_polarized=self.parameters.spin_polarized,
+                               filling=filling, groups=self.parameters.orbital_groups, tolerances=tols)
         else:
             nocc = pseudopotentials.nelec_from_pseudos(
                 self.atoms, self.pseudopotentials, self.parameters.pseudo_directory) // 2
@@ -142,7 +142,7 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Populating kpoints if absent
         if not all(self.atoms.pbc):
-            for key in ['pw', 'kc_screen']:
+            for key in ['pw', 'kcw_screen']:
                 self.calculator_parameters[key].kpts = [1, 1, 1]
 
         self._perform_ham_calc: bool = True
@@ -217,7 +217,7 @@ class KoopmansDFPTWorkflow(Workflow):
             # Convert from wannier to KC
             self.print('Conversion to Koopmans format', style='subheading')
             wann2kc_calc = self.new_calculator(
-                'wann2kc', spin_component=spin_component)
+                'kcw_wannier', spin_component=spin_component)
             if self.parameters.spin_polarized:
                 wann2kc_calc.directory /= f'spin_{spin_component}'
             self.run_calculator(wann2kc_calc)
@@ -236,7 +236,7 @@ class KoopmansDFPTWorkflow(Workflow):
                         # If there is no orbital grouping, do all orbitals in one calculation
                         # 1) Create the calculator
                         kc_screen_calc = self.new_calculator(
-                            'kc_screen', spin_component=spin_component)
+                            'kcw_screen', spin_component=spin_component)
                         if self.parameters.spin_polarized:
                             kc_screen_calc.directory /= f'spin_{spin_component}'
 
@@ -250,7 +250,7 @@ class KoopmansDFPTWorkflow(Workflow):
                         for band in self.bands.to_solve:
                             # 1) Create the calculator (in a subdirectory)
                             kc_screen_calc = self.new_calculator(
-                                'kc_screen', i_orb=band.index, spin_component=spin_component)
+                                'kcw_screen', i_orb=band.index, spin_component=spin_component)
                             if self.parameters.spin_polarized:
                                 kc_screen_calc.directory /= f'spin_{spin_component}'
                             kc_screen_calc.directory /= f'band_{band.index}'
@@ -276,7 +276,7 @@ class KoopmansDFPTWorkflow(Workflow):
             if self._perform_ham_calc:
                 self.print('Construction of the Hamiltonian', style='heading')
                 kc_ham_calc = self.new_calculator(
-                    'kc_ham', kpts=self.kpoints.path, spin_component=spin_component)
+                    'kcw_ham', kpts=self.kpoints.path, spin_component=spin_component)
                 if self.parameters.spin_polarized:
                     kc_ham_calc.directory /= f'spin_{spin_component}'
 
@@ -317,7 +317,7 @@ class KoopmansDFPTWorkflow(Workflow):
             super().plot_bandstructure(bs.subtract_reference())
 
     def new_calculator(self, calc_presets, **kwargs):
-        if calc_presets not in ['kc_ham', 'kc_screen', 'wann2kc']:
+        if calc_presets not in ['kcw_ham', 'kcw_screen', 'kcw_wannier']:
             raise ValueError(
                 f'Invalid choice calc_presets={calc_presets} in {self.__class__.__name__}.new_calculator()')
 
@@ -334,12 +334,12 @@ class KoopmansDFPTWorkflow(Workflow):
         for k, v in kwargs.items():
             setattr(calc.parameters, k, v)
 
-        if calc_presets == 'wann2kc':
+        if calc_presets == 'kcw_wannier':
             if all(self.atoms.pbc):
                 calc.directory = 'wannier'
             else:
                 calc.directory = 'init'
-        elif calc_presets == 'kc_screen':
+        elif calc_presets == 'kcw_screen':
             calc.directory = 'screening'
             # If eps_inf is not provided in the kc_wann:screen subdictionary but there is a value provided in the
             # workflow parameters, adopt that value
