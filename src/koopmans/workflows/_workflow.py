@@ -1055,9 +1055,9 @@ class Workflow(ABC):
                     # Duplicate the UI block
                     calcdict[f'ui_{key}'] = calcdict['ui']
 
-        # Third, flatten the kc_wann subdicts
-        kc_wann_blocks = calcdict.pop('kc_wann', {'kc_ham': {}, 'kc_screen': {}, 'wann2kc': {}})
-        calcdict.update(**kc_wann_blocks)
+        # Third, flatten the kcw subdicts
+        kcw_blocks = calcdict.pop('kcw', {'kc_ham': {}, 'kc_screen': {}, 'wann2kc': {}})
+        calcdict.update(**kcw_blocks)
 
         # Finally, generate a SettingsDict for every single kind of calculator, regardless of whether or not there was
         # a corresponding block in the json file
