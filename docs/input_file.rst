@@ -160,7 +160,7 @@ This subblock contains keywords specific to ``kcp.x``, a modified version of ``c
 
 
 The kcw subblock
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 This subblock contains keywords specific to ``kcw.x`` (see the `list of valid kcw.x keywords <https://www.quantum-espresso.org/Doc/INPUT_KCW.html>`_). Non-experts will never need to change these keywords.
 
 
