@@ -161,7 +161,7 @@ This subblock contains keywords specific to ``kcp.x``, a modified version of ``c
 
 The kcw subblock
 ~~~~~~~~~~~~~~~
-This subblock contains keywords specific to ``kcw.x`` (see the `list of valid kcw.x keywords <https://www.quantum-espresso.org/Doc/INPUT_KCW.html>`_). Note that they should not be grouped by namelists as they are in a ``kcw.x`` input file.  Non-experts will never need to change these keywords.
+This subblock contains keywords specific to ``kcw.x`` (see the `list of valid kcw.x keywords <https://www.quantum-espresso.org/Doc/INPUT_KCW.html>`_). Non-experts will never need to change these keywords.
 
 
 The ui subblock
