@@ -12,6 +12,7 @@ import copy
 import json as json_ext
 import operator
 import os
+import re
 import shutil
 import subprocess
 from abc import ABC, abstractmethod
@@ -25,6 +26,7 @@ from typing import (Any, Callable, Dict, Generator, List, Optional, Type,
 import numpy as np
 from numpy import typing as npt
 from pybtex.database import BibliographyData
+from pydantic import BaseModel
 
 # isort: off
 import koopmans.mpl_config
@@ -43,12 +45,11 @@ from ase.spectrum.band_structure import BandStructure
 from ase.spectrum.doscollection import GridDOSCollection
 from ase.spectrum.dosdata import GridDOSData
 
-from koopmans import calculators, settings, utils
+from koopmans import calculators, processes, settings, utils
 from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.kpoints import Kpoints
 from koopmans.ml import MLModel
-from koopmans.processes import Process
 from koopmans.projections import ProjectionBlocks
 from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
                                        pseudo_database,
@@ -126,9 +127,15 @@ class Workflow(ABC):
             if self.parameters.is_valid(key):
                 self.parameters[key] = value
         self.atoms: Atoms = atoms
-        self.name: str = self.__class__.__name__.lower() if name is None else name
+        if name:
+            self.name = name
+        else:
+            name_with_split_acroynms = re.sub(r'([a-z])([A-Z])', r'\1 \2',
+                                              self.__class__.__name__.replace('Workflow', ''))
+            self.name = re.sub(r'([A-Z])([A-Z][a-z])', r'\1 \2', name_with_split_acroynms)
         self.calculations: List[calculators.Calc] = []
-        self.processes: List[Process] = []
+        self.processes: List[processes.Process] = []
+        self.steps: List = []
         self.silent = False
         self.print_indent = 1
 
@@ -370,7 +377,7 @@ class Workflow(ABC):
 
         if self.parent:
             with self._parent_context(subdirectory, from_scratch):
-                self.print(f'{self.__class__.__name__}', style='heading')
+                self.print(f'{self.name}', style='heading')
                 self._run()
                 self.print()
         else:
@@ -383,6 +390,11 @@ class Workflow(ABC):
 
     @abstractmethod
     def _run(self) -> None:
+        ...
+
+    @property
+    @abstractmethod
+    def output_model(self) -> Type[BaseModel]:
         ...
 
     @property
@@ -734,31 +746,65 @@ class Workflow(ABC):
             if not isinstance(master_calc, calculators.CalculatorCanEnforceSpinSym):
                 raise NotImplementedError(f'{master_calc.__class__.__name__} cannot enforce spin symmetry')
 
+            # nspin=1
+            calc_nspin1 = master_calc.nspin1_calculator()
+
             if not master_calc.from_scratch:
-                # PBE with nspin=1 dummy
-                qe_calc = master_calc.nspin1_dummy_calculator()
-                qe_calc.skip_qc = True
-                self.run_calculator(qe_calc)
-                # Copy over nspin=2 wavefunction to nspin=1 tmp directory (if it has not been done already)
-                if self.parameters.from_scratch:
-                    master_calc.convert_wavefunction_2to1()
+                # Locate the preceeding nspin=2 calculation from which the calculation is configured to read
+                # (and from which we will fetch the nspin=2 wavefunctions)
+                ndr_directory = str(master_calc.parameters.outdir /
+                                    f'{master_calc.parameters.prefix}_{master_calc.parameters.ndr}.save')
+                if ndr_directory not in master_calc.linked_files.keys():
+                    raise ValueError(
+                        'This calculator needs to be linked to a previous nspin=2 calculation before run_calculator is called')
+                prev_calc_nspin2 = master_calc.linked_files[ndr_directory][0]
+                if not isinstance(prev_calc_nspin2, calculators.KoopmansCPCalculator):
+                    raise ValueError(
+                        'Unexpected calculator type linked during the procedure for fixing spin contamination')
 
-            # PBE with nspin=1
-            qe_calc = master_calc.nspin1_calculator()
-            self.run_calculator(qe_calc)
+                # Wipe the linked files (except for globally-linked files)
+                master_calc.linked_files = {k: v for k, v in master_calc.linked_files.items() if v[0] is None}
+                calc_nspin1.linked_files = {k: v for k, v in calc_nspin1.linked_files.items() if v[0] is None}
 
-            # PBE from scratch with nspin=2 (dummy run for creating files of appropriate size)
-            qe_calc = master_calc.nspin2_dummy_calculator()
-            qe_calc.skip_qc = True
-            self.run_calculator(qe_calc)
+                # nspin=1 dummy
+                calc_nspin1_dummy = master_calc.nspin1_dummy_calculator()
+                calc_nspin1_dummy.skip_qc = True
+                self.run_calculator(calc_nspin1_dummy)
+                self.link(calc_nspin1_dummy, calc_nspin1_dummy.parameters.outdir,
+                          calc_nspin1, calc_nspin1.parameters.outdir)
 
-            # Copy over nspin=1 wavefunction to nspin=2 tmp directory (if it has not been done already)
-            if self.parameters.from_scratch:
-                master_calc.convert_wavefunction_1to2()
+                # Copy over nspin=2 wavefunction to nspin=1 tmp directory
+                process = processes.ConvertFilesFromSpin2To1(**prev_calc_nspin2.files_to_convert_with_spin2_to_spin1)
+                self.run_process(process)
+                for f in process.outputs.generated_files:
+                    dst_dir = calc_nspin1.parameters.outdir / \
+                        f'{calc_nspin1.parameters.prefix}_{calc_nspin1.parameters.ndr}.save/K00001'
+                    self.link(process, f, calc_nspin1, dst_dir / f.name, symlink=True, overwrite=True)
 
-            # PBE with nspin=2, reading in the spin-symmetric nspin=1 wavefunction
+            self.run_calculator(calc_nspin1)
+
+            # nspin=2 from scratch (dummy run for creating files of appropriate size)
+            calc_nspin2_dummy = master_calc.nspin2_dummy_calculator()
+            calc_nspin2_dummy.skip_qc = True
+            self.run_calculator(calc_nspin2_dummy)
+            self.link(calc_nspin2_dummy, calc_nspin2_dummy.parameters.outdir,
+                      master_calc, master_calc.parameters.outdir)
+
+            # Copy over nspin=1 wavefunction to nspin=2 tmp directory
+            process = processes.ConvertFilesFromSpin1To2(**calc_nspin1.files_to_convert_with_spin1_to_spin2)
+            self.run_process(process)
+
+            # nspin=2, reading in the spin-symmetric nspin=1 wavefunction
             master_calc.prepare_to_read_nspin1()
-            self.run_calculator(master_calc)
+            for f in process.outputs.generated_files:
+                dst_dir = master_calc.parameters.outdir / \
+                    f'{master_calc.parameters.prefix}_{master_calc.parameters.ndr}.save/K00001'
+                self.link(process, f, master_calc, dst_dir / f.name, symlink=True, overwrite=True)
+            try:
+                self.run_calculator(master_calc)
+            except:
+                import ipdb
+                ipdb.set_trace()
 
         else:
 
@@ -787,10 +833,6 @@ class Workflow(ABC):
             raise ValueError(
                 f'A calculation has already been run in {os.path.relpath(qe_calc.directory)}; this should not happen')
 
-        # Remove the directory if it already exists and we are running from scratch
-        if self.parameters.from_scratch and qe_calc.directory.exists():
-            shutil.rmtree(qe_calc.directory)
-
         # If an output file already exists, check if the run completed successfully
         if not self.parameters.from_scratch:
 
@@ -816,9 +858,13 @@ class Workflow(ABC):
                         qe_calc.read_dynG()
 
                     return False
-                else:
-                    # Remove the directory in anticipation of starting again
-                    shutil.rmtree(qe_calc.directory)
+
+            # If we reach this point, then this and subsequent calculations should be performed from scratch
+            self.parameters.from_scratch = True
+
+        # Remove the directory if it already exists
+        if qe_calc.directory.exists():
+            utils.remove(qe_calc.directory)
 
         # Update postfix if relevant
         if self.parameters.npool:
@@ -836,11 +882,9 @@ class Workflow(ABC):
         """
 
         for calc in calcs:
-            verb = "Running" if self.parameters.from_scratch else "Rerunning"
-
             if not self.silent:
                 dir_str = os.path.relpath(calc.directory)
-                self.print(f'{verb} {dir_str}...', end='', flush=True)
+                self.print(f'Running {dir_str}...', end='', flush=True)
 
             try:
                 calc.calculate()
@@ -862,6 +906,7 @@ class Workflow(ABC):
         """
         # Store the calculator
         self.calculations.append(calc)
+        self.steps.append(calc)
 
         # Ensure we inherit any modifications made to the atoms object
         if calc.atoms != self.atoms:
@@ -885,9 +930,9 @@ class Workflow(ABC):
         for calc in calcs_to_run:
             self._post_run_calculator(calc)
 
-    def run_process(self, process: Process):
+    def run_process(self, process: processes.Process):
         '''
-        Run a Process
+        Run a processes.Process
         '''
 
         self._step_counter += 1
@@ -896,6 +941,7 @@ class Workflow(ABC):
         process.run()
         self.print(' done')
         self.processes.append(process)
+        self.steps.append(process)
 
     def load_old_calculator(self, qe_calc: calculators.Calc) -> bool:
         # This is a separate function so that it can be monkeypatched by the test suite
@@ -910,16 +956,17 @@ class Workflow(ABC):
                 qe_calc.kpts = old_calc.kpts
 
             self.calculations.append(qe_calc)
+            self.steps.append(qe_calc)
 
         return old_calc.is_complete()
 
-    def link(self, src_calc: calculators.Calc | Process | None, src_path: Path | str, dest_calc: calculators.Calc, dest_path: Path | str, symlink=False, recursive_symlink=False) -> None:
+    def link(self, src_calc: calculators.Calc | processes.Process | None, src_path: Path | str, dest_calc: calculators.Calc, dest_path: Path | str, symlink=False, recursive_symlink=False, overwrite=False) -> None:
         """Link a file from one calculator to another
 
         Paths must be provided relative to the the calculator's directory i.e. calc.directory, unless src_calc is None
 
         :param src_calc: The prior calculation or process which generated the file (None if it was not generated by a process/calculation)
-        :type src_calc: calculators.Calc | Process | None
+        :type src_calc: calculators.Calc | processes.Process | None
         :param src_path: The path of the file, relative to the directory of the calculation/process
         :type src_path: Path
         :param dest_calc: The calculator which requires this file
@@ -928,6 +975,10 @@ class Workflow(ABC):
         :type dest_path: Path
         :param symlink: Whether to create a symlink instead of copying the file. Only do this if the file is not going to be modified by the dest_calc
         :type symlink: bool
+        :param recursive_symlink: If true, when linking a folder, link its contents individually and not the folder itself
+        :type recursive_symlink: bool
+        :param overwrite: If true, allow linking to a destination that has already been linked to, in which case the link will be overwritten
+        :type overwrite: bool
         """
 
         if isinstance(src_path, str):
@@ -942,7 +993,7 @@ class Workflow(ABC):
             raise ValueError(f'"dest_path" in {self.__class__.__name__}.link() must be a relative path')
 
         dest_calc.link_file(src_calc, src_path, dest_path, symlink=symlink,  # type: ignore
-                            recursive_symlink=recursive_symlink)
+                            recursive_symlink=recursive_symlink, overwrite=overwrite)
 
     def print(self, text: str = '', style: str = 'body', **kwargs: Any):
         if style == 'body':
@@ -1003,7 +1054,7 @@ class Workflow(ABC):
                     b.alpha_history = [b.alpha]
                 b.error_history = []
 
-        subdirectory = self.name if subdirectory is None else subdirectory
+        subdirectory = self.name.replace(' ', '-').lower() if subdirectory is None else subdirectory
 
         try:
             # Prepend the step counter to the subdirectory name
@@ -1036,14 +1087,16 @@ class Workflow(ABC):
                     # Add the alpha and error history if the length of the bands match
                     if len(self.parent.bands) == len(self.bands):
                         for b, b_sub in zip(self.parent.bands, self.bands):
-                            b.alpha_history += b_sub.alpha_history
-                            b.error_history += b_sub.error_history
+                            b.alpha_history += b_sub.alpha_history[1:]
+                            b.error_history += b_sub.error_history[1:]
                             b.self_hartree = b_sub.self_hartree
                             b.spread = b_sub.spread
                             b.center = b_sub.center
                 else:
                     # Copy the entire bands object
                     self.parent.bands = self.bands
+
+        self.parent.steps.append(self.steps)
 
     def todict(self):
         # Shallow copy

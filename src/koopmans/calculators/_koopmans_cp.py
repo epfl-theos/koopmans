@@ -124,6 +124,8 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         self._spin_channels_are_swapped: bool = False
 
     def _pre_calculate(self):
+        super()._pre_calculate()
+
         # kcp.x imposes nelup >= neldw, so if we try to run a calcualtion with neldw > nelup, swap the spin channels
         if self.parameters.nspin == 2:
             self._spin_channels_are_swapped = self.parameters.nelup < self.parameters.neldw
@@ -140,8 +142,6 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             self.parameters.update(**cell_to_parameters(self.atoms.cell))
         else:
             self.parameters.ibrav = 0
-
-        super()._pre_calculate()
 
         # Autogenerate the nr keywords
         self._autogenerate_nr()
@@ -537,6 +537,45 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
     def from_scratch(self):
         return self.parameters.restart_mode == 'from_scratch'
 
+    @property
+    def files_to_convert_with_spin2_to_spin1(self):
+        nspin_1_files = ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
+                         'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat', 'lambdam1.dat']
+        nspin_2_files = []
+        for f in nspin_1_files:
+            if '1.' in f:
+                prefix, suffix = f.split('1.')
+            else:
+                prefix, suffix = f.split('.')
+            nspin_2_files.append(f'{prefix}1.{suffix}')
+
+        parent = self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndr}.save/K00001'
+        return {'spin_2_files': [(self, parent / f1) for f1 in nspin_2_files], 'spin_1_files': nspin_1_files}
+
+    @property
+    def files_to_convert_with_spin1_to_spin2(self):
+        nspin_1_files = ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
+                         'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat']
+
+        nspin_2up_files = []
+        nspin_2dw_files = []
+
+        for nspin_1_file in nspin_1_files:
+
+            if '1.' in nspin_1_file:
+                prefix, suffix = nspin_1_file.split('1.')
+            else:
+                prefix, suffix = nspin_1_file.split('.')
+
+            nspin_2up_files.append(f'{prefix}1.{suffix}')
+            nspin_2dw_files.append(f'{prefix}2.{suffix}')
+
+        parent = self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndr}.save/K00001'
+
+        return {'spin_1_files': [(self, parent / f) for f in nspin_1_files],
+                'spin_2_up_files': nspin_2up_files,
+                'spin_2_down_files': nspin_2dw_files}
+
     def convert_wavefunction_2to1(self):
         nspin2_tmpdir = self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndr}.save/K00001'
         nspin1_tmpdir = self.parameters.outdir / f'{self.parameters.prefix}_98.save/K00001'
@@ -554,6 +593,9 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
             file_out = nspin1_tmpdir / wfile
             file_in = nspin2_tmpdir / f'{prefix}1.{suffix}'
+
+            process = processes.ConvertFileFromSpin2To1(
+                inputs={'src_file': (self, npsin2_tmpdir), 'dst_file': f'{prefix}1.{suffix}'})
 
             if file_in.is_file():
 

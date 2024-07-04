@@ -12,6 +12,7 @@ import shutil
 from pathlib import Path
 
 import numpy as np
+from pydantic import BaseModel
 
 from koopmans import utils
 from koopmans.calculators import ProjwfcCalculator
@@ -19,6 +20,13 @@ from koopmans.calculators import ProjwfcCalculator
 from ._workflow import Workflow
 
 load_results_from_output = True
+
+
+class SinglepointOutputs(BaseModel):
+    '''
+    Outputs for the SinglepointWorkflow
+    '''
+    pass
 
 
 class SinglepointWorkflow(Workflow):
@@ -55,6 +63,8 @@ class SinglepointWorkflow(Workflow):
 
     if Workflow.__doc__ and __doc__:
         __doc__ = Workflow.__doc__ + __doc__
+
+    output_model = SinglepointOutputs  # type: ignore
 
     def _run(self) -> None:
 

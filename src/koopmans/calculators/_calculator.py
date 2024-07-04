@@ -86,7 +86,7 @@ class CalculatorExt():
         self.skip_qc = skip_qc
 
         # Prepare a dictionary to store a record of linked files
-        self._linked_files: Dict[str, Tuple[utils.HasDirectoryAttr | None, Path, bool, bool]] = {}
+        self.linked_files: Dict[str, Tuple[utils.HasDirectoryAttr | None, Path, bool, bool, bool]] = {}
 
     def __repr__(self):
         entries = []
@@ -156,38 +156,45 @@ class CalculatorExt():
         return
 
     def _fetch_linked_files(self):
-        """Link all files provided in self._linked_files
+        """Link all files provided in self.linked_files
 
         This function is called in _pre_calculate() i.e. immediately before a calculation is run.
         """
-        for dest_filename, (src_calc, src_filename, symlink, recursive_symlink) in self._linked_files.items():
+        for dest_filename, (src_calc, src_filename, symlink, recursive_symlink, overwrite) in self.linked_files.items():
             # Convert to absolute paths
             if src_calc is None:
                 src_filename = src_filename.resolve()
             else:
                 src_filename = (src_calc.directory / src_filename).resolve()
-            dest_filename = (self.directory / dest_filename).resolve()
+            dest_filename = self.directory / dest_filename
 
-            # Sanity checks
             if not src_filename.exists():
                 raise FileNotFoundError(
                     f'Tried to link {src_filename} with the {self.prefix} calculator but it does not exist')
 
-            # Create the copy/symlink
-            if not dest_filename.exists() and not dest_filename.is_symlink():
-                dest_filename.parent.mkdir(parents=True, exist_ok=True)
-                if recursive_symlink:
-                    assert src_filename.is_dir(), 'recursive_symlink=True requires src to be a directory'
-                    utils.symlink_tree(src_filename, dest_filename)
-                elif symlink:
-                    utils.symlink(src_filename, dest_filename)
+            if dest_filename.exists() or dest_filename.is_symlink():
+                if overwrite:
+                    utils.remove(dest_filename)
                 else:
-                    utils.copy(src_filename, dest_filename)
+                    raise FileExistsError(f'{dest_filename} already exists')
+
+            # Create the copy/symlink
+            dest_filename.parent.mkdir(parents=True, exist_ok=True)
+            if recursive_symlink:
+                assert src_filename.is_dir(), 'recursive_symlink=True requires src to be a directory'
+                utils.symlink_tree(src_filename, dest_filename)
+            elif symlink:
+                utils.symlink(src_filename, dest_filename)
             else:
-                raise FileExistsError(f'{dest_filename} already exists')
+                utils.copy(src_filename, dest_filename)
 
     def _pre_calculate(self):
         """Perform any necessary pre-calculation steps before running the calculation"""
+
+        # First, remove the directory (all files that the calculation will use must be linked, not manually
+        # copied to the calculation directory)
+        if self.directory.exists():
+            utils.remove(self.directory)
 
         # By default, check the corresponding program is installed
         self.check_code_is_installed()
@@ -273,13 +280,14 @@ class CalculatorExt():
             setattr(calc, k.lstrip('_'), v)
         return calc
 
-    def link_file(self, src_calc: utils.HasDirectoryAttr | None, src_filename: Path, dest_filename: Path, symlink: bool = False, recursive_symlink: bool = False):
+    def link_file(self, src_calc: utils.HasDirectoryAttr | None, src_filename: Path, dest_filename: Path, symlink: bool = False, recursive_symlink: bool = False, overwrite: bool = False):
         if src_filename.is_absolute() and src_calc is not None:
             raise ValueError(f'"src_filename" in {self.__class__.__name__}.link_file() must be a relative path if a '
                              f'"src_calc" is provided')
         if dest_filename.is_absolute():
             raise ValueError(f'"dest_filename" in {self.__class__.__name__}.link_file() must be a relative path')
-        self._linked_files[str(dest_filename)] = (src_calc, src_filename, symlink, recursive_symlink)
+
+        self.linked_files[str(dest_filename)] = (src_calc, src_filename, symlink, recursive_symlink, overwrite)
 
 
 class CalculatorABC(ABC, Generic[TCalc]):

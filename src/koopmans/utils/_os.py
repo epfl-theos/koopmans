@@ -19,6 +19,8 @@ def system_call(command: str, check_ierr: bool = True):
     '''
     Make a system call and check the exit code
     '''
+
+    raise ValueError('System calls are no longer allowed')
     ierr = subprocess.call(command, shell=True)
     if ierr > 0 and check_ierr:
         raise OSError(f'{command} exited with exit code {ierr}')
@@ -42,6 +44,9 @@ def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True
             dest /= src.name
         dest = dest.absolute()
         src = src.absolute()
+
+        if dest == src:
+            raise OSError('Cannot symlink a file to itself')
 
         # Check if the src exists
         if not src.exists():
@@ -67,7 +72,7 @@ def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True
             dest.symlink_to(src)
 
 
-def symlink_tree(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool = False):
+def symlink_tree(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool = False, force: bool = False):
     if isinstance(src, str):
         src = Path(src)
     if isinstance(dest, str):
@@ -85,7 +90,7 @@ def symlink_tree(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool =
         if f.is_dir():
             (dest / f.relative_to(src)).mkdir(exist_ok=exist_ok)
         else:
-            symlink(f, dest / f.relative_to(src), exist_ok=exist_ok)
+            symlink(f, dest / f.relative_to(src), exist_ok=exist_ok, force=force)
 
 
 def copy(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool = False):
@@ -184,14 +189,36 @@ class HasDirectoryAttr(Protocol):
     directory: Path | None
 
 
+def get_binary_content(source: HasDirectoryAttr, relpath: Path) -> List[bytes]:
+    assert source.directory is not None
+    with open(source.directory / relpath, "rb") as f:
+        flines = f.readlines()
+    return flines
+
+
+def write_binary_content(dst_file: Path, merged_filecontents: List[bytes]):
+    dst_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(dst_file, "wb") as f:
+        f.write(b''.join(merged_filecontents))
+
+
 def get_content(source: HasDirectoryAttr, relpath: Path) -> List[str]:
     assert source.directory is not None
-    with open(source.directory / relpath, 'r') as f:
+    with open(source.directory / relpath, "r") as f:
         flines = [l.strip('\n') for l in f.readlines()]
     return flines
 
 
 def write_content(dst_file: Path, merged_filecontents: List[str]):
     dst_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(dst_file, 'w') as f:
+    with open(dst_file, "w") as f:
         f.write('\n'.join(merged_filecontents))
+
+
+def remove(path: Union[Path, str]):
+    if isinstance(path, str):
+        path = Path(path)
+    if path.is_dir():
+        shutil.rmtree(path)
+    else:
+        path.unlink()
