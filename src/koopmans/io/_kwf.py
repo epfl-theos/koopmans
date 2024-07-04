@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import TextIO, Union
 
 from ase.io import jsonio as ase_json
+from pydantic import BaseModel
 
 import koopmans.workflows as workflows
 from koopmans import utils

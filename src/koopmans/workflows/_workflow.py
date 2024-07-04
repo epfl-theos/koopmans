@@ -26,7 +26,6 @@ from typing import (Any, Callable, Dict, Generator, List, Optional, Type,
 import numpy as np
 from numpy import typing as npt
 from pybtex.database import BibliographyData
-from pydantic import BaseModel
 
 # isort: off
 import koopmans.mpl_config
@@ -45,7 +44,7 @@ from ase.spectrum.band_structure import BandStructure
 from ase.spectrum.doscollection import GridDOSCollection
 from ase.spectrum.dosdata import GridDOSData
 
-from koopmans import calculators, processes, settings, utils
+from koopmans import calculators, outputs, processes, settings, utils
 from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.kpoints import Kpoints
@@ -394,7 +393,7 @@ class Workflow(ABC):
 
     @property
     @abstractmethod
-    def output_model(self) -> Type[BaseModel]:
+    def output_model(self) -> Type[outputs.OutputModel]:
         ...
 
     @property

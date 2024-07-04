@@ -12,17 +12,17 @@ import shutil
 from pathlib import Path
 
 import numpy as np
-from pydantic import BaseModel
 
 from koopmans import utils
 from koopmans.calculators import ProjwfcCalculator
+from koopmans.outputs import OutputModel
 
 from ._workflow import Workflow
 
 load_results_from_output = True
 
 
-class SinglepointOutputs(BaseModel):
+class SinglepointOutputs(OutputModel):
     '''
     Outputs for the SinglepointWorkflow
     '''

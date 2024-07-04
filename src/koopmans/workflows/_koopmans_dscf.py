@@ -13,17 +13,17 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from ase.dft import DOS
-from pydantic import BaseModel
 
 from koopmans import calculators, utils
 from koopmans.bands import Band, Bands
 from koopmans.files import FilePointer
+from koopmans.outputs import OutputModel
 from koopmans.settings import KoopmansCPSettingsDict
 
 from ._workflow import Workflow
 
 
-class KoopmansDSCFOutputs(BaseModel):
+class KoopmansDSCFOutputs(OutputModel):
     '''
     Outputs for the KoopmansDSCFWorkflow
     '''
@@ -313,7 +313,7 @@ class KoopmansDSCFWorkflow(Workflow):
             self.run_calculator(calc)
 
 
-class CalculateScreeningViaDSCFOutput(BaseModel):
+class CalculateScreeningViaDSCFOutput(OutputModel):
     n_electron_restart_dir: FilePointer
 
     class Config:
@@ -380,7 +380,7 @@ class CalculateScreeningViaDSCF(Workflow):
             n_electron_restart_dir=iteration_wf.outputs.n_electron_restart_dir)
 
 
-class DeltaSCFIterationOutputs(BaseModel):
+class DeltaSCFIterationOutputs(OutputModel):
     converged: bool
     n_electron_restart_dir: FilePointer
 
@@ -507,7 +507,7 @@ class DeltaSCFIterationWorkflow(Workflow):
         self.outputs = DeltaSCFIterationOutputs(converged=converged, n_electron_restart_dir=n_electron_restart_dir)
 
 
-class OrbitalDeltaSCFOutputs(BaseModel):
+class OrbitalDeltaSCFOutputs(OutputModel):
     alpha: float
     error: float
 
@@ -1046,7 +1046,7 @@ def internal_new_kcp_calculator(workflow,
     return calc
 
 
-class InitializationOutput(BaseModel):
+class InitializationOutput(OutputModel):
     variational_orbital_files: Dict[str, Tuple[calculators.KoopmansCPCalculator, str]]
     final_calc: calculators.KoopmansCPCalculator
 

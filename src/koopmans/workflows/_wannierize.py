@@ -15,7 +15,8 @@ from pathlib import Path
 from typing import Callable, List, Optional, Tuple, TypeVar
 
 from ase import Atoms
-from pydantic import BaseModel
+from ase.spectrum.band_structure import BandStructure
+from ase.spectrum.doscollection import GridDOSCollection
 
 # isort: off
 import koopmans.mpl_config
@@ -25,6 +26,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from koopmans import calculators, projections, utils
+from koopmans.outputs import OutputModel
 from koopmans.processes import Process
 from koopmans.processes.wannier import (CopyProcess, ExtendProcess,
                                         MergeProcess,
@@ -39,7 +41,17 @@ from ._workflow import Workflow
 CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 
 
+class WannierizeOutput(OutputModel):
+    band_structures: List[BandStructure]
+    dos: Optional[GridDOSCollection] = None
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
 class WannierizeWorkflow(Workflow):
+
+    output_model = WannierizeOutput  # type: ignore
 
     def __init__(self, *args, force_nspin2=False, scf_kgrid=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -188,6 +200,8 @@ class WannierizeWorkflow(Workflow):
                     extend_proc.name = f'extend_{label}_wannier_u_dis'
                     self.run_process(extend_proc)
 
+        dos = None
+        bs_list = []
         if self.parameters.calculate_bands:
             # Run a "bands" calculation, making sure we don't overwrite
             # the scf/nscf tmp files by setting a different prefix
@@ -205,7 +219,6 @@ class WannierizeWorkflow(Workflow):
                        self.pseudopotentials.values()]
             if all([p['header']['number_of_wfc'] > 0 for p in pseudos]):
                 calc_dos = self.new_calculator('projwfc', filpdos=self.name)
-                calc_dos.directory = 'pdos'
                 calc_dos.pseudopotentials = self.pseudopotentials
                 calc_dos.spin_polarized = self.parameters.spin_polarized
                 calc_dos.pseudo_dir = calc_pw_bands.parameters.pseudo_dir
@@ -219,7 +232,6 @@ class WannierizeWorkflow(Workflow):
                 # Skip if the pseudos don't have the requisite PP_PSWFC blocks
                 utils.warn('Some of the pseudopotentials do not have PP_PSWFC blocks, which means a projected DOS '
                            'calculation is not possible. Skipping...')
-                dos = None
 
             # Select those calculations that generated a band structure (and are part of this wannierize workflow)
             i_scf = [i for i, c in enumerate(self.calculations) if isinstance(c, calculators.PWCalculator)
@@ -236,7 +248,6 @@ class WannierizeWorkflow(Workflow):
                 + [f'interpolation ({c.directory.name.replace("block_", "block ").replace("spin_", "spin ").replace("_",", ")})'
                    for c in selected_calcs]
             color_cycle = plt.rcParams['axes.prop_cycle']()
-            bs_list = []
             bsplot_kwargs_list = []
             colors = {}
             for calc, label in zip([calc_pw_bands] + selected_calcs, labels):
@@ -268,6 +279,9 @@ class WannierizeWorkflow(Workflow):
 
             # Plot
             self.plot_bandstructure(bs_list, dos, bsplot_kwargs=bsplot_kwargs_list)
+
+        # Store the results
+        self.outputs = self.output_model(band_structures=bs_list, dos=dos)
 
         return
 
@@ -304,7 +318,13 @@ class WannierizeWorkflow(Workflow):
             self.run_process(merge_centers_proc)
 
 
+class WannierizeBlockOutput(OutputModel):
+    pass
+
+
 class WannierizeBlockWorkflow(Workflow):
+
+    output_model = WannierizeBlockOutput  # type: ignore
 
     def __init__(self, *args, block: projections.ProjectionBlock, force_nspin2=False, **kwargs):
         self._force_nspin2 = force_nspin2

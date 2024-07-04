@@ -103,7 +103,15 @@ def read_pseudo_file(filename: Path) -> Dict[str, Any]:
 
     '''
 
-    upf: Dict[str, Any] = upf_to_json(open(filename, 'r').read(), filename.name)
+    if not filename.exists():
+        raise FileNotFoundError(f'Could not find the pseudopotential file {filename}')
+
+    with open(filename, 'r') as f:
+        upf_str = f.read()
+    upf = upf_to_json(upf_str, filename.name)
+
+    if upf is None:
+        raise ValueError(f'Failed to parse the pseudopotential file {filename}')
 
     return upf['pseudo_potential']
 

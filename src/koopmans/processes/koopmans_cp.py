@@ -1,15 +1,14 @@
 from pathlib import Path
 from typing import List, Tuple
 
-from pydantic import BaseModel
-
 from koopmans import utils
 from koopmans.files import FilePointer
+from koopmans.outputs import OutputModel
 
 from ._process import Process
 
 
-class ConvertFilesFromSpin2To1InputModel(BaseModel):
+class ConvertFilesFromSpin2To1InputModel(OutputModel):
     spin_2_files: List[FilePointer]
     spin_1_files: List[Path]
 
@@ -17,7 +16,7 @@ class ConvertFilesFromSpin2To1InputModel(BaseModel):
         arbitrary_types_allowed = True
 
 
-class ConvertFilesOutputModel(BaseModel):
+class ConvertFilesOutputModel(OutputModel):
     generated_files: List[Path]
 
 
@@ -38,7 +37,7 @@ class ConvertFilesFromSpin2To1(Process):
         self.outputs = self._output_model(generated_files=self.inputs.spin_1_files)
 
 
-class ConvertFilesFromSpin1To2InputModel(BaseModel):
+class ConvertFilesFromSpin1To2InputModel(OutputModel):
     spin_1_files: List[FilePointer]
     spin_2_up_files: List[Path]
     spin_2_down_files: List[Path]
