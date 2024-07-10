@@ -13,11 +13,19 @@ from ase import Atoms, io
 from sklearn.metrics import mean_absolute_error, r2_score
 
 from koopmans import calculators, utils
+from koopmans.outputs import OutputModel
 
 from ._workflow import Workflow
 
 
+class TrajectoryOutputs(OutputModel):
+    pass
+
+
 class TrajectoryWorkflow(Workflow):
+
+    output_model = TrajectoryOutputs  # type: ignore
+    outputs: TrajectoryOutputs
 
     def __init__(self, snapshots: List[Atoms], indices: Optional[List[int]] = None, save_dir: Optional[Path] = None,
                  get_evs: bool = False, overwrite_atoms: bool = True, *args, **kwargs):

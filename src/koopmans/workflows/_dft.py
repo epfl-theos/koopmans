@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import TypeVar
 
 from koopmans import calculators, pseudopotentials, utils
+from koopmans.outputs import OutputModel
 
 from ._workflow import Workflow
 
@@ -81,7 +82,14 @@ class DFTPWWorkflow(DFTWorkflow):
         return
 
 
+class DFTPhOutput(OutputModel):
+    pass
+
+
 class DFTPhWorkflow(Workflow):
+
+    output_model = DFTPhOutput
+    outputs: DFTPhOutput
 
     def _run(self):
 
@@ -95,7 +103,14 @@ class DFTPhWorkflow(Workflow):
         self.run_calculator(calc_ph)
 
 
+class DFTBandsOutput(OutputModel):
+    pass
+
+
 class DFTBandsWorkflow(DFTWorkflow):
+
+    output_model = DFTBandsOutput
+    outputs: DFTBandsOutput
 
     def _run(self):
 

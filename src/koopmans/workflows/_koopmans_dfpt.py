@@ -14,6 +14,7 @@ from koopmans import pseudopotentials, utils
 from koopmans.bands import Bands
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
                                   Wann2KCCalculator, Wannier90Calculator)
+from koopmans.files import FilePointer
 
 from ._workflow import Workflow
 
@@ -202,8 +203,14 @@ class KoopmansDFPTWorkflow(Workflow):
             if all(self.atoms.pbc) and self.projections and self.kpoints.path is not None \
                     and self.calculator_parameters['ui'].do_smooth_interpolation:
                 from koopmans.workflows import UnfoldAndInterpolateWorkflow
-                self.print(f'\nPostprocessing', style='heading')
-                ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(self)
+
+                # Assemble the Hamiltonian files required by the UI workflow
+                koopmans_ham_files = {("occ", None): FilePointer(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_occ.dat'),
+                                      ("emp", None): FilePointer(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_emp.dat')}
+                dft_ham_files = {}
+                raise NotImplementedError('Need to implement the dft_ham_files')
+                ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(
+                    self, dft_ham_files=dft_ham_files, koopmans_ham_files=koopmans_ham_files)
                 ui_workflow.run(subdirectory='postproc')
 
             # Plotting

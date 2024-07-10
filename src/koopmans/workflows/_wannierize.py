@@ -12,7 +12,7 @@ import math
 import shutil
 from functools import partial
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple, TypeVar
+from typing import Callable, Dict, List, Optional, Tuple, TypeVar
 
 from ase import Atoms
 from ase.spectrum.band_structure import BandStructure
@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from koopmans import calculators, projections, utils
+from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
 from koopmans.processes import Process
 from koopmans.processes.wannier import (CopyProcess, ExtendProcess,
@@ -44,6 +45,10 @@ CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 class WannierizeOutput(OutputModel):
     band_structures: List[BandStructure]
     dos: Optional[GridDOSCollection] = None
+    u_matrices_files: Dict[str, FilePointer | None]
+    hr_files: Dict[str, FilePointer | None]
+    centers_files: Dict[str, FilePointer | None]
+    u_dis_file: FilePointer | None
 
     class Config:
         arbitrary_types_allowed = True
@@ -147,31 +152,70 @@ class WannierizeWorkflow(Workflow):
         self.link(calc_scf, calc_scf.parameters.outdir, calc_nscf, calc_nscf.parameters.outdir)
         self.run_calculator(calc_nscf)
 
+        u_matrices_files = {}
+        hr_files = {}
+        centers_files = {}
+        u_dis_file = None
+
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
 
             for block in self.projections:
                 wannierize_block_subworkflow = WannierizeBlockWorkflow.fromparent(
                     self, force_nspin2=self._force_nspin2, block=block)
-                wannierize_block_subworkflow.name = f'wannierize_{block.name}'
+                wannierize_block_subworkflow.name = f'Wannierize {block.name.replace("_", " ").replace("block", "Block")}'
                 wannierize_block_subworkflow.run()
+
+                # Store the results
+                hr_files[block.name] = wannierize_block_subworkflow.outputs.hr_file
+                centers_files[block.name] = wannierize_block_subworkflow.outputs.centers_file
+                u_matrices_files[block.name] = wannierize_block_subworkflow.outputs.u_matrices_file
 
             # Merging Hamiltonian files, U matrix files, centers files if necessary
             if self.parent is not None:
 
                 for label, block in self.projections.to_merge.items():
                     if len(block) == 1:
-                        # If there is only one block, we can just copy the files into a directory we will access later.
-                        # We do this by creating a null process that does nothing, and linking the files we want to copy
-                        # to that process
-                        filling_label = '_emp' if label == 'emp' else ''
-                        for ext in ['_hr.dat', '_u.mat', '_centres.xyz']:
-                            copy_process = CopyProcess(src_file=(block[0].w90_calc, block[0].w90_calc.prefix + ext),
-                                                       dst_file=block[0].w90_calc.prefix + filling_label + ext)
-                            copy_process.name = f'copy_{label}_wannier{ext.split(".")[0]}'
-                            self.run_process(copy_process)
+                        # If there is only one block, we don't need to merge anything
+                        calc = block[0].w90_calc
+                        if calc.parameters.write_hr:
+                            hr_files[label] = FilePointer(calc, calc.prefix + '_hr.dat')
+                        if calc.parameters.write_u_matrices:
+                            u_matrices_files[label] = FilePointer(calc, calc.prefix + '_u.mat')
+                        if calc.parameters.write_xyz:
+                            centers_files[label] = FilePointer(calc, calc.prefix + '_centres.xyz')
                     else:
-                        self.merge_wannier_files(block, label, prefix=self.calculations[-1].prefix)
+                        # Fetching the list of calculations for this block
+                        src_calcs: List[calculators.Wannier90Calculator] = [
+                            b.w90_calc for b in block if b.w90_calc is not None]
+                        emp_label = '_emp' if filling_label == 'emp' else ''
+
+                        # Merging the wannier_hr (Hamiltonian) files
+                        merge_hr_proc = MergeProcess(merge_function=merge_wannier_hr_file_contents,
+                                                     src_files=[(calc, Path(prefix + '_hr.dat')) for calc in src_calcs],
+                                                     dst_file=prefix + f'{emp_label}_hr.dat')
+                        merge_hr_proc.name = f'merge_{filling_label}_wannier_hamiltonian'
+                        self.run_process(merge_hr_proc)
+                        hr_files[label] = FilePointer(merge_hr_proc, merge_hr_proc.outputs.dst_file)
+
+                        if self.parameters.method == 'dfpt' and self.parent is not None:
+                            # Merging the U (rotation matrix) files
+                            merge_u_proc = MergeProcess(merge_function=merge_wannier_u_file_contents,
+                                                        src_files=[(calc, Path(prefix + '_u.mat'))
+                                                                   for calc in src_calcs],
+                                                        dst_file=prefix + f'{emp_label}_u.mat')
+                            merge_u_proc.name = f'merge_{filling_label}_wannier_u'
+                            self.run_process(merge_u_proc)
+                            u_matrices_files[label] = FilePointer(merge_u_proc, merge_u_proc.outputs.dst_file)
+
+                            # Merging the wannier centers files
+                            merge_centers_proc = MergeProcess(merge_function=partial(merge_wannier_centers_file_contents, atoms=self.atoms),
+                                                              src_files=[(calc, Path(prefix + '_centres.xyz'))
+                                                                         for calc in src_calcs],
+                                                              dst_file=prefix + f'{emp_label}_centres.xyz')
+                            merge_centers_proc.name = f'merge_{filling_label}_wannier_centers'
+                            self.run_process(merge_centers_proc)
+                            centers_files[label] = FilePointer(merge_centers_proc, merge_centers_proc.outputs.dst_file)
 
                 # For the last block, extend the U_dis matrix file
                 num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
@@ -199,6 +243,7 @@ class WannierizeWorkflow(Workflow):
                                                 dst_file=calc_with_u_dis.prefix + f'{filling_label}_u_dis.mat')
                     extend_proc.name = f'extend_{label}_wannier_u_dis'
                     self.run_process(extend_proc)
+                    u_dis_file = FilePointer(extend_proc, extend_proc.outputs.dst_file)
 
         dos = None
         bs_list = []
@@ -245,7 +290,7 @@ class WannierizeWorkflow(Workflow):
             # Prepare the band structures for plotting
             ax = None
             labels = ['explicit'] \
-                + [f'interpolation ({c.directory.name.replace("block_", "block ").replace("spin_", "spin ").replace("_",", ")})'
+                + [f'interpolation ({c.directory.parent.name.split("-", 2)[-1].replace("block-", "block ").replace("spin-", "spin ").replace("_",", ")})'
                    for c in selected_calcs]
             color_cycle = plt.rcParams['axes.prop_cycle']()
             bsplot_kwargs_list = []
@@ -281,7 +326,8 @@ class WannierizeWorkflow(Workflow):
             self.plot_bandstructure(bs_list, dos, bsplot_kwargs=bsplot_kwargs_list)
 
         # Store the results
-        self.outputs = self.output_model(band_structures=bs_list, dos=dos)
+        self.outputs = self.output_model(band_structures=bs_list, dos=dos, u_matrices_files=u_matrices_files,
+                                         hr_files=hr_files, centers_files=centers_files, u_dis_file=u_dis_file)
 
         return
 
@@ -291,35 +337,14 @@ class WannierizeWorkflow(Workflow):
         share the same filling and spin
         """
 
-        # Fetching the list of calculations for this block
-        src_calcs: List[calculators.Wannier90Calculator] = [b.w90_calc for b in block if b.w90_calc is not None]
-        emp_label = '_emp' if filling_label == 'emp' else ''
-
-        # Merging the wannier_hr (Hamiltonian) files
-        merge_hr_proc = MergeProcess(merge_function=merge_wannier_hr_file_contents,
-                                     src_files=[(calc, Path(prefix + '_hr.dat')) for calc in src_calcs],
-                                     dst_file=prefix + f'{emp_label}_hr.dat')
-        merge_hr_proc.name = f'merge_{filling_label}_wannier_hamiltonian'
-        self.run_process(merge_hr_proc)
-
-        if self.parameters.method == 'dfpt' and self.parent is not None:
-            # Merging the U (rotation matrix) files
-            merge_u_proc = MergeProcess(merge_function=merge_wannier_u_file_contents,
-                                        src_files=[(calc, Path(prefix + '_u.mat')) for calc in src_calcs],
-                                        dst_file=prefix + f'{emp_label}_u.mat')
-            merge_u_proc.name = f'merge_{filling_label}_wannier_u'
-            self.run_process(merge_u_proc)
-
-            # Merging the wannier centers files
-            merge_centers_proc = MergeProcess(merge_function=partial(merge_wannier_centers_file_contents, atoms=self.atoms),
-                                              src_files=[(calc, Path(prefix + '_centres.xyz')) for calc in src_calcs],
-                                              dst_file=prefix + f'{emp_label}_centres.xyz')
-            merge_centers_proc.name = f'merge_{filling_label}_wannier_centers'
-            self.run_process(merge_centers_proc)
-
 
 class WannierizeBlockOutput(OutputModel):
-    pass
+    hr_file: FilePointer | None = None
+    centers_file: FilePointer | None = None
+    u_matrices_file: FilePointer | None = None
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class WannierizeBlockWorkflow(Workflow):
@@ -399,6 +424,12 @@ class WannierizeBlockWorkflow(Workflow):
                     [match] = [b for b in self.bands if b.index == band.index and b.spin == 1]
                     match.center = center
                     match.spread = spread
+
+        hr_file = FilePointer(calc_w90, calc_w90.prefix + '_hr.dat') if calc_w90.parameters.write_hr else None
+        u_file = FilePointer(calc_w90, calc_w90.prefix + '_u.mat') if calc_w90.parameters.write_u_matrices else None
+        centers_file = FilePointer(calc_w90, calc_w90.prefix +
+                                   '_centres.xyz') if calc_w90.parameters.write_xyz else None
+        self.outputs = self.output_model(hr_file=hr_file, u_matrices_file=u_file, centers_file=centers_file)
 
     def new_calculator(self, calc_type, *args, **kwargs) -> CalcExtType:  # type: ignore[type-var, misc]
         init_orbs = kwargs.pop('init_orbitals', None)

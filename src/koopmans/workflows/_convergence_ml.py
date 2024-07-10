@@ -12,12 +12,19 @@ from koopmans import utils
 from koopmans.ml import (MLModel, plot_calculated_vs_predicted,
                          plot_convergence, plot_error_histogram,
                          precompute_parameters_of_radial_basis)
+from koopmans.outputs import OutputModel
 
 from ._trajectory import TrajectoryWorkflow
 from ._workflow import Workflow
 
 
+class ConvergenceMLOutputs(OutputModel):
+    pass
+
+
 class ConvergenceMLWorkflow(Workflow):
+    output_model = ConvergenceMLOutputs  # type: ignore
+    outputs: ConvergenceMLOutputs
 
     def __init__(self, snapshots: List[Atoms], * args, **kwargs):
 

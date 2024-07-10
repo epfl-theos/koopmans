@@ -10,20 +10,36 @@ Integrated within koopmans by Edward Linscott Jan 2021
 """
 
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
 
-from koopmans import calculators, processes, utils
+from koopmans import calculators, outputs, processes, utils
+from koopmans.files import FilePointer
 
 from ._workflow import Workflow
 
 
+class UnfoldAndInterpolateOutput(outputs.OutputModel):
+    band_structure: BandStructure
+    dos: DOS | None
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
 class UnfoldAndInterpolateWorkflow(Workflow):
 
-    def __init__(self, *args, redo_smooth_dft: Optional[bool] = None, **kwargs) -> None:
+    output_model = UnfoldAndInterpolateOutput  # type: ignore
+
+    def __init__(self, *args, koopmans_ham_files: Dict[Tuple[str, str | None], FilePointer],
+                 dft_ham_files: Dict[Tuple[str, str | None], FilePointer],
+                 redo_smooth_dft: Optional[bool] = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        self._dft_ham_files = dft_ham_files
+        self._koopmans_ham_files = koopmans_ham_files
         self._redo_smooth_dft = redo_smooth_dft
 
     def _run(self) -> None:
@@ -90,7 +106,14 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                     ngrid = 1
                 mask = np.array(band_filling[::ngrid]) == filled
 
-                process = self.new_ui_process(presets, centers=centers[mask], spreads=spreads[mask].tolist())
+                # Add the smooth DFT Hamiltonian file if relevant
+                if self.calculator_parameters['ui'].do_smooth_interpolation:
+                    dft_smooth_ham_file = wannier_workflow.outputs.hr_files[presets]
+                else:
+                    dft_smooth_ham_file = None
+
+                process = self.new_ui_process(presets, centers=centers[mask], spreads=spreads[mask].tolist(),
+                                              dft_smooth_ham_file=dft_smooth_ham_file)
 
                 # Run the process
                 self.run_process(process)
@@ -135,7 +158,8 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         if merged_dos is not None:
             merged_dos.e_skn += merged_bs.reference
 
-        utils.warn('Need to store the final band structure somewhere (workfllow.results?)')
+        # Store the results
+        self.outputs = self.output_model(band_structure=merged_bs, dos=merged_dos)
 
     def new_ui_process(self, presets: str, **kwargs) -> processes.UnfoldAndInterpolateProcess:
         valid_presets = ['occ', 'occ_up', 'occ_down', 'emp', 'emp_up', 'emp_down']
@@ -144,41 +168,42 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             + '/'.join([f'"{s}"' for s in valid_presets]) + \
             f', but you have tried to set it equal to {presets}'
 
-        if presets == 'merge':
-            # Dummy calculator for merging bands and dos
-            kwargs['directory'] = Path('./')
-            pass
+        preset_tuple: Tuple[str, str | None]
+        if '_' in presets:
+            preset_tuple = tuple(presets.split('_'))  # type: ignore
         else:
-            # Automatically generating UI calculator settings
-            if self.parameters.method == 'dscf':
-                # DSCF case
-                if '_' in presets:
-                    ham_prefix = presets.replace('up', '1').replace('down', '2')
-                else:
-                    ham_prefix = presets + '_1'
-                kwargs['kc_ham_file'] = Path(f'../final/ham_{ham_prefix}.dat').resolve()
-                kwargs['w90_seedname'] = Path(f'../init/wannier/{presets}/wann').resolve()
-                if self.calculator_parameters['ui'].do_smooth_interpolation:
-                    kwargs['dft_smooth_ham_file'] = Path(f'wannier/{presets}/wann_hr.dat').resolve()
-                    kwargs['dft_ham_file'] = Path(f'../init/wannier/{presets}/wann_hr.dat').resolve()
-            else:
-                # DFPT case
-                if self.parameters.spin_polarized:
-                    raise NotImplementedError()
+            preset_tuple = (presets, None)
 
-                # Add the Koopmans Hamiltonian
-                kc_ham_calc = [c for c in self.calculations if isinstance(c, calculators.KoopmansHamCalculator)][-1]
-                ham_filename = f'{kc_ham_calc.parameters.prefix}.kcw_hr_{presets}.dat'
-                kwargs['kc_ham_file'] = (kc_ham_calc, ham_filename)
+        kwargs['kc_ham_file'] = self._koopmans_ham_files[preset_tuple]
+        if self.calculator_parameters['ui'].do_smooth_interpolation:
+            kwargs['dft_ham_file'] = self._dft_ham_files[preset_tuple]
 
-                # Add the DFT Hamiltonian files if performing smooth interpolation
-                if self.calculator_parameters['ui'].do_smooth_interpolation:
-                    suffix = '' if presets == 'occ' else '_emp'
-                    ham_filename = f'wannier90{suffix}_hr.dat'
-                    [wann_calc, smooth_wann_calc] = [p for p in self.processes if str(
-                        getattr(p.inputs, 'dst_file', '')) == ham_filename][-2:]
-                    kwargs['dft_ham_file'] = (wann_calc, ham_filename)
-                    kwargs['dft_smooth_ham_file'] = (smooth_wann_calc, ham_filename)
+        # # Automatically generating UI calculator settings
+        # if self.parameters.method == 'dscf':
+        #     # DSCF case
+        #     import ipdb; ipdb.set_trace()
+        #     if '_' in presets:
+        #         ham_prefix = presets.replace('up', '1').replace('down', '2')
+        #     else:
+        #         ham_prefix = presets + '_1'
+        # else:
+        #     # DFPT case
+        #     if self.parameters.spin_polarized:
+        #         raise NotImplementedError()
+
+        #     # Add the Koopmans Hamiltonian
+        #     kc_ham_calc = [c for c in self.calculations if isinstance(c, calculators.KoopmansHamCalculator)][-1]
+        #     ham_filename = f'{kc_ham_calc.parameters.prefix}.kcw_hr_{presets}.dat'
+        #     kwargs['kc_ham_file'] = (kc_ham_calc, ham_filename)
+
+        #     # Add the DFT Hamiltonian files if performing smooth interpolation
+        #     if self.calculator_parameters['ui'].do_smooth_interpolation:
+        #         suffix = '' if presets == 'occ' else '_emp'
+        #         ham_filename = f'wannier90{suffix}_hr.dat'
+        #         [wann_calc, smooth_wann_calc] = [p for p in self.processes if str(
+        #             getattr(p.inputs, 'dst_file', '')) == ham_filename][-2:]
+        #         kwargs['dft_ham_file'] = (wann_calc, ham_filename)
+        #         kwargs['dft_smooth_ham_file'] = (smooth_wann_calc, ham_filename)
 
         parameters = self.calculator_parameters['ui']
         parameters.kgrid = self.kpoints.grid

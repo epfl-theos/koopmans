@@ -773,12 +773,13 @@ class Workflow(ABC):
                           calc_nspin1, calc_nspin1.parameters.outdir)
 
                 # Copy over nspin=2 wavefunction to nspin=1 tmp directory
-                process = processes.ConvertFilesFromSpin2To1(**prev_calc_nspin2.files_to_convert_with_spin2_to_spin1)
-                self.run_process(process)
-                for f in process.outputs.generated_files:
+                process2to1 = processes.ConvertFilesFromSpin2To1(
+                    **prev_calc_nspin2.files_to_convert_with_spin2_to_spin1)
+                self.run_process(process2to1)
+                for f in process2to1.outputs.generated_files:
                     dst_dir = calc_nspin1.parameters.outdir / \
                         f'{calc_nspin1.parameters.prefix}_{calc_nspin1.parameters.ndr}.save/K00001'
-                    self.link(process, f, calc_nspin1, dst_dir / f.name, symlink=True, overwrite=True)
+                    self.link(process2to1, f, calc_nspin1, dst_dir / f.name, symlink=True, overwrite=True)
 
             self.run_calculator(calc_nspin1)
 
@@ -790,20 +791,16 @@ class Workflow(ABC):
                       master_calc, master_calc.parameters.outdir)
 
             # Copy over nspin=1 wavefunction to nspin=2 tmp directory
-            process = processes.ConvertFilesFromSpin1To2(**calc_nspin1.files_to_convert_with_spin1_to_spin2)
-            self.run_process(process)
+            process1to2 = processes.ConvertFilesFromSpin1To2(**calc_nspin1.files_to_convert_with_spin1_to_spin2)
+            self.run_process(process1to2)
 
             # nspin=2, reading in the spin-symmetric nspin=1 wavefunction
             master_calc.prepare_to_read_nspin1()
-            for f in process.outputs.generated_files:
+            for f in process1to2.outputs.generated_files:
                 dst_dir = master_calc.parameters.outdir / \
                     f'{master_calc.parameters.prefix}_{master_calc.parameters.ndr}.save/K00001'
-                self.link(process, f, master_calc, dst_dir / f.name, symlink=True, overwrite=True)
-            try:
-                self.run_calculator(master_calc)
-            except:
-                import ipdb
-                ipdb.set_trace()
+                self.link(process1to2, f, master_calc, dst_dir / f.name, symlink=True, overwrite=True)
+            self.run_calculator(master_calc)
 
         else:
 
@@ -959,7 +956,7 @@ class Workflow(ABC):
 
         return old_calc.is_complete()
 
-    def link(self, src_calc: calculators.Calc | processes.Process | None, src_path: Path | str, dest_calc: calculators.Calc, dest_path: Path | str, symlink=False, recursive_symlink=False, overwrite=False) -> None:
+    def link(self, src_calc: utils.HasDirectoryAttr | None, src_path: Path | str, dest_calc: calculators.Calc, dest_path: Path | str, symlink=False, recursive_symlink=False, overwrite=False) -> None:
         """Link a file from one calculator to another
 
         Paths must be provided relative to the the calculator's directory i.e. calc.directory, unless src_calc is None
