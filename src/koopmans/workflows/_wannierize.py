@@ -392,7 +392,7 @@ class WannierizeBlockWorkflow(Workflow):
         calc_p2w.prefix = 'pw2wannier90'
         calc_nscf = [c for c in self.calculations if isinstance(
             c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
-        self.link(calc_nscf, calc_nscf.parameters.outdir, calc_p2w, calc_p2w.parameters.outdir)
+        self.link(calc_nscf, calc_nscf.parameters.outdir, calc_p2w, calc_p2w.parameters.outdir, symlink=True)
         self.link(calc_w90_pp, calc_w90_pp.prefix + '.nnkp', calc_p2w, calc_p2w.parameters.seedname + '.nnkp')
         self.run_calculator(calc_p2w)
 
@@ -400,8 +400,8 @@ class WannierizeBlockWorkflow(Workflow):
         calc_w90 = self.new_calculator(calc_type, init_orbitals=init_orbs,
                                        bands_plot=self.parameters.calculate_bands, **self.block.w90_kwargs)
         calc_w90.prefix = 'wannier90'
-        for ext in ['.eig', '.amn', '.eig', '.mmn']:
-            self.link(calc_p2w, calc_p2w.parameters.seedname + ext, calc_w90, calc_w90.prefix + ext)
+        for ext in ['.eig', '.amn', '.mmn']:
+            self.link(calc_p2w, calc_p2w.parameters.seedname + ext, calc_w90, calc_w90.prefix + ext, symlink=True)
         self.run_calculator(calc_w90)
         self.block.w90_calc = calc_w90
 
