@@ -57,6 +57,7 @@ class WannierizeOutput(OutputModel):
 class WannierizeWorkflow(Workflow):
 
     output_model = WannierizeOutput  # type: ignore
+    outputs: WannierizeOutput
 
     def __init__(self, *args, force_nspin2=False, scf_kgrid=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -188,32 +189,34 @@ class WannierizeWorkflow(Workflow):
                         # Fetching the list of calculations for this block
                         src_calcs: List[calculators.Wannier90Calculator] = [
                             b.w90_calc for b in block if b.w90_calc is not None]
-                        emp_label = '_emp' if filling_label == 'emp' else ''
+                        emp_label = '_emp' if label == 'emp' else ''
+                        prefix = src_calcs[-1].prefix
 
                         # Merging the wannier_hr (Hamiltonian) files
                         merge_hr_proc = MergeProcess(merge_function=merge_wannier_hr_file_contents,
-                                                     src_files=[(calc, Path(prefix + '_hr.dat')) for calc in src_calcs],
+                                                     src_files=[(calc, Path(calc.prefix + '_hr.dat'))
+                                                                for calc in src_calcs],
                                                      dst_file=prefix + f'{emp_label}_hr.dat')
-                        merge_hr_proc.name = f'merge_{filling_label}_wannier_hamiltonian'
+                        merge_hr_proc.name = f'merge_{label}_wannier_hamiltonian'
                         self.run_process(merge_hr_proc)
                         hr_files[label] = FilePointer(merge_hr_proc, merge_hr_proc.outputs.dst_file)
 
                         if self.parameters.method == 'dfpt' and self.parent is not None:
                             # Merging the U (rotation matrix) files
                             merge_u_proc = MergeProcess(merge_function=merge_wannier_u_file_contents,
-                                                        src_files=[(calc, Path(prefix + '_u.mat'))
+                                                        src_files=[(calc, Path(calc.prefix + '_u.mat'))
                                                                    for calc in src_calcs],
                                                         dst_file=prefix + f'{emp_label}_u.mat')
-                            merge_u_proc.name = f'merge_{filling_label}_wannier_u'
+                            merge_u_proc.name = f'merge_{label}_wannier_u'
                             self.run_process(merge_u_proc)
                             u_matrices_files[label] = FilePointer(merge_u_proc, merge_u_proc.outputs.dst_file)
 
                             # Merging the wannier centers files
                             merge_centers_proc = MergeProcess(merge_function=partial(merge_wannier_centers_file_contents, atoms=self.atoms),
-                                                              src_files=[(calc, Path(prefix + '_centres.xyz'))
+                                                              src_files=[(calc, Path(calc.prefix + '_centres.xyz'))
                                                                          for calc in src_calcs],
                                                               dst_file=prefix + f'{emp_label}_centres.xyz')
-                            merge_centers_proc.name = f'merge_{filling_label}_wannier_centers'
+                            merge_centers_proc.name = f'merge_{label}_wannier_centers'
                             self.run_process(merge_centers_proc)
                             centers_files[label] = FilePointer(merge_centers_proc, merge_centers_proc.outputs.dst_file)
 

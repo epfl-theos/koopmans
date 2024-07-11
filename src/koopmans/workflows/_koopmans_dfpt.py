@@ -15,11 +15,19 @@ from koopmans.bands import Bands
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
                                   Wann2KCCalculator, Wannier90Calculator)
 from koopmans.files import FilePointer
+from koopmans.outputs import OutputModel
 
 from ._workflow import Workflow
 
 
+class KoopmansDFPTOutputs(OutputModel):
+    pass
+
+
 class KoopmansDFPTWorkflow(Workflow):
+
+    output_model = KoopmansDFPTOutputs  # type: ignore
+    outputs: KoopmansDFPTOutputs
 
     def __init__(self, scf_kgrid=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -139,6 +147,7 @@ class KoopmansDFPTWorkflow(Workflow):
             coarse_wf.run(subdirectory='coarse_grid')
             self.print('Regular grid calculations', style='heading')
 
+        wannier_files_to_link = {}
         if all(self.atoms.pbc):
             # Run PW and Wannierization
             for key in self.calculator_parameters.keys():
@@ -151,6 +160,20 @@ class KoopmansDFPTWorkflow(Workflow):
             # Store the NSCF calculation because it uses nosym, so we can use its outdir for subsequent calculations
             init_pw = [c for c in self.calculations if isinstance(
                 c, PWCalculator) and c.parameters.calculation == 'nscf'][-1]
+
+            # Populate a list of files to link to subsequent calculations
+            for f in [wf_workflow.outputs.u_matrices_files["occ"],
+                      wf_workflow.outputs.hr_files["occ"],
+                      wf_workflow.outputs.u_dis_file,
+                      wf_workflow.outputs.centers_files["occ"]]:
+                assert f is not None
+                wannier_files_to_link[f.name] = f
+
+            for f in [wf_workflow.outputs.u_matrices_files["emp"],
+                      wf_workflow.outputs.hr_files["emp"],
+                      wf_workflow.outputs.centers_files["emp"]]:
+                assert f is not None
+                wannier_files_to_link[f.parent.prefix + '_emp' + f.name[len(f.parent.prefix):]] = f
 
         else:
             # Run PW
@@ -172,12 +195,15 @@ class KoopmansDFPTWorkflow(Workflow):
         # Convert from wannier to KC
         wann2kc_calc = self.new_calculator('wann2kc')
         self.link(init_pw, init_pw.parameters.outdir, wann2kc_calc, wann2kc_calc.parameters.outdir)
+        for dst, f in wannier_files_to_link.items():
+            self.link(f.parent, f.name, wann2kc_calc, dst, symlink=True)
         self.run_calculator(wann2kc_calc)
 
         # Calculate screening parameters
         if self.parameters.calculate_alpha:
             if self.parameters.dfpt_coarse_grid is None:
-                screen_wf = ComputeScreeningViaDFPTWorkflow.fromparent(self)
+                screen_wf = ComputeScreeningViaDFPTWorkflow.fromparent(
+                    self, wannier_files_to_link=wannier_files_to_link)
                 screen_wf.run(subdirectory='screening')
             else:
                 self.bands.alphas = coarse_wf.bands.alphas
@@ -197,6 +223,8 @@ class KoopmansDFPTWorkflow(Workflow):
                       kc_ham_calc, kc_ham_calc.parameters.outdir / (kc_ham_calc.parameters.prefix + '.xml'), symlink=True)
             self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / 'kcw', kc_ham_calc,
                       kc_ham_calc.parameters.outdir / 'kcw', recursive_symlink=True)
+            for dst, f in wannier_files_to_link.items():
+                self.link(f.parent, f.name, kc_ham_calc, dst, symlink=True)
             self.run_calculator(kc_ham_calc)
 
             # Postprocessing
@@ -233,12 +261,24 @@ class KoopmansDFPTWorkflow(Workflow):
         return internal_new_calculator(self, calc_presets, **kwargs)
 
 
+class ComputeScreeningViaDFPTOutputs(OutputModel):
+    pass
+
+
 class ComputeScreeningViaDFPTWorkflow(Workflow):
+    output_model = ComputeScreeningViaDFPTOutputs
+    outputs: ComputeScreeningViaDFPTOutputs
+
+    def __init__(self, *args, wannier_files_to_link: Dict[str, FilePointer], **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._wannier_files_to_link = wannier_files_to_link
+
     def _run(self):
         # Group the bands by spread
         self.bands.assign_groups(sort_by='spread', allow_reassignment=True)
 
-        if len(self.bands.to_solve) == len(self.bands) and False:
+        if len(self.bands.to_solve) == len(self.bands):
             # If there is no orbital grouping, do all orbitals in one calculation
 
             # 1) Create the calculator
@@ -282,6 +322,9 @@ class ComputeScreeningViaDFPTWorkflow(Workflow):
                   calc, calc.parameters.outdir / (calc.parameters.prefix + '.xml'), symlink=True)
         self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / 'kcw', calc,
                   calc.parameters.outdir / 'kcw', recursive_symlink=True)
+
+        for dst, f in self._wannier_files_to_link.items():
+            self.link(f.parent, f.name, calc, dst, symlink=True)
 
         return calc
 
@@ -329,11 +372,6 @@ def internal_new_calculator(workflow, calc_presets, **kwargs):
     calc.parameters.num_wann_emp = nemp
     calc.parameters.have_empty = have_empty
     calc.parameters.has_disentangle = has_disentangle
-
-    # Provide the rotation matrices and the wannier centers if required
-    if all(workflow.atoms.pbc):
-        for process in workflow.processes:
-            workflow.link(process, process.outputs.dst_file, calc, process.outputs.dst_file, symlink=True)
 
     # Apply any additional calculator keywords passed as kwargs
     for k, v in kwargs.items():

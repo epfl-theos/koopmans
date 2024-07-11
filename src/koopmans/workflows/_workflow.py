@@ -1043,12 +1043,7 @@ class Workflow(ABC):
 
         # Link the bands
         if hasattr(self.parent, 'bands'):
-            self.bands = copy.deepcopy(self.parent.bands)
-            # Only include the most recent screening parameter and wipe the error history
-            for b in self.bands:
-                if len(b.alpha_history) > 0:
-                    b.alpha_history = [b.alpha]
-                b.error_history = []
+            self.bands = self.parent.bands
 
         subdirectory = self.name.replace(' ', '-').lower() if subdirectory is None else subdirectory
 
@@ -1077,20 +1072,9 @@ class Workflow(ABC):
             if from_scratch is None:
                 self.parent.parameters.from_scratch = self.parameters.from_scratch
 
-            # Copy back over the bands
-            if hasattr(self, 'bands'):
-                if hasattr(self.parent, 'bands'):
-                    # Add the alpha and error history if the length of the bands match
-                    if len(self.parent.bands) == len(self.bands):
-                        for b, b_sub in zip(self.parent.bands, self.bands):
-                            b.alpha_history += b_sub.alpha_history[1:]
-                            b.error_history += b_sub.error_history[1:]
-                            b.self_hartree = b_sub.self_hartree
-                            b.spread = b_sub.spread
-                            b.center = b_sub.center
-                else:
-                    # Copy the entire bands object
-                    self.parent.bands = self.bands
+            if hasattr(self, 'bands') and not hasattr(self.parent, 'bands'):
+                # Copy the entire bands object
+                self.parent.bands = self.bands
 
         self.parent.steps.append(self.steps)
 

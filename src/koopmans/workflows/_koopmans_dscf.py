@@ -1149,14 +1149,18 @@ class InitializationWorkflow(Workflow):
             wannier_workflow.run()
 
             # Store the Hamitonian files
+            hr_file_keys: List[Tuple[str, str | None]]
             if self.parameters.spin_polarized:
-                wannier_hamiltonian_files = {('occ', "up"): wannier_workflow.outputs.hr_files['occ_up'],
-                                             ('emp', "up"): wannier_workflow.outputs.hr_files['emp_up'],
-                                             ('occ', "down"): wannier_workflow.outputs.hr_files['occ_down'],
-                                             ('emp', "down"): wannier_workflow.outputs.hr_files['emp_down']}
+                hr_file_keys = [('occ', 'up'), ('emp', 'up'), ('occ', 'down'), ('emp', 'down')]
             else:
-                wannier_hamiltonian_files = {('occ', None): wannier_workflow.outputs.hr_files['occ'],
-                                             ('emp', None): wannier_workflow.outputs.hr_files['emp']}
+                hr_file_keys = [('occ', None), ('emp', None)]
+
+            wannier_hamiltonian_files = {}
+            for key in hr_file_keys:
+                key_str = '_'.join([k for k in key if k is not None])
+                hr_file = wannier_workflow.outputs.hr_files[key_str]
+                assert hr_file is not None
+                wannier_hamiltonian_files[key] = hr_file
 
             # Convert the files over from w90 format to kcp format
             nscf_calc = wannier_workflow.steps[1]
