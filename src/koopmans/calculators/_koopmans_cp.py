@@ -339,6 +339,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return ham_matrix
 
     def _ham_pkl_file(self, bare: bool = False) -> Path:
+        assert self.directory is not None
         if bare:
             suffix = '.bare_ham.pkl'
         else:
@@ -549,7 +550,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 prefix, suffix = f.split('.')
             nspin_2_files.append(f'{prefix}1.{suffix}')
 
-        parent = self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndr}.save/K00001'
+        parent = self.read_directory / 'K00001'
         return {'spin_2_files': [(self, parent / f1) for f1 in nspin_2_files], 'spin_1_files': nspin_1_files}
 
     @property
@@ -570,14 +571,14 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             nspin_2up_files.append(f'{prefix}1.{suffix}')
             nspin_2dw_files.append(f'{prefix}2.{suffix}')
 
-        parent = self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndr}.save/K00001'
+        parent = self.read_directory / 'K00001'
 
         return {'spin_1_files': [(self, parent / f) for f in nspin_1_files],
                 'spin_2_up_files': nspin_2up_files,
                 'spin_2_down_files': nspin_2dw_files}
 
     def convert_wavefunction_2to1(self):
-        nspin2_tmpdir = self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndr}.save/K00001'
+        nspin2_tmpdir = self.read_directory / 'K00001'
         nspin1_tmpdir = self.parameters.outdir / f'{self.parameters.prefix}_98.save/K00001'
 
         for directory in [nspin2_tmpdir, nspin1_tmpdir]:
@@ -642,6 +643,16 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 file_out = nspin2_tmpdir / f'{prefix}2.{suffix}'
                 with open(file_out, 'wb') as fd:
                     fd.write(contents)
+
+    @property
+    def read_directory(self) -> Path:
+        assert isinstance(self.parameters.outdir, Path)
+        return self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndr}.save'
+
+    @property
+    def write_directory(self):
+        assert isinstance(self.parameters.outdir, Path)
+        return self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndw}.save'
 
 
 def convert_flat_alphas_for_kcp(flat_alphas: List[float],

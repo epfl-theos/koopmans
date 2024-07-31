@@ -27,15 +27,17 @@ class DFTWorkflow(Workflow):
         self.parameters.functional = 'dft'
 
 
+class DFTCPOutput(OutputModel):
+    pass
+
+
 class DFTCPWorkflow(DFTWorkflow):
+    output_model = DFTCPOutput  # type: ignore
+    outputs: DFTCPOutput
 
     def _run(self):
 
         calc = self.new_calculator('kcp')
-
-        # Removing old directories
-        if self.parameters.from_scratch:
-            utils.system_call(f'rm -r {calc.parameters.outdir} 2>/dev/null', False)
 
         calc.prefix = 'dft'
         calc.directory = '.'
@@ -59,7 +61,14 @@ class DFTCPWorkflow(DFTWorkflow):
         return calc
 
 
+class DFTPWOutput(OutputModel):
+    pass
+
+
 class DFTPWWorkflow(DFTWorkflow):
+
+    output_model = DFTPWOutput  # type: ignore
+    outputs: DFTPWOutput
 
     def _run(self):
 

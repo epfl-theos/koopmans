@@ -376,9 +376,8 @@ class Workflow(ABC):
 
         if self.parent:
             with self._parent_context(subdirectory, from_scratch):
-                self.print(f'{self.name}', style='heading')
+                self.print(f'- {self.name}', style='heading')
                 self._run()
-                self.print()
         else:
             self._run()
 
@@ -839,7 +838,7 @@ class Workflow(ABC):
                 is_complete = self.load_old_calculator(qe_calc)
                 if is_complete:
                     if not self.silent:
-                        self.print(f'Not running {os.path.relpath(qe_calc.directory)} as it is already complete')
+                        self.print(f'- Not running {os.path.relpath(qe_calc.directory)} as it is already complete')
 
                     # Check the convergence of the calculation
                     qe_calc.check_convergence()
@@ -880,7 +879,7 @@ class Workflow(ABC):
         for calc in calcs:
             if not self.silent:
                 dir_str = os.path.relpath(calc.directory)
-                self.print(f'Running {dir_str}...', end='', flush=True)
+                self.print(f'- Running {dir_str}...', end='', flush=True)
 
             try:
                 calc.calculate()
@@ -933,7 +932,7 @@ class Workflow(ABC):
 
         self._step_counter += 1
         process.directory = Path(f'{self._step_counter:02}-{process.name}').resolve()
-        self.print('Running ' + os.path.relpath(process.directory) + '...', end='', flush=True)
+        self.print('- Running ' + os.path.relpath(process.directory) + '...', end='', flush=True)
         process.run()
         self.print(' done')
         self.processes.append(process)
@@ -991,20 +990,16 @@ class Workflow(ABC):
         dest_calc.link_file(src_calc, src_path, dest_path, symlink=symlink,  # type: ignore
                             recursive_symlink=recursive_symlink, overwrite=overwrite)
 
-    def print(self, text: str = '', style: str = 'body', **kwargs: Any):
+    def print(self, text: str = '', style='body', bold=False, **kwargs: Any):
+        if bold or style == 'heading':
+            text = '\033[1m' + text + '\033[0m'
         if style == 'body':
-            utils.indented_print(str(text), self.print_indent + 2, **kwargs)
-        else:
-            if style == 'heading':
-                underline = '='
-            elif style == 'subheading':
-                underline = '-'
-            else:
-                raise ValueError(f'Invalid choice "{style}" for style; must be heading/subheading/body')
+            utils.indented_print(text, self.print_indent + 2, **kwargs)
+        elif style == 'heading':
             assert kwargs.get('end', '\n') == '\n'
-            utils.indented_print()
-            utils.indented_print(str(text), self.print_indent, **kwargs)
-            utils.indented_print(underline * len(text), self.print_indent, **kwargs)
+            utils.indented_print(text, self.print_indent, **kwargs)
+        else:
+            raise ValueError(f'Invalid choice "{style}" for style; must be heading/subheading/body')
 
     @contextmanager
     def _parent_context(self, subdirectory: Optional[str] = None,
@@ -1129,6 +1124,7 @@ class Workflow(ABC):
 
         # Define the name of the workflow using the name of the json file
         wf.name = fname.replace('.json', '')
+
         return wf
 
     @classmethod
@@ -1255,7 +1251,7 @@ class Workflow(ABC):
             return wf
 
     def print_header(self):
-        print(header())
+        print("\033[1m" + header() + "\033[0m")
 
     def print_bib(self):
         relevant_references = BibliographyData()
@@ -1306,6 +1302,8 @@ class Workflow(ABC):
 
         self.print_bib()
 
+        self.print()
+
     def print_conclusion(self):
         from koopmans.io import write
 
@@ -1316,7 +1314,7 @@ class Workflow(ABC):
         write(self, self.name + '.kwf')
 
         # Print farewell message
-        print('\n Workflow complete')
+        print('\n \033[1mWorkflow complete\033[0m')
 
     def toinputjson(self) -> Dict[str, Dict[str, Any]]:
 

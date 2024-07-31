@@ -21,6 +21,7 @@ from typing import (Any, Callable, Dict, Generic, List, Optional, Type,
 import numpy as np
 
 from koopmans import cell, utils
+from koopmans.outputs import OutputModel
 
 from ._workflow import Workflow
 
@@ -215,7 +216,15 @@ def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
                                   'construct your ConvergenceWorkflow using the ConvergenceWorkflowFactory')
 
 
+class ConvergenceOutputs(OutputModel):
+
+    converged_values: Dict[str, Any]
+
+
 class ConvergenceWorkflow(Workflow):
+
+    output_model = ConvergenceOutputs  # type: ignore
+    outputs: ConvergenceOutputs
 
     '''
     A Workflow class that wraps another workflow in a convergence procedure in order to converge the observable within the specified tolerance with respect to the variables
@@ -297,22 +306,19 @@ class ConvergenceWorkflow(Workflow):
                 subwf = self._subworkflow_class.fromparent(self)
 
                 # For each parameter we're converging wrt...
-                header = ''
-                subdir = Path()
+                label = ''
                 for index, variable in zip(indices, self.variables):
                     value = variable.values[index]
                     if isinstance(value, float):
                         value_str = f'{value:.1f}'
                     else:
                         value_str = str(value)
-                    header += f'{variable.name} = {value_str}, '
 
                     if isinstance(value, list):
                         value_str = ''.join([str(x) for x in value])
 
                     # Create new working directory
-                    subdir /= f'{variable.name}_{value_str}'.replace(
-                        ' ', '_').replace('.', 'd')
+                    label += f' {variable.name} {value_str}'.replace('.', '_')
 
                     # Set the value
                     variable.set_value(subwf, value)
@@ -329,9 +335,8 @@ class ConvergenceWorkflow(Workflow):
                     #         for _ in range(extra_orbitals)]
                     # utils.write_alpha_file(directory=Path(), alphas=alphas, filling=filling)
 
-                self.print(header.rstrip(', '), style='subheading')
-
                 # Perform calculation
+                subwf.name += label
                 subwf.run()
 
                 # Store the result
@@ -371,6 +376,8 @@ class ConvergenceWorkflow(Workflow):
                 self.print('\n Converged variables are '
                            + ', '.join([f'{p.name} = {p.converged_value}' for p in self.variables]))
 
+                self.outputs = self.output_model(converged_values={v.name: v.converged_value for v in self.variables})
+
                 return
             else:
                 # Work out which variables are yet to converge, and line up more calculations
@@ -379,7 +386,7 @@ class ConvergenceWorkflow(Workflow):
                 new_array_shape = list(np.shape(results))
                 new_array_slice: List[Union[int, slice]] = [
                     slice(None) for _ in indices]
-                self.print('Progress update', style='heading')
+                self.print('\nProgress update', style='heading')
                 for index, var in enumerate(self.variables):
                     subarray_slice = [slice(None) for _ in self.variables]
                     subarray_slice[index] = slice(0, -1)
@@ -403,6 +410,7 @@ class ConvergenceWorkflow(Workflow):
                         var.extend()
                         new_array_shape[index] += 1
                         new_array_slice[index] = slice(None, -1)
+                self.print()
 
                 new_results = np.empty(new_array_shape)
                 new_results[:] = np.nan

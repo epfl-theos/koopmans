@@ -15,6 +15,7 @@ import numpy as np
 
 from koopmans import utils
 from koopmans.calculators import ProjwfcCalculator
+from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
 
 from ._workflow import Workflow
@@ -88,19 +89,12 @@ class SinglepointWorkflow(Workflow):
             # if 'all', create subdirectories and run
             functionals = ['ki', 'pkipz', 'kipz']
 
-            # Make separate directories for KI, pKIPZ, and KIPZ
-            for functional in functionals:
-                if self.parameters.from_scratch and os.path.isdir(functional):
-                    utils.system_call(f'rm -r {functional}')
-                if not os.path.isdir(functional):
-                    utils.system_call(f'mkdir {functional}')
-
             if self.parameters.alpha_from_file:
-                utils.system_call('cp file_alpharef*.txt ki/')
+                utils.warn('Need to make sure alpharef files are copied over')
+                # utils.system_call('cp file_alpharef*.txt ki/')
 
+            ki_workflow = None
             for functional in functionals:
-                self.print(f'\n{functional.upper().replace("PKIPZ", "pKIPZ")} calculation', style='heading')
-
                 # For pKIPZ/KIPZ, use KI as a starting point
                 restart_from_old_ki = (functional == 'kipz')
 
@@ -114,56 +108,61 @@ class SinglepointWorkflow(Workflow):
                     calculate_alpha = self.parameters.calculate_alpha
 
                 # Create a KC workflow for this particular functional
+                if functional != 'ki':
+                    assert ki_workflow is not None
+                    variational_orbital_files = ki_workflow.outputs.variational_orbital_files
+                    previous_ki_calc = ki_workflow.outputs.final_calc
+                else:
+                    variational_orbital_files = None
+                    previous_ki_calc = None
+
                 kc_workflow = KoopmansDSCFWorkflow.fromparent(self, functional=functional,
-                                                              restart_from_old_ki=restart_from_old_ki,
+                                                              initial_variational_orbital_files=variational_orbital_files,
                                                               redo_smooth_dft=redo_smooth_dft,
+                                                              previous_ki_calc=previous_ki_calc,
                                                               calculate_alpha=calculate_alpha)
+                kc_workflow.name += ' ' + functional.upper().replace("PKIPZ", "pKIPZ")
+
+                if functional == 'ki':
+                    # Save the KI workflow for later
+                    ki_workflow = kc_workflow
 
                 # Transform to the supercell
                 if functional == 'kipz':
                     kc_workflow.primitive_to_supercell()
 
                 # Run the workflow
-                if functional == 'pkipz' and self.parameters.from_scratch:
-                    # We want to run pKIPZ with from_scratch = False, but don't want this to be inherited
-                    kc_workflow.run(subdirectory=functional, from_scratch=False)
-                else:
-                    kc_workflow.run(subdirectory=functional)
+                kc_workflow.run(subdirectory=functional)
 
                 # Provide the pKIPZ and KIPZ calculations with a KI starting point
-                if functional == 'ki':
-                    if self.parameters.from_scratch:
-                        for directory in ['pkipz', 'kipz']:
-                            if os.listdir(directory):
-                                utils.system_call(f'rm -rf {directory}')
+                # if functional == 'ki':
+                #     # pKIPZ
+                #     for dir in ['init', 'calc_alpha', 'TMP-CP']:
+                #         src = Path(f'ki/{dir}/')
+                #         if src.is_dir():
+                #             utils.system_call(f'rsync -a {src} pkipz/')
+                #     for f in ['ki_final.cpi', 'ki_final.cpo', 'ki_final.ham.pkl', 'ki_final.bare_ham.pkl']:
+                #         file = Path(f'ki/final/{f}')
+                #         if file.is_file():
+                #             utils.system_call(f'rsync -a {file} pkipz/final/')
+                #     if all(self.atoms.pbc) and self.calculator_parameters['ui'].do_smooth_interpolation:
+                #         if not Path('pkipz/postproc').is_dir():
+                #             utils.system_call('mkdir pkipz/postproc')
+                #         for dir in ['wannier', 'TMP', 'pdos']:
+                #             if Path(f'ki/postproc/{dir}').exists():
+                #                 utils.system_call(f'rsync -a ki/postproc/{dir} pkipz/postproc/')
 
-                    # pKIPZ
-                    for dir in ['init', 'calc_alpha', 'TMP-CP']:
-                        src = Path(f'ki/{dir}/')
-                        if src.is_dir():
-                            utils.system_call(f'rsync -a {src} pkipz/')
-                    for f in ['ki_final.cpi', 'ki_final.cpo', 'ki_final.ham.pkl', 'ki_final.bare_ham.pkl']:
-                        file = Path(f'ki/final/{f}')
-                        if file.is_file():
-                            utils.system_call(f'rsync -a {file} pkipz/final/')
-                    if all(self.atoms.pbc) and self.calculator_parameters['ui'].do_smooth_interpolation:
-                        if not Path('pkipz/postproc').is_dir():
-                            utils.system_call('mkdir pkipz/postproc')
-                        for dir in ['wannier', 'TMP', 'pdos']:
-                            if Path(f'ki/postproc/{dir}').exists():
-                                utils.system_call(f'rsync -a ki/postproc/{dir} pkipz/postproc/')
-
-                    # KIPZ
-                    utils.system_call('rsync -a ki/final/ kipz/init/')
-                    utils.system_call('mv kipz/init/ki_final.cpi kipz/init/ki_init.cpi')
-                    utils.system_call('mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
-                    if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-                        utils.system_call('rsync -a ki/init/wannier kipz/init/')
-                    if all(self.atoms.pbc) and self.calculator_parameters['ui'].do_smooth_interpolation:
-                        # Copy over the smooth PBE calculation from KI for KIPZ to use
-                        for dir in ['wannier', 'TMP', 'pdos']:
-                            if Path(f'ki/postproc/{dir}').exists():
-                                utils.system_call(f'rsync -a ki/postproc/{dir} kipz/postproc/')
+                #     # KIPZ
+                #     utils.system_call('rsync -a ki/final/ kipz/init/')
+                #     utils.system_call('mv kipz/init/ki_final.cpi kipz/init/ki_init.cpi')
+                #     utils.system_call('mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
+                #     if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
+                #         utils.system_call('rsync -a ki/init/wannier kipz/init/')
+                #     if all(self.atoms.pbc) and self.calculator_parameters['ui'].do_smooth_interpolation:
+                #         # Copy over the smooth PBE calculation from KI for KIPZ to use
+                #         for dir in ['wannier', 'TMP', 'pdos']:
+                #             if Path(f'ki/postproc/{dir}').exists():
+                #                 utils.system_call(f'rsync -a ki/postproc/{dir} kipz/postproc/')
 
         else:
             # self.functional != all and self.method != 'dfpt'
