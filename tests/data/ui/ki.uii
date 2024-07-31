@@ -12,10 +12,10 @@
       2
     ],
     "do_dos": true,
-    "kc_ham_file": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/hamiltonian/kc.kcw_hr_occ.dat",
-    "w90_seedname": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/wannier/occ/wann",
-    "dft_smooth_ham_file": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/postproc/wannier/occ/wann_hr.dat",
-    "dft_ham_file": "/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/wannier/occ/wann_hr.dat"
+    "kc_ham_file": "hamiltonian/kc.kcw_hr_occ.dat",
+    "w90_seedname": "wannier/occ/wann",
+    "dft_smooth_ham_file": "postproc/wannier/occ/wann_hr.dat",
+    "dft_ham_file": "wannier/occ/wann_hr.dat"
   },
   "kpoints": {
     "grid": [

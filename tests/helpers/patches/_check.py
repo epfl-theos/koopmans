@@ -15,9 +15,8 @@ from koopmans.calculators import (Calc, EnvironCalculator,
                                   KoopmansCPCalculator, KoopmansHamCalculator,
                                   KoopmansScreenCalculator, PhCalculator,
                                   ProjwfcCalculator, PW2WannierCalculator,
-                                  PWCalculator, UnfoldAndInterpolateCalculator,
-                                  Wann2KCCalculator, Wann2KCPCalculator,
-                                  Wannier90Calculator)
+                                  PWCalculator, Wann2KCCalculator,
+                                  Wann2KCPCalculator, Wannier90Calculator)
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.workflows import MLFittingWorkflow
 
@@ -328,11 +327,6 @@ class CheckPW2WannierCalculator(CheckCalc, PW2WannierCalculator):
 
 class CheckWann2KCPCalculator(CheckCalc, Wann2KCPCalculator):
     results_for_qc: List[str] = []
-    pass
-
-
-class CheckUnfoldAndInterpolateCalculator(CheckCalc, UnfoldAndInterpolateCalculator):
-    results_for_qc = ['band structure', 'dos']
     pass
 
 

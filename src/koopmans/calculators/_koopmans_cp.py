@@ -647,11 +647,17 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
     @property
     def read_directory(self) -> Path:
         assert isinstance(self.parameters.outdir, Path)
+        assert self.parameters.ndr is not None
+        assert self.parameters.prefix is not None
+        assert self.parameters.outdir is not None
         return self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndr}.save'
 
     @property
     def write_directory(self):
         assert isinstance(self.parameters.outdir, Path)
+        assert self.parameters.ndw is not None
+        assert self.parameters.prefix is not None
+        assert self.parameters.outdir is not None
         return self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndw}.save'
 
 

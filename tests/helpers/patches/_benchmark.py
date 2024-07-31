@@ -8,9 +8,8 @@ from koopmans.calculators import (EnvironCalculator, KoopmansCPCalculator,
                                   KoopmansHamCalculator,
                                   KoopmansScreenCalculator, PhCalculator,
                                   ProjwfcCalculator, PW2WannierCalculator,
-                                  PWCalculator, UnfoldAndInterpolateCalculator,
-                                  Wann2KCCalculator, Wann2KCPCalculator,
-                                  Wannier90Calculator)
+                                  PWCalculator, Wann2KCCalculator,
+                                  Wann2KCPCalculator, Wannier90Calculator)
 from koopmans.io import write_kwf as write_encoded_json
 from koopmans.workflows import MLFittingWorkflow
 
@@ -99,10 +98,6 @@ class BenchGenKoopmansCPCalculator(BenchmarkGenCalc, KoopmansCPCalculator):
 
 
 class BenchGenEnvironCalculator(BenchmarkGenCalc, EnvironCalculator):
-    pass
-
-
-class BenchGenUnfoldAndInterpolateCalculator(BenchmarkGenCalc, UnfoldAndInterpolateCalculator):
     pass
 
 

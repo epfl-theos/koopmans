@@ -1,6 +1,6 @@
 &CONTROL
    prefix           = 'kc'
-   outdir           = '/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/TMP/'
+   outdir           = 'TMP/'
    kcw_iverbosity   = 1
    kcw_at_ks        = .false.
    calculation      = 'wann2kcw'

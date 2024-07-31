@@ -3,9 +3,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from koopmans.processes.wannier import merge_wannier_hr_file_contents
 from koopmans.utils import (chdir, parse_wannier_hr_file_contents,
                             read_wannier_hr_file)
-from koopmans.workflows._merge_wannier import merge_wannier_hr_file_contents
 
 
 def test_wannierize_merge_hr_file_contents(tmp_path, datadir):

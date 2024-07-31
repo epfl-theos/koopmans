@@ -16,13 +16,18 @@ def test_generate_dos(silicon, tmp_path, datadir, pytestconfig):
         wf = workflows.DFTBandsWorkflow(
             parameters={'pseudo_library': 'pseudo_dojo_standard', 'base_functional': 'pbesol', 'from_scratch': True},
             name='si', **silicon)
-
         calc = wf.new_calculator('projwfc')
-        calc.pseudo_dir = Path(koopmans_src[0]) / 'pseudopotentials/pseudo_dojo_standard_v0.4.1/pbesol'
+
+        # Make sure the pseudopotential files exist where the calculator will expect them to be
+        pseudo_dir = calc.directory / calc.parameters.outdir / (calc.parameters.prefix + '.save')
+        pseudo_dir.mkdir(parents=True)
+        assert wf.parameters.pseudo_directory is not None
+        for psp in wf.pseudopotentials.values():
+            utils.copy(wf.parameters.pseudo_directory / psp, pseudo_dir)
 
         # Copy over pdos files
         for f in (datadir / 'projwfc').glob('*.pdos*'):
-            shutil.copy(f, f.name)
+            utils.copy(f, f.name)
 
         # Attempt to read pdos files
         calc.generate_dos()

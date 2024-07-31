@@ -12,9 +12,8 @@ from koopmans.calculators import (Calc, EnvironCalculator,
                                   KoopmansCPCalculator, KoopmansHamCalculator,
                                   KoopmansScreenCalculator, PhCalculator,
                                   ProjwfcCalculator, PW2WannierCalculator,
-                                  PWCalculator, UnfoldAndInterpolateCalculator,
-                                  Wann2KCCalculator, Wann2KCPCalculator,
-                                  Wannier90Calculator)
+                                  PWCalculator, Wann2KCCalculator,
+                                  Wann2KCPCalculator, Wannier90Calculator)
 from koopmans.io import read_kwf as read_encoded_json
 from koopmans.workflows import (ConvergenceMLWorkflow, KoopmansDSCFWorkflow,
                                 MLFittingWorkflow, WannierizeWorkflow)
@@ -148,12 +147,6 @@ class MockPW2WannierCalculator(MockCalc, PW2WannierCalculator):
 class MockWann2KCPCalculator(MockCalc, Wann2KCPCalculator):
     # Monkeypatched Wann2KCPCalculator class which never actually calls wann2kcp.x
     pass
-
-
-class MockUnfoldAndInterpolateCalculator(MockCalc, UnfoldAndInterpolateCalculator):
-    def write_results(self, *args, **kwargs):
-        # Do nothing when it goes to write out the results (because this relies on self.bg, among others)
-        return
 
 
 class MockWann2KCCalculator(MockCalc, Wann2KCCalculator):
