@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 
+from koopmans.files import FilePointer
 from koopmans.utils import indented_print, warn
 
 
@@ -12,7 +13,8 @@ class Band(object):
                  alpha: Optional[float] = None, error: Optional[float] = None,
                  self_hartree: Optional[float] = None,
                  spread: Optional[float] = None,
-                 center: Optional[np.ndarray] = None) -> None:
+                 center: Optional[np.ndarray] = None,
+                 power_spectrum: Optional[FilePointer] = None) -> None:
         self.index = index
         self.spin = spin
         self.filled = filled
@@ -24,6 +26,7 @@ class Band(object):
         self.self_hartree = self_hartree
         self.spread = spread
         self.center = center
+        self.power_spectrum = power_spectrum
 
     @classmethod
     def fromdict(cls, dct):
@@ -314,6 +317,10 @@ class Bands(object):
         self._check_array_shape_match(value, 'self_hartrees')
         for b, v in zip(self, [v for subarray in value for v in subarray]):
             b.self_hartree = v
+
+    @property
+    def power_spectrum(self) -> List[List[float]]:
+        return [b.power_spectrum for b in self]
 
     def update_attrib_with_history(self, name: str, value: Union[float, List[List[float]], np.ndarray, pd.DataFrame],
                                    group=None) -> None:

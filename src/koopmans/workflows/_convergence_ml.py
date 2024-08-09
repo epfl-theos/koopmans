@@ -42,7 +42,7 @@ class ConvergenceMLWorkflow(Workflow):
                                        self.number_of_snapshots))
 
     @ classmethod
-    def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}):
+    def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}, **kwargs):
         """
         Reads the atomic positions for each snapshot from the xyz-file specified by the user in the snapshots-file
         and initialize the snapshot-indices for training and testing
@@ -59,7 +59,7 @@ class ConvergenceMLWorkflow(Workflow):
             snapshots = [snapshots]
         bigdct['atoms']['atomic_positions'] = utils.construct_atomic_positions_block(snapshots[0])
 
-        wf = super(ConvergenceMLWorkflow, cls)._fromjsondct(bigdct, override)
+        wf = super(ConvergenceMLWorkflow, cls)._fromjsondct(bigdct, override, **kwargs)
 
         # Initialize the set of snapshots for training and testing
         wf.snapshots = snapshots
@@ -169,11 +169,13 @@ class ConvergenceMLWorkflow(Workflow):
         # Get the ab-initio result for the test_indices
         self.print(f'Obtaining ab-initio results for the last {len(self.test_indices)} snapshot(s)', style='heading')
         # Make sure that we compute these snapshots ab-initio and don't use the ml-predicted alpha values
+        raise NotImplementedError('I have removed use_ml')
         use_ml = self.ml.use_ml
         self.ml.use_ml = False
         twf = TrajectoryWorkflow.fromparent(self, snapshots=self.snapshots, indices=self.test_indices,
                                             save_dir=self.dirs['convergence_true'], get_evs=get_evs,
                                             overwrite_atoms=False)
+        twf.name = 'Ab initio snapshots'
         twf.run()
         self.ml.use_ml = use_ml
 
@@ -202,13 +204,6 @@ class ConvergenceMLWorkflow(Workflow):
             self.print(f"Running the calculation with (n_max, l_max, r_min, r_max) = ({self.ml.n_max}, "
                        f"{self.ml.l_max}, {self.ml.r_min}, {self.ml.r_max})")
 
-            # Reset the MLModel for every new combination of (n_max, l_max, r_min, r_max)
-            if self.ml.occ_and_emp_together:
-                self.ml.ml_model = MLModel(self.ml.type_of_ml_model)
-            else:
-                self.ml.ml_model_occ = MLModel(self.ml.type_of_ml_model)
-                self.ml.ml_model_emp = MLModel(self.ml.type_of_ml_model)
-
             # train the model on (1, ... , number_of_training_snapshots) samples
             for convergence_point in self.convergence_points:
                 self.print(f'Adding snapshot {convergence_point+1} to the training data', style='heading')
@@ -221,6 +216,7 @@ class ConvergenceMLWorkflow(Workflow):
                     self, snapshots=self.snapshots, indices=train_indices, overwrite_atoms=False)
                 # we want to make sure that no snapshot is calculated afresh just because the final directory of the
                 # preceding calculation was deleted
+                twf.name += ' (training)'
                 twf.run(from_scratch=from_scratch)
 
                 # for the grid search we are only interested in the result after all training snapshots have been added

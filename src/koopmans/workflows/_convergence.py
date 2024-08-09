@@ -199,6 +199,23 @@ def conv_var_kgrid(increment: List[int] = [1, 1, 1], **kwargs) -> ConvergenceVar
                                generate_values=_generate_kgrid_values, **kwargs)
 
 
+def _get_num_training_snapshots(wf: Workflow) -> int:
+    nts = wf.ml.number_of_training_snapshots
+    assert isinstance(nts, int)
+    return nts
+
+
+def _set_num_training_snapshots(wf: Workflow, value: int) -> None:
+    wf.ml.number_of_training_snapshots = value
+
+
+def conv_var_number_of_training_snapshots(increment: int = 1, **kwargs) -> ConvergenceVariable:
+    if 'length' not in kwargs:
+        kwargs['length'] = 10
+    return ConvergenceVariable('number_of_training_snapshots', increment, _get_num_training_snapshots,
+                               _set_num_training_snapshots, **kwargs)
+
+
 def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
 
     if conv_var == 'celldm1':
@@ -209,6 +226,8 @@ def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
         return conv_var_nbnd(**kwargs)
     elif conv_var == 'kgrid':
         return conv_var_kgrid(**kwargs)
+    elif conv_var == 'number_of_training_snapshots':
+        return conv_var_number_of_training_snapshots(**kwargs)
     else:
         raise NotImplementedError(f'Convergence with respect to {conv_var} has not been directly implemented. You '
                                   'can still perform a convergence calculation with respect to this variable, but '
@@ -268,11 +287,6 @@ class ConvergenceWorkflow(Workflow):
         if self.threshold is None:
             raise ValueError(
                 f'{self.__class__.__name__} has not been provided with a threshold with which to perform convergence')
-
-        if self.parameters.from_scratch:
-            for c in self.variables:
-                for path in Path().glob(c.name + '*'):
-                    shutil.rmtree(str(path))
 
         # Create array for storing calculation results
         results = np.empty([len(v) for v in self.variables])

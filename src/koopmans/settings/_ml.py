@@ -8,8 +8,12 @@ from ._utils import Setting, SettingsDictWithChecks
 class MLSettingsDict(SettingsDictWithChecks):
     def __init__(self, **kwargs) -> None:
         valid_settings = [
-            Setting('use_ml', 'use a machine learning model to predict the screening parameters',
+            Setting('train', 'train a machine learning model to predict the screening parameters',
                     bool, False, (True, False)),
+            Setting('predict', 'use a machine learning model to predict the screening parameters',
+                    bool, False, (True, False)),
+            Setting('model_file', 'JSON file containing the ML model information (generated from a prior training calculation)',
+                    str, None, None),
             Setting('n_max',
                     'The maximum expansion coefficient n for radial basis functions. If a list is provided in the '
                     'convergence_ml-task, a grid search will be performed',
@@ -26,15 +30,6 @@ class MLSettingsDict(SettingsDictWithChecks):
                     'The width of the broadest radial basis function. If a list is provided in the '
                     'convergence_ml-task, a grid search will be performed',
                     (float, list), 4.0, None),
-            Setting('criterium',
-                    'The criterium which has to be satisfied in order to use the ML-predicted screening coefficients '
-                    'instead of computing them ab-initio',
-                    str, 'after_fixed_num_of_snapshots', ('after_fixed_num_of_snapshots', )),
-            Setting('number_of_training_snapshots',
-                    'Number of snapshots needed for the "after_fixed_num_of_snapshots"-criterium. In case of the '
-                    'convergence_ml task, this number is taken to be the highest number of training samples for the '
-                    'convergence analysis',
-                    int, 1, None),
             Setting('current_snapshot',
                     'Number of snapshots already trained on',
                     int, 0, None),
@@ -53,8 +48,8 @@ class MLSettingsDict(SettingsDictWithChecks):
             Setting('type_of_ml_model',
                     'Which ML model to use for making the predictions',
                     str, 'ridge_regression', ('ridge_regression', 'linear_regression', 'mean')),
-            Setting('input_data_for_ml_model',
-                    'Which data to use in case of the ridge_regression or the linear-regression Model',
+            Setting('descriptor',
+                    'What to use as the descriptor for the ML model',
                     str, 'orbital_density', ('orbital_density', 'self_hartree')),
             Setting('quantities_of_interest', 'Which quantities are we interested in the convergence_ml-task. Note '
                     'that the eigenvalues (evs) require performing the final calculation afresh for every snapshot.',

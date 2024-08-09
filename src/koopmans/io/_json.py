@@ -14,7 +14,7 @@ from koopmans import utils, workflows
 from koopmans.settings import WorkflowSettingsDict
 
 
-def read_json(fd: TextIO, override: Dict[str, Any] = {}):
+def read_json(fd: TextIO, override: Dict[str, Any] = {}, **kwargs):
     '''
 
     Reads in settings listed in JSON file
@@ -49,7 +49,7 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}):
     else:
         raise ValueError(f'Invalid task name "{parameters.task}"')
 
-    return workflow_cls.fromjson(fd.name, override)
+    return workflow_cls.fromjson(fd.name, override, **kwargs)
 
 
 def write_json(workflow: workflows.Workflow, filename: Path):

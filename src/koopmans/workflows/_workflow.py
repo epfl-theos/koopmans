@@ -12,6 +12,7 @@ import copy
 import json as json_ext
 import operator
 import os
+import pickle
 import re
 import shutil
 import subprocess
@@ -20,8 +21,8 @@ from contextlib import contextmanager
 from functools import reduce
 from pathlib import Path
 from types import ModuleType
-from typing import (Any, Callable, Dict, Generator, List, Optional, Type,
-                    TypeVar, Union)
+from typing import (Any, Callable, Dict, Generator, List, Optional, Tuple,
+                    Type, TypeVar, Union)
 
 import numpy as np
 from numpy import typing as npt
@@ -38,6 +39,8 @@ from ase.build.supercells import make_supercell
 from ase.calculators.calculator import CalculationFailed
 from ase.dft.dos import DOS
 from ase.dft.kpoints import BandPath
+from ase.io import read as ase_read
+from ase.io import write as ase_write
 from ase.io.espresso import contruct_kcp_namelist as construct_namelist
 from ase.spacegroup import symmetrize
 from ase.spectrum.band_structure import BandStructure
@@ -48,7 +51,7 @@ from koopmans import calculators, outputs, processes, settings, utils
 from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.kpoints import Kpoints
-from koopmans.ml import MLModel
+from koopmans.ml import AbstractMLModel, MLModel, OccEmpMLModels
 from koopmans.projections import ProjectionBlocks
 from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
                                        pseudo_database,
@@ -103,6 +106,8 @@ class Workflow(ABC):
     pseudo_dir: Path
     projections: ProjectionBlocks
     parent: Optional[Workflow]
+    ml_model: Optional[AbstractMLModel]
+    snapshots: List[Atoms]
     version: str
     _step_counter: int
 
@@ -116,6 +121,8 @@ class Workflow(ABC):
                                                        Dict[str, settings.SettingsDict]]] = None,
                  plotting: Union[Dict[str, Any], settings.PlotSettingsDict] = {},
                  ml: Union[Dict[str, Any], settings.MLSettingsDict] = {},
+                 ml_model: Optional[MLModel] = None,
+                 snapshots: Optional[List[Atoms]] = None,
                  autogenerate_settings: bool = True,
                  version: Optional[str] = None,
                  **kwargs: Dict[str, Any]):
@@ -126,6 +133,7 @@ class Workflow(ABC):
             if self.parameters.is_valid(key):
                 self.parameters[key] = value
         self.atoms: Atoms = atoms
+        self.snapshots = snapshots if snapshots is not None else [self.atoms]
         if name:
             self.name = name
         else:
@@ -162,12 +170,23 @@ class Workflow(ABC):
                 self.ml[key] = value
 
         # Initialize the MLModel
-        if self.ml.use_ml:
+        if ml_model is not None:
+            self.ml_model = ml_model
+        elif self.ml.train:
+            assert self.ml.type_of_ml_model is not None
+            assert self.ml.descriptor is not None
             if self.ml.occ_and_emp_together:
-                self.ml.ml_model = MLModel(self.ml.type_of_ml_model)
+                self.ml_model = MLModel(self.ml.type_of_ml_model, self.ml.descriptor)
             else:
-                self.ml.ml_model_occ = MLModel(self.ml.type_of_ml_model)
-                self.ml.ml_model_emp = MLModel(self.ml.type_of_ml_model)
+                self.ml_model = OccEmpMLModels(self.ml.type_of_ml_model, self.ml.descriptor)
+        elif self.ml.predict:
+            if self.ml.model_file is None:
+                raise ValueError('Cannot initialize a Workflow with `ml.predict = True` without providing a model via '
+                                 'the `ml.model_file` setting or the `ml_model` argument')
+            with open(self.ml.model_file, 'rb') as f:
+                self.ml_model = pickle.load(f)
+        else:
+            self.ml_model = None
 
         if all(self.atoms.pbc):
             self.atoms.wrap(pbc=True)
@@ -379,7 +398,11 @@ class Workflow(ABC):
                 self.print(f'- {self.name}', style='heading')
                 self._run()
         else:
-            self._run()
+            if subdirectory:
+                with utils.chdir(subdirectory):
+                    self._run()
+            else:
+                self._run()
 
         self.print_conclusion()
 
@@ -420,7 +443,8 @@ class Workflow(ABC):
                          kpoints=copy.deepcopy(parent_wf.kpoints),
                          projections=parent_wf.projections,
                          plotting=copy.deepcopy(parent_wf.plotting),
-                         ml=copy.deepcopy(parent_wf.ml))
+                         ml=copy.deepcopy(parent_wf.ml),
+                         ml_model=parent_wf.ml_model)
         wf_kwargs.update(**{k: v for k, v in kwargs.items() if not parameters.is_valid(k)})
         parameters.update(**parameter_kwargs)
 
@@ -543,12 +567,19 @@ class Workflow(ABC):
                                             'double-check your pseudopotential settings')
 
         # Make sanity checks for the ML model
-        if self.ml.use_ml:
+        if self.ml.predict or self.ml.train:
             utils.warn("Predicting screening parameters with machine-learning is an experimental feature; proceed with "
                        "caution")
-            if self.parameters.task not in ['trajectory', 'convergence_ml']:
+            if self.ml_model is None:
+                raise ValueError("You have requested to train or predict with a machine-learning model, but no model "
+                                 "is attached to this workflow. Either set ml:train or predict to True when initializing "
+                                 "the workflow, or directly add a model to the workflow's ml_model attribute")
+            if self.ml.predict and self.ml.train:
+                raise ValueError(
+                    'Training and predicting the ML model are mutually exclusive; change ml:predict or ml:train to False')
+            if self.parameters.task not in ['singlepoint', 'trajectory', 'convergence_ml']:
                 raise NotImplementedError(
-                    f'Using the ML-prediction for the {self.parameter.task}-task has not yet been implemented.')
+                    f'Using the ML-prediction for the {self.parameters.task}-task has not yet been implemented.')
             if self.parameters.method != 'dscf':
                 raise NotImplementedError(
                     f"Using the ML-prediction for the {self.parameters.method}-method has not yet been implemented")
@@ -1028,14 +1059,6 @@ class Workflow(ABC):
         self.calculations = self.parent.calculations
         self.processes = self.parent.processes
 
-        # Link the ML_Model
-        if self.ml.use_ml:
-            if self.parent.ml.occ_and_emp_together:
-                self.ml.ml_model = self.parent.ml.ml_model
-            else:
-                self.ml.ml_model_occ = self.parent.ml.ml_model_occ
-                self.ml.ml_model_emp = self.parent.ml.ml_model_emp
-
         # Link the bands
         if hasattr(self.parent, 'bands'):
             self.bands = self.parent.bands
@@ -1116,11 +1139,11 @@ class Workflow(ABC):
         self._bands = value
 
     @classmethod
-    def fromjson(cls, fname: str, override: Dict[str, Any] = {}):
+    def fromjson(cls, fname: str, override: Dict[str, Any] = {}, **kwargs):
 
         with open(fname, 'r') as fd:
             bigdct = json_ext.loads(fd.read())
-        wf = cls._fromjsondct(bigdct, override)
+        wf = cls._fromjsondct(bigdct, override, **kwargs)
 
         # Define the name of the workflow using the name of the json file
         wf.name = fname.replace('.json', '')
@@ -1128,17 +1151,15 @@ class Workflow(ABC):
         return wf
 
     @classmethod
-    def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}):
+    def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}, **kwargs):
 
         # Override all keywords provided explicitly
         utils.update_nested_dict(bigdct, override)
 
-        kwargs: Dict[str, Any] = {}
-
         # Loading atoms object
         atoms_dict = bigdct.pop('atoms', None)
         if atoms_dict:
-            atoms = read_atoms_dict(utils.parse_dict(atoms_dict))
+            atoms, snapshots = read_atoms_dict(utils.parse_dict(atoms_dict))
         else:
             raise ValueError('Please provide an "atoms" block in the json input file')
 
@@ -1240,7 +1261,7 @@ class Workflow(ABC):
 
         # Create the workflow. Note that any keywords provided in the calculator_parameters (i.e. whatever is left in
         # calcdict) are provided as kwargs
-        wf = cls(atoms, parameters=parameters, kpoints=kpts, calculator_parameters=calculator_parameters, **kwargs,
+        wf = cls(atoms, snapshots=snapshots, parameters=parameters, kpoints=kpts, calculator_parameters=calculator_parameters, **kwargs,
                  **calcdict)
 
         if parameters.converge:
@@ -1313,6 +1334,12 @@ class Workflow(ABC):
         # Save workflow to file
         write(self, self.name + '.kwf')
 
+        # Save the ML model to a separate file
+        if self.ml.train:
+            assert self.ml_model is not None
+            with open(self.name + '_ml_model.pkl', 'wb') as fd:
+                pickle.dump(self.ml_model, fd)
+
         # Print farewell message
         print('\n \033[1mWorkflow complete\033[0m')
 
@@ -1345,18 +1372,23 @@ class Workflow(ABC):
             bigdct['atoms']['cell_parameters'] = utils.construct_cell_parameters_block(self.atoms)
 
         # atomic positions
-        if len(set(self.atoms.get_tags())) > 1:
-            labels = [s + str(t) if t > 0 else s for s, t in zip(self.atoms.symbols, self.atoms.get_tags())]
+        if len(self.snapshots) > 1:
+            snapshots_file = 'snapshots.xyz'
+            ase_write(snapshots_file, self.snapshots)
+            bigdct['atoms']['snapshots']
         else:
-            labels = self.atoms.symbols
-        if ibrav == 0:
-            bigdct['atoms']['atomic_positions'] = {'positions': [
-                [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_positions())],
-                'units': 'angstrom'}
-        else:
-            bigdct['atoms']['atomic_positions'] = {'positions': [
-                [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_scaled_positions())],
-                'units': 'crystal'}
+            if len(set(self.atoms.get_tags())) > 1:
+                labels = [s + str(t) if t > 0 else s for s, t in zip(self.atoms.symbols, self.atoms.get_tags())]
+            else:
+                labels = self.atoms.symbols
+            if ibrav == 0:
+                bigdct['atoms']['atomic_positions'] = {'positions': [
+                    [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_positions())],
+                    'units': 'angstrom'}
+            else:
+                bigdct['atoms']['atomic_positions'] = {'positions': [
+                    [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_scaled_positions())],
+                    'units': 'crystal'}
 
         # k-points
         bigdct['kpoints'] = self.kpoints.tojson()
@@ -1596,27 +1628,34 @@ def header():
     return '\n'.join(header)
 
 
-def read_atoms_dict(dct: Dict[str, Any]):
+def read_atoms_dict(dct: Dict[str, Any]) -> Tuple[Atoms, List[Atoms]]:
     '''
     Reads the "atoms" block
     '''
 
-    atoms = Atoms()
+    subdct: Dict[str, Any]
+    if 'snapshots' in dct.get('atomic_positions', {}):
+        subdct = dct.pop('atomic_positions')
+        snapshots = ase_read(subdct['snapshots'], index=':')
+        atoms = snapshots[0]
+    else:
+        atoms = Atoms()
+        snapshots = None
 
-    readers: Dict[str, Callable] = {'cell_parameters': utils.read_cell_parameters,
-                                    'atomic_positions': utils.read_atomic_positions}
+        readers: Dict[str, Callable] = {'cell_parameters': utils.read_cell_parameters,
+                                        'atomic_positions': utils.read_atomic_positions}
 
-    for key, reader in readers.items():
-        subdct: Dict[str, Any] = dct.pop(key, {})
-        if subdct:
-            reader(atoms, subdct)
-        else:
-            raise ValueError(f'Please provide "{key}" in the atoms block')
+        for key, reader in readers.items():
+            subdct = dct.pop(key, {})
+            if subdct:
+                reader(atoms, subdct)
+            else:
+                raise ValueError(f'Please provide "{key}" in the atoms block')
 
-    for block in dct:
-        raise ValueError(f'Unrecognized subblock atoms: "{block}"')
+        for block in dct:
+            raise ValueError(f'Unrecognized subblock atoms: "{block}"')
 
-    return atoms
+    return atoms, snapshots
 
 
 def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]:

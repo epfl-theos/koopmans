@@ -84,8 +84,9 @@ def precompute_parameters_of_radial_basis(n_max: int, l_max: int, r_min_thr: flo
         raise ValueError(
             f"Failed to precompute the radial basis. You might want to try a larger r_min, e.g. r_min=1.0")
 
-    if dirs is not None:
-        betas.tofile(dirs['betas'] / ('betas_' + '_'.join(str(x)
-                                                          for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
-        alphas.tofile(dirs['alphas'] / ('alphas_' + '_'.join(str(x)
-                                                             for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
+    # if dirs is not None:
+    #     betas.tofile(dirs['betas'] / ('betas_' + '_'.join(str(x)
+    #                                                       for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
+    #     alphas.tofile(dirs['alphas'] / ('alphas_' + '_'.join(str(x)
+    #                                                          for x in [n_max, l_max, r_min_thr, r_max_thr]) + '.dat'))
+    return alphas, betas

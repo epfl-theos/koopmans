@@ -189,27 +189,40 @@ class HasDirectoryAttr(Protocol):
     directory: Path | None
 
 
-def get_binary_content(source: HasDirectoryAttr, relpath: Path) -> List[bytes]:
+def get_binary_content(source: HasDirectoryAttr, relpath: Path | str) -> bytes:
+    if isinstance(relpath, str):
+        relpath = Path(relpath)
     assert source.directory is not None
     with open(source.directory / relpath, "rb") as f:
-        flines = f.readlines()
+        flines = f.read()
     return flines
 
 
-def write_binary_content(dst_file: Path, merged_filecontents: List[bytes]):
+def write_binary_content(dst_file: Path | str, merged_filecontents: bytes):
+    if isinstance(dst_file, str):
+        dst_file = Path(dst_file)
     dst_file.parent.mkdir(parents=True, exist_ok=True)
     with open(dst_file, "wb") as f:
-        f.write(b''.join(merged_filecontents))
+        f.write(merged_filecontents)
 
 
-def get_content(source: HasDirectoryAttr, relpath: Path) -> List[str]:
-    assert source.directory is not None
-    with open(source.directory / relpath, "r") as f:
+def get_content(source: HasDirectoryAttr | None, relpath: Path | str) -> List[str]:
+    if isinstance(relpath, str):
+        relpath = Path(relpath)
+
+    if source is None or source.directory is None:
+        full_path = relpath
+    else:
+        full_path = source.directory / relpath
+
+    with open(full_path, "r") as f:
         flines = [l.strip('\n') for l in f.readlines()]
     return flines
 
 
-def write_content(dst_file: Path, merged_filecontents: List[str]):
+def write_content(dst_file: Path | str, merged_filecontents: List[str]):
+    if isinstance(dst_file, str):
+        dst_file = Path(dst_file)
     dst_file.parent.mkdir(parents=True, exist_ok=True)
     with open(dst_file, "w") as f:
         f.write('\n'.join(merged_filecontents))

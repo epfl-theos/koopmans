@@ -29,8 +29,8 @@ class ConvertFilesFromSpin2To1(Process):
         for spin_2_file, spin_1_file in zip(self.inputs.spin_2_files, self.inputs.spin_1_files):
             contents = utils.get_binary_content(*spin_2_file)
 
-            contents = [l.replace(b'nk="2"', b'nk="1"') for l in contents]
-            contents = [l.replace(b'nspin="2"', b'nspin="1"') for l in contents]
+            contents = contents.replace(b'nk="2"', b'nk="1"')
+            contents = contents.replace(b'nspin="2"', b'nspin="1"')
 
             utils.write_binary_content(spin_1_file, contents)
 
@@ -58,13 +58,13 @@ class ConvertFilesFromSpin1To2(Process):
 
             contents = utils.get_binary_content(*spin_1_file)
 
-            contents = [l.replace(b'nk="1"', b'nk="2"') for l in contents]
-            contents = [l.replace(b'nspin="1"', b'nspin="2"') for l in contents]
+            contents = contents.replace(b'nk="1"', b'nk="2"')
+            contents = contents.replace(b'nspin="1"', b'nspin="2"')
 
             utils.write_binary_content(spin_2_up_file, contents)
 
-            contents = [l.replace(b'ik="1"', b'ik="2"') for l in contents]
-            contents = [l.replace(b'ispin="1"', b'ispin="2"') for l in contents]
+            contents = contents.replace(b'ik="1"', b'ik="2"')
+            contents = contents.replace(b'ispin="1"', b'ispin="2"')
 
             utils.write_binary_content(spin_2_down_file, contents)
 

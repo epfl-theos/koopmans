@@ -1,13 +1,17 @@
 from functools import partial
 from pathlib import Path
 from typing import Callable, Dict, List, Tuple
+from xml.etree import ElementTree as ET
 
 import numpy as np
 from ase import Atoms, units
+from ase.cell import Cell
 from numpy.linalg import norm
 
-from koopmans.bands import Bands
-from koopmans.utils import read_xml_array, read_xml_nr
+from koopmans.bands import Band
+from koopmans.files import FilePointer
+from koopmans.utils import (get_binary_content, get_content,
+                            write_binary_content)
 
 from ._basis_functions import g as g_basis
 from ._basis_functions import \
@@ -121,13 +125,10 @@ def translate_to_new_integration_domain(f: np.ndarray, wfc_center_index: Tuple[i
 # functions to compute the expansion coefficients
 
 def get_coefficients(rho: np.ndarray, rho_total: np.ndarray, r_cartesian: np.ndarray,
-                     total_basis_function_array: np.ndarray) -> Tuple[List[float], List[float]]:
+                     total_basis_function_array: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Computes the expansion coefficients of rho and rho_total wrt the basis defined in total_basis_function_array.
     """
-
-    coefficients: List[float] = []
-    coefficients_total: List[float] = []
 
     rho_tmp = np.expand_dims(rho, axis=3)
     rho_total_tmp = np.expand_dims(rho_total, axis=3)
@@ -135,17 +136,16 @@ def get_coefficients(rho: np.ndarray, rho_total: np.ndarray, r_cartesian: np.nda
     integrand_rho = rho_tmp*total_basis_function_array
     integrand_rho_total = rho_total_tmp*total_basis_function_array
 
-    c = compute_3d_integral_naive(integrand_rho, r_cartesian).flatten()
-    coefficients[len(coefficients):] = list(c)
+    coefficients = compute_3d_integral_naive(integrand_rho, r_cartesian).flatten()
 
-    c_total = compute_3d_integral_naive(integrand_rho_total, r_cartesian).flatten()
-    coefficients_total[len(coefficients_total):] = list(c_total)
+    coefficients_total = compute_3d_integral_naive(integrand_rho_total, r_cartesian).flatten()
 
     return coefficients, coefficients_total
 
 
-def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_cut: float, dirs: Dict[str, Path],
-                          bands: Bands, atoms: Atoms, centers: np.ndarray):
+def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_cut: float, total_density_xml: FilePointer,
+                          orbital_densities_xml: Dict[str, FilePointer],
+                          bands: List[Band], cell: Cell, wannier_centers: np.ndarray, alphas: FilePointer, betas: FilePointer) -> Tuple[List[str], List[str]]:
     """
     Computes the expansion coefficients of the total and orbital densities.
     """
@@ -153,13 +153,18 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
     # Define the normalisation constant for densities
     norm_const = 1/(units.Bohr)**3
 
-    # load the grid dimensions nr_xml from charge-density-file
-    file_rho = dirs['xml'] / 'charge-density.xml'
-    nr_xml = read_xml_nr(file_rho, 'CHARGE-DENSITY')
+    # Load the grid dimensions nr_xml from charge-density-file
+    raw_filecontents = get_content(*total_density_xml)
+    xml_root = ET.fromstringlist(raw_filecontents)
+    xml_charge_density = xml_root.find('CHARGE-DENSITY')
+    assert xml_charge_density is not None
+    xml_info = xml_charge_density.find('INFO')
+    assert xml_info is not None
+    nr_xml = tuple([int(x) + 1 for x in [xml_info.get(f'nr{i+1}') for i in range(3)] if x is not None])
+    assert len(nr_xml) == 3
 
     # load the lattice parameters
-    cell_parameters = atoms.get_cell()
-    lat_vecs = np.array([cell_parameters[2, 2], cell_parameters[1, 1], cell_parameters[0, 0]])
+    lat_vecs = np.array([cell[2, 2], cell[1, 1], cell[0, 0]])
 
     # Define the cartesian grid
     r_xsf = np.zeros((nr_xml[2], nr_xml[1], nr_xml[0], 3), dtype=float)
@@ -181,11 +186,9 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
     # harmonics
     r_spherical = cart2sph_array(r_cartesian)
 
-    # Define our radial basis functions, which are partially parametrised by precomputed vectors
-    betas = np.fromfile(dirs['betas'] / ('betas_' + '_'.join(str(x)
-                        for x in [n_max, l_max, r_min, r_max]) + '.dat')).reshape((n_max, n_max, l_max+1))
-    alphas = np.fromfile(dirs['alphas'] / ('alphas_' + '_'.join(str(x) for x in [n_max, l_max, r_min, r_max])
-                                           + '.dat')).reshape(n_max, l_max+1)
+    # Define our radial basis functions, which are partially parameterized by precomputed vectors
+    alphas = np.frombuffer(get_binary_content(*alphas)).reshape((n_max, l_max+1))
+    betas = np.frombuffer(get_binary_content(*betas)).reshape((n_max, n_max, l_max+1))
     radial_basis_functions: RadialBasisFunctions = partial(g_basis, betas=betas, alphas=alphas)
 
     # Compute R_nl Y_lm for each point on the integration domain
@@ -193,10 +196,19 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
         radial_basis_functions, real_spherical_harmonics_basis_functions, r_cartesian, r_spherical, n_max, l_max)
 
     # load the total charge density
-    total_density_r = read_xml_array(dirs['xml'] / 'charge-density.xml', norm_const, 'CHARGE-DENSITY')
+    raw_filecontents = get_content(*total_density_xml)
+    xml_root = ET.fromstringlist(raw_filecontents)
+    assert xml_root is not None
+    xml_charge_density = xml_root.find('CHARGE-DENSITY')
+    assert xml_charge_density is not None
+    total_density_r = parse_xml_array(xml_charge_density, nr_xml, norm_const)
+
+    orbital_files = []
+    total_files = []
 
     # Compute the decomposition for each band
-    for band in bands:
+    assert len(orbital_densities_xml) == len(bands)
+    for orbital_density_xml, band in zip(orbital_densities_xml, bands):
 
         if band.filled:
             filled_str = 'occ'
@@ -204,11 +216,17 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
             filled_str = 'emp'
 
         # load the orbital density
-        rho_r = read_xml_array(dirs['xml'] / f'orbital.{filled_str}.{band.spin}.{band.index:05d}.xml', norm_const)
+        raw_filecontents = get_content(*orbital_density_xml)
+        xml_root = ET.fromstringlist(raw_filecontents)
+        assert xml_root is not None
+        xml_charge_density = xml_root.find('EFFECTIVE-POTENTIAL')
+        assert xml_charge_density is not None
+        rho_r = parse_xml_array(xml_charge_density, nr_xml, norm_const)
 
         # Bring the the density to the same integration domain as the precomputed basis, centered around the orbital's
         # center, making sure that the center is in within the unit cell
-        wfc_center_tmp = centers[band.index-1]
+        assert band.index is not None
+        wfc_center_tmp = wannier_centers[band.index-1]
         wfc_center = np.array([wfc_center_tmp[2] % lat_vecs[0], wfc_center_tmp[1] %
                                lat_vecs[1], wfc_center_tmp[0] % lat_vecs[2]])
         center_index = get_index(r, wfc_center)
@@ -221,5 +239,50 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
             rho_r_new, total_density_r_new, r_cartesian, total_basis_array)
 
         # save the decomposition coefficients in files
-        np.savetxt(dirs['coeff_orb'] / f'coff.orbital.{filled_str}.{band.index}.txt', coefficients_orbital)
-        np.savetxt(dirs['coeff_tot'] / f'coff.total.{filled_str}.{band.index}.txt', coefficients_total)
+        orbital_file = f'coeff.orbital.{filled_str}.{band.index}.txt'
+        write_binary_content(orbital_file, coefficients_orbital.tobytes())
+        total_file = f'coeff.total.{filled_str}.{band.index}.txt'
+        write_binary_content(total_file, coefficients_total.tobytes())
+
+        orbital_files.append(orbital_file)
+        total_files.append(total_file)
+
+    return orbital_files, total_files
+
+
+def parse_xml_array(
+    xml_root: ET.Element, nr: Tuple[int, int, int], norm_const: float, retain_final_element: bool = False
+) -> np.ndarray:
+    """
+    Loads an array from an xml file.
+
+    :param xml_root: The xml root containing the array
+    :param norm_const: The normalization constant to multiply the array with (in our case 1/((Bohr radii)^3)
+    :param string: The name of the field in the xml file that contains the array, in our case either
+    'EFFECTIVE-POTENTIAL' or 'CHARGE-DENSITY'
+    :param retain_final_element: If True, the array is returned in with periodic boundary conditions, i.e. the last
+    element in each dimension is equal to the first element in each dimension. This is required for the xsf format.
+
+    :return: The array
+    """
+
+    # Extract the array
+    array_xml = np.zeros((nr[2], nr[1], nr[0]), dtype=float)
+
+    for k in range(nr[2]):
+        current_name = 'z.' + str(k % (nr[2] - 1) + 1)
+        entry = xml_root.find(current_name)
+        assert isinstance(entry, ET.Element)
+        text = entry.text
+        assert isinstance(text, str)
+        rho_tmp = np.array(text.split(), dtype=float)
+        for j in range(nr[1]):
+            for i in range(nr[0]):
+                array_xml[k, j, i] = rho_tmp[(j % (nr[1] - 1))*(nr[0] - 1) + (i % (nr[0] - 1))]
+    array_xml *= norm_const
+
+    if retain_final_element:
+        # the xsf format requires an array where the last element is equal to the first element in each dimension
+        return array_xml
+    else:
+        return array_xml[:-1, :-1, :-1]

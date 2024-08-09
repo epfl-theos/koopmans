@@ -9,8 +9,8 @@ from ._convergence_ml import ConvergenceMLWorkflow
 from ._dft import DFTBandsWorkflow, DFTCPWorkflow, DFTPhWorkflow, DFTPWWorkflow
 from ._folding import FoldToSupercellWorkflow
 from ._koopmans_dfpt import KoopmansDFPTWorkflow
-from ._koopmans_dscf import KoopmansDSCFWorkflow
-from ._ml import MLFittingWorkflow
+from ._koopmans_dscf import InitializationWorkflow, KoopmansDSCFWorkflow
+from ._ml import PowerSpectrumDecompositionWorkflow
 from ._singlepoint import SinglepointWorkflow
 from ._trajectory import TrajectoryWorkflow
 from ._unfold_and_interp import UnfoldAndInterpolateWorkflow

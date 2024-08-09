@@ -2,6 +2,7 @@
 
 Inspired by CWL."""
 
+import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Tuple, Type
@@ -15,10 +16,15 @@ class Process(ABC):
 
     __slots__ = ['inputs', 'outputs', 'name', 'directory']
 
-    def __init__(self, **kwargs):
+    def __init__(self, name=None, **kwargs):
         self.inputs = self._input_model(**kwargs)
         self.outputs = None
-        self.name: str = self.__class__.__name__.lower().replace('process', '')
+        if name is None:
+            name_with_split_acroynms = re.sub(r'([a-z])([A-Z])', r'\1_\2',
+                                              self.__class__.__name__.replace('Process', ''))
+            self.name = re.sub(r'([A-Z])([A-Z][a-z])', r'\1_\2', name_with_split_acroynms).lower()
+        else:
+            self.name = name
         self.directory: Path | None = None
 
     @property

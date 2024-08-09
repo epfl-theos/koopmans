@@ -72,13 +72,13 @@ Then we use the trained model to predict the screening parameters of the remaini
   :lineno-start: 619
 
 
-Using the script :download:`plot_5a.py <../../tutorials/tutorial_5/plot_5a.py>` we can plot predicted ionization potentials of the water molecule across the last 10 snapshots. Of course, they don't necessarily correspond to anything physical because these configurations have been randomly generated. But in real applications the snapshots will correspond to something physical and the resulting ionization potentials will be meaningful.
+Using the script :download:`plot_5a.py <../../tutorials/tutorial_5/plot_5a.py>` we can plot the distribution of the orbital levels across the snapshots. (Of course, these particular distributions don't correspond to anything physical because the configurations were generated randomly.)
 
 
-.. figure:: ../../tutorials/tutorial_5/bar_diagram_predicted.png
+.. figure:: ../../tutorials/tutorial_5/predicted_eigenvalues.png
    :width: 1000
    :align: center
-   :alt: The predicted ionization potential for 10 last snapshots
+   :alt: The distribution of the orbital energies across the screenshots (computed using machine-learned screening parameters)
 
 Here there is no way of telling if the model is correct -- it has provided us with some screening parameters and we have to trust it. If we want to check if a machine learning model is working properly what we need to do is a convergence analysis with respect to the number of training data. This will be the goal of the following section. 
 

@@ -40,7 +40,10 @@ class KoopmansDSCFWorkflow(Workflow):
     output_model = KoopmansDSCFOutputs  # type: ignore
     outputs: KoopmansDSCFOutputs
 
-    def __init__(self, *args, redo_smooth_dft: Optional[bool] = None, initial_variational_orbital_files: Dict[str, FilePointer] | None = None, previous_ki_calc: calculators.KoopmansCPCalculator | None = None, **kwargs) -> None:
+    def __init__(self, *args, redo_smooth_dft: Optional[bool] = None,
+                 initial_variational_orbital_files: Dict[str, FilePointer] | None = None,
+                 previous_cp_calc: calculators.KoopmansCPCalculator | None = None,
+                 precomputed_descriptors: List[FilePointer] | None = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         # The following two additional keywords allow for some tweaking of the workflow when running a singlepoint
@@ -54,7 +57,10 @@ class KoopmansDSCFWorkflow(Workflow):
         self._initial_variational_orbital_files = initial_variational_orbital_files
 
         # For workflows where we have already performed initialization elsewhere, we can restart using that directory
-        self._previous_ki_calc = previous_ki_calc
+        self._previous_cp_calc = previous_cp_calc
+
+        # For workflows where we have previously computed descriptors, we can provide them here
+        self._precomputed_descriptors = precomputed_descriptors
 
         # If periodic, convert the kcp calculation into a Γ-only supercell calculation
         kcp_params = self.calculator_parameters['kcp']
@@ -242,14 +248,15 @@ class KoopmansDSCFWorkflow(Workflow):
             self._initial_variational_orbital_files = init_wf.outputs.variational_orbital_files
             initial_cp_calculation = init_wf.outputs.final_calc
         else:
-            assert self._previous_ki_calc is not None
-            initial_cp_calculation = self._previous_ki_calc
+            assert self._previous_cp_calc is not None
+            initial_cp_calculation = self._previous_cp_calc
 
         self.primitive_to_supercell()
 
         if self.parameters.calculate_alpha:
             screening_wf = CalculateScreeningViaDSCF.fromparent(self, initial_variational_orbital_files=self._initial_variational_orbital_files,
-                                                                initial_cp_calculation=initial_cp_calculation)
+                                                                initial_cp_calculation=initial_cp_calculation,
+                                                                precomputed_descriptors=self._precomputed_descriptors)
             screening_wf.run()
 
             # Store the files which will be needed for the final calculation
@@ -263,16 +270,16 @@ class KoopmansDSCFWorkflow(Workflow):
             self.bands.print_history(indent=self.print_indent + 1)
 
             # In this case the final calculation will restart from the initialization calculations
-            if self._previous_ki_calc is None:
+            if self._previous_cp_calc is None:
                 assert init_wf is not None
                 n_electron_restart_dir = FilePointer(init_wf.outputs.final_calc,
                                                      init_wf.outputs.final_calc.write_directory)
             else:
-                n_electron_restart_dir = FilePointer(self._previous_ki_calc, self._previous_ki_calc.write_directory)
+                n_electron_restart_dir = FilePointer(self._previous_cp_calc, self._previous_cp_calc.write_directory)
 
         # Final calculation
         if self.parameters.functional == 'pkipz':
-            if self._previous_ki_calc is None:
+            if self._previous_cp_calc is None:
                 final_calc_types = ['ki', 'pkipz']
             else:
                 final_calc_types = ['pkipz']
@@ -334,8 +341,6 @@ class KoopmansDSCFWorkflow(Workflow):
 
     def _overwrite_canonical_with_variational_orbitals(self, calc: calculators.KoopmansCPCalculator) -> None:
         self.print('Overwriting the variational orbitals with Kohn-Sham orbitals')
-        import ipdb
-        ipdb.set_trace()
         savedir = calc.parameters.outdir / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
         for ispin in range(2):
             raise NotImplementedError('Need to replace this shutil call')
@@ -357,10 +362,12 @@ class CalculateScreeningViaDSCF(Workflow):
     outputs: CalculateScreeningViaDSCFOutput
 
     def __init__(self, *args, initial_variational_orbital_files: Dict[str, Tuple[Workflow, str]],
-                 initial_cp_calculation: calculators.KoopmansCPCalculator, **kwargs) -> None:
+                 initial_cp_calculation: calculators.KoopmansCPCalculator,
+                 precomputed_descriptors: List[FilePointer] | None = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._initial_variational_orbital_files = initial_variational_orbital_files
         self._initial_cp_calculation = initial_cp_calculation
+        self._precomputed_descriptors = precomputed_descriptors
 
     def _run(self) -> None:
         converged = False
@@ -376,6 +383,7 @@ class CalculateScreeningViaDSCF(Workflow):
 
             iteration_wf = DeltaSCFIterationWorkflow.fromparent(self, variational_orbital_files=variational_orbital_files,
                                                                 previous_n_electron_calculation=n_electron_calc,
+                                                                precomputed_descriptors=self._precomputed_descriptors,
                                                                 i_sc=i_sc, alpha_indep_calcs=alpha_indep_calcs)
             iteration_wf.name = f'Iteration {i_sc}'
 
@@ -386,7 +394,7 @@ class CalculateScreeningViaDSCF(Workflow):
 
             iteration_wf.run()
 
-            converged = iteration_wf.outputs.converged
+            converged = iteration_wf.outputs.converged or self.ml.predict
 
             if self.parameters.functional == 'ki' and self.bands.num(filled=False) == 0:
                 # For this case the screening parameters are guaranteed to converge instantly
@@ -423,10 +431,11 @@ class DeltaSCFIterationWorkflow(Workflow):
 
     def __init__(self, *args, variational_orbital_files: Dict[str, Tuple[calculators.KoopmansCPCalculator, str]],
                  previous_n_electron_calculation=calculators.KoopmansCPCalculator, i_sc: int,
-                 alpha_indep_calcs: List[calculators.KoopmansCPCalculator], **kwargs) -> None:
+                 alpha_indep_calcs: List[calculators.KoopmansCPCalculator], precomputed_descriptors: List[FilePointer] | None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._variational_orbital_files = variational_orbital_files
         self._previous_n_electron_calculation = previous_n_electron_calculation
+        self._precomputed_descriptors = precomputed_descriptors
         self._i_sc = i_sc
         self._alpha_indep_calcs = alpha_indep_calcs
 
@@ -436,7 +445,7 @@ class DeltaSCFIterationWorkflow(Workflow):
     def _run(self):
         # Do a KI/KIPZ calculation with the updated alpha values
         restart_from_wannier_pwscf = 'evc_occupied1.dat' in self._variational_orbital_files
-        if self.parameters.task in ['trajectory', 'convergence_ml'] and self.ml.input_data_for_ml_model == 'orbital_density':
+        if self.parameters.task in ['singlepoint', 'trajectory', 'convergence_ml'] and self.ml.descriptor == 'orbital_density':
             print_real_space_density = True
         else:
             print_real_space_density = False
@@ -473,10 +482,18 @@ class DeltaSCFIterationWorkflow(Workflow):
         first_band_of_each_channel = [self.bands.get(spin=spin)[0] for spin in range(2)]
 
         # Initialize the ML-model
-        if self.ml.use_ml:
-            from koopmans.workflows import MLFittingWorkflow
-            mlfit = MLFittingWorkflow.fromparent(self, calc_that_produced_orbital_densities=trial_calc)
-            mlfit.run()
+        if self.ml.train or self.ml.predict and self.ml.descriptor == 'orbital_density':
+            if self._precomputed_descriptors is None:
+                from koopmans.workflows import \
+                    PowerSpectrumDecompositionWorkflow
+                psfit_workflow = PowerSpectrumDecompositionWorkflow.fromparent(
+                    self, calc_that_produced_orbital_densities=trial_calc)
+                psfit_workflow.run()
+                descriptors = psfit_workflow.outputs.descriptors
+            else:
+                descriptors = self._precomputed_descriptors
+            for band, power_spectrum in zip(self.bands.to_solve, descriptors):
+                band.power_spectrum = power_spectrum
 
         # Loop over removing/adding an electron from/to each orbital
         for band in self.bands:
@@ -514,25 +531,39 @@ class DeltaSCFIterationWorkflow(Workflow):
                 skipped_orbitals.append(band.index)
                 continue
 
-            subwf = OrbitalDeltaSCFWorkflow.fromparent(
-                self, band=band, trial_calc=trial_calc, i_sc=self._i_sc, alpha_indep_calcs=self._alpha_indep_calcs)
-            subwf.run()
+            if self.ml.predict:
+                alpha = self.ml_model.predict(band)
+                error = None
+            else:
+                subwf = OrbitalDeltaSCFWorkflow.fromparent(
+                    self, band=band, trial_calc=trial_calc, i_sc=self._i_sc, alpha_indep_calcs=self._alpha_indep_calcs)
+                subwf.run()
+                alpha = subwf.outputs.alpha
+                error = subwf.outputs.error
 
             for b in self.bands:
                 if b == band or (b.group is not None and b.group == band.group):
-                    b.alpha = subwf.outputs.alpha
-                    b.error = subwf.outputs.error
+                    b.alpha = alpha
+                    if error:
+                        b.error = error
+
+            # add alpha to training data
+            if self.ml.train:
+                self.ml_model.add_training_data([band])
+                # if the user wants to train on the fly, train the model after the calculation of each orbital
+                if self.ml.train_on_the_fly:
+                    self.ml_model.train()
 
         self.bands.print_history(indent=self.print_indent + 1)
 
-        converged = all([abs(b.error) < 1e-3 for b in self.bands])
+        converged = self.ml.predict or all([abs(b.error) < 1e-3 for b in self.bands])
 
-        if self.ml.use_ml and not any(mlfit.use_predictions):
-            # if the user don't wants to train on the fly, train the model at the end of each snapshot
+        if self.ml.train:
+            # if the user doesn't want to train on the fly, train the model at the end of each snapshot
             if not self.ml.train_on_the_fly:
-                mlfit.train()
-            # Print summary of all predictions
-            mlfit.print_error_of_all_orbitals(indent=self.print_indent + 1)
+                self.ml_model.train()
+            # # Print summary of all predictions
+            # predicted = [self.ml_model.predict(b) for b in self.bands.to_solve]
 
         n_electron_restart_dir = FilePointer(trial_calc, trial_calc.parameters.outdir)
         self.outputs = DeltaSCFIterationOutputs(converged=converged, n_electron_restart_dir=n_electron_restart_dir)
@@ -580,171 +611,145 @@ class OrbitalDeltaSCFWorkflow(Workflow):
             if self.parameters.spin_polarized and self.band.spin == 1:
                 index_empty_to_save += self.bands.num(filled=False, spin=0)
 
-        # Make ML-prediction and decide whether we want to use this prediction
-        if self.ml.use_ml:
-            alpha_predicted = mlfit.predict(self.band)
-            # Whether to use the ML-prediction
-            use_prediction = mlfit.use_prediction()
-
-        if not self.ml.use_ml or not (use_prediction or self.ml.alphas_from_file):
-            # Calcuating alpha ab initio
-
-            # Perform the fixed-band-dependent calculations
-            if self.parameters.functional in ['ki', 'pkipz']:
-                if self.band.filled:
-                    calc_types = ['dft_n-1']
-                else:
-                    calc_types = ['pz_print', 'dft_n+1_dummy', 'dft_n+1']
+        # Perform the fixed-band-dependent calculations
+        if self.parameters.functional in ['ki', 'pkipz']:
+            if self.band.filled:
+                calc_types = ['dft_n-1']
             else:
-                if self.band.filled:
-                    calc_types = ['kipz_n-1']
-                else:
-                    calc_types = ['kipz_print', 'dft_n+1_dummy', 'kipz_n+1']
-
-            print_calc = None
-
-            for calc_type in calc_types:
-                if self.parameters.functional in ['ki', 'pkipz']:
-                    # The calculations whose results change with alpha are...
-                    #  - the KI calculations
-                    #  - DFT calculations on empty variational orbitals
-                    # We don't need to redo any of the others
-                    if not self._trial_calc.has_empty_states() or self.band.filled:
-                        if self._i_sc > 1 and 'ki' not in calc_type:
-                            self.print('No further calculations are required to calculate this screening parameter')
-                            continue
-                else:
-                    # No need to repeat the dummy calculation; all other
-                    # calculations are dependent on the screening parameters so
-                    # will need updating at each step
-                    if self._i_sc > 1 and calc_type == 'dft_n+1_dummy':
-                        continue
-
-                if 'print' in calc_type:
-                    # Note that the 'print' calculations for empty bands do not
-                    # in fact involve the fixing of that band (and thus for the
-                    # 'fixed' band the corresponding alpha should be in
-                    # file_alpharef_empty.txt)
-                    alphas = self.bands.alphas
-                    filling = self.bands.filling
-                elif not self.band.filled:
-                    # In the case of empty orbitals, we gain an extra orbital in
-                    # the spin-up channel, so we explicitly construct both spin
-                    # channels for "alphas" and "filling"
-                    alphas = self.bands.alphas
-                    alphas[self.band.spin].append(alphas[self.band.spin][-1])
-                    filling = self.bands.filling
-                    filling[self.band.spin][self.band.index - 1] = True
-                    filling[self.band.spin].append(False)
-                else:
-                    alphas = self.bands.alphas
-                    filling = self.bands.filling
-
-                # Work out the index of the band that is fixed (noting that we will be throwing away all empty
-                # bands)
-                fixed_band = min(self.band.index, self.bands.num(filled=True, spin=self.band.spin) + 1)
-                if self.parameters.spin_polarized and self.band.spin == 1:
-                    fixed_band += self.bands.num(filled=True, spin=0)
-
-                # Set up calculator
-                calc = internal_new_kcp_calculator(self, calc_type, alphas=alphas, filling=filling, fixed_band=fixed_band,
-                                                   index_empty_to_save=index_empty_to_save,
-                                                   add_to_spin_up=(self.band.spin == 0))
-
-                if calc.parameters.ndr == self._trial_calc.parameters.ndw:
-                    self.link(self._trial_calc, self._trial_calc.write_directory,
-                              calc, calc.read_directory, recursive_symlink=True)
-
-                if calc_type in ['dft_n+1', 'kipz_n+1']:
-                    dummy_calc: calculators.KoopmansCPCalculator = self.calculations[-1]
-                    print_calc: calculators.KoopmansCPCalculator = self.calculations[-2]
-                    self.link(dummy_calc, dummy_calc.parameters.outdir, calc,
-                              calc.parameters.outdir, recursive_symlink=True)
-                    # Copying of evcfixed_empty.dat to evc_occupied.dat
-                    for ispin in range(1, 3):
-                        self.link(print_calc, print_calc.write_directory / f'K00001/evcfixed_empty{ispin}.dat',
-                                  calc, calc.read_directory / f'K00001/evc_occupied{ispin}.dat', symlink=True, overwrite=True)
-
-                # Run kcp.x
-                self.run_calculator(calc)
-
-                # Store the band that we've perturbed as calc.fixed_band. Note that we can't use
-                # calc.parameters.fixed_band to keep track of which band we held fixed, because for empty
-                # orbitals, calc.parameters.fixed_band is always set to the LUMO but in reality we're fixing
-                # the band corresponding # to index_empty_to_save from an earlier calculation
-                calc.fixed_band: int = self.band.index
-
-                # Store the result
-                # We store the results in one of two lists: alpha_indep_calcs and
-                # alpha_dep_calcs. The latter is overwritten at each new self-
-                # consistency loop.
-                if 'ki' in calc_type and 'print' not in calc_type:
-                    alpha_dep_calcs.append(calc)
-                elif 'dft' in calc_type and 'dummy' not in calc_type:
-                    if self.parameters.functional in ['ki', 'pkipz']:
-                        # For KI, the results of the DFT calculations are typically independent of alpha so we
-                        # store these in a list that is never overwritten
-
-                        # The exception to this are KI calculations on empty states. When we update alpha, the
-                        # empty manifold changes, which in turn affects the lambda values
-                        if self._trial_calc.has_empty_states() and not self.band.filled:
-                            alpha_dep_calcs.append(calc)
-                        else:
-                            self._alpha_indep_calcs.append(calc)
-                    else:
-                        # For KIPZ, the DFT calculations are dependent on alpha via
-                        # the definition of the variational orbitals. We only want to
-                        # store the calculations that used the most recent value of alpha
-
-                        alpha_dep_calcs.append(calc)
-
-                # Copying of evcfixed_empty.dat to evc_occupied.dat
-                if calc_type in ['pz_print', 'kipz_print']:
-                    print_calc = calc
-
-        if self.ml.use_ml and use_prediction:
-            alpha = alpha_predicted
-            error = 0.0  # set the error for the predicted alphas to 0.0, because we don't want to make another
-            # scf-step because of predicted alphas
+                calc_types = ['pz_print', 'dft_n+1_dummy', 'dft_n+1']
         else:
-            if self.ml.use_ml and self.ml.alphas_from_file:
-                # Dummy calculation to circumvent the fixed-band-calculation for debugging
-                alpha, error = mlfit.get_alpha_from_file_for_debugging(self.band)
+            if self.band.filled:
+                calc_types = ['kipz_n-1']
             else:
-                # Calculate an updated alpha and a measure of the error
-                # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
-                # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
+                calc_types = ['kipz_print', 'dft_n+1_dummy', 'kipz_n+1']
 
-                calcs = [c for c in alpha_dep_calcs + self._alpha_indep_calcs if c.fixed_band == self.band.index]
+        print_calc = None
 
-                alpha, error = self.calculate_alpha_from_list_of_calcs(
-                    calcs, self._trial_calc, self.band, filled=self.band.filled)
+        for calc_type in calc_types:
+            if self.parameters.functional in ['ki', 'pkipz']:
+                # The calculations whose results change with alpha are...
+                #  - the KI calculations
+                #  - DFT calculations on empty variational orbitals
+                # We don't need to redo any of the others
+                if not self._trial_calc.has_empty_states() or self.band.filled:
+                    if self._i_sc > 1 and 'ki' not in calc_type:
+                        self.print('No further calculations are required to calculate this screening parameter')
+                        continue
+            else:
+                # No need to repeat the dummy calculation; all other
+                # calculations are dependent on the screening parameters so
+                # will need updating at each step
+                if self._i_sc > 1 and calc_type == 'dft_n+1_dummy':
+                    continue
 
-                # Mixing
-                alpha = self.parameters.alpha_mixing * alpha + (1 - self.parameters.alpha_mixing) * self.band.alpha
+            if 'print' in calc_type:
+                # Note that the 'print' calculations for empty bands do not
+                # in fact involve the fixing of that band (and thus for the
+                # 'fixed' band the corresponding alpha should be in
+                # file_alpharef_empty.txt)
+                alphas = self.bands.alphas
+                filling = self.bands.filling
+            elif not self.band.filled:
+                # In the case of empty orbitals, we gain an extra orbital in
+                # the spin-up channel, so we explicitly construct both spin
+                # channels for "alphas" and "filling"
+                alphas = self.bands.alphas
+                alphas[self.band.spin].append(alphas[self.band.spin][-1])
+                filling = self.bands.filling
+                filling[self.band.spin][self.band.index - 1] = True
+                filling[self.band.spin].append(False)
+            else:
+                alphas = self.bands.alphas
+                filling = self.bands.filling
 
-            warning_message = 'The computed screening parameter is {0}. Proceed with caution.'
-            failure_message = 'The computed screening parameter is significantly {0}. This should not ' \
-                'happen. Decrease alpha_mixing and/or change alpha_guess.'
+            # Work out the index of the band that is fixed (noting that we will be throwing away all empty
+            # bands)
+            fixed_band = min(self.band.index, self.bands.num(filled=True, spin=self.band.spin) + 1)
+            if self.parameters.spin_polarized and self.band.spin == 1:
+                fixed_band += self.bands.num(filled=True, spin=0)
 
-            if alpha < -0.1:
-                raise ValueError(failure_message.format('less than 0'))
-            elif alpha < 0:
-                utils.warn(warning_message.format('less than 0'))
-            elif alpha > 1.1:
-                raise ValueError(failure_message.format('greater than 1'))
-            elif alpha > 1:
-                utils.warn(warning_message.format('greater than 1'))
+            # Set up calculator
+            calc = internal_new_kcp_calculator(self, calc_type, alphas=alphas, filling=filling, fixed_band=fixed_band,
+                                               index_empty_to_save=index_empty_to_save,
+                                               add_to_spin_up=(self.band.spin == 0))
+
+            if calc.parameters.ndr == self._trial_calc.parameters.ndw:
+                self.link(self._trial_calc, self._trial_calc.write_directory,
+                          calc, calc.read_directory, recursive_symlink=True)
+
+            if calc_type in ['dft_n+1', 'kipz_n+1']:
+                dummy_calc: calculators.KoopmansCPCalculator = self.calculations[-1]
+                print_calc: calculators.KoopmansCPCalculator = self.calculations[-2]
+                self.link(dummy_calc, dummy_calc.parameters.outdir, calc,
+                          calc.parameters.outdir, recursive_symlink=True)
+                # Copying of evcfixed_empty.dat to evc_occupied.dat
+                for ispin in range(1, 3):
+                    self.link(print_calc, print_calc.write_directory / f'K00001/evcfixed_empty{ispin}.dat',
+                              calc, calc.read_directory / f'K00001/evc_occupied{ispin}.dat', symlink=True, overwrite=True)
+
+            # Run kcp.x
+            self.run_calculator(calc)
+
+            # Store the band that we've perturbed as calc.fixed_band. Note that we can't use
+            # calc.parameters.fixed_band to keep track of which band we held fixed, because for empty
+            # orbitals, calc.parameters.fixed_band is always set to the LUMO but in reality we're fixing
+            # the band corresponding # to index_empty_to_save from an earlier calculation
+            calc.fixed_band: int = self.band.index
+
+            # Store the result
+            # We store the results in one of two lists: alpha_indep_calcs and
+            # alpha_dep_calcs. The latter is overwritten at each new self-
+            # consistency loop.
+            if 'ki' in calc_type and 'print' not in calc_type:
+                alpha_dep_calcs.append(calc)
+            elif 'dft' in calc_type and 'dummy' not in calc_type:
+                if self.parameters.functional in ['ki', 'pkipz']:
+                    # For KI, the results of the DFT calculations are typically independent of alpha so we
+                    # store these in a list that is never overwritten
+
+                    # The exception to this are KI calculations on empty states. When we update alpha, the
+                    # empty manifold changes, which in turn affects the lambda values
+                    if self._trial_calc.has_empty_states() and not self.band.filled:
+                        alpha_dep_calcs.append(calc)
+                    else:
+                        self._alpha_indep_calcs.append(calc)
+                else:
+                    # For KIPZ, the DFT calculations are dependent on alpha via
+                    # the definition of the variational orbitals. We only want to
+                    # store the calculations that used the most recent value of alpha
+
+                    alpha_dep_calcs.append(calc)
+
+            # Copying of evcfixed_empty.dat to evc_occupied.dat
+            if calc_type in ['pz_print', 'kipz_print']:
+                print_calc = calc
+
+        # Calculate an updated alpha and a measure of the error
+        # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
+        # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
+
+        calcs = [c for c in alpha_dep_calcs + self._alpha_indep_calcs if c.fixed_band == self.band.index]
+
+        alpha, error = self.calculate_alpha_from_list_of_calcs(
+            calcs, self._trial_calc, self.band, filled=self.band.filled)
+
+        # Mixing
+        alpha = self.parameters.alpha_mixing * alpha + (1 - self.parameters.alpha_mixing) * self.band.alpha
+
+        warning_message = 'The computed screening parameter is {0}. Proceed with caution.'
+        failure_message = 'The computed screening parameter is significantly {0}. This should not ' \
+            'happen. Decrease alpha_mixing and/or change alpha_guess.'
+
+        if alpha < -0.1:
+            raise ValueError(failure_message.format('less than 0'))
+        elif alpha < 0:
+            utils.warn(warning_message.format('less than 0'))
+        elif alpha > 1.1:
+            raise ValueError(failure_message.format('greater than 1'))
+        elif alpha > 1:
+            utils.warn(warning_message.format('greater than 1'))
 
         self.outputs = self.output_model(alpha=alpha, error=error)
-
-        # add alpha to training data
-        if self.ml.use_ml and not use_prediction:
-            mlfit.print_error_of_single_orbital(alpha_predicted, alpha, indent=self.print_indent+2)
-            mlfit.add_training_data(band)
-            # if the user wants to train on the fly, train the model after the calculation of each orbital
-            if self.ml.train_on_the_fly:
-                mlfit.train()
 
     def calculate_alpha_from_list_of_calcs(self,
                                            calcs: List[calculators.KoopmansCPCalculator],

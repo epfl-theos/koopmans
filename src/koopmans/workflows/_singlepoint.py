@@ -111,15 +111,15 @@ class SinglepointWorkflow(Workflow):
                 if functional != 'ki':
                     assert ki_workflow is not None
                     variational_orbital_files = ki_workflow.outputs.variational_orbital_files
-                    previous_ki_calc = ki_workflow.outputs.final_calc
+                    previous_cp_calc = ki_workflow.outputs.final_calc
                 else:
                     variational_orbital_files = None
-                    previous_ki_calc = None
+                    previous_cp_calc = None
 
                 kc_workflow = KoopmansDSCFWorkflow.fromparent(self, functional=functional,
                                                               initial_variational_orbital_files=variational_orbital_files,
                                                               redo_smooth_dft=redo_smooth_dft,
-                                                              previous_ki_calc=previous_ki_calc,
+                                                              previous_cp_calc=previous_cp_calc,
                                                               calculate_alpha=calculate_alpha)
                 kc_workflow.name += ' ' + functional.upper().replace("PKIPZ", "pKIPZ")
 

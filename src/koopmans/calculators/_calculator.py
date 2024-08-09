@@ -124,7 +124,7 @@ class CalculatorExt():
 
     @directory.setter
     def directory(self, value: Path | str | None):
-        if value is None or value == 'None':
+        if value is None or value in ['.', 'None']:
             return
         if not isinstance(value, Path):
             value = Path(value)
