@@ -6,8 +6,9 @@ from ase import io
 np.random.seed(0)
 
 cell = np.diag([6.892900, 6.892900, 6.892900])
-unperturbed_h2o = io.read("h2o_unpertubed_positions.xyz", index='0')
+unperturbed_h2o = io.read("h2o.xyz")
 unperturbed_h2o.set_cell(cell)
+unperturbed_h2o.pbc = True
 
 trajectory = []
 for i in range(20):
@@ -17,5 +18,7 @@ for i in range(20):
     trajectory.append(new_perturbed_h2o)
 
 io.write('snapshots.gif', trajectory, interval=500, rotation='-100y,-10x')
-io.write('tutorial_5a/snapshots.xyz', trajectory)
-io.write('tutorial_5b/snapshots.xyz', trajectory)
+io.write('01-train/training_snapshots.xyz', trajectory[:5])
+io.write('02-predict/predicting_snapshots.xyz', trajectory[5:])
+io.write('03-test/testing_snapshots.xyz', trajectory[5:])
+io.write('04-advanced-testing/snapshots.xyz', trajectory)

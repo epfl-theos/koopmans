@@ -3,7 +3,7 @@ import copy
 import matplotlib.pyplot as plt
 import numpy as np
 
-from koopmans import io, utils
+from koopmans import io
 from koopmans.ml import MLModel
 from koopmans.workflows import InitializationWorkflow, KoopmansDSCFWorkflow
 
@@ -93,4 +93,4 @@ ax.set_xlabel('number of configurations used for training')
 
 # Save the figure
 plt.tight_layout()
-plt.savefig('figure.png', dpi=300)
+plt.savefig('ntrain_convergence.png', dpi=300)

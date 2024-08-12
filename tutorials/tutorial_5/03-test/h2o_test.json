@@ -11,8 +11,8 @@
         "calculate_bands": false
     },
     "ml": {
-        "predict": true,
-        "model_file": "../train/h2o_train_ml_model.pkl",
+        "test": true,
+        "model_file": "../01-train/h2o_train_ml_model.pkl",
         "n_max": 6,
         "l_max": 6,
         "r_min": 1.0,
@@ -20,7 +20,7 @@
     },
     "atoms": {
         "atomic_positions": {
-           "snapshots": "predicting_snapshots.xyz"
+           "snapshots": "testing_snapshots.xyz"
         },
         "cell_parameters": {
             "periodic": true,

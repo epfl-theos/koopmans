@@ -2,163 +2,139 @@
 
 Tutorial 5: using machine learning to predict the screening parameters of water molecules
 =========================================================================================
-In this tutorial, we will train a machine-learning model to predict the screening parameters of water molecules directly from their orbital densities.  To generate a trajectory with 20 different atomic configurations, we run a :download:`python script <../../tutorials/tutorial_5/perturb_positions.py>` that applies random noise to the atomic positions of a water molecule. The resulting atomic positions are saved in a :download:`xyz file <../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.json>` and are visualized below
+In a Koopmans functional calculation, the most time-consuming step is the calculation of the screening parameters. In this tutorial, we will bypass this step by training a machine-learning model to predict the screening parameters directly from orbital densities.
+
+The machine-learning strategy covered in this tutorial is viable when you want to perform many Koopmans functional calculations on similar systems e.g. different snapshots from a molecular dynamics trajectory. To emulate this scenario, we artificially generate 20 different water molecules with different atomic configurations (using :download:`this script <../../tutorials/tutorial_5/generate_configurations.py>` that applies random noise to the atomic positions of a water molecule). The atomic positions of these configurations can be seen in the figure below.
 
 .. figure:: ../../tutorials/tutorial_5/snapshots.gif
    :width: 400
    :align: center
-   :alt: The 20 snapshots generated with perturb_positions.py 
+   :alt: The 20 configurations of water that we will use in this tutorial
 
-Our goal in this tutorial is to perform Koopmans calculations on each of these 20 snapshots using a machine learning model to predict the screening parameters instead of calculating them ab initio.  
+.. note::
+  In anticipation that machine learning models are most useful in extended systems (i.e. liquids or solids), we will apply periodic boundary conditions and use maximally localized Wannier functions as our variational orbitals (despite the fact that this toy water model is not, in fact, a periodic system).
 
-Running a machine learning workflow
------------------------------------
+Training the model
+------------------
 
-To predict the screening parameters with the machine learning model we must first train the model. In the following we will use the first five snapshots for training and then use the trained machine learning model to predict the screening parameters for the remaining 15 snapshots. 
-
-The input file for the machine learning workflow
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The input file for performing this task can be downloaded :download:`here <../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.json>`. 
+To predict the screening parameters with the machine learning model we must first train the model. The input file doing so can be downloaded :download:`here <../../tutorials/tutorial_5/01-train/h2o_train.json>`. 
 
 First, we have to specify that we want to perform Koopmans calculations on a whole trajectory of snapshots by setting the ``"task"`` keyword in the ``"workflow"`` block:
 
-.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.json
+.. literalinclude:: ../../tutorials/tutorial_5/01-train/h2o_train.json
   :lines: 2-4
   :linenos:
   :emphasize-lines: 2
   :lineno-start: 24
 
-For this task, we don't provide the ``"atomic_positions"`` directly to the input file since we don't want to perform a Koopmans calculation on a single snapshot but on many snapshots. Instead, we provide an xyz file containing all the atomic positions of each snapshot that we would like to simulate
+For this task, we don't provide the ``"atomic_positions"`` directly to the input file since we don't want to perform a Koopmans calculation on a single snapshot but on many snapshots. Instead, we provide an ``.xyz`` file containing all the atomic positions of each snapshot that we would like to simulate
 
-.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.json
-  :lines: 21-24
+.. literalinclude:: ../../tutorials/tutorial_5/01-train/h2o_train.json
+  :lines: 20-23
   :linenos:
-  :emphasize-lines: 4
-  :lineno-start: 21
+  :emphasize-lines: 3
+  :lineno-start: 20
 
-Finally, we have to provide a ``ml`` block with keywords specific to the machine learning model
+Note that this ``.xyz`` file contains five confiugurations of water.
 
-.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.json
-  :lines: 13-20
+Finally, to enable the machine-learning process we provide a ``ml`` block and set ``train`` to ``true``:
+
+.. literalinclude:: ../../tutorials/tutorial_5/01-train/h2o_train.json
+  :lines: 13-19
   :linenos:
   :lineno-start: 13
 
-To predict the screening parameters from the orbital densities, we have to translate the orbital densities into input vectors for the machine learning model. To do so, we decompose the orbital densities into radial basis functions :math:`g_{nl}(r)` and angular basis functions :math:`Y_{ml}(\theta,\phi)`. 
-This decomposition has the following four hyperparameters that we provided in the input file:
+The remaining keywords in the ``ml`` block are the hyperparameters of the machine learning model.
 
-* :math:`n_{max}` determines the number of radial basis functions
-* :math:`l_{max}` determines the number of angular basis functions
-* :math:`r_{min}` determines the smallest cutoff radius for the radial basis functions
-* :math:`r_{max}` determines the largest cutoff radius for the radial basis functions
+.. note::
 
-In anticipation that the machine learning model will be most useful in extended systems (liquids or solids), we apply periodic boundary conditions and use maximally localized Wannier functions as our variational orbitals (despite the fact that our toy water model is not, in fact, a periodic system).
+  To predict screening parameters from orbital densities, we have to translate the orbital densities into input vectors for the machine learning model. To do so, we decompose the orbital densities into radial basis functions :math:`g_{nl}(r)` and angular basis functions :math:`Y_{ml}(\theta,\phi)`. 
+  This decomposition has the following four hyperparameters that we provided in the input file:
 
-The output file for the machine learning workflow
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  * :math:`n_{max}` determines the number of radial basis functions
+  * :math:`l_{max}` determines the number of angular basis functions
+  * :math:`r_{min}` determines the smallest cutoff radius for the radial basis functions
+  * :math:`r_{max}` determines the largest cutoff radius for the radial basis functions
 
-Running this calculation, the output will show that we compute the screening parameters of the first five snapshots ab initio and add the results to our training data
+Running this calculation, you will see the five Koopmans calculations (for each of the training snapshots). The one extra step that you will spot that is not present in earlier tutorials is the power spectrum decomposition step, where the orbital densities are converted into a power spectrum
 
-.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.out
+.. literalinclude:: ../../tutorials/tutorial_5/h2o_train.out
   :lines: 49-57
   :language: text
   :lineno-start: 49
 
-Then we use the trained model to predict the screening parameters of the remaining snapshots 
+Once the calculation is complete you will see a new file: ``h2o_train_ml_model.pkl``. This file contains the trained machine learning model.
 
-.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5a/h2o_trajectory_ml.out
+Using the model
+---------------
+
+Now that we have a model at our disposal, we can use it to predict the screening parameters of the remaining snapshots. The input file for this task can be downloaded :download:`here <../../tutorials/tutorial_5/02-predict/h2o_predict.json>`. The key difference between this input file are that we now feed it a different set of water configurations, and we modify the ``ml`` block to use the trained model:
+
+.. literalinclude:: ../../tutorials/tutorial_5/02-predict/h2o_predict.json
+  :lines: 13-20
+  :linenos:
+  :emphasize-lines: 2-3
+  :lineno-start: 13
+
+Running this calculation, you will see that the core of the ΔSCF cycle -- the :math:`N \pm 1` calculations -- are skipped, and the predicted screening parameters are reported instead:
+
+.. literalinclude:: ../../tutorials/tutorial_5/h2o_predict.out
   :lines: 619-621
   :language: text
   :lineno-start: 619
 
+Note that the calculation still takes some time to complete, because some ab initio calculations (Wannierization, power spectrum decomposition, and the final KI calculation) are still performed.
 
-Using the script :download:`plot_5a.py <../../tutorials/tutorial_5/plot_5a.py>` we can plot the distribution of the orbital levels across the snapshots. (Of course, these particular distributions don't correspond to anything physical because the configurations were generated randomly.)
+Using :download:`this script <../../tutorials/tutorial_5/02-predict/plot.py>` we can plot the distribution of the orbital levels across the snapshots.
 
 
-.. figure:: ../../tutorials/tutorial_5/predicted_eigenvalues.png
-   :width: 1000
+.. figure:: ../../tutorials/tutorial_5/02-predict/predicting.png
+   :width: 500
    :align: center
    :alt: The distribution of the orbital energies across the screenshots (computed using machine-learned screening parameters)
 
-Here there is no way of telling if the model is correct -- it has provided us with some screening parameters and we have to trust it. If we want to check if a machine learning model is working properly what we need to do is a convergence analysis with respect to the number of training data. This will be the goal of the following section. 
+Of course, these particular distributions don't correspond to anything physical because the configurations were generated randomly. And furthermore, can we trust these results? We have skipped one important step: testing our model!
 
-Running a convergence analysis
-------------------------------
+Testing the model
+-----------------
 
-The input file for the convergence analysis
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+To test a model, we need to compare predicted screening parameters against those calculated ab initio. The input file for this task can be downloaded :download:`here <../../tutorials/tutorial_5/03-test/h2o_test.json>`. The key difference between this input file and the previous one is
 
-The corresponding :download:`input file <../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.json>` differs from the previous input file only in the ``"task"`` keyword
-
-.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.json
-  :lines: 2-4
+.. literalinclude:: ../../tutorials/tutorial_5/03-test/h2o_test.json
+  :lines: 13-20
   :linenos:
   :emphasize-lines: 2
+  :lineno-start: 13
 
-and the ``"number_of_training_snapshots"``
+Running this calculation, you will see the same output as in the previous calculation, but with the reappearance of the :math:`N \pm 1` calculations that are required to calculate the screening parameters ab initio.
 
-.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.json
-  :lines: 13-24
-  :linenos:
-  :emphasize-lines: 7
+.. literalinclude:: ../../tutorials/tutorial_5/03-test/h2o_test.out
 
-For the ``convergence_ml`` task, setting ``"number_of_training_snapshots": 10`` means that we will perform the convergence analysis with respect to 1, 2, ... , and 10 training snapshots and use the remaining snapshots (in this case snapshots 11 to 20) for testing. 
+We can compare the results using the :download:`accompanying python script <../../tutorials/tutorial_5/03-test/plot.py>`, which extracts the orbital energies from the ``.kwf`` file and generates the following plot
 
-The ``"quantities_of_interest"`` is the list of parameters with respect to which we would like to perform the convergence analysis. In addition to performing it only with respect to the screening parameters ``"alphas"``, we also perform it with respect to the eigenvalues (``"evs"``).
-The latter requires an additional ``final calculation`` for each snapshot and therefore takes slightly longer to run. 
-
-The output file for the convergence analysis
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-You should see that the workflow first computes the screening parameters ab-initio for the last 10 snapshots.
-
-.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.out
-  :lines: 18-20
-  :language: text
-  :lineno-start: 18
-
-Next, snapshot 1 is added to the training data. 
-
-.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.out
-  :lines: 732-733
-  :language: text
-  :lineno-start: 732
-
-After having trained the machine learning model on the orbitals of the first snapshot we use the trained model to predict the screening parameters of the last 10 snapshots and compare our results to the results from the ab initio computation.
-
-.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.out
-  :lines: 849-850
-  :language: text
-  :lineno-start: 849
-
-Next, we add snapshot 2 to the training data. 
-
-.. literalinclude:: ../../tutorials/tutorial_5/tutorial_5b/h2o_convergence_ml.out
-  :lines: 1552-1553
-  :language: text
-  :lineno-start: 1552
-
-Our model is now trained on the orbitals of 2 snapshots. We use this model again to predict the screening parameters of the last 10 snapshots and compare the results to the ab initio calculation. We repeat this procedure until we have added all 10 snapshots to the training data. Then we can have a look at the convergence of the mean absolute error of the predicted screening parameters:
-
-.. figure:: ../../tutorials/tutorial_5/tutorial_5b/spin_0_alphas_MAE_convergence.png
-   :width: 1000
+.. figure:: ../../tutorials/tutorial_5/03-test/testing.png
+   :width: 500
    :align: center
-   :alt: Convergence of the MAE of the predicted screening parameters
+   :alt: the accuracy of the orbital energies when using machine-learned screening parameters
+   
+   The accuracy of the orbital energies when using machine-learned screening parameters (:math:`\varepsilon_i^\mathsf{predicted}`) relative to those calculated ab initio (:math:`\varepsilon_i^\mathsf{true}`) across the 15 test configurations.
 
-and the convergence of the mean absolute error of the predicted orbital energies:
+Now we can understand the accuracy of our model: we can expect the orbital energies to be predicted within 40 meV of the ab initio Koopmans result. This is pretty good, given how rudimentary the model is and how little training it required! 
 
-.. figure:: ../../tutorials/tutorial_5/tutorial_5b/spin_0_evs_MAE_convergence.png
-   :width: 1000
+More advanced testing (extra for experts)
+-----------------------------------------
+
+So far, all of these tasks have relied on the pre-built workflows in the `koopmans` package. However, it is possible to use ``python`` to perform much more bespoke workflows. In `the script provided in the final part of this tutorial <../../tutorials/tutorial_5/04-advanced-testing/train-and-verify.py>` this functionality is leveraged to perform a convergence test on the accuracy of the machine-learning model as the number of training snapshots is increased.
+
+For more details, refer to the script itself. Running the script generates the following plot
+
+.. figure:: ../../tutorials/tutorial_5/04-advanced-testing/ntrain_convergence.png
+   :width: 500
    :align: center
-   :alt: Convergence of the MAE of the predicted eigenenergies
+   :alt: The accuracy of the machine-learning model as a function of the number of configurations used during training
+   
+   The accuracy of the machine-learning model as a function of the number of configurations used during training
 
-(You can find these plots in the ``convergence_analysis/final_results/`` subdirectory.) We can see that we converged to a reasonable accuracy after about 5 training snapshots (which corresponds to 20 occupied and 10 empty orbitals). 
-
-We can now also check (:download:`plot_5b.py <../../tutorials/tutorial_5/plot_5b.py>`) that the predicted ionization potentials match with the ionization potentials obtained from the ab-initio computation of the screening parameters:
-
-.. figure:: ../../tutorials/tutorial_5/bar_diagram_predicted_and_calculated.png
-   :width: 1000
-   :align: center
-   :alt: The predicted and the omputed ionization potential for 10 last snapshots
+  Here we can see after X training confurations the accuracy of the model saturates.
 
 

@@ -1,6 +1,6 @@
 {
     "workflow": {
-        "task": "convergence_ml",
+        "task": "trajectory",
         "functional": "ki",
         "init_orbitals": "mlwfs",
         "from_scratch": true,
@@ -11,18 +11,16 @@
         "calculate_bands": false
     },
     "ml": {
-        "use_ml": true,
+        "predict": true,
+        "model_file": "../01-train/h2o_train_ml_model.pkl",
         "n_max": 6,
         "l_max": 6,
         "r_min": 1.0,
-        "r_max": 4.0,
-        "number_of_training_snapshots": 10,
-        "quantities_of_interest": ["alphas", "evs"]
+        "r_max": 4.0
     },
     "atoms": {
         "atomic_positions": {
-            "units": "angstrom",
-            "snapshots": "snapshots.xyz"
+           "snapshots": "predicting_snapshots.xyz"
         },
         "cell_parameters": {
             "periodic": true,

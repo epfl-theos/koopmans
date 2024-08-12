@@ -10,8 +10,8 @@ from koopmans import io
 
 if __name__ == '__main__':
     # Extract the eigenvalue information from the .kwf file
-    wf = io.read('tutorial_5a/predict/h2o_predict.kwf')
-    calcs = [c for c in wf.calculations if c.prefix == 'ki_final']
+    wf = io.read('h2o_predict.kwf')
+    calcs = [c for c in wf.calculations if c.prefix == 'ki_final_ml']
     eigenvalues = np.array([c.results['eigenvalues'][0] for c in calcs])
 
     # Create a violin plot figure
@@ -21,8 +21,8 @@ if __name__ == '__main__':
     # Figure aesthetics
     n_orbs_occ = 4
     n_orbs = 6
-    labels = [f'HOMO - {n_orbs_occ - i}' for i in range(1, n_orbs_occ)] + ['HOMO',
-                                                                           'LUMO'] + [f'LUMO + {i - n_orbs_occ}' for i in range(n_orbs_occ + 1, n_orbs)]
+    labels = [f'HOMO - {n_orbs_occ - i}' for i in range(1, n_orbs_occ)] + ['HOMO', 'LUMO'] \
+        + [f'LUMO + {i - n_orbs_occ}' for i in range(n_orbs_occ + 1, n_orbs)]
     ax.set_yticks(range(1, n_orbs + 1), labels)
     ax.set_xlabel('energy (eV)')
     plt.tight_layout()
