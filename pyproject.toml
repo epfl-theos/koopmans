@@ -30,10 +30,11 @@ dependencies = [
     "pybtex>=0.24",
     "spglib>=1.9",
     "upf-to-json>=0.9.5",
-    "ase-koopmans==0.1.5",
+    "ase-koopmans==0.1.6",
     "scikit-learn>=1.0",
     "deepdiff>=5.8.1",
     "pydantic>=2.7.0"
+    "dill>=0.3.8"
 ]
 
 [project.urls]

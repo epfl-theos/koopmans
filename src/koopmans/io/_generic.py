@@ -9,13 +9,14 @@ Written by Edward Linscott Jan 2020
 from pathlib import Path
 from typing import List, Union
 
+import dill
+
 from koopmans.calculators import CalculatorExt
 from koopmans.utils import chdir
 from koopmans.workflows import Workflow
 
 from ._calculators import read_calculator
 from ._json import read_json, write_json
-from ._kwf import read_kwf, write_kwf
 
 
 def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Union[Workflow, CalculatorExt]:
@@ -27,8 +28,8 @@ def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Union[W
     # Generic "read" function
 
     if isinstance(filename, Path) and filename.suffix == '.kwf':
-        with open(filename, 'r') as fd:
-            out = read_kwf(fd)
+        with open(filename, 'rb') as fd:
+            out = dill.load(fd)
         return out
     elif isinstance(filename, Path) and filename.suffix == '.json':
         with chdir(filename.parent):
@@ -49,8 +50,8 @@ def write(obj: Workflow, filename: Union[str, Path]):
     # Generic "write" function
 
     if filename.suffix == '.kwf':
-        with open(filename, 'w') as fd:
-            write_kwf(obj, fd)
+        with open(filename, 'wb') as fd:
+            dill.dump(obj, fd)
     elif filename.suffix == '.json':
         write_json(obj, filename)
     else:
