@@ -90,6 +90,7 @@ ax.plot(range(1, n_train + 1), [np.mean(np.abs(err)) for err in errors], 'o--')
 ax.set_yscale('log')
 ax.set_ylabel('MAE in orbital \n energies (eV)')
 ax.set_xlabel('number of configurations used for training')
+ax.set_ylim(1e-2, 1e0)
 
 # Save the figure
 plt.tight_layout()

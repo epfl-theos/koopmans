@@ -10,7 +10,7 @@ from koopmans.utils import indented_print, warn
 
 class Band(object):
     def __init__(self, index: Optional[int] = None, spin: int = 0, filled: bool = True, group: Optional[int] = None,
-                 alpha: Optional[float] = None, error: Optional[float] = None,
+                 alpha: Optional[float] = None, error: Optional[float] = None, predicted_alpha: Optional[float] = None,
                  self_hartree: Optional[float] = None,
                  spread: Optional[float] = None,
                  center: Optional[np.ndarray] = None,
@@ -23,6 +23,7 @@ class Band(object):
         self.error_history: List[float] = []
         self.alpha = alpha
         self.error = error
+        self.predicted_alpha = predicted_alpha
         self.self_hartree = self_hartree
         self.spread = spread
         self.center = center
@@ -319,6 +320,10 @@ class Bands(object):
             b.self_hartree = v
 
     @property
+    def predicted_alphas(self) -> List[List[float]]:
+        return [[b.predicted_alpha for b in self if b.spin == i_spin] for i_spin in range(self.n_spin)]
+
+    @property
     def power_spectrum(self) -> List[List[float]]:
         return [b.power_spectrum for b in self]
 
@@ -386,8 +391,11 @@ class Bands(object):
             columns = [b.index for b in self.get(spin=0)]
             band_subset = self.get(spin=0)
 
-        # Create an array of values padded with NaNs
-        arr = np.array(list(itertools.zip_longest(*[getattr(b, attr) for b in band_subset], fillvalue=np.nan)))
+        if isinstance(getattr(band_subset[0], attr), list):
+            # Create an array of values padded with NaNs
+            arr = np.array(list(itertools.zip_longest(*[getattr(b, attr) for b in band_subset], fillvalue=np.nan)))
+        else:
+            arr = np.array([[getattr(b, attr) for b in band_subset]])
         if arr.size == 0:
             df = pd.DataFrame(columns=columns)
         else:
@@ -404,9 +412,14 @@ class Bands(object):
 
     def print_history(self, indent: int = 0):
         # Printing out a progress summary
-        indented_print(f'\nalpha', indent=indent)
+        indented_print(f'\nα', indent=indent)
         indented_print(str(self.alpha_history), indent=indent)
+
+        if None not in [b.predicted_alpha for b in self]:
+            indented_print(f'\npredicted α', indent=indent)
+            indented_print(str(self._create_dataframe('predicted_alpha')), indent=indent)
+
         if not self.error_history.empty:
-            indented_print(f'\nDelta E_i - epsilon_i (eV)', indent=indent)
+            indented_print(f'\nΔE_i - λ_ii (eV)', indent=indent)
             indented_print(str(self.error_history), indent=indent)
         indented_print('')

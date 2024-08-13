@@ -277,27 +277,46 @@ class KoopmansDSCFWorkflow(Workflow):
             else:
                 n_electron_restart_dir = FilePointer(self._previous_cp_calc, self._previous_cp_calc.write_directory)
 
-        # Final calculation
-        if self.parameters.functional == 'pkipz':
-            if self._previous_cp_calc is None:
-                final_calc_types = ['ki', 'pkipz']
-            else:
-                final_calc_types = ['pkipz']
+        # Final calculations
+        if self.ml.test:
+            # If we are testing the model, we want to run both with and without the ML model
+            use_mls = [True, False]
+        elif self.ml.predict:
+            # Use the ML model
+            use_mls = [True]
         else:
-            final_calc_types = [self.parameters.functional]
+            # Don't use the ML model
+            use_mls = [False]
 
-        for final_calc_type in final_calc_types:
+        for use_ml in use_mls:
+            if self.parameters.functional == 'pkipz':
+                if self._previous_cp_calc is None:
+                    final_calc_types = ['ki', 'pkipz']
+                else:
+                    final_calc_types = ['pkipz']
+            else:
+                final_calc_types = [self.parameters.functional]
 
-            final_calc_type += '_final'
+            for final_calc_type in final_calc_types:
 
-            calc = internal_new_kcp_calculator(self, final_calc_type, write_hr=True)
+                final_calc_type += '_final'
 
-            if self.parameters.functional == 'ki' and self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
-                    and not self.parameters.calculate_alpha:
-                calc.parameters.restart_from_wannier_pwscf = True
+                if use_ml:
+                    alphas = self.bands.predicted_alphas
+                else:
+                    alphas = self.bands.alphas
 
-            self.link(*n_electron_restart_dir, calc, n_electron_restart_dir.name, symlink=True)
-            self.run_calculator(calc)
+                calc = internal_new_kcp_calculator(self, final_calc_type, write_hr=True, alphas=alphas)
+
+                if self.parameters.functional == 'ki' and self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
+                        and not self.parameters.calculate_alpha:
+                    calc.parameters.restart_from_wannier_pwscf = True
+
+                if use_ml:
+                    calc.prefix += '_ml'
+
+                self.link(*n_electron_restart_dir, calc, n_electron_restart_dir.name, symlink=True)
+                self.run_calculator(calc)
 
         final_calc = calc
         variational_orbital_files = {f: FilePointer(final_calc, final_calc.read_directory / 'K00001' / f)
@@ -481,15 +500,16 @@ class DeltaSCFIterationWorkflow(Workflow):
         skipped_orbitals = []
         first_band_of_each_channel = [self.bands.get(spin=spin)[0] for spin in range(2)]
 
-        # Initialize the ML-model
-        if self.ml.train or self.ml.predict and self.ml.descriptor == 'orbital_density':
+        # Calculate the power spectrum if required
+        if self.ml.descriptor == 'orbital_density' and (self.ml.train or self.ml.predict or self.ml.test):
             if self._precomputed_descriptors is None:
-                from koopmans.workflows import \
-                    PowerSpectrumDecompositionWorkflow
-                psfit_workflow = PowerSpectrumDecompositionWorkflow.fromparent(
-                    self, calc_that_produced_orbital_densities=trial_calc)
-                psfit_workflow.run()
-                descriptors = psfit_workflow.outputs.descriptors
+                if self.ml.descriptor == 'orbital_density':
+                    from koopmans.workflows import \
+                        PowerSpectrumDecompositionWorkflow
+                    psfit_workflow = PowerSpectrumDecompositionWorkflow.fromparent(
+                        self, calc_that_produced_orbital_densities=trial_calc)
+                    psfit_workflow.run()
+                    descriptors = psfit_workflow.outputs.descriptors
             else:
                 descriptors = self._precomputed_descriptors
             for band, power_spectrum in zip(self.bands.to_solve, descriptors):
@@ -531,10 +551,17 @@ class DeltaSCFIterationWorkflow(Workflow):
                 skipped_orbitals.append(band.index)
                 continue
 
+            # Use the ML model to predict the screening parameters
+            if self.ml.predict or self.ml.test:
+                alpha_pred = self.ml_model.predict(band)
+            else:
+                alpha_pred = None
+
             if self.ml.predict:
-                alpha = self.ml_model.predict(band)
+                alpha = None
                 error = None
             else:
+                # Calculate the screening parameters ab initio
                 subwf = OrbitalDeltaSCFWorkflow.fromparent(
                     self, band=band, trial_calc=trial_calc, i_sc=self._i_sc, alpha_indep_calcs=self._alpha_indep_calcs)
                 subwf.run()
@@ -543,9 +570,12 @@ class DeltaSCFIterationWorkflow(Workflow):
 
             for b in self.bands:
                 if b == band or (b.group is not None and b.group == band.group):
-                    b.alpha = alpha
+                    if alpha:
+                        b.alpha = alpha
                     if error:
                         b.error = error
+                    if alpha_pred:
+                        b.predicted_alpha = alpha_pred
 
             # add alpha to training data
             if self.ml.train:
@@ -1162,9 +1192,6 @@ class InitializationWorkflow(Workflow):
             Efin = calc.results['energy']
             if abs(Efin - Eini) > 1e-6 * abs(Efin):
                 raise ValueError(f'Too much difference between the initial and final CP energies: {Eini} {Efin}')
-
-            # Add to the outdir of dft_init a link to the files containing the Wannier functions
-            utils.warn('Not sure why this was necessary but might need to implement something to cover this behaviour')
 
         elif self.parameters.functional in ['ki', 'pkipz']:
             calc = internal_new_kcp_calculator(self, 'dft_init')

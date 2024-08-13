@@ -139,7 +139,7 @@ class AbstractMLModel(ABC):
     _fields_to_exclude: List[str] = []
 
     def todict(self):
-        dct = copy.deepcopy(dict(self.__dict__))
+        dct = {k: v for k, v in self.__dict__.items() if k not in self._fields_to_exclude}
         dct['__koopmans_module__'] = self.__module__
         dct['__koopmans_name__'] = self.__class__.__name__
         return dct
@@ -171,7 +171,7 @@ def descriptor_from_band_factory(descriptor: str) -> Callable[[Band], np.ndarray
     elif descriptor == 'self_hartree':
         return self_hartree_from_band
     else:
-        raise ValueError(f"{descriptor} is not implemented as a valid descriptor.")
+        raise ValueError(f"'{descriptor}' is not implemented as a valid descriptor.")
 
 
 class MLModel(AbstractMLModel):
@@ -236,7 +236,7 @@ class OccEmpMLModels(AbstractMLModel):
 
     _fields_to_exclude = ['model_occ', 'model_emp']
 
-    def __init__(self, type_of_ml_model='ridge_regression', descriptor='orbital_from_band', is_trained: bool = False,
+    def __init__(self, type_of_ml_model='ridge_regression', descriptor='orbital_density', is_trained: bool = False,
                  X_train_occ: Optional[np.ndarray] = None, Y_train_occ: Optional[np.ndarray] = None,
                  X_train_emp: Optional[np.ndarray] = None, Y_train_emp: Optional[np.ndarray] = None,
                  model_occ=None, model_emp=None, descriptor_from_band: Callable[[Band], np.ndarray] | None = None):
@@ -246,6 +246,7 @@ class OccEmpMLModels(AbstractMLModel):
         self.model_emp = MLModel(type_of_ml_model=type_of_ml_model, descriptor=descriptor, is_trained=is_trained,
                                  X_train=X_train_emp, Y_train=Y_train_emp, model=model_emp, descriptor_from_band=descriptor_from_band)
         self.type_of_ml_model = type_of_ml_model
+        self.descriptor = descriptor
 
     def add_training_data(self, bands: List[Band]) -> None:
         for band in bands:

@@ -10,6 +10,8 @@ class MLSettingsDict(SettingsDictWithChecks):
         valid_settings = [
             Setting('train', 'train a machine learning model to predict the screening parameters',
                     bool, False, (True, False)),
+            Setting('test', 'test the machine learning model',
+                    bool, False, (True, False)),
             Setting('predict', 'use a machine learning model to predict the screening parameters',
                     bool, False, (True, False)),
             Setting('model_file', 'JSON file containing the ML model information (generated from a prior training calculation)',

@@ -20,6 +20,18 @@ from koopmans.settings import KoopmansCPSettingsDict
 from ._workflow import Workflow
 
 
+class SelfHartreeOutput(OutputModel):
+    descriptors: List[float]
+
+
+class SelfHartreeWorkflow(Workflow):
+
+    output_model = SelfHartreeOutput  # type: ignore
+
+    def _run(self):
+        self.outputs = self.output_model(descriptors=[b.self_hartree for b in self.bands.to_solve])
+
+
 class PowerSpectrumDecompositionOutput(OutputModel):
     descriptors: List[FilePointer]
 
@@ -63,32 +75,8 @@ class PowerSpectrumDecompositionWorkflow(Workflow):
         if self.ml.type_of_ml_model == 'mean':
             return  # this model needs no X-data
         else:
-            if self.ml.descriptor == 'orbital_density':
-                # start the actual three steps
-                self.extract_input_vector_from_orbital_densities()
-            elif self.ml.descriptor == 'self_hartree':
-                # get the self-Hartree energies
-                self.extract_input_vector_from_self_hartrees()
-            else:
-                raise ValueError(
-                    f"{self.ml.descriptor} is currently not implemented as a valid input for the ml "
-                    "model.")
-
-    def extract_input_vector_from_self_hartrees(self):
-        """
-        Extracts the self-Hartree energies from the corresponding calculation.
-        """
-        SH = self.calc_that_produced_orbital_densities.results['orbital_data']['self-Hartree']
-        for band in self.bands.to_solve:
-            if band.filled:
-                filled_str = 'occ'
-            else:
-                filled_str = 'emp'
-            np.savetxt(self.dirs['SH'] / f"SH.orbital.{filled_str}.{band.index}.txt",
-                       np.array([SH[band.spin][band.index - 1]]))
-            self.input_vectors_for_ml[f"SH.orbital.{filled_str}.{band.index}"] = SH
-
-        return
+            assert self.ml.descriptor == 'orbital_density'
+            self.extract_input_vector_from_orbital_densities()
 
     def extract_input_vector_from_orbital_densities(self):
         """

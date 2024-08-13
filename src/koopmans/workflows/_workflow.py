@@ -179,7 +179,7 @@ class Workflow(ABC):
                 self.ml_model = MLModel(self.ml.type_of_ml_model, self.ml.descriptor)
             else:
                 self.ml_model = OccEmpMLModels(self.ml.type_of_ml_model, self.ml.descriptor)
-        elif self.ml.predict:
+        elif self.ml.predict or self.ml.test:
             if self.ml.model_file is None:
                 raise ValueError('Cannot initialize a Workflow with `ml.predict = True` without providing a model via '
                                  'the `ml.model_file` setting or the `ml_model` argument')
@@ -567,16 +567,17 @@ class Workflow(ABC):
                                             'double-check your pseudopotential settings')
 
         # Make sanity checks for the ML model
-        if self.ml.predict or self.ml.train:
+        if self.ml.predict or self.ml.train or self.ml.test:
             utils.warn("Predicting screening parameters with machine-learning is an experimental feature; proceed with "
                        "caution")
             if self.ml_model is None:
                 raise ValueError("You have requested to train or predict with a machine-learning model, but no model "
                                  "is attached to this workflow. Either set ml:train or predict to True when initializing "
                                  "the workflow, or directly add a model to the workflow's ml_model attribute")
-            if self.ml.predict and self.ml.train:
+            if [self.ml.predict, self.ml.train, self.ml.test].count(True) > 1:
                 raise ValueError(
-                    'Training and predicting the ML model are mutually exclusive; change ml:predict or ml:train to False')
+                    'Training, testing, and using the ML model are mutually exclusive; change `ml:predict` '
+                    '/`ml:train`/`ml:test` so that at most one is `True`')
             if self.parameters.task not in ['singlepoint', 'trajectory', 'convergence_ml']:
                 raise NotImplementedError(
                     f'Using the ML-prediction for the {self.parameters.task}-task has not yet been implemented.')
