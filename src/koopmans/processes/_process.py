@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Tuple, Type
 
+import dill
 from pydantic import BaseModel
 
 from koopmans import calculators, utils
@@ -40,8 +41,10 @@ class Process(ABC):
     def run(self):
         assert self.directory is not None, 'Process directory must be set before running'
         with utils.chdir(self.directory):
+            self.dump_inputs()
             self._run()
-        assert self.outputs is not None, 'Process outputs must be set when running'
+            assert self.outputs is not None, 'Process outputs must be set when running'
+            self.dump_outputs()
 
     @abstractmethod
     def _run(self):
@@ -54,3 +57,22 @@ class Process(ABC):
         utils.warn(
             f'Serialization of {self.__class__.__name__} is not implemented (would require rewriting the serialization module to support circular references)')
         return {}
+
+    def dump_inputs(self):
+        with open(f'{self.name}_inputs.pkl', 'wb') as f:
+            dill.dump(self.inputs, f)
+
+    def dump_outputs(self):
+        with open(f'{self.name}_outputs.pkl', 'wb') as f:
+            dill.dump(self.outputs, f)
+
+    def load_outputs(self):
+        if self.directory is None:
+            raise ValueError('Process directory must be set before attempting to load outputs')
+        with open(self.directory / f'{self.name}_outputs.pkl', 'rb') as f:
+            self.outputs = dill.load(f)
+
+    def is_complete(self):
+        if self.directory is None:
+            raise ValueError('Process directory must be set before checking if it is complete')
+        return (self.directory / f'{self.name}_outputs.pkl').exists()

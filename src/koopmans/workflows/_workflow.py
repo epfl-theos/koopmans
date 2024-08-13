@@ -173,12 +173,12 @@ class Workflow(ABC):
         if ml_model is not None:
             self.ml_model = ml_model
         elif self.ml.train:
-            assert self.ml.type_of_ml_model is not None
+            assert self.ml.estimator is not None
             assert self.ml.descriptor is not None
             if self.ml.occ_and_emp_together:
-                self.ml_model = MLModel(self.ml.type_of_ml_model, self.ml.descriptor)
+                self.ml_model = MLModel(self.ml.estimator, self.ml.descriptor)
             else:
-                self.ml_model = OccEmpMLModels(self.ml.type_of_ml_model, self.ml.descriptor)
+                self.ml_model = OccEmpMLModels(self.ml.estimator, self.ml.descriptor)
         elif self.ml.predict or self.ml.test:
             if self.ml.model_file is None:
                 raise ValueError('Cannot initialize a Workflow with `ml.predict = True` without providing a model via '
@@ -964,9 +964,15 @@ class Workflow(ABC):
 
         self._step_counter += 1
         process.directory = Path(f'{self._step_counter:02}-{process.name}').resolve()
-        self.print('- Running ' + os.path.relpath(process.directory) + '...', end='', flush=True)
-        process.run()
-        self.print(' done')
+
+        if not self.parameters.from_scratch and process.is_complete():
+            self.print(f'- Not running {os.path.relpath(process.directory)} as it is already complete')
+            process.load_outputs()
+        else:
+            self.print('- Running ' + os.path.relpath(process.directory) + '...', end='', flush=True)
+            process.run()
+            self.print(' done')
+
         self.processes.append(process)
         self.steps.append(process)
 
