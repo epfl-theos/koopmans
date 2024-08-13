@@ -33,7 +33,7 @@ dependencies = [
     "ase-koopmans==0.1.6",
     "scikit-learn>=1.0",
     "deepdiff>=5.8.1",
-    "pydantic>=2.7.0"
+    "pydantic>=2.7.0",
     "dill>=0.3.8"
 ]
 
