@@ -61,6 +61,10 @@ class PowerSpectrumDecompositionWorkflow(Workflow):
         3) computing the power spectra of the resulting coefficient vectors
         """
 
+        if self.ml.estimator == 'mean':
+            raise ValueError('A mean estimator does not require input data; this PowerSpectrumDecompositionWorkflow '
+                             'should not have been called')
+
         # Specify for which bands we want to compute the decomposition
         self.num_bands_occ = [len([band for band in self.bands if (band.filled and band.spin == spin)])
                               for spin in [0, 1]]
@@ -72,11 +76,8 @@ class PowerSpectrumDecompositionWorkflow(Workflow):
         else:
             self.nspin_to_extract = 1
 
-        if self.ml.type_of_ml_model == 'mean':
-            return  # this model needs no X-data
-        else:
-            assert self.ml.descriptor == 'orbital_density'
-            self.extract_input_vector_from_orbital_densities()
+        assert self.ml.descriptor == 'orbital_density'
+        self.extract_input_vector_from_orbital_densities()
 
     def extract_input_vector_from_orbital_densities(self):
         """

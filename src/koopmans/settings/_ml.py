@@ -47,8 +47,8 @@ class MLSettingsDict(SettingsDictWithChecks):
                     'If true, there will be one ML model for both occupied and empty states. If False, there will be '
                     'one ML Model for occupied states and one for empty states',
                     bool, True, (True, False)),
-            Setting('type_of_ml_model',
-                    'Which ML model to use for making the predictions',
+            Setting('estimator',
+                    'What to use as the estimator for the ML model',
                     str, 'ridge_regression', ('ridge_regression', 'linear_regression', 'mean')),
             Setting('descriptor',
                     'What to use as the descriptor for the ML model',

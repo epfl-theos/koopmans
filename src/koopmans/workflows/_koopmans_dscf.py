@@ -501,7 +501,8 @@ class DeltaSCFIterationWorkflow(Workflow):
         first_band_of_each_channel = [self.bands.get(spin=spin)[0] for spin in range(2)]
 
         # Calculate the power spectrum if required
-        if self.ml.descriptor == 'orbital_density' and (self.ml.train or self.ml.predict or self.ml.test):
+        if self.ml.descriptor == 'orbital_density' and (self.ml.train or self.ml.predict or self.ml.test) \
+                and self.ml.estimator != 'mean':
             if self._precomputed_descriptors is None:
                 if self.ml.descriptor == 'orbital_density':
                     from koopmans.workflows import \
@@ -509,6 +510,7 @@ class DeltaSCFIterationWorkflow(Workflow):
                     psfit_workflow = PowerSpectrumDecompositionWorkflow.fromparent(
                         self, calc_that_produced_orbital_densities=trial_calc)
                     psfit_workflow.run()
+
                     descriptors = psfit_workflow.outputs.descriptors
             else:
                 descriptors = self._precomputed_descriptors

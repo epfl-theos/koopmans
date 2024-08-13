@@ -12,7 +12,6 @@ import copy
 import json as json_ext
 import operator
 import os
-import pickle
 import re
 import shutil
 import subprocess
@@ -24,6 +23,7 @@ from types import ModuleType
 from typing import (Any, Callable, Dict, Generator, List, Optional, Tuple,
                     Type, TypeVar, Union)
 
+import dill
 import numpy as np
 from numpy import typing as npt
 from pybtex.database import BibliographyData
@@ -184,7 +184,17 @@ class Workflow(ABC):
                 raise ValueError('Cannot initialize a Workflow with `ml.predict = True` without providing a model via '
                                  'the `ml.model_file` setting or the `ml_model` argument')
             with open(self.ml.model_file, 'rb') as f:
-                self.ml_model = pickle.load(f)
+                self.ml_model = dill.load(f)
+            assert isinstance(self.ml_model, AbstractMLModel)
+            if self.ml_model.estimator_type != self.ml.estimator:
+                utils.warn(f'The estimator type of the loaded ML model ({self.ml_model.estimator_type}) does not match '
+                           f'the estimator type specified in the Workflow settings ({self.ml.estimator}). Overriding...')
+                self.ml.estimator = self.ml_model.estimator_type
+            if self.ml_model.descriptor_type != self.ml.descriptor:
+                utils.warn(f'The descriptor type of the loaded ML model ({self.ml_model.descriptor_type}) does not match '
+                           f'the descriptor type specified in the Workflow settings ({self.ml.descriptor}). Overriding...')
+                self.ml.descriptor = self.ml_model.descriptor_type
+
         else:
             self.ml_model = None
 
@@ -1345,7 +1355,7 @@ class Workflow(ABC):
         if self.ml.train:
             assert self.ml_model is not None
             with open(self.name + '_ml_model.pkl', 'wb') as fd:
-                pickle.dump(self.ml_model, fd)
+                dill.dump(self.ml_model, fd)
 
         # Print farewell message
         print('\n \033[1mWorkflow complete\033[0m')
