@@ -186,14 +186,6 @@ class Workflow(ABC):
             with open(self.ml.model_file, 'rb') as f:
                 self.ml_model = dill.load(f)
             assert isinstance(self.ml_model, AbstractMLModel)
-            if self.ml_model.estimator_type != self.ml.estimator:
-                utils.warn(f'The estimator type of the loaded ML model ({self.ml_model.estimator_type}) does not match '
-                           f'the estimator type specified in the Workflow settings ({self.ml.estimator}). Overriding...')
-                self.ml.estimator = self.ml_model.estimator_type
-            if self.ml_model.descriptor_type != self.ml.descriptor:
-                utils.warn(f'The descriptor type of the loaded ML model ({self.ml_model.descriptor_type}) does not match '
-                           f'the descriptor type specified in the Workflow settings ({self.ml.descriptor}). Overriding...')
-                self.ml.descriptor = self.ml_model.descriptor_type
 
         else:
             self.ml_model = None
@@ -584,6 +576,14 @@ class Workflow(ABC):
                 raise ValueError("You have requested to train or predict with a machine-learning model, but no model "
                                  "is attached to this workflow. Either set ml:train or predict to True when initializing "
                                  "the workflow, or directly add a model to the workflow's ml_model attribute")
+            if self.ml_model.estimator_type != self.ml.estimator:
+                utils.warn(f'The estimator type of the loaded ML model ({self.ml_model.estimator_type}) does not match '
+                           f'the estimator type specified in the Workflow settings ({self.ml.estimator}). Overriding...')
+                self.ml.estimator = self.ml_model.estimator_type
+            if self.ml_model.descriptor_type != self.ml.descriptor:
+                utils.warn(f'The descriptor type of the loaded ML model ({self.ml_model.descriptor_type}) does not match '
+                           f'the descriptor type specified in the Workflow settings ({self.ml.descriptor}). Overriding...')
+                self.ml.descriptor = self.ml_model.descriptor_type
             if [self.ml.predict, self.ml.train, self.ml.test].count(True) > 1:
                 raise ValueError(
                     'Training, testing, and using the ML model are mutually exclusive; change `ml:predict` '
