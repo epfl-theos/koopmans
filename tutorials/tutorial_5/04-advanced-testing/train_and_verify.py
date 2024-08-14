@@ -82,13 +82,13 @@ fig, axarr = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [2, 1
 ax = axarr[0]
 ax.axhline(0, color='black', linestyle='--', lw=1)
 ax.violinplot(errors, showmeans=True)
-ax.set_ylabel('errors in orbital \n energies (eV)')
+ax.set_ylabel(r'$\varepsilon^\mathsf{predicted}_i - \varepsilon^\mathsf{true}_i$ distribution (eV)')
 
 # MAE plot
 ax = axarr[1]
 ax.plot(range(1, n_train + 1), [np.mean(np.abs(err)) for err in errors], 'o--')
 ax.set_yscale('log')
-ax.set_ylabel('MAE in orbital \n energies (eV)')
+ax.set_ylabel(r'$\varepsilon^\mathsf{predicted}_i - \varepsilon^\mathsf{true}_i$ MAE (eV)')
 ax.set_xlabel('number of configurations used for training')
 ax.set_ylim(1e-2, 1e0)
 

@@ -3,7 +3,7 @@
         "task": "trajectory",
         "functional": "ki",
         "init_orbitals": "mlwfs",
-        "from_scratch": true,
+        "from_scratch": false,
         "fix_spin_contamination": false,
         "pseudo_library": "sg15_v1.0",
         "mp_correction": true,
@@ -12,6 +12,9 @@
     },
     "ml": {
         "train": true,
+        "estimator": "ridge_regression",
+        "descriptor": "orbital_density",
+        "occ_and_emp_together": false,
         "n_max": 6,
         "l_max": 6,
         "r_min": 1.0,

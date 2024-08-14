@@ -40,11 +40,11 @@ Note that this ``.xyz`` file contains five confiugurations of water.
 Finally, to enable the machine-learning process we provide a ``ml`` block and set ``train`` to ``true``:
 
 .. literalinclude:: ../../tutorials/tutorial_5/01-train/h2o_train.json
-  :lines: 13-19
+  :lines: 13-21
   :linenos:
   :lineno-start: 13
 
-The remaining keywords in the ``ml`` block are the hyperparameters of the machine learning model.
+The remaining keywords in the ``ml`` block specify the fact that we will predicting the screening parameters via ridge regression from a descriptor constructed from the orbital densities. The remaining keywords are the descriptor hyperparameters.
 
 .. note::
 
@@ -89,7 +89,7 @@ Using :download:`this script <../../tutorials/tutorial_5/02-predict/plot.py>` we
 
 
 .. figure:: ../../tutorials/tutorial_5/02-predict/predicting.png
-   :width: 500
+   :width: 600
    :align: center
    :alt: The distribution of the orbital energies across the screenshots (computed using machine-learned screening parameters)
 
@@ -113,28 +113,31 @@ Running this calculation, you will see the same output as in the previous calcul
 We can compare the results using the :download:`accompanying python script <../../tutorials/tutorial_5/03-test/plot.py>`, which extracts the orbital energies from the ``.kwf`` file and generates the following plot
 
 .. figure:: ../../tutorials/tutorial_5/03-test/testing.png
-   :width: 500
-   :align: center
-   :alt: the accuracy of the orbital energies when using machine-learned screening parameters
-   
-   The accuracy of the orbital energies when using machine-learned screening parameters (:math:`\varepsilon_i^\mathsf{predicted}`) relative to those calculated ab initio (:math:`\varepsilon_i^\mathsf{true}`) across the 15 test configurations.
+  :width: 700
+  :align: center
+  :alt: the accuracy of the orbital energies when using machine-learned screening parameters
+  
+  The accuracy of the orbital energies when using machine-learned screening parameters (:math:`\varepsilon_i^\mathsf{predicted}`) relative to those calculated ab initio (:math:`\varepsilon_i^\mathsf{true}`) across the 15 test configurations.
 
-Now we can understand the accuracy of our model: we can expect the orbital energies to be predicted within 40 meV of the ab initio Koopmans result. This is pretty good, given how rudimentary the model is and how little training it required! 
+Now we can understand the accuracy of our model: we can expect the orbital energies to be predicted within 40 meV or so of the ab initio Koopmans result. This is pretty good, given how rudimentary the model is and how little training it required! 
+
+.. note::
+  To really get a sense for the accuracy of this model, try and compare it to the accuracy you achieve when using an average screening parameter for all of the orbitals (set ``estimator`` to ``mean`` and then re-train and re-test).
 
 More advanced testing (extra for experts)
 -----------------------------------------
 
-So far, all of these tasks have relied on the pre-built workflows in the `koopmans` package. However, it is possible to use ``python`` to perform much more bespoke workflows. In `the script provided in the final part of this tutorial <../../tutorials/tutorial_5/04-advanced-testing/train-and-verify.py>` this functionality is leveraged to perform a convergence test on the accuracy of the machine-learning model as the number of training snapshots is increased.
+So far, all of these tasks have relied on the pre-built workflows in the `koopmans` package. However, it is possible to use ``python`` to perform much more bespoke workflows. In :download:`the script provided in the final part of this tutorial <../../tutorials/tutorial_5/04-advanced-testing/train_and_verify.py>`, this functionality is leveraged to perform a convergence test on the accuracy of the machine-learning model as the number of training snapshots is increased.
 
 For more details, refer to the script itself. Running the script generates the following plot
 
 .. figure:: ../../tutorials/tutorial_5/04-advanced-testing/ntrain_convergence.png
-   :width: 500
-   :align: center
-   :alt: The accuracy of the machine-learning model as a function of the number of configurations used during training
-   
-   The accuracy of the machine-learning model as a function of the number of configurations used during training
+  :width: 700
+  :align: center
+  :alt: The accuracy of the machine-learning model as a function of the number of configurations used during training
+  
+  The accuracy of the machine-learning model as a function of the number of configurations used during training
 
-  Here we can see after X training confurations the accuracy of the model saturates.
+Here we can see after five training configurations the model is beginning to saturate.
 
 

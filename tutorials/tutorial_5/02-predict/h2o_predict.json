@@ -13,6 +13,9 @@
     "ml": {
         "predict": true,
         "model_file": "../01-train/h2o_train_ml_model.pkl",
+        "estimator": "ridge_regression",
+        "descriptor": "orbital_density",
+        "occ_and_emp_together": false,
         "n_max": 6,
         "l_max": 6,
         "r_min": 1.0,
