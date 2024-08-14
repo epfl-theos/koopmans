@@ -51,8 +51,6 @@ class ExtractCoefficientsFromXMLProcess(Process):
         Performs the decomposition into radial basis functions and spherical harmonics
         """
 
-        utils.warn('Need to implement check_if_compute_decomposition_is_complete (add it as an optional input?)')
-
         # Precompute the parameters of the radial basis functions
         alphas, betas = ml.precompute_parameters_of_radial_basis(self.inputs.n_max, self.inputs.l_max,
                                                                  self.inputs.r_min, self.inputs.r_max)

@@ -177,7 +177,7 @@ def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '
                    flush: bool = False):
     global print_call_end
     for substring in text.split('\n'):
-        if print_call_end == '\n':
+        if print_call_end in ['\n', '\r']:
             print(' ' * indent + substring, sep=sep, end=end, flush=flush)
         else:
             print(substring, sep=sep, end=end, flush=flush)

@@ -28,6 +28,10 @@ class TrajectoryWorkflow(Workflow):
     output_model = TrajectoryOutputs  # type: ignore
     outputs: TrajectoryOutputs
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.parameters.task = 'trajectory'
+
     # def __init__(self, snapshots: List[Atoms], indices: Optional[List[int]] = None, save_dir: Optional[Path] = None,
     #              get_evs: bool = False, overwrite_atoms: bool = True, *args, **kwargs):
 

@@ -403,23 +403,23 @@ class Bands(object):
         return df
 
     @property
-    def alpha_history(self) -> List[pd.DataFrame]:
+    def alpha_history(self) -> pd.DataFrame:
         return self._create_dataframe('alpha_history')
 
     @property
-    def error_history(self):
+    def error_history(self) -> pd.DataFrame:
         return self._create_dataframe('error_history')
 
     def print_history(self, indent: int = 0):
         # Printing out a progress summary
-        indented_print(f'\nα', indent=indent)
-        indented_print(str(self.alpha_history), indent=indent)
+        indented_print(f'\n**α**', indent=indent)
+        indented_print(self.alpha_history.to_markdown(), indent=indent)
 
         if None not in [b.predicted_alpha for b in self]:
-            indented_print(f'\npredicted α', indent=indent)
-            indented_print(str(self._create_dataframe('predicted_alpha')), indent=indent)
+            indented_print(f'\n**predicted α**', indent=indent)
+            indented_print(self._create_dataframe('predicted_alpha').to_markdown(), indent=indent)
 
         if not self.error_history.empty:
-            indented_print(f'\nΔE_i - λ_ii (eV)', indent=indent)
-            indented_print(str(self.error_history), indent=indent)
+            indented_print(f'\n**ΔE_i - λ_ii (eV)**', indent=indent)
+            indented_print(self.error_history.to_markdown(), indent=indent)
         indented_print('')

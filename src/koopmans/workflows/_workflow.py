@@ -15,6 +15,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import reduce
@@ -397,9 +398,11 @@ class Workflow(ABC):
 
         if self.parent:
             with self._parent_context(subdirectory, from_scratch):
-                self.print(f'- {self.name}', style='heading')
+                self.print(f'- **{self.name}**', style='heading')
                 self._run()
         else:
+            print(self.name)
+            print('-' * len(self.name))
             if subdirectory:
                 with utils.chdir(subdirectory):
                     self._run()
@@ -880,7 +883,8 @@ class Workflow(ABC):
                 is_complete = self.load_old_calculator(qe_calc)
                 if is_complete:
                     if not self.silent:
-                        self.print(f'- Not running {os.path.relpath(qe_calc.directory)} as it is already complete')
+                        self.print(
+                            f'- ⏭️  Not running `{os.path.relpath(qe_calc.directory)}` as it is already complete  ')
 
                     # Check the convergence of the calculation
                     qe_calc.check_convergence()
@@ -919,18 +923,18 @@ class Workflow(ABC):
         """
 
         for calc in calcs:
-            if not self.silent:
-                dir_str = os.path.relpath(calc.directory)
-                self.print(f'- Running {dir_str}...', end='', flush=True)
+            dir_str = os.path.relpath(calc.directory)
+            if sys.stdout.isatty():
+                self.print(f'- 🖥️  Running `{dir_str}`...', end='\r', flush=True)
 
             try:
                 calc.calculate()
             except CalculationFailed:
-                self.print(' failed')
+                self.print(f'- ❌ `{dir_str}` failed     ')
                 raise
 
             if not self.silent:
-                self.print(' done')
+                self.print(f'- ✅ `{dir_str}` completed  ')
 
             # If we reached here, all future calculations should be performed from scratch
             self.parameters.from_scratch = True
@@ -976,12 +980,13 @@ class Workflow(ABC):
         process.directory = Path(f'{self._step_counter:02}-{process.name}').resolve()
 
         if not self.parameters.from_scratch and process.is_complete():
-            self.print(f'- Not running {os.path.relpath(process.directory)} as it is already complete')
+            self.print(f'- ⏭️  Not running `{os.path.relpath(process.directory)}` as it is already complete  ')
             process.load_outputs()
         else:
-            self.print('- Running ' + os.path.relpath(process.directory) + '...', end='', flush=True)
+            if sys.stdout.isatty():
+                self.print('- 🖥️  Running `' + os.path.relpath(process.directory) + '`...', end='\r')
             process.run()
-            self.print(' done')
+            self.print('- ✅ `' + os.path.relpath(process.directory) + '` completed  ')
 
         self.processes.append(process)
         self.steps.append(process)
@@ -1038,14 +1043,12 @@ class Workflow(ABC):
         dest_calc.link_file(src_calc, src_path, dest_path, symlink=symlink,  # type: ignore
                             recursive_symlink=recursive_symlink, overwrite=overwrite)
 
-    def print(self, text: str = '', style='body', bold=False, **kwargs: Any):
-        if bold or style == 'heading':
-            text = '\033[1m' + text + '\033[0m'
+    def print(self, text: str = '', style='body', bold=False, flush=True, **kwargs: Any):
         if style == 'body':
-            utils.indented_print(text, self.print_indent + 2, **kwargs)
+            utils.indented_print(text, self.print_indent + 2, flush=flush, **kwargs)
         elif style == 'heading':
             assert kwargs.get('end', '\n') == '\n'
-            utils.indented_print(text, self.print_indent, **kwargs)
+            utils.indented_print(text, self.print_indent, flush=flush, **kwargs)
         else:
             raise ValueError(f'Invalid choice "{style}" for style; must be heading/subheading/body')
 
@@ -1288,9 +1291,6 @@ class Workflow(ABC):
         else:
             return wf
 
-    def print_header(self):
-        print("\033[1m" + header() + "\033[0m")
-
     def print_bib(self):
         relevant_references = BibliographyData()
 
@@ -1329,14 +1329,15 @@ class Workflow(ABC):
                 for citation in citations:
                     add_ref(citation, f'Citation for the {psp_lib.replace("_", " ")} pseudopotential library')
 
-        print(f'\n Please cite the papers listed in {self.name}.bib in work involving this calculation')
+        print(
+            f'\n> [!NOTE] Citing \n> Please cite the papers listed in `{self.name}.bib` in work involving this calculation')
         relevant_references.to_file(self.name + '.bib')
 
     def print_preamble(self):
         if self.parent:
             return
 
-        self.print_header()
+        print(header())
 
         self.print_bib()
 
@@ -1358,7 +1359,7 @@ class Workflow(ABC):
                 dill.dump(self.ml_model, fd)
 
         # Print farewell message
-        print('\n \033[1mWorkflow complete\033[0m')
+        print('\nWorkflow complete 🎉')
 
     def toinputjson(self) -> Dict[str, Dict[str, Any]]:
 
@@ -1392,7 +1393,7 @@ class Workflow(ABC):
         if len(self.snapshots) > 1:
             snapshots_file = 'snapshots.xyz'
             ase_write(snapshots_file, self.snapshots)
-            bigdct['atoms']['snapshots']
+            bigdct['atoms']['atomic_positions'] = {'snapshots': snapshots_file}
         else:
             if len(set(self.atoms.get_tags())) > 1:
                 labels = [s + str(t) if t > 0 else s for s, t in zip(self.atoms.symbols, self.atoms.get_tags())]
@@ -1468,7 +1469,7 @@ class Workflow(ABC):
                 raise NotImplementedError(
                     f'Writing of {params.__class__.__name__} with write_json is not yet implemented')
 
-        other_blocks: Dict[str, Any] = {'plotting': self.plotting}
+        other_blocks: Dict[str, Any] = {'plotting': self.plotting, 'ml': self.ml}
         for key, params in other_blocks.items():
             dct: Dict[str, Any] = {k: v for k, v in params.items() if params.defaults.get(k, None) != v}
             if dct:
@@ -1630,18 +1631,19 @@ class Workflow(ABC):
 def header():
     from koopmans import __version__
 
-    header = [r"  _",
-              r" | | _____   ___  _ __  _ __ ___   __ _ _ __  ___",
-              r" | |/ / _ \ / _ \| '_ \| '_ ` _ \ / _` | '_ \/ __|",
-              r" |   < (_) | (_) | |_) | | | | | | (_| | | | \__ \ ",
-              r" |_|\_\___/ \___/| .__/|_| |_| |_|\__,_|_| |_|___/",
-              f"                 |_|",
+    header = ["",
+              "koopmans",
+              "========",
               "",
-              " Koopmans spectral functional calculations with Quantum ESPRESSO",
+              "*Koopmans spectral functional calculations with `Quantum ESPRESSO`*",
               "",
-              f" version {__version__}",
-              "",
-              " Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna"]
+              f"⚙️ **Version:** {__version__}  ",
+              "🧑 **Authors:** Edward Linscott, Nicola Colonna, Riccardo De Gennaro, Ngoc Linh Nguyen, Giovanni Borghi, Andrea Ferretti, Ismaila Dabo, and Nicola Marzari",
+              "📝 **Documentation:** https://koopmans-functionals.org  ",
+              "❓ **Support:** https://groups.google.com/g/koopmans-users  ",
+              "🐛 **Report a bug:** https://github.com/epfl-theos/koopmans/issues/new"
+              ]
+
     return '\n'.join(header)
 
 

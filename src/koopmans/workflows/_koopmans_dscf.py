@@ -345,6 +345,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     koopmans_ham_files=koopmans_ham_files,
                     dft_ham_files=dft_ham_files,
                     redo_smooth_dft=self._redo_smooth_dft)
+                raise NotImplementedError('Need to update this')
                 ui_workflow.run(subdirectory='postproc')
             else:
                 # Generate the DOS only

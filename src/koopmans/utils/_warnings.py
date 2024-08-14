@@ -25,11 +25,10 @@ def _warning(message: Union[str, Warning], category: Type[Warning] = UserWarning
     '''
     width = 120
     print()
-    print('-' * width)
-    message = textwrap.fill(f'{category.__name__}: {message}', width=width-1,
-                            initial_indent=' ', subsequent_indent=' ' * (len(category.__name__) + 3))
+    print(f'> [!WARNING] {category.__name__}')
+    message = textwrap.fill(str(message), width=width-2, initial_indent='> ', subsequent_indent='> ')
     print(message)
-    print('-' * width)
+    print()
 
 
 def _warn_with_traceback(message: Union[str, Warning], category: Type[Warning] = UserWarning, filename: str = '',

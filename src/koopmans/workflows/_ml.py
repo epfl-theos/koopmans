@@ -151,33 +151,27 @@ class ConvertOrbitalFilesToXMLWorkflow(Workflow):
         """
         Converts the binary files produced by a previous calculation to python-readable xml files.
         """
-        is_complete = False  # self.check_if_bin2xml_is_complete()
 
-        utils.warn('Need to implement check if compute decomposition is complete (add it as an optional input)')
+        # Convert total density to XML
+        binary = FilePointer(self.calc_that_produced_orbital_densities,
+                             self.calc_that_produced_orbital_densities.write_directory / 'charge-density.dat')
+        bin2xml_total_density = Bin2XMLProcess(name='bin2xml_total_density', binary=binary)
+        self.run_process(bin2xml_total_density)
 
-        if not self.parameters.from_scratch and is_complete:
-            raise NotImplementedError('Not implemented yet')
-        else:
-            # Convert total density to XML
+        # Convert orbital densities to XML
+        orbital_densities: List[FilePointer] = []
+        for band in self.bands.to_solve:
+            if band.filled:
+                occ_id = 'occ'
+            else:
+                occ_id = 'emp'
             binary = FilePointer(self.calc_that_produced_orbital_densities,
-                                 self.calc_that_produced_orbital_densities.write_directory / 'charge-density.dat')
-            bin2xml_total_density = Bin2XMLProcess(name='bin2xml_total_density', binary=binary)
-            self.run_process(bin2xml_total_density)
+                                 self.calc_that_produced_orbital_densities.write_directory / f'real_space_orb_density.{occ_id}.{band.spin}.{band.index:05d}.dat')
 
-            # Convert orbital densities to XML
-            orbital_densities: List[FilePointer] = []
-            for band in self.bands.to_solve:
-                if band.filled:
-                    occ_id = 'occ'
-                else:
-                    occ_id = 'emp'
-                binary = FilePointer(self.calc_that_produced_orbital_densities,
-                                     self.calc_that_produced_orbital_densities.write_directory / f'real_space_orb_density.{occ_id}.{band.spin}.{band.index:05d}.dat')
-
-                bin2xml_orbital_density = Bin2XMLProcess(
-                    name=f'bin2xml_{occ_id}_spin_{band.spin}_orb_{band.index}_density', binary=binary)
-                self.run_process(bin2xml_orbital_density)
-                orbital_densities.append(bin2xml_orbital_density.outputs.xml)
+            bin2xml_orbital_density = Bin2XMLProcess(
+                name=f'bin2xml_{occ_id}_spin_{band.spin}_orb_{band.index}_density', binary=binary)
+            self.run_process(bin2xml_orbital_density)
+            orbital_densities.append(bin2xml_orbital_density.outputs.xml)
 
         self.outputs = self.output_model(total_density=bin2xml_total_density.outputs.xml,
                                          orbital_densities=orbital_densities)
