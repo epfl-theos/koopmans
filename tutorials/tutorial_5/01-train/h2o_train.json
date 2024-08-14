@@ -3,7 +3,7 @@
         "task": "trajectory",
         "functional": "ki",
         "init_orbitals": "mlwfs",
-        "from_scratch": false,
+        "from_scratch": true,
         "fix_spin_contamination": false,
         "pseudo_library": "sg15_v1.0",
         "mp_correction": true,
