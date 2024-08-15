@@ -162,7 +162,7 @@ class DFTBandsWorkflow(DFTWorkflow):
                     dos._energies -= bs.reference
             else:
                 # Skip if the pseudos don't have the requisite PP_PSWFC blocks
-                utils.warn('Some of the pseudopotentials do not have PP_PSWFC blocks, which means a projected DOS '
+                utils.warn('Some of the pseudopotentials do not have `PP_PSWFC` blocks, which means a projected DOS '
                            'calculation is not possible. Skipping...')
                 dos = None
 

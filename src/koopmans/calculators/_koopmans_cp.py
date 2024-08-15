@@ -256,11 +256,11 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             self.parameters.nr2b = good_fft(nr2b)
             self.parameters.nr3b = good_fft(nr3b)
 
-            utils.warn('Small box parameters "nrb" not provided in input: these will be automatically set to safe '
+            utils.warn('Small box parameters `nrb` not provided in input: these will be automatically set to safe '
                        'default values. These values can probably be decreased, but this would require convergence '
-                       f'tests.\n   Estimated real mesh dimension (nr1, nr2, nr3) = {nr1} {nr2} {nr3} \n   Small box '
-                       f'mesh dimension (nr1b, nr2b, nr3b) = {self.parameters.nr1b} {self.parameters.nr2b} '
-                       f'{self.parameters.nr3b}\n')
+                       f'tests. Estimated real mesh dimension `(nr1, nr2, nr3) = {nr1} {nr2} {nr3}`. Small box '
+                       f'mesh dimension `(nr1b, nr2b, nr3b) = {self.parameters.nr1b} {self.parameters.nr2b} '
+                       f'{self.parameters.nr3b}`.')
 
     def is_complete(self) -> bool:
         return self.results.get('job_done', False)

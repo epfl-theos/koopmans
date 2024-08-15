@@ -224,7 +224,7 @@ class UnfoldAndInterpolateProcess(Process):
             self._phases = [float(l.split()[0]) + float(l.split()[1]) * 1j for l in lines]
         except FileNotFoundError:
             if self.inputs.parameters.w90_input_sc:
-                utils.warn('file "wf_phases.dat" not found; phases are ignored')
+                utils.warn('file `wf_phases.dat` not found; phases are ignored')
             self._phases = []
         return
 

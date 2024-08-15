@@ -176,14 +176,17 @@ previous_indent = 0
 
 
 def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n',
-                   flush: bool = False):
+                   flush: bool = False, initial_indent: str | None = None, subsequent_indent: str | None = None):
     global print_call_end
     global previous_indent
     if indent < 0:
         indent = previous_indent
     for substring in text.split('\n'):
         if print_call_end in ['\n', '\r']:
-            message = textwrap.fill(substring, width=120, initial_indent=' ' * indent, subsequent_indent=' ' * indent)
+            initial_indent = ' ' * indent if initial_indent is None else initial_indent
+            subsequent_indent = ' ' * indent if subsequent_indent is None else subsequent_indent
+            message = textwrap.fill(substring, width=120, initial_indent=initial_indent,
+                                    subsequent_indent=subsequent_indent)
             print(message, sep=sep, end=end, flush=flush)
         else:
             print(substring, sep=sep, end=end, flush=flush)

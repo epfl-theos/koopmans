@@ -278,7 +278,7 @@ class WannierizeWorkflow(Workflow):
                 dos = copy.deepcopy(calc_dos.results['dos'])
             else:
                 # Skip if the pseudos don't have the requisite PP_PSWFC blocks
-                utils.warn('Some of the pseudopotentials do not have PP_PSWFC blocks, which means a projected DOS '
+                utils.warn('Some of the pseudopotentials do not have `PP_PSWFC` blocks, which means a projected DOS '
                            'calculation is not possible. Skipping...')
 
             # Select those calculations that generated a band structure (and are part of this wannierize workflow)

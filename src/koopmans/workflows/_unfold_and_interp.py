@@ -143,8 +143,8 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                 merged_dos = None
                 utils.warn('The DOS will not be plotted, because the Brillouin zone is too poorly sampled for the '
                            'specified value of smearing. In order to generate a DOS, increase the k-point density '
-                           '("kpath_density" in the "setup" "k_points" subblock) and/or the smearing ("degauss" '
-                           'in the "plot" block)')
+                           '(`kpath_density` in the `setup` `k_points` subblock) and/or the smearing (`degauss` '
+                           'in the `plot` block)')
         else:
             merged_dos = None
 

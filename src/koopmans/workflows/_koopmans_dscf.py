@@ -424,14 +424,14 @@ class CalculateScreeningViaDSCF(Workflow):
                 else:
                     # Do the subsequent loop
                     utils.warn('The screening parameters for a KI calculation with no empty states will converge '
-                               'instantly; to save computational time set alpha_numsteps == 1')
+                               'instantly; to save computational time set `alpha_numsteps == 1`')
 
             n_electron_calc = iteration_wf.outputs.n_electron_restart_dir.parent
             variational_orbital_files = {}
 
         if not converged:
             utils.warn('The screening parameters have been calculated but are not necessarily self-consistent. '
-                       'You may want to increase alpha_numsteps to obtain a more accurate result.')
+                       'You may want to increase `alpha_numsteps` to obtain a more accurate result.')
 
         self.outputs = CalculateScreeningViaDSCFOutput(
             n_electron_restart_dir=iteration_wf.outputs.n_electron_restart_dir)
@@ -771,7 +771,7 @@ class OrbitalDeltaSCFWorkflow(Workflow):
 
         warning_message = 'The computed screening parameter is {0}. Proceed with caution.'
         failure_message = 'The computed screening parameter is significantly {0}. This should not ' \
-            'happen. Decrease alpha_mixing and/or change alpha_guess.'
+            'happen. Decrease `alpha_mixing` and/or change `alpha_guess`.'
 
         if alpha < -0.1:
             raise ValueError(failure_message.format('less than 0'))
