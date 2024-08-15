@@ -465,7 +465,7 @@ class DeltaSCFIterationWorkflow(Workflow):
     def _run(self):
         # Do a KI/KIPZ calculation with the updated alpha values
         restart_from_wannier_pwscf = 'evc_occupied1.dat' in self._variational_orbital_files
-        if self.parameters.task in ['singlepoint', 'trajectory', 'convergence_ml'] and self.ml.descriptor == 'orbital_density':
+        if self.parameters.task in ['singlepoint', 'trajectory'] and self.ml.descriptor == 'orbital_density':
             print_real_space_density = True
         else:
             print_real_space_density = False

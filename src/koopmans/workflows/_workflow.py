@@ -592,7 +592,7 @@ class Workflow(ABC):
                 raise ValueError(
                     'Training, testing, and using the ML model are mutually exclusive; change `ml:predict` '
                     '/`ml:train`/`ml:test` so that at most one is `True`')
-            if self.parameters.task not in ['singlepoint', 'trajectory', 'convergence_ml']:
+            if self.parameters.task not in ['singlepoint', 'trajectory']:
                 raise NotImplementedError(
                     f'Using the ML-prediction for the task `{self.parameters.task}` has not yet been implemented.')
             if self.parameters.method != 'dscf':
@@ -619,59 +619,26 @@ class Workflow(ABC):
             if not np.all(self.atoms.cell.angles() == 90.0):
                 raise ValueError(f"The ML-workflow has only been implemented for simulation cells that have 90° angles")
 
-            if self.parameters.task != 'convergence_ml':
-                assert isinstance(self.ml.n_max, int)
-                assert isinstance(self.ml.l_max, int)
-                assert isinstance(self.ml.r_min, float)
-                assert isinstance(self.ml.r_max, float)
-
-            # convert now each parameter to a list to be able to run the same checks irregardless of the task
-
-            def convert_to_list(param, type):
-                if isinstance(param, type):  # if param is an int or a float convert it for the checks to a list
-                    return [param]
-                else:  # if param is not an int or a float check that it is a list of ints / floats
-                    assert (isinstance(param, list))
-                    for value in param:
-                        assert (isinstance(value, type))
-                    return param
-
-            n_maxs = convert_to_list(self.ml.n_max, int)
-            l_maxs = convert_to_list(self.ml.l_max, int)
-            r_mins = convert_to_list(self.ml.r_min, float)
-            r_maxs = convert_to_list(self.ml.r_max, float)
-
             # check that each n_max, l_max, r_max and r_min are greater or equal to 0 and that r_min is smaller than
             # r_max
-            for n_max in n_maxs:
-                if not n_max > 0:
-                    raise ValueError(f"`n_max` has to be larger than zero. The provided value is `n_max={n_max}`")
-            for l_max in l_maxs:
-                if not l_max >= 0:
-                    raise ValueError(
-                        f"`l_max` has to be equal or larger than zero. The provided value is `l_max={l_max}`")
-            for r_min in r_mins:
-                if not r_min >= 0:
-                    raise ValueError(
-                        f"`r_min` has to be equal or larger than zero. The provided value is `r_min={r_min}`")
-                if r_min < 0.5:
-                    utils.warn(
-                        "Small values of `r_min` (<0.5) can lead to problems in the construction of the radial basis. "
-                        f"The provided value is `r_min = {r_min}`.")
-            for r_max in r_maxs:
-                if not any(r_min < r_max for r_min in r_mins):
-                    raise ValueError(f"All provided values of `r_min` are larger or equal to `r_max={r_max}`.")
-
-            # for the convergence_ml task we want to have each parameter in a list form
-            if self.parameters.task == 'convergence_ml':
-
-                implemented_quantities_of_interest = ['alphas', 'evs']
-                self.ml.quantities_of_interest = convert_to_list(self.ml.quantities_of_interest, str)
-
-                for qoi in self.ml.quantities_of_interest:
-                    if qoi not in implemented_quantities_of_interest:
-                        raise NotImplementedError(
-                            "Performing the convergence_analysis w.r.t. `{qoi}` has not yet been implement.")
+            assert isinstance(self.ml.n_max, int)
+            assert isinstance(self.ml.l_max, int)
+            assert isinstance(self.ml.r_max, float)
+            assert isinstance(self.ml.r_min, float)
+            if not self.ml.n_max > 0:
+                raise ValueError(f"`n_max` has to be larger than zero. The provided value is `n_max = {self.ml.n_max}`")
+            if not self.ml.l_max >= 0:
+                raise ValueError(
+                    f"`l_max` has to be equal or larger than zero. The provided value is `l_max = {self.ml.l_max}`")
+            if not self.ml.r_min >= 0:
+                raise ValueError(
+                    f"`r_min` has to be equal or larger than zero. The provided value is `r_min = {self.ml.r_min}`")
+            if self.ml.r_min < 0.5:
+                utils.warn(
+                    "Small values of `r_min` (<0.5) can lead to problems in the construction of the radial basis. "
+                    f"The provided value is `r_min = {self.ml.r_min}`.")
+            if not any(self.ml.r_min < self.ml.r_max for self.ml.r_min in self.ml.r_mins):
+                raise ValueError(f"All provided values of `r_min` are larger or equal to `r_max = {self.ml.r_max}`.")
 
     def new_calculator(self,
                        calc_type: str,

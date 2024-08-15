@@ -44,8 +44,6 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}, **kwargs):
         workflow_cls = workflows.DFTPhWorkflow
     elif parameters.task == 'trajectory':
         workflow_cls = workflows.TrajectoryWorkflow
-    elif parameters.task == 'convergence_ml':
-        workflow_cls = workflows.ConvergenceMLWorkflow
     else:
         raise ValueError(f'Invalid task name `{parameters.task}`')
 

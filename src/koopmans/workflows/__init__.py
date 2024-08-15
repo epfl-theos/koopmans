@@ -5,7 +5,6 @@ from ._convergence import (ConvergenceVariable, ConvergenceVariableFactory,
                            ConvergenceWorkflow, ConvergenceWorkflowFactory,
                            ObservableFactory, get_calculator_parameter,
                            set_calculator_parameter)
-from ._convergence_ml import ConvergenceMLWorkflow
 from ._dft import DFTBandsWorkflow, DFTCPWorkflow, DFTPhWorkflow, DFTPWWorkflow
 from ._folding import FoldToSupercellWorkflow
 from ._koopmans_dfpt import KoopmansDFPTWorkflow
