@@ -1308,7 +1308,7 @@ class Workflow(ABC):
                     add_ref(citation, f'Citation for the {psp_lib.replace("_", " ")} pseudopotential library')
 
         self.print(
-            f'\n> [!NOTE] Citing \n> Please cite the papers listed in `{self.name}.bib` in work involving this calculation')
+            f'\n> [!NOTE] \n> Please cite the papers listed in `{self.name}.bib` in work involving this calculation')
         relevant_references.to_file(self.name + '.bib')
 
     def print_preamble(self):

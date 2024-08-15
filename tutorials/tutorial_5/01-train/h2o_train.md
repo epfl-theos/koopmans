@@ -11,18 +11,18 @@
   ❓ **Support:** https://groups.google.com/g/koopmans-users  
   🐛 **Report a bug:** https://github.com/epfl-theos/koopmans/issues/new
 
-  > [!NOTE] Citing 
+  > [!NOTE] 
   > Please cite the papers listed in `h2o_train.bib` in work involving this calculation
 
   h2o_train
   ---------
 
-  > [!WARNING]
+  > [!WARNING] 
   > This system is not cubic and will therefore not have a uniform dielectric tensor. However, the image-correction
   > schemes that are currently implemented assume a uniform dielectric. Proceed with caution
 
 
-  > [!WARNING] UserWarning
+  > [!WARNING] 
   > Predicting screening parameters with machine-learning is an experimental feature; proceed with caution
 
   - **Koopmans DSCF Snapshot 1 of 5**
@@ -91,7 +91,7 @@
         |  0 | 0.213412 | 0.300457 | 0.930696 | 0.938597 | -0.0964506 | -0.137783 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING] 
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -162,7 +162,7 @@
         |  0 | 0.278618 | 0.148526 | 0.850251 | 0.856718 | -0.165157 | -0.0940282 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING] 
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -233,7 +233,7 @@
         |  0 | 0.169357 | 0.434248 | 0.998794 | 0.991985 | -0.0596641 | -0.256215 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING] 
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -304,7 +304,7 @@
         |  0 | 0.339028 | 0.0922657 | 0.708686 | 0.715767 | -0.233903 | -0.108281 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING] 
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -375,7 +375,7 @@
         |  0 | 0.181934 | 0.0270643 | 0.37397 | 0.38485 | -0.287828 | -0.308915 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING] 
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 

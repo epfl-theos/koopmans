@@ -28,7 +28,7 @@ def _warning(message: Union[str, Warning], category: Type[Warning] = UserWarning
     from ._io import previous_indent
     width = 120 - previous_indent
     message = "\n".join(["",
-                         f'> [!WARNING] {category.__name__}',
+                         f'> [!WARNING] ',
                          textwrap.fill(str(message), width=width, initial_indent='> ', subsequent_indent='> '),
                          ""
                          ])

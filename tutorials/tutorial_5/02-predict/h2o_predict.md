@@ -11,18 +11,18 @@
   ❓ **Support:** https://groups.google.com/g/koopmans-users  
   🐛 **Report a bug:** https://github.com/epfl-theos/koopmans/issues/new
 
-  > [!NOTE] Citing 
+  > [!NOTE]
   > Please cite the papers listed in `h2o_predict.bib` in work involving this calculation
 
   h2o_predict
   -----------
 
-  > [!WARNING] UserWarning
+  > [!WARNING]
   > This system is not cubic and will therefore not have a uniform dielectric tensor. However, the image-correction
   > schemes that are currently implemented assume a uniform dielectric. Proceed with caution
 
 
-  > [!WARNING] UserWarning
+  > [!WARNING]
   > Predicting screening parameters with machine-learning is an experimental feature; proceed with caution
 
   - **Koopmans DSCF Snapshot 1 of 15**
