@@ -637,8 +637,8 @@ class Workflow(ABC):
                 utils.warn(
                     "Small values of `r_min` (<0.5) can lead to problems in the construction of the radial basis. "
                     f"The provided value is `r_min = {self.ml.r_min}`.")
-            if not any(self.ml.r_min < self.ml.r_max for self.ml.r_min in self.ml.r_mins):
-                raise ValueError(f"All provided values of `r_min` are larger or equal to `r_max = {self.ml.r_max}`.")
+            if not self.ml.r_min < self.ml.r_max:
+                raise ValueError(f"`r_min` is larger or equal to `r_max = {self.ml.r_max}`.")
 
     def new_calculator(self,
                        calc_type: str,
