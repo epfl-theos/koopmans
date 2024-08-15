@@ -145,7 +145,7 @@ class Workflow(ABC):
         self.processes: List[processes.Process] = []
         self.steps: List = []
         self.silent = False
-        self.print_indent = 1
+        self.print_indent = 0
 
         if projections is None:
             proj_list: List[List[Any]]
@@ -392,6 +392,9 @@ class Workflow(ABC):
         self.print_preamble()
 
         if not self.parent:
+            bf = '**' if sys.stdout.isatty() else ''
+            self.print(bf + self.name + bf)
+            self.print(bf + '-' * len(self.name) + bf)
             if self.parameters.from_scratch:
                 self._remove_tmpdirs()
             self._run_sanity_checks()
@@ -401,8 +404,6 @@ class Workflow(ABC):
                 self.print(f'- **{self.name}**', style='heading')
                 self._run()
         else:
-            print(self.name)
-            print('-' * len(self.name))
             if subdirectory:
                 with utils.chdir(subdirectory):
                     self._run()
@@ -1043,7 +1044,15 @@ class Workflow(ABC):
         dest_calc.link_file(src_calc, src_path, dest_path, symlink=symlink,  # type: ignore
                             recursive_symlink=recursive_symlink, overwrite=overwrite)
 
-    def print(self, text: str = '', style='body', bold=False, flush=True, **kwargs: Any):
+    def print(self, text: str = '', style='body', parse_asterisks=True, flush=True, **kwargs: Any):
+        if sys.stdout.isatty():
+            if style == 'heading' and '**' not in text:
+                text = f'**{text}**'
+            if parse_asterisks:
+                while '**' in text:
+                    text = text.replace('**', '\033[1m', 1).replace('**', '\033[0m', 1)
+                while '*' in text:
+                    text = text.replace('*', '\033[3m', 1).replace('*', '\033[0m', 1)
         if style == 'body':
             utils.indented_print(text, self.print_indent + 2, flush=flush, **kwargs)
         elif style == 'heading':
@@ -1329,7 +1338,7 @@ class Workflow(ABC):
                 for citation in citations:
                     add_ref(citation, f'Citation for the {psp_lib.replace("_", " ")} pseudopotential library')
 
-        print(
+        self.print(
             f'\n> [!NOTE] Citing \n> Please cite the papers listed in `{self.name}.bib` in work involving this calculation')
         relevant_references.to_file(self.name + '.bib')
 
@@ -1337,7 +1346,7 @@ class Workflow(ABC):
         if self.parent:
             return
 
-        print(header())
+        self.print(header())
 
         self.print_bib()
 
@@ -1359,7 +1368,7 @@ class Workflow(ABC):
                 dill.dump(self.ml_model, fd)
 
         # Print farewell message
-        print('\nWorkflow complete 🎉')
+        print('\n**Workflow complete** 🎉')
 
     def toinputjson(self) -> Dict[str, Dict[str, Any]]:
 
@@ -1631,14 +1640,16 @@ class Workflow(ABC):
 def header():
     from koopmans import __version__
 
+    bf = '**' if sys.stdout.isatty() else ''
+
     header = ["",
-              "koopmans",
-              "========",
+              bf + "koopmans" + bf,
+              bf + "========" + bf,
               "",
               "*Koopmans spectral functional calculations with `Quantum ESPRESSO`*",
               "",
-              f"⚙️ **Version:** {__version__}  ",
-              "🧑 **Authors:** Edward Linscott, Nicola Colonna, Riccardo De Gennaro, Ngoc Linh Nguyen, Giovanni Borghi, Andrea Ferretti, Ismaila Dabo, and Nicola Marzari",
+              f"📦 **Version:** {__version__}  ",
+              "🧑 **Authors:** Edward Linscott, Nicola Colonna, Riccardo De Gennaro, Ngoc Linh Nguyen, Giovanni Borghi, Andrea Ferretti, Ismaila Dabo, and Nicola Marzari  ",
               "📝 **Documentation:** https://koopmans-functionals.org  ",
               "❓ **Support:** https://groups.google.com/g/koopmans-users  ",
               "🐛 **Report a bug:** https://github.com/epfl-theos/koopmans/issues/new"

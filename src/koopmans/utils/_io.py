@@ -8,6 +8,7 @@ Moved into utils Sep 2021
 """
 
 import json
+import textwrap
 from datetime import datetime
 from pathlib import Path
 from typing import IO, Any, Dict, List, Tuple, Union
@@ -171,17 +172,23 @@ def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
 
 
 print_call_end = '\n'
+previous_indent = 0
 
 
 def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n',
                    flush: bool = False):
     global print_call_end
+    global previous_indent
+    if indent < 0:
+        indent = previous_indent
     for substring in text.split('\n'):
         if print_call_end in ['\n', '\r']:
-            print(' ' * indent + substring, sep=sep, end=end, flush=flush)
+            message = textwrap.fill(substring, width=120, initial_indent=' ' * indent, subsequent_indent=' ' * indent)
+            print(message, sep=sep, end=end, flush=flush)
         else:
             print(substring, sep=sep, end=end, flush=flush)
     print_call_end = end
+    previous_indent = indent
 
 
 def generate_wannier_hr_file_contents(ham: np.ndarray, rvect: List[List[int]], weights: List[int]) -> List[str]:

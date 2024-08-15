@@ -4,7 +4,7 @@ koopmans
 
 *Koopmans spectral functional calculations with `Quantum ESPRESSO`*
 
-⚙️ **Version:** 1.1.0  
+📦 **Version:** 1.1.0  
 🧑 **Authors:** Edward Linscott, Nicola Colonna, Riccardo De Gennaro, Ngoc Linh Nguyen, Giovanni Borghi, Andrea Ferretti, Ismaila Dabo, and Nicola Marzari
 📝 **Documentation:** https://koopmans-functionals.org  
 ❓ **Support:** https://groups.google.com/g/koopmans-users  

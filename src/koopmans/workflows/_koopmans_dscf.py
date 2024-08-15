@@ -267,7 +267,7 @@ class KoopmansDSCFWorkflow(Workflow):
             if len(self.bands.alpha_history) == 0:
                 self.print('; reading values from file')
                 self.bands.alphas = self.read_alphas_from_file()
-            self.bands.print_history(indent=self.print_indent + 1)
+            print_alpha_history(self)
 
             # In this case the final calculation will restart from the initialization calculations
             if self._previous_cp_calc is None:
@@ -587,7 +587,7 @@ class DeltaSCFIterationWorkflow(Workflow):
                 if self.ml.train_on_the_fly:
                     self.ml_model.train()
 
-        self.bands.print_history(indent=self.print_indent + 1)
+        print_alpha_history(self)
 
         converged = self.ml.predict or all([abs(b.error) < 1e-3 for b in self.bands])
 
@@ -1272,3 +1272,18 @@ class InitializationWorkflow(Workflow):
                                          wannier_hamiltonian_files=wannier_hamiltonian_files)
 
         return
+
+
+def print_alpha_history(wf: Workflow):
+    # Printing out a progress summary
+    wf.print(f'\n**α**')
+    wf.print(wf.bands.alpha_history.to_markdown())
+
+    if None not in [b.predicted_alpha for b in wf.bands]:
+        wf.print(f'\n**predicted α**')
+        wf.print(wf.bands.predicted_alpha_history.to_markdown())
+
+    if not wf.bands.error_history.empty:
+        wf.print(f'\n**ΔE_i - λ_ii (eV)**')
+        wf.print(wf.bands.error_history.to_markdown())
+    wf.print('')
