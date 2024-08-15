@@ -17,7 +17,7 @@
   h2o_train
   ---------
 
-  > [!WARNING] UserWarning
+  > [!WARNING]
   > This system is not cubic and will therefore not have a uniform dielectric tensor. However, the image-correction
   > schemes that are currently implemented assume a uniform dielectric. Proceed with caution
 
