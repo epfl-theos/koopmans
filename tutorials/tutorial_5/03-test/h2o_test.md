@@ -96,7 +96,7 @@
         |  0 | 0.991671 | 0.190919 | 0.346885 | 0.999876 | -0.223314 | -0.0793481 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING]
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -173,7 +173,7 @@
         |  0 | 0.308552 | 0.127731 | 0.72158 | 0.719919 | -0.221631 | -0.131173 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING]
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -250,7 +250,7 @@
         |  0 | 0.247779 | 0.186124 | 0.855863 | 0.851467 | -0.151585 | -0.116657 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING]
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -327,7 +327,7 @@
         |  0 | 0.232531 | 0.181479 | 0.755435 | 0.768346 | -0.188521 | -0.149484 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING]
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -404,7 +404,7 @@
         |  0 | 0.100276 | 0.650265 | 0.856186 | 0.84596 | -0.0282292 | -0.303171 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING]
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -481,7 +481,7 @@
         |  0 | 0.212739 | 0.176823 | 0.76942 | 0.764724 | -0.17612 | -0.150683 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING]
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -558,7 +558,7 @@
         |  0 | 0.466627 | 0.149535 | 0.800093 | 0.790631 | -0.222878 | -0.0919165 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING]
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -635,7 +635,7 @@
         |  0 | 0.351316 | 0.0612747 | 0.531791 | 0.537885 | -0.267762 | -0.170156 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING]
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -712,7 +712,7 @@
         |  0 | 0.499557 | 0.0621687 | 0.851869 | 0.846048 | -0.31661 | -0.0362059 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING]
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -789,7 +789,7 @@
         |  0 | 0.486761 | 0.0486094 | 0.738739 | 0.730438 | -0.240785 | -0.0669215 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING]
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -866,7 +866,7 @@
         |  0 | 0.216331 | 0.0588557 | 0.529442 | 0.524046 | -0.263908 | -0.216698 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING]
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -943,7 +943,7 @@
         |  0 | 0.167763 | 0.0908645 | 0.412826 | 0.416922 | -0.278471 | -0.320879 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING]
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -1020,7 +1020,7 @@
         |  0 | 0.0735648 | 0.204779 | 0.626319 | 0.611921 | -0.167729 | -0.246584 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING]
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -1097,7 +1097,7 @@
         |  0 | 0.108654 | 0.141421 | 0.535913 | 0.525147 | -0.243062 | -0.268694 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING]
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
@@ -1174,7 +1174,7 @@
         |  0 | 0.211444 | 0.235669 | 0.646775 | 0.64367 | -0.228191 | -0.249771 |
 
 
-        > [!WARNING] UserWarning
+        > [!WARNING]
         > The screening parameters have been calculated but are not necessarily self-consistent. You may want to
         > increase `alpha_numsteps` to obtain a more accurate result.
 
