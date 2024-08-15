@@ -82,7 +82,7 @@ class WannierizeWorkflow(Workflow):
                 divs = self.projections.divisions(spin)
                 cumulative_divs = [sum(divs[:i+1]) for i in range(len(divs))]
                 if num_bands_occ not in cumulative_divs:
-                    message = 'The provided Wannier90 projections are not commensurate with the number of ' \
+                    message = 'The provided `Wannier90` projections are not commensurate with the number of ' \
                               'electrons; divide your list of projections into sublists that represent blocks ' \
                               'of bands to Wannierize separately'
                     raise ValueError(message)
@@ -90,7 +90,7 @@ class WannierizeWorkflow(Workflow):
                 # Compare the number of bands from PW to Wannier90
                 num_bands_w90 = self.projections.num_bands(spin=spin)
                 if num_bands_w90 > pw_params.nbnd:
-                    raise ValueError(f'You have provided more bands to the Wannier90 calculator ({num_bands_w90}) '
+                    raise ValueError(f'You have provided more bands to the `Wannier90 calculator` ({num_bands_w90}) '
                                      f'than the preceeding PW calculation ({pw_params.nbnd})')
                 elif num_bands_w90 == pw_params.nbnd:
                     pass
@@ -105,8 +105,8 @@ class WannierizeWorkflow(Workflow):
             pass
 
         else:
-            raise NotImplementedError('WannierizeWorkflow only supports setting init_orbitals and init_empty_orbitals '
-                                      'to "mlwfs"/"projwfs" or "kohn-sham"')
+            raise NotImplementedError('`WannierizeWorkflow` only supports setting `init_orbitals` and `init_empty_orbitals` '
+                                      'to `mlwfs`/`projwfs`/`kohn-sham`')
 
         # Spin-polarization
         self._force_nspin2 = force_nspin2
@@ -372,7 +372,7 @@ class WannierizeBlockWorkflow(Workflow):
             init_orbs = self.parameters.init_empty_orbitals
         else:
             # Block contains both occupied and empty bands
-            raise ValueError(f'{self.block} contains both occupied and empty bands. This should not happen.')
+            raise ValueError(f'`{self.block}` contains both occupied and empty bands. This should not happen.')
         # Store the number of electrons in the ProjectionBlocks object so that it can work out which blocks to
         # merge with one another
         self.projections.num_occ_bands[self.block.spin] = n_occ_bands
@@ -455,7 +455,7 @@ class WannierizeBlockWorkflow(Workflow):
             elif init_orbs == 'mlwfs':
                 pass
             else:
-                raise ValueError(f'Unrecognized orbital type {init_orbs} (must be "mlwfs" or "projwfs")')
+                raise ValueError(f'Unrecognized orbital type `{init_orbs}` (must be `mlwfs`/`projwfs`)')
 
             if calc.parameters.gamma_only != self.kpoints.gamma_only:
                 # forcing W90 to follow the same logic of PW for the gamma_trick

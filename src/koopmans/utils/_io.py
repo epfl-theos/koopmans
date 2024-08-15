@@ -133,10 +133,10 @@ def read_atomic_positions(atoms: Atoms, dct: Dict[str, Any]):
         scale_positions = True
     else:
         raise NotImplementedError(
-            f'atomic_positions units = {units} is not yet implemented')
+            f'atomic_positions `units = {units}` is not yet implemented')
 
     if not atoms.cell:
-        raise ValueError('io.read_atomic_positions() must be called after io.read_cell_parameters()')
+        raise ValueError('`io.read_atomic_positions()` must be called after `io.read_cell_parameters()`')
 
     assert len(atoms) == 0, 'Atoms should be length zero at this stage'
     if scale_positions:
@@ -152,8 +152,8 @@ def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
     atoms.pbc = dct.pop('periodic', True)
     if cell is None:
         if 'ibrav' not in dct:
-            raise KeyError('Cell has not been defined. Please specify either "ibrav" and related "celldm"s) '
-                           ' or a "cell_parameters" block in "setup"')
+            raise KeyError('Cell has not been defined. Please specify either `ibrav` and related `celldms`) '
+                           ' or a `cell_parameters` block')
         celldms = {int(k): v for k, v in dct.pop('celldms', {}).items()}
         cell = parameters_to_cell(celldms=celldms, **dct)
     elif units.lower() == 'angstrom':
@@ -163,7 +163,7 @@ def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
     elif units.lower() == 'alat':
         alat = dct.get('celldms', {}).get(1, None)
         if alat is None:
-            raise ValueError('Please provide celldm(1) for a cell specified in units of alat')
+            raise ValueError('Please provide `celldm(1)` for a cell specified in units of `alat`')
         cell = np.array(cell) * alat * Bohr
     else:
         raise ValueError('The combination of vectors, ibrav, & units in the cell_parameter block is not valid')
@@ -186,7 +186,7 @@ def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '
             initial_indent = ' ' * indent if initial_indent is None else initial_indent
             subsequent_indent = ' ' * indent if subsequent_indent is None else subsequent_indent
             message = textwrap.fill(substring, width=120, initial_indent=initial_indent,
-                                    subsequent_indent=subsequent_indent)
+                                    subsequent_indent=subsequent_indent, break_long_words=False, break_on_hyphens=False)
             print(message, sep=sep, end=end, flush=flush)
         else:
             print(substring, sep=sep, end=end, flush=flush)
@@ -200,7 +200,7 @@ def generate_wannier_hr_file_contents(ham: np.ndarray, rvect: List[List[int]], w
     num_wann = np.size(ham, -1)
     expected_shape = (nrpts, num_wann, num_wann)
     if ham.shape != expected_shape:
-        raise ValueError(f'ham has shape {ham.shape} which does not match the expected shape {expected_shape}')
+        raise ValueError(f'`ham` has shape {ham.shape} which does not match the expected shape {expected_shape}')
 
     flines = [f' Written on {datetime.now().isoformat(timespec="seconds")}']
     flines.append(f'{num_wann:12d}')

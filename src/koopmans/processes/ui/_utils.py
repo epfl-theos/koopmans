@@ -28,7 +28,7 @@ def crys_to_cart(vec: NDArray[np.float64], trmat: NDArray[np.float64], typ: int)
         # cartesian-to-crystal conversion
         vec_tr = np.dot(vec, trmat.transpose())
     else:
-        raise ValueError(f'typ = {typ} in crys_to_cart call must be either +1 or -1')
+        raise ValueError(f'`typ = {typ}` in `crys_to_cart` must be either +1 or -1')
 
     return vec_tr
 
@@ -56,7 +56,7 @@ def extract_hr(hr: NDArray[np.complex128], rvect: NDArray[np.int_],
                     hr_new.append(hr[ir, :, :])
                     break
 
-    assert len(hr_new) == np.prod(rgrid), f'Wrong number ({len(hr_new)}) of R-vectors in extract_hr'
+    assert len(hr_new) == np.prod(rgrid), f'Wrong number ({len(hr_new)}) of R-vectors in `extract_hr`'
 
     return np.array(hr_new, dtype=complex)
 

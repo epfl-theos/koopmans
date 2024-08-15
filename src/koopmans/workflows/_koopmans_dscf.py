@@ -82,8 +82,8 @@ class KoopmansDSCFWorkflow(Workflow):
                         label += f'_{spin}'
                     nbands_excl = len(self.calculator_parameters[label].get('exclude_bands', []))
                     if nbands_excl > 0:
-                        raise ValueError('Excluding bands is incompatible with method == "dscf". Please provide '
-                                         'projections for every band and remove the "exclude_bands" Wannier90 keyword.')
+                        raise ValueError('Excluding bands is incompatible with `method == "dscf"`. Please provide '
+                                         'projections for every band and remove the `exclude_bands` `Wannier90` keyword.')
 
                     nwann = self.projections.num_wann(spin=spin)
 
@@ -93,7 +93,7 @@ class KoopmansDSCFWorkflow(Workflow):
                                          f' number of occupied bands = {nbands_occ}\n'
                                          f' number of Wannier functions = {nwann}\n'
                                          'This is incompatible with the subsequent Koopmans '
-                                         'calculation.\nPlease modify the wannier90 settings in order to wannierize '
+                                         'calculation.\nPlease modify the `Wannier90` settings in order to wannierize '
                                          'all of the occupied bands.')
 
                     nbands_emp = nwann - nbands_occ
@@ -106,13 +106,13 @@ class KoopmansDSCFWorkflow(Workflow):
                     if nbands_emp != 0:
                         kcp_params.nbnd = nbands_occ + nbands_emp
                 elif nbands_occ > kcp_params.nbnd:
-                    raise ValueError(f'The value you have provided for nbnd is less than the number of {spin_info}'
-                                     f'electrons. Please increase nbnd to at least {nbands_occ}')
+                    raise ValueError(f'The value you have provided for `nbnd` is less than the number of {spin_info}'
+                                     f'electrons. Please increase `nbnd` to at least {nbands_occ}')
                 elif kcp_params.nbnd != nbands_occ + nbands_emp:
                     raise ValueError(f'The number of {spin_info}empty states are inconsistent:\n'
                                      f' number of empty bands = {kcp_params.nbnd - nbands_occ}\n'
                                      f' number of empty Wannier functions = {nbands_emp}\n'
-                                     'If you have provided "nbnd" explicitly to the kcp calculator, check that it '
+                                     'If you have provided `nbnd` explicitly to the `kcp` calculator, check that it '
                                      'matches with the number of empty projections/bands in your system.')
 
             # Populating self.parameters.orbital_groups if needed
@@ -200,14 +200,14 @@ class KoopmansDSCFWorkflow(Workflow):
                 value = getattr(self.calculator_parameters[f'ui_{ui_kind}'], ui_keyword)
                 [default_value] = [s.default for s in self.calculator_parameters['ui'].settings if s.name == ui_keyword]
                 if value != default_value:
-                    raise ValueError(f'UI keyword {ui_keyword} has been set in the input file, but this will be '
+                    raise ValueError(f'UI keyword `{ui_keyword}` has been set in the input file, but this will be '
                                      'automatically set by the Koopmans workflow. Remove this keyword from the input '
                                      'file')
 
         # Check self.init_empty_orbitals
         if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
-            raise NotImplementedError(f'The combination init_orbitals = {self.parameters.init_orbitals} '
-                                      f'and init_empty_orbitals = {self.parameters.init_empty_orbitals} '
+            raise NotImplementedError(f'The combination `init_orbitals` = {self.parameters.init_orbitals} '
+                                      f'and `init_empty_orbitals` = {self.parameters.init_empty_orbitals} '
                                       'has not yet been implemented')
 
     def convert_kcp_to_supercell(self):
@@ -1105,8 +1105,8 @@ def internal_new_kcp_calculator(workflow,
 
     # Sanity checking
     if calc.parameters.print_wfc_anion and calc.parameters.index_empty_to_save is None:
-        raise ValueError('Error: print_wfc_anion is set to true but you have not selected '
-                         'an index_empty_to_save. Provide this as an argument to new_cp_calculator')
+        raise ValueError('`print_wfc_anion` is set to `True` but you have not selected '
+                         'an `index_empty_to_save`. Provide this as an argument to `new_cp_calculator`')
 
     # don't print QC in some cases
     if 'dummy' in calc.prefix or calc.prefix[-2:] == '+1':
@@ -1243,7 +1243,7 @@ class InitializationWorkflow(Workflow):
 
         else:
             raise ValueError("Should not arrive here; there must be an inconsistency between the above code and \
-                             workflow.valid_settings")
+                             `workflow.valid_settings`")
 
         # Compiling a dictionary of the variational orbital files
         variational_orbitals = {}

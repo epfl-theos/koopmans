@@ -246,7 +246,7 @@ class Workflow(ABC):
                 for params in calculator_parameters.values():
                     if params.get('pseudo_dir', pseudo_dir).resolve() != pseudo_dir:
                         raise ValueError(
-                            '"pseudo_dir" and "pseudo_library" are conflicting; please do not provide "pseudo_dir"')
+                            '`pseudo_dir` and `pseudo_library` are conflicting; please do not provide `pseudo_dir`')
             elif 'pseudo_dir' in calculator_parameters['kcp'] or 'pseudo_dir' in calculator_parameters['pw']:
                 pseudo_dir = calculator_parameters['kcp'].get(
                     'pseudo_dir', calculator_parameters['pw'].get('pseudo_dir'))
@@ -269,7 +269,7 @@ class Workflow(ABC):
             # if not a calculator, workflow, or plotting keyword, raise an error
             if not match and not self.parameters.is_valid(key) and not self.plotting.is_valid(key) \
                     and not self.ml.is_valid(key):
-                raise ValueError(f'{key} is not a valid setting')
+                raise ValueError(f'`{key}` is not a valid setting')
 
         # Before saving the calculator_parameters, automatically generate some keywords and perform some sanity checks
         if self.parameters.task != 'ui' and autogenerate_settings:
@@ -320,9 +320,9 @@ class Workflow(ABC):
                 if self.parameters.spin_polarized is not ('up' in block or 'down' in block):
                     continue
                 if 'projections' in params or 'projections_blocks' in params:
-                    raise ValueError(f'You have provided projection information in the calculator_parameters[{block}] '
-                                     f'argument to {self.__class__.__name__}. Please instead specify projections '
-                                     'via the "projections" argument')
+                    raise ValueError(f'You have provided projection information in the `calculator_parameters[{block}]` '
+                                     f'argument to `{self.__class__.__name__}`. Please instead specify projections '
+                                     'via the `projections` argument')
                 for kw in ['exclude_bands', 'num_wann', 'num_bands', 'projections']:
                     if kw in params:
                         utils.warn(f'`{kw}` will be overwritten by the workflow; it is best to not specify this keyword '
@@ -464,13 +464,13 @@ class Workflow(ABC):
             self.parameters.fix_spin_contamination = not self.parameters.spin_polarized
         else:
             if self.parameters.fix_spin_contamination and self.parameters.spin_polarized:
-                raise ValueError('fix_spin_contamination = True is incompatible with spin_polarized = True')
+                raise ValueError('`fix_spin_contamination = True` is incompatible with `spin_polarized = True`')
 
         if self.parameters.method == 'dfpt':
             if self.parameters.frozen_orbitals is None:
                 self.parameters.frozen_orbitals = True
             if not self.parameters.frozen_orbitals:
-                raise ValueError('"frozen_orbitals" must be equal to True when "method" is "dfpt"')
+                raise ValueError('`frozen_orbitals` must be equal to `True` when `method` is `dfpt`')
         else:
             if self.parameters.frozen_orbitals is None:
                 self.parameters.frozen_orbitals = False
@@ -516,7 +516,7 @@ class Workflow(ABC):
             # Check the value of eps_inf
             if self.parameters.eps_inf:
                 if isinstance(self.parameters.eps_inf, float) and self.parameters.eps_inf < 1.0:
-                    raise ValueError('eps_inf cannot be lower than 1.0')
+                    raise ValueError('`eps_inf` cannot be lower than 1.0')
 
             # Check symmetry of the system
             dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=False)
@@ -544,7 +544,7 @@ class Workflow(ABC):
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] and not self.parameters.task.startswith('dft'):
             if len(self.projections) == 0:
-                raise ValueError(f'In order to use init_orbitals={self.parameters.init_orbitals}, projections must be '
+                raise ValueError(f'In order to use `init_orbitals={self.parameters.init_orbitals}`, projections must be '
                                  'provided')
             spin_set = set([p.spin for p in self.projections])
             if self.parameters.spin_polarized:
@@ -565,11 +565,11 @@ class Workflow(ABC):
         # Check pseudopotentials exist
         if not os.path.isdir(self.parameters.pseudo_directory):
             raise NotADirectoryError(
-                f'The pseudopotential directory you provided ({self.parameters.pseudo_directory}) does not exist')
+                f'The pseudopotential directory you provided (`{self.parameters.pseudo_directory}`) does not exist')
         if self.parameters.task != 'ui':
             for pseudo in self.pseudopotentials.values():
                 if not (self.parameters.pseudo_directory / pseudo).exists():
-                    raise FileNotFoundError(f'{self.parameters.pseudo_directory / pseudo} does not exist. Please '
+                    raise FileNotFoundError(f'`{self.parameters.pseudo_directory / pseudo}` does not exist. Please '
                                             'double-check your pseudopotential settings')
 
         # Make sanity checks for the ML model
@@ -578,8 +578,8 @@ class Workflow(ABC):
                        "caution")
             if self.ml_model is None:
                 raise ValueError("You have requested to train or predict with a machine-learning model, but no model "
-                                 "is attached to this workflow. Either set ml:train or predict to True when initializing "
-                                 "the workflow, or directly add a model to the workflow's ml_model attribute")
+                                 "is attached to this workflow. Either set `ml:train` or `predict` to `True` when initializing "
+                                 "the workflow, or directly add a model to the workflow's `ml_model` attribute")
             if self.ml_model.estimator_type != self.ml.estimator:
                 utils.warn(f'The estimator type of the loaded ML model (`{self.ml_model.estimator_type}`) does not match '
                            f'the estimator type specified in the Workflow settings (`{self.ml.estimator}`). Overriding...')
@@ -594,21 +594,21 @@ class Workflow(ABC):
                     '/`ml:train`/`ml:test` so that at most one is `True`')
             if self.parameters.task not in ['singlepoint', 'trajectory', 'convergence_ml']:
                 raise NotImplementedError(
-                    f'Using the ML-prediction for the {self.parameters.task}-task has not yet been implemented.')
+                    f'Using the ML-prediction for the task `{self.parameters.task}` has not yet been implemented.')
             if self.parameters.method != 'dscf':
                 raise NotImplementedError(
-                    f"Using the ML-prediction for the {self.parameters.method}-method has not yet been implemented")
+                    f"Using the ML-prediction for the method `{self.parameters.method}` has not yet been implemented")
             if self.parameters.functional != 'ki':
                 raise NotImplementedError(
-                    f'Using the ML-prediction for the {self.parameters.functional}-functional has not yet been '
+                    f'Using the ML-prediction for the `{self.parameters.functional}` functional has not yet been '
                     'implemented.')
             if self.parameters.init_orbitals != 'mlwfs':
                 raise NotImplementedError(
-                    f'Using the ML-prediction for {self.parameters.init_orbitals}-init orbitals has not yet been '
+                    f'Using the ML-prediction for `{self.parameters.init_orbitals}` initial orbitals has not yet been '
                     'implemented.')
             if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
                 raise NotImplementedError(
-                    'Using the ML-prediction for using different init orbitals for empty states than for occupied '
+                    'Using the ML-prediction for using different initial orbitals for empty states than for occupied '
                     'states has not yet been implemented.')
             if self.parameters.spin_polarized:
                 utils.warn('Using the ML-prediction for spin-polarised systems has not yet been extensively tested.')
@@ -645,20 +645,22 @@ class Workflow(ABC):
             # r_max
             for n_max in n_maxs:
                 if not n_max > 0:
-                    raise ValueError(f"n_max has to be larger than zero. The provided value is n_max={n_max}")
+                    raise ValueError(f"`n_max` has to be larger than zero. The provided value is `n_max={n_max}`")
             for l_max in l_maxs:
                 if not l_max >= 0:
-                    raise ValueError(f"l_max has to be equal or larger than zero. The provided value is l_max={l_max}")
+                    raise ValueError(
+                        f"`l_max` has to be equal or larger than zero. The provided value is `l_max={l_max}`")
             for r_min in r_mins:
                 if not r_min >= 0:
-                    raise ValueError(f"r_min has to be equal or larger than zero. The provided value is r_min={r_min}")
+                    raise ValueError(
+                        f"`r_min` has to be equal or larger than zero. The provided value is `r_min={r_min}`")
                 if r_min < 0.5:
                     utils.warn(
                         "Small values of `r_min` (<0.5) can lead to problems in the construction of the radial basis. "
                         f"The provided value is `r_min = {r_min}`.")
             for r_max in r_maxs:
                 if not any(r_min < r_max for r_min in r_mins):
-                    raise ValueError(f"All provided values of r_min are larger or equal to r_max={r_max}.")
+                    raise ValueError(f"All provided values of `r_min` are larger or equal to `r_max={r_max}`.")
 
             # for the convergence_ml task we want to have each parameter in a list form
             if self.parameters.task == 'convergence_ml':
@@ -669,7 +671,7 @@ class Workflow(ABC):
                 for qoi in self.ml.quantities_of_interest:
                     if qoi not in implemented_quantities_of_interest:
                         raise NotImplementedError(
-                            "Performing the convergence_analysis w.r.t. {qoi} has not yet been implement.")
+                            "Performing the convergence_analysis w.r.t. `{qoi}` has not yet been implement.")
 
     def new_calculator(self,
                        calc_type: str,
@@ -699,7 +701,7 @@ class Workflow(ABC):
         elif calc_type == 'projwfc':
             calc_class = calculators.ProjwfcCalculator
         else:
-            raise ValueError(f'Cound not find a calculator of type {calc_type}')
+            raise ValueError(f'Cound not find a calculator of type `{calc_type}`')
 
         # Merge calculator_parameters and kwargs, giving kwargs higher precedence
         all_kwargs: Dict[str, Any] = {}
@@ -788,7 +790,7 @@ class Workflow(ABC):
 
         if enforce_spin_symmetry:
             if not isinstance(master_calc, calculators.CalculatorCanEnforceSpinSym):
-                raise NotImplementedError(f'{master_calc.__class__.__name__} cannot enforce spin symmetry')
+                raise NotImplementedError(f'`{master_calc.__class__.__name__}` cannot enforce spin symmetry')
 
             # nspin=1
             calc_nspin1 = master_calc.nspin1_calculator()
@@ -800,7 +802,7 @@ class Workflow(ABC):
                                     f'{master_calc.parameters.prefix}_{master_calc.parameters.ndr}.save')
                 if ndr_directory not in master_calc.linked_files.keys():
                     raise ValueError(
-                        'This calculator needs to be linked to a previous nspin=2 calculation before run_calculator is called')
+                        'This calculator needs to be linked to a previous `nspin=2` calculation before `run_calculator` is called')
                 prev_calc_nspin2 = master_calc.linked_files[ndr_directory][0]
                 if not isinstance(prev_calc_nspin2, calculators.KoopmansCPCalculator):
                     raise ValueError(
@@ -863,7 +865,7 @@ class Workflow(ABC):
         # Check that calc.directory was not set
         if qe_calc.directory is not None:
             raise ValueError(
-                f'calc.directory should not be set manually, but it was set to {os.path.relpath(qe_calc.directory)}')
+                f'`calc.directory` should not be set manually, but it was set to `{os.path.relpath(qe_calc.directory)}`')
 
         # Prepend calc.directory with a counter
         self._step_counter += 1
@@ -872,7 +874,7 @@ class Workflow(ABC):
         # Check that another calculation hasn't already been run in this directory
         if any([calc.directory == qe_calc.directory for calc in self.calculations]):
             raise ValueError(
-                f'A calculation has already been run in {os.path.relpath(qe_calc.directory)}; this should not happen')
+                f'A calculation has already been run in `{os.path.relpath(qe_calc.directory)}`; this should not happen')
 
         # If an output file already exists, check if the run completed successfully
         if not self.parameters.from_scratch:
@@ -1036,10 +1038,10 @@ class Workflow(ABC):
             dest_path = Path(dest_path)
 
         if src_path.is_absolute() and src_calc is not None:
-            raise ValueError(f'"src_path" in {self.__class__.__name__}.link() must be a relative path if a '
-                             f'"src_calc" is provided')
+            raise ValueError(f'`src_path` in `{self.__class__.__name__}.link()` must be a relative path if a '
+                             f'`src_calc` is provided')
         if dest_path.is_absolute():
-            raise ValueError(f'"dest_path" in {self.__class__.__name__}.link() must be a relative path')
+            raise ValueError(f'`dest_path` in `{self.__class__.__name__}.link()` must be a relative path')
 
         dest_calc.link_file(src_calc, src_path, dest_path, symlink=symlink,  # type: ignore
                             recursive_symlink=recursive_symlink, overwrite=overwrite)
@@ -1059,7 +1061,7 @@ class Workflow(ABC):
             assert kwargs.get('end', '\n') == '\n'
             utils.indented_print(text, self.print_indent, flush=flush, **kwargs)
         else:
-            raise ValueError(f'Invalid choice "{style}" for style; must be heading/subheading/body')
+            raise ValueError(f'Invalid choice `{style}` for style; must be `heading`/`body`')
 
     @contextmanager
     def _parent_context(self, subdirectory: Optional[str] = None,
@@ -1190,7 +1192,7 @@ class Workflow(ABC):
         if atoms_dict:
             atoms, snapshots = read_atoms_dict(utils.parse_dict(atoms_dict))
         else:
-            raise ValueError('Please provide an "atoms" block in the json input file')
+            raise ValueError('Please provide an `atoms` block in the json input file')
 
         # Loading plot settings
         kwargs['plotting'] = settings.PlotSettingsDict(**utils.parse_dict(bigdct.pop('plotting', {})))
@@ -1252,11 +1254,11 @@ class Workflow(ABC):
                     # In this case, the sc_dim keyword is redundant
                     if kpts.grid != dct['sc_dim']:
                         raise ValueError(
-                            'sc_dim in the UI block should match the kpoints provided in the kpoints block')
+                            '`sc_dim` in the `ui` block should match the kpoints provided in the `kpoints` block')
                     dct.pop('sc_dim')
                 if 'kpath' in dct and kpts.path is not None:
                     if kpts.path != dct['kpath']:
-                        raise ValueError('kpath in the UI block should match that provided in the kpoints block')
+                        raise ValueError('`kpath` in the `ui` block should match that provided in the `kpoints` block')
                     dct.pop('kpath')
             elif block.startswith('w90'):
                 # If we are spin-polarized, don't store the spin-independent w90 block
@@ -1286,7 +1288,7 @@ class Workflow(ABC):
 
         # Check for unexpected blocks
         for block in bigdct:
-            raise ValueError(f'Unrecognized block "{block}" in the json input file')
+            raise ValueError(f'Unrecognized block `{block}` in the json input file')
 
         # Create the workflow. Note that any keywords provided in the calculator_parameters (i.e. whatever is left in
         # calcdict) are provided as kwargs
@@ -1305,7 +1307,7 @@ class Workflow(ABC):
 
         def add_ref(bibkey: str, note: str):
             if bibkey not in bib_data.entries:
-                raise ValueError(f'Could not find bibliography entry for {bibkey}')
+                raise ValueError(f'Could not find bibliography entry for `{bibkey}`')
             else:
                 entry = bib_data.entries[bibkey]
                 entry.fields['note'] = note
@@ -1476,7 +1478,7 @@ class Workflow(ABC):
                     calcdct['w90'].update(**proj_kwarg)
             else:
                 raise NotImplementedError(
-                    f'Writing of {params.__class__.__name__} with write_json is not yet implemented')
+                    f'Writing of `{params.__class__.__name__}` with `write_json` is not yet implemented')
 
         other_blocks: Dict[str, Any] = {'plotting': self.plotting, 'ml': self.ml}
         for key, params in other_blocks.items():
@@ -1509,7 +1511,7 @@ class Workflow(ABC):
         if isinstance(bsplot_kwargs, dict):
             bsplot_kwargs = [bsplot_kwargs]
         if len(bs) != len(bsplot_kwargs):
-            raise ValueError('The "bs" and "bsplot_kwargs" arguments to plot_bandstructure() should be the same length')
+            raise ValueError('The `bs` and `bsplot_kwargs` arguments to `plot_bandstructure()` should be the same length')
         spins: List[Optional[str]]
         if isinstance(dos, DOS):
             if self.parameters.spin_polarized:
@@ -1680,10 +1682,10 @@ def read_atoms_dict(dct: Dict[str, Any]) -> Tuple[Atoms, List[Atoms]]:
             if subdct:
                 reader(atoms, subdct)
             else:
-                raise ValueError(f'Please provide "{key}" in the atoms block')
+                raise ValueError(f'Please provide `{key}` in the `atoms` block')
 
         for block in dct:
-            raise ValueError(f'Unrecognized subblock atoms: "{block}"')
+            raise ValueError(f'Unrecognized subblock `atoms: {block}`')
 
     return atoms, snapshots
 
@@ -1743,6 +1745,6 @@ def sanitize_calculator_parameters(dct_in: Union[Dict[str, Dict], Dict[str, sett
     for k in dct_in.keys():
         if k not in settings_classes:
             raise ValueError(
-                f'Unrecognized calculator_parameters entry "{k}": valid options are '
-                + '/'.join(settings_classes.keys()))
+                f'Unrecognized calculator_parameters entry `{k}`: valid options are `'
+                + '`/`'.join(settings_classes.keys()) + '`')
     return dct_out

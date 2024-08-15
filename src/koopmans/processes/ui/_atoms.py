@@ -41,7 +41,7 @@ class UIAtoms(Atoms):
     @property
     def _supercell_matrix(self):
         if self.__supercell_matrix is None:
-            raise AttributeError(f'{self}._supercell_matrix has not yet been set')
+            raise AttributeError(f'`{self}._supercell_matrix` has not yet been set')
         else:
             return self.__supercell_matrix
 

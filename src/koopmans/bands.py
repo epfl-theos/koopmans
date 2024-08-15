@@ -84,7 +84,7 @@ class Bands(object):
             self.n_bands = [n_bands for _ in range(n_spin)]
         else:
             if len(n_bands) != n_spin:
-                raise ValueError(f'n_bands = {n_bands} should have length matching n_spin = {n_spin}')
+                raise ValueError(f'`n_bands = {n_bands}` should have length matching `n_spin = {n_spin}`')
             self.n_bands = n_bands
         self.n_spin = n_spin
         self.spin_polarized = spin_polarized

@@ -44,7 +44,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
         # spin up then spin down
         assert self.alphas is not None, 'You have not provided screening parameters to this calculator'
         if not len(self.alphas) == 1:
-            raise NotImplementedError('KoopmansHamCalculator yet to be implemented for spin-polarized systems')
+            raise NotImplementedError('`KoopmansHamCalculator` yet to be implemented for spin-polarized systems')
         [alphas] = self.alphas
         filling = [True for _ in range(len(alphas))]
         utils.write_alpha_file(self.directory, alphas, filling)

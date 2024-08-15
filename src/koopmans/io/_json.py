@@ -47,7 +47,7 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}, **kwargs):
     elif parameters.task == 'convergence_ml':
         workflow_cls = workflows.ConvergenceMLWorkflow
     else:
-        raise ValueError(f'Invalid task name "{parameters.task}"')
+        raise ValueError(f'Invalid task name `{parameters.task}`')
 
     return workflow_cls.fromjson(fd.name, override, **kwargs)
 

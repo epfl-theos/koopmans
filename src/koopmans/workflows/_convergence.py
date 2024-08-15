@@ -57,14 +57,14 @@ class ConvergenceVariable(Generic[T]):
     def values(self) -> List[T]:
         if self.initial_value is None:
             raise ValueError(
-                f'{self.__class__.__name__}.initial_value has not been set. Use {self.__class__.__name__}.get_initial_value() to set it.')
+                f'`{self.__class__.__name__}.initial_value` has not been set. Use `{self.__class__.__name__}.get_initial_value()` to set it.')
 
         return self.generate_values(self.initial_value, self.increment, self.length)
 
     def get_initial_value(self, workflow: Workflow):
         if self.initial_value is not None:
             raise ValueError(
-                f'Do not call {self.__class__.__name__}.get_initial_value() once {self.__class__.__name__}.initial_value has been initialized')
+                f'Do not call `{self.__class__.__name__}.get_initial_value()` once `{self.__class__.__name__}.initial_value` has been initialized')
         self.initial_value = self.get_value(workflow)
 
     def todict(self) -> Dict[str, Any]:
@@ -88,10 +88,10 @@ def get_calculator_parameter(wf: Workflow, key: str) -> None:
             val = settings[key]
             if val is None:
                 raise AttributeError(
-                    f'In order to converge wrt {key}, specify a baseline value for it')
+                    f'In order to converge wrt `{key}`, specify a baseline value for it')
             values.add(val)
     if len(values) > 1:
-        raise ValueError(f'{key} has different values for different calculators. This is not compatible with the'
+        raise ValueError(f'`{key}` has different values for different calculators. This is not compatible with the'
                          'convergence workflow')
     return values.pop()
 
@@ -110,7 +110,7 @@ def fetch_result_default(wf: Workflow, observable: str) -> float:
     observable = observable.replace('total ', '').replace(' ', '_')
     if observable not in calc.results:
         raise ValueError(
-            f'{calc.prefix} has not returned a value for {observable}')
+            f'`{calc.prefix}` has not returned a value for `{observable}`')
     return calc.results[observable]
 
 
@@ -229,10 +229,10 @@ def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
     elif conv_var == 'number_of_training_snapshots':
         return conv_var_number_of_training_snapshots(**kwargs)
     else:
-        raise NotImplementedError(f'Convergence with respect to {conv_var} has not been directly implemented. You '
+        raise NotImplementedError(f'Convergence with respect to `{conv_var}` has not been directly implemented. You '
                                   'can still perform a convergence calculation with respect to this variable, but '
-                                  'you must first create an appropriate ConvergenceVariable object and then '
-                                  'construct your ConvergenceWorkflow using the ConvergenceWorkflowFactory')
+                                  'you must first create an appropriate `ConvergenceVariable` object and then '
+                                  'construct your `ConvergenceWorkflow` using the `ConvergenceWorkflowFactory`')
 
 
 class ConvergenceOutputs(OutputModel):
@@ -278,15 +278,15 @@ class ConvergenceWorkflow(Workflow):
         # Check that everything has been initialized
         if self.observable is None:
             raise ValueError(
-                f'{self.__class__.__name__} has not been provided with an observable to converge')
+                f'`{self.__class__.__name__}` has not been provided with an observable to converge')
 
         if len(self.variables) == 0:
             raise ValueError(
-                f'{self.__class__.__name__} has not been provided with any variables with which to perform convergence')
+                f'`{self.__class__.__name__}` has not been provided with any variables with which to perform convergence')
 
         if self.threshold is None:
             raise ValueError(
-                f'{self.__class__.__name__} has not been provided with a threshold with which to perform convergence')
+                f'`{self.__class__.__name__}` has not been provided with a threshold with which to perform convergence')
 
         # Create array for storing calculation results
         results = np.empty([len(v) for v in self.variables])

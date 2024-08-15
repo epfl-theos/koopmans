@@ -56,8 +56,8 @@ class Wannier90SettingsDict(SettingsDict):
             self.kpoints = kpts
         elif key == 'koffset':
             if self.mp_grid is None:
-                raise ValueError('Cannot offset the list of k-points if "kpoints" has not been defined yet. ' +
-                                 'Check that "kgrid" is provided before "koffset"')
+                raise ValueError('Cannot offset the list of k-points if `kpoints` has not been defined yet. ' +
+                                 'Check that `kgrid` is provided before `koffset`')
             if isinstance(value, int) or isinstance(value, list) and all([isinstance(k, int) for k in value]):
                 # For koffset = [1, 1, 1], PW shifts the k-grid by half a grid step
                 self.kpoints += np.array(value) / self.mp_grid / 2
@@ -88,7 +88,7 @@ class Wannier90SettingsDict(SettingsDict):
                     assert isinstance(v, dict)
                     for k in v.keys():
                         if k not in ['site', 'csite', 'fsite', 'ang_mtm', 'zaxis', 'xaxis', 'radial', 'zona']:
-                            raise KeyError(f'Unrecognized key {k} in the w90 projections block')
+                            raise KeyError(f'Unrecognized key `{k}` in the w90 projections block')
                     value[i] = v
             if key == 'exclude_bands' and isinstance(value, str):
                 value = formatted_str_to_list(value)

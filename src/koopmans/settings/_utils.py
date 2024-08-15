@@ -43,10 +43,10 @@ def parse_physical(value):
                 return value * units[matching_units[0]]
             elif len(matching_units) > 1:
                 raise ValueError(
-                    f'Multiple matches for {val_units} found; this should not happen')
+                    f'Multiple matches for `{val_units}` found; this should not happen')
             else:
                 raise NotImplementedError(
-                    f'{val_units} not implemented in koopmans.utils.parse_physical')
+                    f'{val_units} not implemented in `koopmans.utils.parse_physical`')
 
 
 class Setting(NamedTuple):
@@ -135,9 +135,9 @@ class SettingsDict(UserDict):
             if isinstance(value, str):
                 value = Path(value)
             elif not isinstance(value, Path):
-                raise ValueError(f'{key} must be either a string or a Path')
+                raise ValueError(f'`{key}` must be either a string or a Path')
             if value.is_absolute() and key not in ['pseudo_dir', 'pseudo_directory']:
-                raise ValueError(f'{key} must be a relative path')
+                raise ValueError(f'`{key}` must be a relative path')
 
         # Parse any units provided
         if key in self.physicals:
@@ -171,7 +171,7 @@ class SettingsDict(UserDict):
 
     def _check_before_setitem(self, key, value):
         if not self.is_valid(key):
-            raise KeyError(f'{key} is not a valid setting')
+            raise KeyError(f'`{key}` is not a valid setting')
         return
 
     def replace_nelec(self, nelec: int):
@@ -244,21 +244,22 @@ class SettingsDictWithChecks(SettingsDict):
         # Check the value is the valid type
         if isinstance(setting.kind, tuple):
             if not any([isinstance(value, k) for k in setting.kind]):
-                raise ValueError(f'{setting.name} must be a ' + '/'.join([str(k) for k in setting.kind]))
+                raise ValueError(f'`{setting.name}` must be a `' + '`/`'.join([str(k) for k in setting.kind]) + '`')
         else:
             if not isinstance(value, setting.kind):
-                raise ValueError(f'{setting.name} must be a {setting.kind}')
+                raise ValueError(f'`{setting.name}` must be a `{setting.kind}`')
 
         # Check the value is among the valid options
         if setting.options is not None and value not in setting.options:
-            raise ValueError(f'{setting.name} may only be set to ' + '/'.join([str(o) for o in setting.options]))
+            raise ValueError(f'`{setting.name}` may only be set to `' +
+                             '`/`'.join([str(o) for o in setting.options]) + '`')
 
 
 class IbravDict():
     def __setitem__(self, key: str, value: Any) -> None:
         if key == 'celldms':
             if not isinstance(value, dict):
-                raise ValueError('celldms should be a dictionary')
+                raise ValueError('`celldms` should be a dictionary')
             for k, v in value.items():
                 self[f'celldm({k})'] = v
             return

@@ -53,7 +53,7 @@ def sanitize_filenames(filenames: Union[str, Path, List[str], List[Path]], ext_i
             # ... and it has no suffix, automatically add the expected suffixes for both the input and output files
             sanitized_filenames = [filenames.with_suffix(ext_in), filenames.with_suffix(ext_out)]
         else:
-            raise ValueError(f'Unrecognized file format {filenames.suffix}')
+            raise ValueError(f'Unrecognized file format `{filenames.suffix}`')
     return sanitized_filenames
 
 
@@ -105,7 +105,7 @@ class CalculatorExt():
     @property
     def parameters(self) -> settings.SettingsDict:
         if not hasattr(self, '_parameters'):
-            raise ValueError(f'{self}.parameters has not yet been set')
+            raise ValueError(f'`{self}.parameters` has not yet been set')
         return self._parameters
 
     @parameters.setter
@@ -148,7 +148,7 @@ class CalculatorExt():
         # Check if the calculation completed
         if not self.is_complete():
             raise CalculationFailed(
-                f'{self.directory}/{self.prefix} failed; check the Quantum ESPRESSO output file for more details')
+                f'`{self.directory}/{self.prefix}` failed; check the `Quantum ESPRESSO` output file for more details')
 
         # Check convergence
         self.check_convergence()
@@ -170,13 +170,13 @@ class CalculatorExt():
 
             if not src_filename.exists():
                 raise FileNotFoundError(
-                    f'Tried to link {src_filename} with the {self.prefix} calculator but it does not exist')
+                    f'Tried to link `{src_filename}` with the `{self.prefix}` calculator but it does not exist')
 
             if dest_filename.exists() or dest_filename.is_symlink():
                 if overwrite:
                     utils.remove(dest_filename)
                 else:
-                    raise FileExistsError(f'{dest_filename} already exists')
+                    raise FileExistsError(f'`{dest_filename}` already exists')
 
             # Create the copy/symlink
             dest_filename.parent.mkdir(parents=True, exist_ok=True)
@@ -245,20 +245,20 @@ class CalculatorExt():
         if self.command.path == Path():
             executable_with_path = utils.find_executable(self.command.executable)
             if executable_with_path is None:
-                raise OSError(f'{self.command.executable} is not installed')
+                raise OSError(f'`{self.command.executable}` is not installed')
             self.command.path = executable_with_path.parent
         else:
             if not (self.command.path / self.command.executable).is_file():
-                raise OSError(f'{self.command.executable} is not installed')
+                raise OSError(f'`{self.command.executable}` is not installed')
         return
 
     def write_alphas(self):
         raise NotImplementedError(
-            f'{self.__class__.__name__}.write_alphas() has not been implemented/should not be called')
+            f'`{self.__class__.__name__}.write_alphas()` has not been implemented/should not be called')
 
     def read_alphas(self):
         raise NotImplementedError(
-            f'{self.__class__.__name__}.read_alphas() has not been implemented/should not be called')
+            f'`{self.__class__.__name__}.read_alphas()` has not been implemented/should not be called')
 
     def todict(self):
         # Shallow copy of self.__dict__
@@ -282,10 +282,10 @@ class CalculatorExt():
 
     def link_file(self, src_calc: utils.HasDirectoryAttr | None, src_filename: Path, dest_filename: Path, symlink: bool = False, recursive_symlink: bool = False, overwrite: bool = False):
         if src_filename.is_absolute() and src_calc is not None:
-            raise ValueError(f'"src_filename" in {self.__class__.__name__}.link_file() must be a relative path if a '
-                             f'"src_calc" is provided')
+            raise ValueError(f'`src_filename` in `{self.__class__.__name__}.link_file()` must be a relative path if a '
+                             f'`src_calc` is provided')
         if dest_filename.is_absolute():
-            raise ValueError(f'"dest_filename" in {self.__class__.__name__}.link_file() must be a relative path')
+            raise ValueError(f'`dest_filename` in `{self.__class__.__name__}.link_file()` must be a relative path')
 
         self.linked_files[str(dest_filename)] = (src_calc, src_filename, symlink, recursive_symlink, overwrite)
 
@@ -329,10 +329,10 @@ class CalculatorABC(ABC, Generic[TCalc]):
         ...
 
     def check_convergence(self) -> None:
-        # Default behaviour is to check self.is_converged(), and raise an error if this returns False. Override
-        # this function if this behaviour is undesired
+        # Default behavior is to check self.is_converged(), and raise an error if this returns False. Override
+        # this function if this behavior is undesired
         if not self.is_converged():
-            raise CalculationFailed(f'{self.directory}/{self.prefix} did not converge; check the Quantum ESPRESSO '
+            raise CalculationFailed(f'`{self.directory}/{self.prefix}` did not converge; check the `Quantum ESPRESSO` '
                                     'output file for more details')
 
     @abstractmethod

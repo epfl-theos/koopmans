@@ -51,7 +51,7 @@ class KoopmansDFPTWorkflow(Workflow):
                     'with Kohn-Sham orbitals as the variational orbitals')
         if self.parameters.dfpt_coarse_grid is not None and not self.parameters.calculate_alpha:
             raise ValueError('Using a DFPT coarse grid to calculate the screening parameters is not possible '
-                             'when calculate_alpha = False')
+                             'when `calculate_alpha = False`')
         for params in self.calculator_parameters.values():
             if all(self.atoms.pbc):
                 # Gygi-Baldereschi
@@ -60,7 +60,7 @@ class KoopmansDFPTWorkflow(Workflow):
                         if params.l_vcut is None:
                             params.l_vcut = True
                         if not params.l_vcut:
-                            raise ValueError('Gygi-Baldereschi corrections require l_vcut = True')
+                            raise ValueError('Gygi-Baldereschi corrections require `l_vcut = True`')
 
                 # Makov-Payne
                 if self.parameters.mp_correction:
@@ -70,8 +70,8 @@ class KoopmansDFPTWorkflow(Workflow):
                 # Martyna-Tuckerman (not used for periodic systems)
                 if hasattr(params, 'assume_isolated'):
                     if params.assume_isolated not in ['none', None]:
-                        raise ValueError('Periodic systems must have "assume_isolated" = "none", but it is set to '
-                                         + params.assume_isolated)
+                        raise ValueError('Periodic systems must have `assume_isolated = "none"`, but it is set to `'
+                                         + params.assume_isolated + '`')
 
             else:
                 # Gygi-Baldereschi (not used for aperiodic systems)
@@ -79,11 +79,11 @@ class KoopmansDFPTWorkflow(Workflow):
                     if params.l_vcut is None:
                         params.l_vcut = False
                     if params.l_vcut:
-                        raise ValueError('Aperiodic systems require l_vcut = False')
+                        raise ValueError('Aperiodic systems require `l_vcut = False`')
 
                 # Makov-Payne (not used for aperiodic systems)
                 if getattr(params, 'eps_inf', None) not in [None, 1.0]:
-                    raise ValueError('Aperiodic systems should not have a non-zero eps_inf')
+                    raise ValueError('Aperiodic systems should not have a non-zero `eps_inf`')
 
                 # Martyna-Tuckerman
                 if self.parameters.mt_correction:
@@ -92,7 +92,7 @@ class KoopmansDFPTWorkflow(Workflow):
                             params.assume_isolated = 'm-t'
                         if params.assume_isolated not in ['martyna-tuckerman', 'm-t', 'mt']:
                             raise ValueError(
-                                f'assume_isolated = {params.assume_isolated} is incompatible with mt_correction = True')
+                                f'`assume_isolated = {params.assume_isolated}` is incompatible with `mt_correction = True`')
 
         # Initialize the bands
         nocc = pseudopotentials.nelec_from_pseudos(
@@ -236,7 +236,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 koopmans_ham_files = {("occ", None): FilePointer(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_occ.dat'),
                                       ("emp", None): FilePointer(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_emp.dat')}
                 dft_ham_files = {}
-                raise NotImplementedError('Need to implement the dft_ham_files')
+                raise NotImplementedError('Need to implement the `dft_ham_files`')
                 ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(
                     self, dft_ham_files=dft_ham_files, koopmans_ham_files=koopmans_ham_files)
                 ui_workflow.run(subdirectory='postproc')
@@ -332,7 +332,7 @@ class ComputeScreeningViaDFPTWorkflow(Workflow):
 def internal_new_calculator(workflow, calc_presets, **kwargs):
     if calc_presets not in ['kc_ham', 'kc_screen', 'wann2kc']:
         raise ValueError(
-            f'Invalid choice calc_presets={calc_presets} in {workflow.__class__.__name__}.new_calculator()')
+            f'Invalid choice `calc_presets={calc_presets}` in `{workflow.__class__.__name__}.new_calculator()`')
 
     calc = super(workflow.__class__, workflow).new_calculator(calc_presets)
 

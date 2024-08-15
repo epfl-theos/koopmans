@@ -96,7 +96,7 @@ def symlink_tree(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool =
 def copy(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool = False):
     # Copy a file from "src" to "dest"
     if '*' in str(src) or '?' in str(src):
-        raise ValueError('Do not use wildcards in utils.copy()')
+        raise ValueError('Do not use wildcards in `utils.copy()`')
 
     # Sanitize input
     if isinstance(src, str):

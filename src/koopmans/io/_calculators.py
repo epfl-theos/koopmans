@@ -43,7 +43,7 @@ def read_calculator(filenames: Union[Path, List[Path]]) -> Calc:
     elif extensions.issubset(set(['.khi', '.kho'])):
         calc_class = KoopmansHamCalculator
     else:
-        raise ValueError('Could not identify the extensions of ' + '/'.join([str(f) for f in filenames]))
+        raise ValueError('Could not identify the extensions of `' + '`/`'.join([str(f) for f in filenames]) + '`')
 
     calc = calc_class.fromfile(filenames)
 

@@ -48,8 +48,8 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         # Make sure kpts has been correctly provided
         if self.parameters.calculation == 'bands':
             if not isinstance(self.parameters.kpts, BandPath):
-                raise KeyError('You are running a calculation that requires a kpoint path; please provide a BandPath '
-                               'as the kpts parameter')
+                raise KeyError('You are running a calculation that requires a kpoint path; please provide a `BandPath` '
+                               'as the `kpts` parameter')
 
         super()._pre_calculate()
 

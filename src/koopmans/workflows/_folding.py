@@ -131,7 +131,7 @@ class FoldToSupercellWorkflow(Workflow):
                         else:
                             self.print(f'Not merging the {label} band blocks as this is already complete')
 
-                        raise NotImplementedError("Need to populate merged_files dictionary")
+                        raise NotImplementedError("Need to populate `merged_files` dictionary")
 
         else:
             # Create the calculator

@@ -62,7 +62,7 @@ class PowerSpectrumDecompositionWorkflow(Workflow):
         """
 
         if self.ml.estimator == 'mean':
-            raise ValueError('A mean estimator does not require input data; this PowerSpectrumDecompositionWorkflow '
+            raise ValueError('A mean estimator does not require input data; this `PowerSpectrumDecompositionWorkflow` '
                              'should not have been called')
 
         # Specify for which bands we want to compute the decomposition

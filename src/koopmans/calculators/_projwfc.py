@@ -53,8 +53,8 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         super()._pre_calculate()
         for attr in ['pseudopotentials', 'pseudo_dir', 'spin_polarized']:
             if not hasattr(self, attr):
-                raise ValueError(f'Please set {self.__class__.__name__}.{attr} before calling '
-                                 f'{self.__class__.__name__.calculate()}')
+                raise ValueError(f'Please set `{self.__class__.__name__}.{attr}` before calling '
+                                 f'`{self.__class__.__name__}calculate()`')
 
     def _post_calculate(self):
         super()._post_calculate()
@@ -110,7 +110,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         # Compare against the expected subshell
         if subshell != expected_subshell[1]:
             raise ValueError(
-                f"Unexpected pdos file {filename.name}, a pdos file corresponding to {expected_subshell} was expected")
+                f"Unexpected pdos file `{filename.name}`, a pdos file corresponding to {expected_subshell} was expected")
 
         # Work out what orbitals will be contained within the pDOS file
         orbital_order = {"s": ["s"], "p": ["pz", "px", "py"], "d": ["dz2", "dxz", "dyz", "dx2-y2", "dxy"]}

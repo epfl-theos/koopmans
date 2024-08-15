@@ -101,7 +101,7 @@ def estimator_factory(estimator: str) -> WrappedEstimator:
     elif estimator == 'mean':
         return MeanEstimator()
     else:
-        raise ValueError(f"{estimator} is not implemented as a valid ML estimator.")
+        raise ValueError(f"`{estimator}` is not implemented as a valid ML estimator.")
 
 
 class AbstractMLModel(ABC):
@@ -188,7 +188,7 @@ def descriptor_from_band_factory(descriptor: str) -> Callable[[Band], np.ndarray
     elif descriptor == 'self_hartree':
         return self_hartree_from_band
     else:
-        raise ValueError(f"'{descriptor}' is not implemented as a valid descriptor.")
+        raise ValueError(f"`{descriptor}` is not implemented as a valid descriptor.")
 
 
 class MLModel(AbstractMLModel):
@@ -217,7 +217,7 @@ class MLModel(AbstractMLModel):
         """
 
         if not self.is_trained:
-            raise ValueError(f'{self.__class__.__name__} must be trained before calling predict()')
+            raise ValueError(f'`{self.__class__.__name__}` must be trained before calling `predict()`')
 
         descriptor = self.descriptor_from_band(band)
 

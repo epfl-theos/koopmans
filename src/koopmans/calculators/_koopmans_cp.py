@@ -67,7 +67,7 @@ def good_fft(nr: int) -> int:
 def read_ham_file(filename: Path) -> np.ndarray[Any, np.dtype[np.complex128]]:
     # Read a single hamiltonian XML file
     if not filename.exists():
-        raise FileExistsError(f'{filename} does not exist')
+        raise FileExistsError(f'`{filename}` does not exist')
 
     with open(filename, 'r') as fd:
         tree = ET.parse(fd)
@@ -206,7 +206,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
                 if not fpath_2.exists():
                     raise FileNotFoundError(
-                        'Error in {self.__class__.__name__}._swap_spin_channels: I expected {fpath_2} to exist')
+                        '`{fpath_2}` does not exist')
 
                 fpath_1.replace(fpath_tmp)
                 fpath_2.replace(fpath_1)
@@ -268,7 +268,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
     def is_converged(self) -> bool:
         # Checks convergence of the calculation
         if 'conv_thr' not in self.parameters:
-            raise ValueError('Cannot check convergence when "conv_thr" is not set')
+            raise ValueError('Cannot check convergence when `conv_thr` is not set')
 
         if 'convergence' not in self.results:
             raise ValueError('Could not locate calculation details to check convergence')
@@ -378,7 +378,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
     @property
     def alphas(self) -> List[List[float]]:
         if not hasattr(self, '_alphas'):
-            raise AttributeError(f'{self}.alphas has not been initialized')
+            raise AttributeError(f'`{self}.alphas` has not been initialized')
         return self._alphas
 
     @alphas.setter
@@ -469,7 +469,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         elif kpt == 0:
             return self.results['eigenvalues'][spin]
         else:
-            raise ValueError(f'{self.__class__.__name__} does not have k-point-resolved KS eigenvalues')
+            raise ValueError(f'`{self.__class__.__name__}` does not have k-point-resolved KS eigenvalues')
 
     def get_fermi_level(self):
         return 0
@@ -583,7 +583,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         for directory in [nspin2_tmpdir, nspin1_tmpdir]:
             if not directory.is_dir():
-                raise OSError(f'{directory} not found')
+                raise OSError(f'`{directory}` not found')
 
         for wfile in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
                       'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat', 'lambdam1.dat']:
@@ -615,7 +615,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         for directory in [nspin2_tmpdir, nspin1_tmpdir]:
             if not directory.is_dir():
-                raise OSError(f'{directory} not found')
+                raise OSError(f'`{directory}` not found')
 
         for wfile in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
                       'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat']:

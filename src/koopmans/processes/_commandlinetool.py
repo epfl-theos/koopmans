@@ -26,5 +26,5 @@ class CommandLineTool(Process):
         self._pre_run()
         ierr = subprocess.call(str(self.command), shell=True)
         if ierr > 0:
-            raise OSError(f'{self.command} exited with exit code {ierr}')
+            raise OSError(f'`{self.command}` exited with exit code {ierr}')
         self._post_run()

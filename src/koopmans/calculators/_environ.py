@@ -62,7 +62,7 @@ class EnvironCalculator(PWCalculator):
     def check_code_is_installed(self):
         super().check_code_is_installed()
         if not environ_addon_is_installed(self.command.path.parent):
-            raise OSError('The pw add-on "environ" is not installed')
+            raise OSError('The pw add-on `environ` is not installed')
 
 
 def environ_addon_is_installed(qe_directory):

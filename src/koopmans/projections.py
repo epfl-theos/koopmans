@@ -65,7 +65,8 @@ class ProjectionBlock(object):
         for key in ['projections', 'num_wann', 'num_bands', 'exclude_bands']:
             val = getattr(self, key, None)
             if val is None and key != 'exclude_bands':
-                raise AttributeError(f'You must define {self.__class__.__name__}.{key} before requesting w90_kwargs')
+                raise AttributeError(
+                    f'You must define `{self.__class__.__name__}.{key}` before requesting `w90_kwargs`')
             kwargs[key] = val
         if self.spin is not None:
             kwargs['spin'] = self.spin
@@ -131,7 +132,7 @@ class ProjectionBlocks(object):
                     excl_bands.remove(excl_band)
                     divs.append(1)
                 elif excl_band > sum(divs) and excl_band <= sum(divs) + block_size:
-                    raise ValueError('The Wannier90 excluded bands are mixed with a block of projections. '
+                    raise ValueError('The `Wannier90` excluded bands are mixed with a block of projections. '
                                      'Please redefine excluded_bands such that the remaining included bands are '
                                      'commensurate with the provided projections')
             divs.append(block_size)
@@ -191,7 +192,7 @@ class ProjectionBlocks(object):
                  atoms: Atoms):
 
         if not all([isinstance(p, list) for p in list_of_projections]):
-            raise ValueError('list_of_projections must be a list of lists')
+            raise ValueError('`list_of_projections` must be a list of lists')
         blocks: List[ProjectionBlock] = []
         blocks += [ProjectionBlock(p, s) for p, s in zip(list_of_projections, spins) if len(p) > 0]
 
@@ -241,7 +242,7 @@ class ProjectionBlocks(object):
                 n_occ_bands = self.num_occ_bands[block.spin]
             except KeyError:
                 raise AssertionError(
-                    'Initialize ProjectionBlocks.num_occ_bands before calling ProjectionBlocks.to_merge()')
+                    'Initialize `ProjectionBlocks.num_occ_bands` before calling `ProjectionBlocks.to_merge()`')
             if max(block.include_bands) <= n_occ_bands:
                 label = 'occ'
             elif min(block.include_bands) > n_occ_bands:
