@@ -109,6 +109,7 @@ class DFTPhWorkflow(Workflow):
         self.run_calculator(calc_scf)
         calc_ph = self.new_calculator('ph', epsil=True, fildyn=f'{self.name}.dynG')
         calc_ph.prefix = 'eps'
+        self.link(calc_scf, calc_scf.parameters.outdir, calc_ph, calc_ph.parameters.outdir, symlink=True)
         self.run_calculator(calc_ph)
 
 
@@ -142,6 +143,7 @@ class DFTBandsWorkflow(DFTWorkflow):
             else:
                 calc_bands = self.new_calculator('pw', calculation='nscf')
             calc_bands.prefix = 'bands'
+            self.link(calc_scf, calc_scf.parameters.outdir, calc_bands, calc_bands.parameters.outdir, symlink=True)
             self.run_calculator(calc_bands)
 
             # Prepare the band structure for plotting
@@ -149,11 +151,11 @@ class DFTBandsWorkflow(DFTWorkflow):
                 bs = calc_bands.results['band structure']
 
             # Third, a PDOS calculation
-            pseudos = [pseudopotentials.read_pseudo_file(calc_scf.parameters.pseudo_dir / p) for p in
+            pseudos = [pseudopotentials.read_pseudo_file(calc_scf.directory / calc_scf.parameters.pseudo_dir / p) for p in
                        self.pseudopotentials.values()]
             if all([int(p['header'].get('number_of_wfc', 0)) > 0 for p in pseudos]):
                 calc_dos = self.new_calculator('projwfc')
-                calc_dos.pseudo_dir = calc_bands.parameters.pseudo_dir
+                self.link(calc_bands, calc_bands.parameters.outdir, calc_dos, calc_dos.parameters.outdir, symlink=True)
                 self.run_calculator(calc_dos)
 
                 # Prepare the DOS for plotting

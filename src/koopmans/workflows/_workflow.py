@@ -1331,13 +1331,12 @@ class Workflow(ABC):
             return
 
         # Save workflow to file
-        write(self, self.name + '.kwf')
+        write(self, self.name + '.pkl')
 
         # Save the ML model to a separate file
         if self.ml.train:
             assert self.ml_model is not None
-            with open(self.name + '_ml_model.pkl', 'wb') as fd:
-                dill.dump(self.ml_model, fd)
+            write(self.ml_model, self.name + '_ml_model.pkl')
 
         # Print farewell message
         print('\n**Workflow complete** 🎉')
