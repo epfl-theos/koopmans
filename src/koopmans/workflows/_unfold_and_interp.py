@@ -16,8 +16,9 @@ import numpy as np
 from ase.dft.dos import DOS
 from ase.spectrum.band_structure import BandStructure
 
-from koopmans import calculators, outputs, processes, utils
+from koopmans import calculators, outputs, utils
 from koopmans.files import FilePointer
+from koopmans.processes.ui import UnfoldAndInterpolateProcess, generate_dos
 
 from ._workflow import Workflow
 
@@ -75,7 +76,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             # self.from_scratch to wannier_workflow.from_scratch and back again after the subworkflow finishes
             wannier_workflow.run(from_scratch=self._redo_smooth_dft)
 
-        process: processes.UnfoldAndInterpolateProcess
+        process: UnfoldAndInterpolateProcess
         spins: List[Optional[str]]
         if self.parameters.spin_polarized:
             spins = ['up', 'down']
@@ -131,7 +132,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         merged_bs = BandStructure(self.kpoints.path, energies_np, reference=reference)
 
         if process.inputs.parameters.do_dos:
-            merged_dos = processes.generate_dos(merged_bs, self.plotting)
+            merged_dos = generate_dos(merged_bs, self.plotting)
 
         # Plot the band structure and DOS
         if process.inputs.parameters.do_dos:
@@ -161,7 +162,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         # Store the results
         self.outputs = self.output_model(band_structure=merged_bs, dos=merged_dos)
 
-    def new_ui_process(self, presets: str, **kwargs) -> processes.UnfoldAndInterpolateProcess:
+    def new_ui_process(self, presets: str, **kwargs) -> UnfoldAndInterpolateProcess:
         valid_presets = ['occ', 'occ_up', 'occ_down', 'emp', 'emp_up', 'emp_down']
         assert presets in valid_presets, \
             'In UnfoldAndInterpolateWorkflow.new_ui_process() presets must be ' \
@@ -209,10 +210,10 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         parameters.kgrid = self.kpoints.grid
         parameters.kpath = self.kpoints.path
 
-        process = processes.UnfoldAndInterpolateProcess(atoms=self.atoms,
-                                                        parameters=parameters,
-                                                        plotting_parameters=self.plotting,
-                                                        **kwargs)
+        process = UnfoldAndInterpolateProcess(atoms=self.atoms,
+                                              parameters=parameters,
+                                              plotting_parameters=self.plotting,
+                                              **kwargs)
 
         process.name += f'_{presets}'
 

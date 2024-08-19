@@ -145,7 +145,7 @@ def get_coefficients(rho: np.ndarray, rho_total: np.ndarray, r_cartesian: np.nda
 
 def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_cut: float, total_density_xml: FilePointer,
                           orbital_densities_xml: Dict[str, FilePointer],
-                          bands: List[Band], cell: Cell, wannier_centers: np.ndarray, alphas: FilePointer, betas: FilePointer) -> Tuple[List[str], List[str]]:
+                          bands: List[Band], cell: Cell, wannier_centers: np.ndarray, alpha_file: FilePointer, beta_file: FilePointer) -> Tuple[List[str], List[str]]:
     """
     Computes the expansion coefficients of the total and orbital densities.
     """
@@ -187,8 +187,8 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
     r_spherical = cart2sph_array(r_cartesian)
 
     # Define our radial basis functions, which are partially parameterized by precomputed vectors
-    alphas = np.frombuffer(get_binary_content(*alphas)).reshape((n_max, l_max+1))
-    betas = np.frombuffer(get_binary_content(*betas)).reshape((n_max, n_max, l_max+1))
+    alphas = np.frombuffer(get_binary_content(*alpha_file)).reshape((n_max, l_max+1))
+    betas = np.frombuffer(get_binary_content(*beta_file)).reshape((n_max, n_max, l_max+1))
     radial_basis_functions: RadialBasisFunctions = partial(g_basis, betas=betas, alphas=alphas)
 
     # Compute R_nl Y_lm for each point on the integration domain
@@ -239,9 +239,9 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
             rho_r_new, total_density_r_new, r_cartesian, total_basis_array)
 
         # save the decomposition coefficients in files
-        orbital_file = f'coeff.orbital.{filled_str}.{band.index}.txt'
+        orbital_file = f'coeff.orbital.{filled_str}.{band.index}.npy'
         write_binary_content(orbital_file, coefficients_orbital.tobytes())
-        total_file = f'coeff.total.{filled_str}.{band.index}.txt'
+        total_file = f'coeff.total.{filled_str}.{band.index}.npy'
         write_binary_content(total_file, coefficients_total.tobytes())
 
         orbital_files.append(orbital_file)

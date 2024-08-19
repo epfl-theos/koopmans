@@ -186,7 +186,8 @@ def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '
             initial_indent = ' ' * indent if initial_indent is None else initial_indent
             subsequent_indent = ' ' * indent if subsequent_indent is None else subsequent_indent
             message = textwrap.fill(substring, width=120, initial_indent=initial_indent,
-                                    subsequent_indent=subsequent_indent, break_long_words=False, break_on_hyphens=False)
+                                    subsequent_indent=subsequent_indent, break_long_words=False, break_on_hyphens=False,
+                                    drop_whitespace=False)
             print(message, sep=sep, end=end, flush=flush)
         else:
             print(substring, sep=sep, end=end, flush=flush)

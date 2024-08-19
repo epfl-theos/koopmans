@@ -98,9 +98,6 @@ class ParallelCommand(Command):
         self.mpi_command: str = ''
         super().__init__(*args, **kwargs)
 
-    def __get__(self):
-        return self.mpi_command + ' ' + super().__get__()
-
     def __set__(self, value: str):
         if isinstance(value, str):
             default_mpi_command = os.environ.get('PARA_PREFIX', None)

@@ -276,7 +276,7 @@ class OccEmpMLModels(AbstractMLModel):
     def is_trained(self):
         return self.model_occ.is_trained and self.model_emp.is_trained
 
-    def predict(self, band: Band) -> np.ndarray:
+    def predict(self, band: Band) -> float:
         if band.filled:
             return self.model_occ.predict(band)
         else:

@@ -13,8 +13,8 @@ from koopmans.bands import Band
 from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
 from koopmans.processes.bin2xml import Bin2XMLProcess
-from koopmans.processes.ml import (ComputePowerSpectrumProcess,
-                                   ExtractCoefficientsFromXMLProcess)
+from koopmans.processes.power_spectrum import (
+    ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
 from koopmans.settings import KoopmansCPSettingsDict
 
 from ._workflow import Workflow
@@ -118,7 +118,7 @@ class PowerSpectrumDecompositionWorkflow(Workflow):
                 orbital_coefficients=orb_coeff,
                 total_coefficients=tot_coeff,
             )
-            power_spectrum_process.name += '_orbital_' + str(i)
+            power_spectrum_process.name += '_orbital_' + str(i + 1)
             self.run_process(power_spectrum_process)
             descriptors.append(power_spectrum_process.outputs.power_spectrum)
 

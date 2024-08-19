@@ -29,8 +29,7 @@ from koopmans import calculators, projections, utils
 from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
 from koopmans.processes import Process
-from koopmans.processes.wannier import (CopyProcess, ExtendProcess,
-                                        MergeProcess,
+from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         extend_wannier_u_dis_file_content,
                                         merge_wannier_centers_file_contents,
                                         merge_wannier_hr_file_contents,

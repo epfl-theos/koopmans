@@ -32,58 +32,6 @@ class TrajectoryWorkflow(Workflow):
         super().__init__(*args, **kwargs)
         self.parameters.task = 'trajectory'
 
-    # def __init__(self, snapshots: List[Atoms], indices: Optional[List[int]] = None, save_dir: Optional[Path] = None,
-    #              get_evs: bool = False, overwrite_atoms: bool = True, *args, **kwargs):
-
-    #     if overwrite_atoms:
-    #         if isinstance(snapshots, Atoms):
-    #             kwargs['atoms'] = snapshots
-    #         else:
-    #             kwargs['atoms'] = snapshots[0]
-    #     super().__init__(*args, **kwargs)
-
-    #     self.snapshots = snapshots
-    #     self.number_of_snapshots = len(self.snapshots)
-    #     self.indices: Optional[List[int]] = indices
-    #     self.save_dir: Optional[Path] = save_dir
-    #     self.get_evs: Optional[bool] = get_evs
-    #     all_alphas: Dict[str, np.ndarray] = {}
-    #     self.all_alphas = all_alphas
-
-    # @ classmethod
-    # def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}):
-    #     """
-    #     Reads the atomic positions for each snapshot from the xyz file provided by the user
-    #     """
-
-    #     try:
-    #         snapshots_file = bigdct['atoms']['atomic_positions'].pop('snapshots')
-    #     except:
-    #         raise ValueError('To calculate a trajectory, please provide a "snapshots" entry in the'
-    #                          '"atomic_positions" block, corresponding to the name of an xyz-formatted '
-    #                          'file containing the snapshots')
-
-    #     snapshots = io.read(snapshots_file, index=':')
-    #     if isinstance(snapshots, Atoms):
-    #         snapshots = [snapshots]
-    #     bigdct['atoms']['atomic_positions'] = utils.construct_atomic_positions_block(snapshots[0])
-    #     wf = super(TrajectoryWorkflow, cls)._fromjsondct(bigdct, override)
-    #     wf.snapshots = snapshots
-    #     wf.number_of_snapshots = len(snapshots)
-    #     return wf
-
-    # def toinputjson(self) -> Dict[str, Dict[str, Any]]:
-    #     bigdct = super().toinputjson()
-    #     snapshots_file = "snapshots.json"
-    #     io.write(snapshots_file, self.snapshots)
-    #     bigdct['atoms']['atomic_positions'] = {"snapshots": snapshots_file}
-    #     return bigdct
-
-    # @classmethod
-    # def fromdict(cls, dct: Dict, **kwargs):
-    #     snapshots = dct.pop('snapshots')
-    #     return super(TrajectoryWorkflow, cls).fromdict(dct, snapshots=snapshots, **kwargs)
-
     def _run(self):
         """
         Starts the KoopmansDSCF Workflow for each snapshot indicated in indices
@@ -96,7 +44,6 @@ class TrajectoryWorkflow(Workflow):
 
         for i, snapshot in enumerate(self.snapshots):
             # Get the atomic positions for the current snapshot
-            self.ml.current_snapshot = i
             self.atoms.set_positions(snapshot.positions)
 
             # after each snapshot we want to set the from_scratch_parameter to its original value
@@ -113,15 +60,5 @@ class TrajectoryWorkflow(Workflow):
             # Reset the from_scratch parameter to its original value
             self.parameters.from_scratch = from_scratch
 
-            # # If necessary, save the results (e.g. for the convergence analysis)
-            # alphas = self.bands.alphas
-            # self.all_alphas[f'snapshot_{i+1}'] = alphas
-            # if self.save_dir is not None:
-            #     np.savetxt(self.save_dir / f"alphas_snapshot_{i+1}.txt", alphas)
-            #     if self.get_evs:
-            #         final_calculator = calculators.KoopmansCPCalculator
-            #         final_calc = [c for c in workflow.calculations if isinstance(c, final_calculator)][-1]
-            #         evs = final_calc.results['eigenvalues']
-            #         np.savetxt(self.save_dir / f"evs_snapshot_{i+1}.txt", evs)
             outputs.append(workflow.outputs)
         self.outputs = self.output_model(snapshot_outputs=outputs)

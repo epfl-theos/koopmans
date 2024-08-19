@@ -4,11 +4,11 @@ from typing import Callable, List, Tuple
 
 import numpy as np
 from ase import Atoms
-from pydantic import BaseModel
 
 from koopmans import calculators, utils
+from koopmans.files import FilePointer
 
-from ._process import Process
+from ._process import IOModel, Process
 
 
 def merge_wannier_hr_file_contents(filecontents: List[List[str]]) -> List[str]:
@@ -110,21 +110,21 @@ def extend_wannier_u_dis_file_content(filecontent: List[str], nbnd: int, nwann: 
     return utils.generate_wannier_u_file_contents(udis_mat_large, kpts)
 
 
-class MergeInputModel(BaseModel):
-    src_files: List[Tuple[calculators.Wannier90Calculator, Path]]
+class MergeInputModel(IOModel):
+    src_files: List[FilePointer]
     dst_file: Path
 
     class Config:
         arbitrary_types_allowed = True
 
 
-class MergeOutputModel(BaseModel):
+class MergeOutputModel(IOModel):
     dst_file: Path
 
 
 class MergeProcess(Process):
-    _input_model = MergeInputModel
-    _output_model = MergeOutputModel
+    input_model = MergeInputModel
+    output_model = MergeOutputModel
 
     def __init__(self, merge_function: Callable[[List[List[str]]], List[str]], **kwargs):
         self.merge_function = merge_function
@@ -140,24 +140,24 @@ class MergeProcess(Process):
 
         utils.write_content(self.inputs.dst_file, merged_filecontents)
 
-        self.outputs = self._output_model(dst_file=self.inputs.dst_file)
+        self.outputs = self.output_model(dst_file=self.inputs.dst_file)
 
 
-class ExtendInputModel(BaseModel):
-    src_file: Tuple[calculators.Wannier90Calculator, Path]
+class ExtendInputModel(IOModel):
+    src_file: FilePointer
     dst_file: Path
 
     class Config:
         arbitrary_types_allowed = True
 
 
-class ExtendOutputModel(BaseModel):
+class ExtendOutputModel(IOModel):
     dst_file: Path
 
 
 class ExtendProcess(Process):
-    _input_model = ExtendInputModel
-    _output_model = ExtendOutputModel
+    input_model = ExtendInputModel
+    output_model = ExtendOutputModel
 
     def __init__(self, extend_function: Callable[[List[str]], List[str]], **kwargs):
         self.extend_function = extend_function
@@ -171,26 +171,4 @@ class ExtendProcess(Process):
 
         utils.write_content(self.inputs.dst_file, extended_filecontent)
 
-        self.outputs = self._output_model(dst_file=self.inputs.dst_file)
-
-
-class CopyInputModel(BaseModel):
-    src_file: Tuple[calculators.Wannier90Calculator, Path]
-    dst_file: Path
-
-    class Config:
-        arbitrary_types_allowed = True
-
-
-class CopyOutputModel(BaseModel):
-    dst_file: Path
-
-
-class CopyProcess(Process):
-    _input_model = CopyInputModel
-    _output_model = CopyOutputModel
-
-    def _run(self):
-        filecontent = utils.get_content(self.inputs.src_file[0], self.inputs.src_file[1])
-        utils.write_content(self.inputs.dst_file, filecontent)
-        self.outputs = self._output_model(dst_file=self.inputs.dst_file)
+        self.outputs = self.output_model(dst_file=self.inputs.dst_file)

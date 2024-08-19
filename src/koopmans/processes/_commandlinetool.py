@@ -2,7 +2,6 @@ import subprocess
 from abc import abstractmethod
 
 from koopmans.commands import Command
-from koopmans.utils import system_call
 
 from ._process import Process
 

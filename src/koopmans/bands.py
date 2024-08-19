@@ -44,6 +44,11 @@ class Band(object):
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
 
+    def __eq__(self, other):
+        if not isinstance(other, Band):
+            return False
+        return self.__dict__ == other.__dict__
+
     def __repr__(self) -> str:
         info = f'Band(index={self.index}, spin={self.spin}, filled={self.filled}, group={self.group}'
         for attr in ['alpha', 'self_hartree', 'spread', 'center']:

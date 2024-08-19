@@ -21,8 +21,8 @@ class ConvertFilesOutputModel(OutputModel):
 
 
 class ConvertFilesFromSpin2To1(Process):
-    _input_model = ConvertFilesFromSpin2To1InputModel  # type: ignore
-    _output_model = ConvertFilesOutputModel  # type: ignore
+    input_model = ConvertFilesFromSpin2To1InputModel  # type: ignore
+    output_model = ConvertFilesOutputModel  # type: ignore
 
     def _run(self):
 
@@ -34,7 +34,7 @@ class ConvertFilesFromSpin2To1(Process):
 
             utils.write_binary_content(spin_1_file, contents)
 
-        self.outputs = self._output_model(generated_files=self.inputs.spin_1_files)
+        self.outputs = self.output_model(generated_files=self.inputs.spin_1_files)
 
 
 class ConvertFilesFromSpin1To2InputModel(OutputModel):
@@ -47,8 +47,8 @@ class ConvertFilesFromSpin1To2InputModel(OutputModel):
 
 
 class ConvertFilesFromSpin1To2(Process):
-    _input_model = ConvertFilesFromSpin1To2InputModel  # type: ignore
-    _output_model = ConvertFilesOutputModel  # type: ignore
+    input_model = ConvertFilesFromSpin1To2InputModel  # type: ignore
+    output_model = ConvertFilesOutputModel  # type: ignore
 
     def _run(self):
 
@@ -68,4 +68,4 @@ class ConvertFilesFromSpin1To2(Process):
 
             utils.write_binary_content(spin_2_down_file, contents)
 
-        self.outputs = self._output_model(generated_files=self.inputs.spin_2_up_files + self.inputs.spin_2_down_files)
+        self.outputs = self.output_model(generated_files=self.inputs.spin_2_up_files + self.inputs.spin_2_down_files)

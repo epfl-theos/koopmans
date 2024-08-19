@@ -1,23 +1,22 @@
 from pathlib import Path
 from typing import List
 
-from pydantic import BaseModel
-
 from koopmans import utils
 from koopmans.commands import Command
 from koopmans.files import FilePointer
 
 from ._commandlinetool import CommandLineTool
+from ._process import IOModel
 
 
-class Bin2XMLInput(BaseModel):
+class Bin2XMLInput(IOModel):
     binary: FilePointer
 
     class Config:
         arbitrary_types_allowed = True
 
 
-class Bin2XMLOutput(BaseModel):
+class Bin2XMLOutput(IOModel):
     xml: FilePointer
 
     class Config:
@@ -26,8 +25,8 @@ class Bin2XMLOutput(BaseModel):
 
 class Bin2XMLProcess(CommandLineTool):
 
-    _input_model = Bin2XMLInput
-    _output_model = Bin2XMLOutput
+    input_model = Bin2XMLInput
+    output_model = Bin2XMLOutput
 
     def _pre_run(self):
         if not (self.inputs.binary.parent.directory / self.inputs.binary.name).exists():
@@ -45,4 +44,4 @@ class Bin2XMLProcess(CommandLineTool):
 
     def _post_run(self):
         xml_filepointer = FilePointer(self, "output.xml")
-        self.outputs = self._output_model(xml=xml_filepointer)
+        self.outputs = self.output_model(xml=xml_filepointer)

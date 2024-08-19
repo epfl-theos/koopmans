@@ -331,13 +331,13 @@ class KoopmansDSCFWorkflow(Workflow):
                 final_koopmans_calc = self.calculations[-1]
                 koopmans_ham_files: Dict[Tuple[str, str | None], FilePointer]
                 if self.parameters.spin_polarized:
-                    koopmans_ham_files = {('occ', "up"): FilePointer(final_koopmans_calc, 'ham_occ_1.dat'),
-                                          ('emp', "up"): FilePointer(final_koopmans_calc, 'ham_emp_1.dat'),
-                                          ('occ', "down"): FilePointer(final_koopmans_calc, 'ham_occ_2.dat'),
-                                          ('emp', "down"): FilePointer(final_koopmans_calc, 'ham_emp_2.dat')}
+                    koopmans_ham_files = {('occ', "up"): FilePointer(final_koopmans_calc, Path('ham_occ_1.dat')),
+                                          ('emp', "up"): FilePointer(final_koopmans_calc, Path('ham_emp_1.dat')),
+                                          ('occ', "down"): FilePointer(final_koopmans_calc, Path('ham_occ_2.dat')),
+                                          ('emp', "down"): FilePointer(final_koopmans_calc, Path('ham_emp_2.dat'))}
                 else:
-                    koopmans_ham_files = {('occ', None): FilePointer(final_koopmans_calc, 'ham_occ_1.dat'),
-                                          ('emp', None): FilePointer(final_koopmans_calc, 'ham_emp_1.dat')}
+                    koopmans_ham_files = {('occ', None): FilePointer(final_koopmans_calc, Path('ham_occ_1.dat')),
+                                          ('emp', None): FilePointer(final_koopmans_calc, Path('ham_emp_1.dat'))}
                 assert init_wf is not None
                 dft_ham_files = init_wf.outputs.wannier_hamiltonian_files
                 ui_workflow = workflows.UnfoldAndInterpolateWorkflow.fromparent(
@@ -1256,11 +1256,13 @@ class InitializationWorkflow(Workflow):
         for ispin in range(1, 3):
             if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
                     (all(self.atoms.pbc) and self.parameters.init_orbitals == 'kohn-sham'):
-                variational_orbitals[f'evc_occupied{ispin}.dat'] = (calc, f'{ndr_dir}/evc_occupied{ispin}.dat')
+                variational_orbitals[f'evc_occupied{ispin}.dat'] = FilePointer(
+                    calc, ndr_dir / f'evc_occupied{ispin}.dat')
             else:
-                variational_orbitals[f'evc0{ispin}.dat'] = (calc, f'{ndw_dir}/{prefix}{ispin}.dat')
+                variational_orbitals[f'evc0{ispin}.dat'] = FilePointer(calc, ndw_dir / f'{prefix}{ispin}.dat')
             if calc.has_empty_states(ispin - 1):
-                variational_orbitals[f'evc0_empty{ispin}.dat'] = (calc, f'{ndw_dir}/{prefix}_empty{ispin}.dat')
+                variational_orbitals[f'evc0_empty{ispin}.dat'] = FilePointer(
+                    calc, ndw_dir / f'{prefix}_empty{ispin}.dat')
 
         # If fixing spin contamination, copy the spin-up variational orbitals to the spin-down channel
         if self.parameters.fix_spin_contamination:
@@ -1276,14 +1278,15 @@ class InitializationWorkflow(Workflow):
 
 def print_alpha_history(wf: Workflow):
     # Printing out a progress summary
-    wf.print(f'\n**α**')
-    wf.print(wf.bands.alpha_history.to_markdown())
+    if not wf.ml.predict:
+        wf.print(f'\n**α**')
+        wf.print(wf.bands.alpha_history.to_markdown())
 
     if None not in [b.predicted_alpha for b in wf.bands]:
         wf.print(f'\n**predicted α**')
         wf.print(wf.bands.predicted_alpha_history.to_markdown())
 
     if not wf.bands.error_history.empty:
-        wf.print(f'\n**ΔE_i - λ_ii (eV)**')
+        wf.print(f'\n**ΔE<sub>i</sub> - λ<sub>ii</sub> (eV)**')
         wf.print(wf.bands.error_history.to_markdown())
     wf.print('')

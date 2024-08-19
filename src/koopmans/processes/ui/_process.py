@@ -19,19 +19,19 @@ from ase.dft.dos import DOS
 from ase.geometry.cell import crystal_structure_from_cell
 from ase.spectrum.band_structure import BandStructure
 from numpy.typing import ArrayLike, NDArray
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
 
 from koopmans import calculators, utils
 from koopmans.kpoints import Kpoints, kpath_to_dict
 from koopmans.settings import (PlotSettingsDict,
                                UnfoldAndInterpolateSettingsDict)
 
-from .._process import Process
+from .._process import IOModel, Process
 from ._atoms import UIAtoms
 from ._utils import crys_to_cart, extract_hr, latt_vect
 
 
-class UnfoldAndInterpolateInputs(BaseModel):
+class UnfoldAndInterpolateInputs(IOModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
 
     atoms: UIAtoms = \
@@ -62,7 +62,7 @@ class UnfoldAndInterpolateInputs(BaseModel):
         Field(default=PlotSettingsDict(), description='The plotting parameters (used when generating the DOS)')
 
 
-class UnfoldAndInterpolateOutputs(BaseModel):
+class UnfoldAndInterpolateOutputs(IOModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
 
     band_structure: BandStructure
@@ -72,6 +72,9 @@ class UnfoldAndInterpolateOutputs(BaseModel):
 class UnfoldAndInterpolateProcess(Process):
     __slots__ = ['inputs', 'outputs', '_centers', '_spreads', '_Rvec', '_hr',
                  '_hr_smooth', '_hr_coarse', '_phases', '_wRs', '_Rsmooth', '_hk']
+
+    input_model = UnfoldAndInterpolateInputs
+    output_model = UnfoldAndInterpolateOutputs
 
     def __init__(self, atoms: Atoms, centers, parameters, **kwargs):
 
@@ -89,17 +92,9 @@ class UnfoldAndInterpolateProcess(Process):
 
         super().__init__(atoms=ui_atoms, centers=centers, parameters=parameters, **kwargs)
 
-    @property
-    def _input_model(self) -> Type[UnfoldAndInterpolateInputs]:
-        return UnfoldAndInterpolateInputs
-
-    @property
-    def _output_model(self) -> Type[UnfoldAndInterpolateOutputs]:
-        return UnfoldAndInterpolateOutputs
-
     def _run(self):
-        self._centers = self.inputs.centers
-        self._spreads = self.inputs.spreads
+        self._centers = copy.deepcopy(self.inputs.centers)
+        self._spreads = copy.deepcopy(self.inputs.spreads)
         self._Rvec = None
         self._hr = None
         self._hr_smooth = None
@@ -358,7 +353,7 @@ class UnfoldAndInterpolateProcess(Process):
         dos = generate_dos(bs, self.inputs.plotting_parameters) if self.inputs.parameters.do_dos else None
 
         # Store the outputs
-        self.outputs = self._output_model(band_structure=bs, dos=dos)
+        self.outputs = self.output_model(band_structure=bs, dos=dos)
 
         return
 
