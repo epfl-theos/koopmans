@@ -17,8 +17,15 @@ from koopmans.calculators import (Calc, EnvironCalculator,
                                   ProjwfcCalculator, PW2WannierCalculator,
                                   PWCalculator, Wann2KCCalculator,
                                   Wann2KCPCalculator, Wannier90Calculator)
-from koopmans.io import read_kwf as read_encoded_json
-from koopmans.workflows import MLFittingWorkflow
+from koopmans.files import FilePointer
+from koopmans.io import read_pkl
+from koopmans.processes.bin2xml import Bin2XMLProcess
+from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
+                                            ConvertFilesFromSpin2To1)
+from koopmans.processes.power_spectrum import (
+    ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
+from koopmans.processes.ui import UnfoldAndInterpolateProcess
+from koopmans.processes.wannier import ExtendProcess, MergeProcess
 
 from ._utils import benchmark_filename, metadata_filename
 
@@ -171,7 +178,7 @@ class CheckCalc:
             # By moving into the directory where the calculation was run, we ensure when we read in the settings that
             # paths are interpreted relative to this particular working directory
             with open(benchmark_filename(self), 'r') as fd:
-                benchmark = read_encoded_json(fd)
+                raise NotImplementedError()
         return benchmark
 
     def _pre_calculate(self):
@@ -350,26 +357,69 @@ class CheckProjwfcCalculator(CheckCalc, ProjwfcCalculator):
     pass
 
 
-class CheckMLFittingWorkflow(MLFittingWorkflow):
+class CheckProcess():
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = self.name.replace('check_', '')
 
     def _run(self):
-        # TODO Yannick
-        # check the MLparameters
-        fname = metadata_filename(self.calc_that_produced_orbital_densities)
-        fname = fname.with_name(fname.name.replace('calc_alpha-ki_metadata.json', 'input_vectors_for_ml.json'))
-        with open(fname, 'r') as fd:
-            run_results = read_encoded_json(fd)
-        ref_input_vectors_for_ml = run_results['input_vectors_for_ml']
+        # Load the benchmark
+        bench_process = read_pkl(benchmark_filename(self))
 
+        # Compare the inputs
+        assert bench_process.inputs == self.inputs
+
+        # Run the process
         super()._run()
 
-        # check the ml results
-        input_vectors_for_ml = self.input_vectors_for_ml
+        # Compare the outputs
+        assert bench_process.outputs == self.outputs
 
-        for key, key_ref in zip(input_vectors_for_ml, ref_input_vectors_for_ml):
-            compare(input_vectors_for_ml[key], ref_input_vectors_for_ml[key_ref],
-                    'input vectors for the machine learning model')
+        # If any outputs are files, compare the file contents
+        for k, output in self.outputs:
+            bench_output = getattr(bench_process.outputs, k)
+            if isinstance(output, FilePointer):
+                # Compare the file contents
+                binary = output.name.suffix in ['.npy']
+                numpy = output.name.suffix in ['.npy']
+                bench_output_contents = bench_output.read(binary=binary, numpy=numpy)
+                output_contents = output.read(binary=binary, numpy=numpy)
 
-        with open("/home/yshubert/code/koopmans/tests/tmp/Yannick.txt", "a") as myfile:
-            myfile.write("Yannick\n")
-        pass
+                if isinstance(output_contents, np.ndarray):
+                    assert np.all(output_contents ==
+                                  bench_output_contents), f'Contents of {output} differs from the benchmark'
+                else:
+                    assert output_contents == bench_output_contents, f'Contents of {output} differs from the benchmark'
+
+
+class CheckBin2XMLProcess(CheckProcess, Bin2XMLProcess):
+    pass
+
+
+class CheckConvertFilesFromSpin1To2(CheckProcess, ConvertFilesFromSpin1To2):
+    pass
+
+
+class CheckConvertFilesFromSpin2To1(CheckProcess, ConvertFilesFromSpin2To1):
+    pass
+
+
+class CheckComputePowerSpectrumProcess(CheckProcess, ComputePowerSpectrumProcess):
+    pass
+
+
+class CheckExtractCoefficientsFromXMLProcess(CheckProcess, ExtractCoefficientsFromXMLProcess):
+    pass
+
+
+class CheckUnfoldAndInterpolateProcess(CheckProcess, UnfoldAndInterpolateProcess):
+    pass
+
+
+class CheckMergeProcess(CheckProcess, MergeProcess):
+    pass
+
+
+class CheckExtendProcess(CheckProcess, ExtendProcess):
+    pass

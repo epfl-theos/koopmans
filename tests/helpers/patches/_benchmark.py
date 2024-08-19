@@ -2,16 +2,21 @@ import json
 import os
 from typing import List
 
-import numpy as np
-
 from koopmans.calculators import (EnvironCalculator, KoopmansCPCalculator,
                                   KoopmansHamCalculator,
                                   KoopmansScreenCalculator, PhCalculator,
                                   ProjwfcCalculator, PW2WannierCalculator,
                                   PWCalculator, Wann2KCCalculator,
                                   Wann2KCPCalculator, Wannier90Calculator)
-from koopmans.io import write_kwf as write_encoded_json
-from koopmans.workflows import MLFittingWorkflow
+from koopmans.files import FilePointer
+from koopmans.io import write_pkl
+from koopmans.processes.bin2xml import Bin2XMLProcess
+from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
+                                            ConvertFilesFromSpin2To1)
+from koopmans.processes.power_spectrum import (
+    ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
+from koopmans.processes.ui import UnfoldAndInterpolateProcess
+from koopmans.processes.wannier import ExtendProcess, MergeProcess
 
 from ._utils import (benchmark_filename, find_subfiles_of_calc,
                      metadata_filename)
@@ -36,7 +41,7 @@ class BenchmarkGenCalc():
 
         # Save the calculator as an encoded json in the benchmarks directory
         with open(benchmark_filename(self), 'w') as fd:
-            write_encoded_json(self, fd)
+            NotImplementedError()
 
         # Restore the behaviour of use_relative_paths
         self.parameters.use_relative_paths = tmp
@@ -71,6 +76,16 @@ class BenchmarkGenCalc():
         fname = metadata_filename(self)
         with open(fname, 'w') as fd:
             json.dump({'output_files': modified_files}, fd)
+
+
+class BenchmarkGenProcess():
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = self.name.replace('bench_gen_', '')
+
+    def run(self):
+        super()._run()
+        write_pkl(self, benchmark_filename(self))
 
 
 class BenchGenWannier90Calculator(BenchmarkGenCalc, Wannier90Calculator):
@@ -117,15 +132,37 @@ class BenchGenProjwfcCalculator(BenchmarkGenCalc, ProjwfcCalculator):
     pass
 
 
-class BenchGenMLFittingWorkflow(MLFittingWorkflow):
-    def _run(self):
+class BenchGenExtractCoefficientsFromXMLProcess(BenchmarkGenProcess, ExtractCoefficientsFromXMLProcess):
+    pass
 
-        super()._run()
 
-        input_vectors_for_ml = self.input_vectors_for_ml
+class BenchGenBin2XMLProcess(BenchmarkGenProcess, Bin2XMLProcess):
+    pass
 
-        fname = metadata_filename(self.calc_that_produced_orbital_densities)
-        fname = fname.with_name(fname.name.replace('calc_alpha-ki_metadata.json', 'input_vectors_for_ml.json'))
 
-        with open(fname, 'w') as fd:
-            write_encoded_json({'input_vectors_for_ml': input_vectors_for_ml}, fd)
+class BenchGenConvertFilesFromSpin1To2(BenchmarkGenProcess, ConvertFilesFromSpin1To2):
+    pass
+
+
+class BenchGenConvertFilesFromSpin2To1(BenchmarkGenProcess, ConvertFilesFromSpin2To1):
+    pass
+
+
+class BenchGenComputePowerSpectrumProcess(BenchmarkGenProcess, ComputePowerSpectrumProcess):
+    pass
+
+
+class BenchGenExtractCoefficientsFromXMLProcess(BenchmarkGenProcess, ExtractCoefficientsFromXMLProcess):
+    pass
+
+
+class BenchGenUnfoldAndInterpolateProcess(BenchmarkGenProcess, UnfoldAndInterpolateProcess):
+    pass
+
+
+class BenchGenMergeProcess(BenchmarkGenProcess, MergeProcess):
+    pass
+
+
+class BenchGenExtendProcess(BenchmarkGenProcess, ExtendProcess):
+    pass

@@ -1,4 +1,5 @@
 import shutil
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -34,7 +35,7 @@ def test_read_write_ham_pkl(water, tmp_path):
     with utils.chdir(tmp_path):
         # Create a kcp calculator
         calc = KoopmansCPCalculator(outdir='tmp', nspin=2, **water)
-        calc.directory = '.'
+        calc.directory = Path()
 
         # generate a random array for our "Hamiltonian", making sure to set the random seed in order to always
         # generate the same random array
@@ -54,7 +55,7 @@ def test_read_ham(water, datadir, tmp_path):
     with utils.chdir(tmp_path):
         # Create a kcp calculator
         calc = KoopmansCPCalculator(outdir='tmp', nspin=2, nelec=8, ndw=50, prefix='test_read_ham', **water)
-        calc.directory = '.'
+        calc.directory = Path()
 
         # Copy over the XML Hamiltonian files
         destdir = calc.write_directory / 'K00001'

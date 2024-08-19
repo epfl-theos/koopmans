@@ -1,29 +1,43 @@
 import pytest
 
-from ._benchmark import (BenchGenEnvironCalculator,
+from ._benchmark import (BenchGenBin2XMLProcess,
+                         BenchGenComputePowerSpectrumProcess,
+                         BenchGenConvertFilesFromSpin1To2,
+                         BenchGenConvertFilesFromSpin2To1,
+                         BenchGenEnvironCalculator, BenchGenExtendProcess,
+                         BenchGenExtractCoefficientsFromXMLProcess,
                          BenchGenKoopmansCPCalculator,
                          BenchGenKoopmansHamCalculator,
                          BenchGenKoopmansScreenCalculator,
-                         BenchGenMLFittingWorkflow, BenchGenPhCalculator,
+                         BenchGenMergeProcess, BenchGenPhCalculator,
                          BenchGenProjwfcCalculator,
                          BenchGenPW2WannierCalculator, BenchGenPWCalculator,
+                         BenchGenUnfoldAndInterpolateProcess,
                          BenchGenWann2KCCalculator, BenchGenWann2KCPCalculator,
                          BenchGenWannier90Calculator)
-from ._check import (CheckEnvironCalculator, CheckKoopmansCPCalculator,
-                     CheckKoopmansHamCalculator, CheckKoopmansScreenCalculator,
-                     CheckMLFittingWorkflow, CheckPhCalculator,
-                     CheckProjwfcCalculator, CheckPW2WannierCalculator,
-                     CheckPWCalculator, CheckWann2KCCalculator,
+from ._check import (CheckBin2XMLProcess, CheckComputePowerSpectrumProcess,
+                     CheckConvertFilesFromSpin1To2,
+                     CheckConvertFilesFromSpin2To1, CheckEnvironCalculator,
+                     CheckExtendProcess,
+                     CheckExtractCoefficientsFromXMLProcess,
+                     CheckKoopmansCPCalculator, CheckKoopmansHamCalculator,
+                     CheckKoopmansScreenCalculator, CheckMergeProcess,
+                     CheckPhCalculator, CheckProjwfcCalculator,
+                     CheckPW2WannierCalculator, CheckPWCalculator,
+                     CheckUnfoldAndInterpolateProcess, CheckWann2KCCalculator,
                      CheckWann2KCPCalculator, CheckWannier90Calculator)
-from ._mock import (MockEnvironCalculator, MockKoopmansCPCalculator,
-                    MockKoopmansDSCFWorkflow, MockKoopmansHamCalculator,
-                    MockKoopmansScreenCalculator, MockMLFittingWorkflow,
-                    MockPhCalculator, MockProjwfcCalculator,
+from ._mock import (MockBin2XMLProcess, MockComputePowerSpectrumProcess,
+                    MockConvertFilesFromSpin1To2, MockConvertFilesFromSpin2To1,
+                    MockEnvironCalculator, MockExtendProcess,
+                    MockExtractCoefficientsFromXMLProcess,
+                    MockKoopmansCPCalculator, MockKoopmansDSCFWorkflow,
+                    MockKoopmansHamCalculator, MockKoopmansScreenCalculator,
+                    MockMergeProcess, MockPhCalculator, MockProjwfcCalculator,
                     MockPW2WannierCalculator, MockPWCalculator,
-                    MockWann2KCCalculator, MockWann2KCPCalculator,
-                    MockWannier90Calculator, MockWannierizeWorkflow)
-from ._stumble import (StumblingConvergenceMLWorkflow,
-                       StumblingConvergenceWorkflow, StumblingDeltaSCFWorkflow,
+                    MockUnfoldAndInterpolateProcess, MockWann2KCCalculator,
+                    MockWann2KCPCalculator, MockWannier90Calculator,
+                    MockWannierizeWorkflow)
+from ._stumble import (StumblingConvergenceWorkflow, StumblingDeltaSCFWorkflow,
                        StumblingDFTCPWorkflow, StumblingDFTPhWorkflow,
                        StumblingDFTPWWorkflow,
                        StumblingFoldToSupercellWorkflow,
@@ -37,7 +51,7 @@ from ._utils import benchmark_filename
 
 
 def monkeypatch_bench(monkeypatch):
-    # After each calculation is run, store the results in a json (one json per calculation)
+    # After each calculation is run, store the results
     monkeypatch.setattr('koopmans.calculators.Wannier90Calculator', BenchGenWannier90Calculator)
     monkeypatch.setattr('koopmans.calculators.PW2WannierCalculator', BenchGenPW2WannierCalculator)
     monkeypatch.setattr('koopmans.calculators.Wann2KCPCalculator', BenchGenWann2KCPCalculator)
@@ -45,13 +59,22 @@ def monkeypatch_bench(monkeypatch):
     monkeypatch.setattr('koopmans.calculators.PWCalculator', BenchGenPWCalculator)
     monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', BenchGenKoopmansCPCalculator)
     monkeypatch.setattr('koopmans.calculators.EnvironCalculator', BenchGenEnvironCalculator)
-    monkeypatch.setattr('koopmans.calculators.UnfoldAndInterpolateCalculator',
-                        BenchGenUnfoldAndInterpolateCalculator)
     monkeypatch.setattr('koopmans.calculators.Wann2KCCalculator', BenchGenWann2KCCalculator)
     monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', BenchGenKoopmansScreenCalculator)
     monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', BenchGenKoopmansHamCalculator)
     monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', BenchGenProjwfcCalculator)
-    monkeypatch.setattr('koopmans.workflows.MLFittingWorkflow', BenchGenMLFittingWorkflow)
+
+    # Processes
+    monkeypatch.setattr('koopmans.processes.power_spectrum.ExtractCoefficientsFromXMLProcess',
+                        BenchGenExtractCoefficientsFromXMLProcess)
+    monkeypatch.setattr('koopmans.processes.power_spectrum.ComputePowerSpectrumProcess',
+                        BenchGenComputePowerSpectrumProcess)
+    monkeypatch.setattr('koopmans.processes.bin2xml.Bin2XMLProcess', BenchGenBin2XMLProcess)
+    monkeypatch.setattr('koopmans.processes.koopmans_cp.ConvertFilesFromSpin1To2', BenchGenConvertFilesFromSpin1To2)
+    monkeypatch.setattr('koopmans.processes.koopmans_cp.ConvertFilesFromSpin2To1', BenchGenConvertFilesFromSpin2To1)
+    monkeypatch.setattr('koopmans.processes.wannier.ExtendProcess', BenchGenExtendProcess)
+    monkeypatch.setattr('koopmans.processes.wannier.MergeProcess', BenchGenMergeProcess)
+    monkeypatch.setattr('koopmans.processes.ui.UnfoldAndInterpolateProcess', BenchGenUnfoldAndInterpolateProcess)
 
 
 def monkeypatch_mock(monkeypatch):
@@ -64,8 +87,6 @@ def monkeypatch_mock(monkeypatch):
     monkeypatch.setattr('koopmans.calculators.PWCalculator', MockPWCalculator)
     monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', MockKoopmansCPCalculator)
     monkeypatch.setattr('koopmans.calculators.EnvironCalculator', MockEnvironCalculator)
-    monkeypatch.setattr('koopmans.calculators.UnfoldAndInterpolateCalculator',
-                        MockUnfoldAndInterpolateCalculator)
     monkeypatch.setattr('koopmans.calculators.Wann2KCCalculator', MockWann2KCCalculator)
     monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', MockKoopmansScreenCalculator)
     monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', MockKoopmansHamCalculator)
@@ -74,7 +95,18 @@ def monkeypatch_mock(monkeypatch):
     # Workflows
     monkeypatch.setattr('koopmans.workflows.KoopmansDSCFWorkflow', MockKoopmansDSCFWorkflow)
     monkeypatch.setattr('koopmans.workflows.WannierizeWorkflow', MockWannierizeWorkflow)
-    monkeypatch.setattr('koopmans.workflows.MLFittingWorkflow', MockMLFittingWorkflow)
+
+    # Processes
+    monkeypatch.setattr('koopmans.processes.power_spectrum.ExtractCoefficientsFromXMLProcess',
+                        MockExtractCoefficientsFromXMLProcess)
+    monkeypatch.setattr('koopmans.processes.power_spectrum.ComputePowerSpectrumProcess',
+                        MockComputePowerSpectrumProcess)
+    monkeypatch.setattr('koopmans.processes.bin2xml.Bin2XMLProcess', MockBin2XMLProcess)
+    monkeypatch.setattr('koopmans.processes.koopmans_cp.ConvertFilesFromSpin1To2', MockConvertFilesFromSpin1To2)
+    monkeypatch.setattr('koopmans.processes.koopmans_cp.ConvertFilesFromSpin2To1', MockConvertFilesFromSpin2To1)
+    monkeypatch.setattr('koopmans.processes.wannier.ExtendProcess', MockExtendProcess)
+    monkeypatch.setattr('koopmans.processes.wannier.MergeProcess', MockMergeProcess)
+    monkeypatch.setattr('koopmans.processes.ui.UnfoldAndInterpolateProcess', MockUnfoldAndInterpolateProcess)
 
 
 def monkeypatch_check(monkeypatch):
@@ -87,13 +119,22 @@ def monkeypatch_check(monkeypatch):
     monkeypatch.setattr('koopmans.calculators.PWCalculator', CheckPWCalculator)
     monkeypatch.setattr('koopmans.calculators.KoopmansCPCalculator', CheckKoopmansCPCalculator)
     monkeypatch.setattr('koopmans.calculators.EnvironCalculator', CheckEnvironCalculator)
-    monkeypatch.setattr('koopmans.calculators.UnfoldAndInterpolateCalculator',
-                        CheckUnfoldAndInterpolateCalculator)
     monkeypatch.setattr('koopmans.calculators.Wann2KCCalculator', CheckWann2KCCalculator)
     monkeypatch.setattr('koopmans.calculators.KoopmansScreenCalculator', CheckKoopmansScreenCalculator)
     monkeypatch.setattr('koopmans.calculators.KoopmansHamCalculator', CheckKoopmansHamCalculator)
     monkeypatch.setattr('koopmans.calculators.ProjwfcCalculator', CheckProjwfcCalculator)
-    monkeypatch.setattr('koopmans.workflows.MLFittingWorkflow', CheckMLFittingWorkflow)
+
+    # Processes
+    monkeypatch.setattr('koopmans.processes.power_spectrum.ExtractCoefficientsFromXMLProcess',
+                        CheckExtractCoefficientsFromXMLProcess)
+    monkeypatch.setattr('koopmans.processes.power_spectrum.ComputePowerSpectrumProcess',
+                        CheckComputePowerSpectrumProcess)
+    monkeypatch.setattr('koopmans.processes.bin2xml.Bin2XMLProcess', CheckBin2XMLProcess)
+    monkeypatch.setattr('koopmans.processes.koopmans_cp.ConvertFilesFromSpin1To2', CheckConvertFilesFromSpin1To2)
+    monkeypatch.setattr('koopmans.processes.koopmans_cp.ConvertFilesFromSpin2To1', CheckConvertFilesFromSpin2To1)
+    monkeypatch.setattr('koopmans.processes.wannier.ExtendProcess', CheckExtendProcess)
+    monkeypatch.setattr('koopmans.processes.wannier.MergeProcess', CheckMergeProcess)
+    monkeypatch.setattr('koopmans.processes.ui.UnfoldAndInterpolateProcess', CheckUnfoldAndInterpolateProcess)
 
 
 def monkeypatch_stumble(monkeypatch):
@@ -111,8 +152,6 @@ def monkeypatch_stumble(monkeypatch):
                         StumblingUnfoldAndInterpolateWorkflow)
     monkeypatch.setattr('koopmans.workflows.TrajectoryWorkflow',
                         StumblingTrajectoryWorkflow)
-    monkeypatch.setattr('koopmans.workflows.ConvergenceMLWorkflow',
-                        StumblingConvergenceMLWorkflow)
     # When running with stumble mode, we want to check our results against the benchmarks by using CheckCalcs
     monkeypatch_check(monkeypatch)
 
@@ -146,8 +185,8 @@ def workflow_patch(monkeypatch, pytestconfig):
 
 
 @pytest.fixture
-def ui_patch(monkeypatch, pytestconfig):
-    # For tests involving the UI python routines only...
+def check_patch(monkeypatch, pytestconfig):
+    # For calculations that involve python routines only (such as Processes)...
     if pytestconfig.getoption('generate_benchmark'):
         # when generating benchmarks, use BenchCalcs
         monkeypatch_bench(monkeypatch)
@@ -155,8 +194,8 @@ def ui_patch(monkeypatch, pytestconfig):
         # when testing recovery from a crash, use StumblingWorkflows
         monkeypatch_stumble(monkeypatch)
     else:
-        # we can run the calculations directly when running our tests on github, OR if the user is running locally
-        pass
+        # we rely on CheckProcesses to compare the results
+        monkeypatch_check(monkeypatch)
 
 
 @pytest.fixture
@@ -169,7 +208,7 @@ def espresso_patch(monkeypatch, pytestconfig):
         # when testing recovery from a crash, use StumblingWorkflows
         monkeypatch_stumble(monkeypatch)
     elif pytestconfig.getoption('ci'):
-        # when running our tests on github, these tests shold not be called!
+        # when running our tests on github, these tests should not be called!
         raise ValueError('These tests cannot be run with --ci')
     else:
         # when the user is running locally, use CheckCalcs

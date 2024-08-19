@@ -14,9 +14,15 @@ from koopmans.calculators import (Calc, EnvironCalculator,
                                   ProjwfcCalculator, PW2WannierCalculator,
                                   PWCalculator, Wann2KCCalculator,
                                   Wann2KCPCalculator, Wannier90Calculator)
-from koopmans.io import read_kwf as read_encoded_json
-from koopmans.workflows import (ConvergenceMLWorkflow, KoopmansDSCFWorkflow,
-                                MLFittingWorkflow, WannierizeWorkflow)
+from koopmans.io import read_pkl
+from koopmans.processes.bin2xml import Bin2XMLProcess
+from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
+                                            ConvertFilesFromSpin2To1)
+from koopmans.processes.power_spectrum import (
+    ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
+from koopmans.processes.ui import UnfoldAndInterpolateProcess
+from koopmans.processes.wannier import ExtendProcess, MergeProcess
+from koopmans.workflows import KoopmansDSCFWorkflow, WannierizeWorkflow
 
 from ._utils import benchmark_filename, metadata_filename
 
@@ -61,6 +67,10 @@ class MockCalc:
 
                 if isinstance(ref_val, np.ndarray):
                     ref_val = ref_val.tolist()
+
+                # Manual ignoring -- REMOVE ME BEFORE COMMITTING
+                if key in ['outdir']:
+                    continue
 
                 if val != ref_val and key != 'pseudo_dir':
                     raise ValueError(f'Error in {self.prefix}: {key} differs ({val} != {ref_val})')
@@ -174,6 +184,7 @@ class MockWorkflow:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.parameters.from_scratch = True
+        self.name = self.name.replace('Mock ', '')
 
     def load_old_calculator(self, calc: Calc) -> bool:
         # Load old calculators by looking through the workflow's list of previous calculations
@@ -230,12 +241,48 @@ class MockWannierizeWorkflow(MockWorkflow, WannierizeWorkflow):
         raise NotImplementedError()
 
 
-class MockMLFittingWorkflow(MLFittingWorkflow):
+class MockProcess():
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.name = self.name.replace('mock_', '')
 
     def _run(self):
-        fname = metadata_filename(self.calc_that_produced_orbital_densities)
-        fname = fname.with_name(fname.name.replace('calc_alpha-ki_metadata.json', 'input_vectors_for_ml.json'))
-        with open(fname, 'r') as fd:
-            run_results = read_encoded_json(fd)
+        # Load the inputs from file
+        bench_process = read_pkl(benchmark_filename(self))
+        assert self.inputs == bench_process.inputs
+        self.outputs = bench_process.outputs
 
-        self.input_vectors_for_ml = run_results['input_vectors_for_ml']
+        raise NotImplementedError('Need to generate mock files?')
+
+
+class MockBin2XMLProcess(MockProcess, Bin2XMLProcess):
+    pass
+
+
+class MockConvertFilesFromSpin1To2(MockProcess, ConvertFilesFromSpin1To2):
+    pass
+
+
+class MockConvertFilesFromSpin2To1(MockProcess, ConvertFilesFromSpin2To1):
+    pass
+
+
+class MockComputePowerSpectrumProcess(MockProcess, ComputePowerSpectrumProcess):
+    pass
+
+
+class MockExtractCoefficientsFromXMLProcess(MockProcess, ExtractCoefficientsFromXMLProcess):
+    pass
+
+
+class MockUnfoldAndInterpolateProcess(MockProcess, UnfoldAndInterpolateProcess):
+    pass
+
+
+class MockMergeProcess(MockProcess, MergeProcess):
+    pass
+
+
+class MockExtendProcess(MockProcess, ExtendProcess):
+    pass

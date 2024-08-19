@@ -116,7 +116,3 @@ class StumblingUnfoldAndInterpolateWorkflow(StumblingWorkflow, workflows.UnfoldA
 
 class StumblingTrajectoryWorkflow(StumblingWorkflow, workflows.TrajectoryWorkflow):
     pass
-
-
-class StumblingConvergenceMLWorkflow(StumblingWorkflow, workflows.ConvergenceMLWorkflow):
-    pass

@@ -5,8 +5,7 @@ import pytest
 
 from koopmans import __path__ as koopmans_src
 from koopmans import utils, workflows
-from koopmans.io import read_kwf as read_encoded_json
-from koopmans.io import write_kwf as write_encoded_json
+from koopmans.io import read_pkl, write_pkl
 from tests.helpers.patches import benchmark_filename
 
 
@@ -17,6 +16,7 @@ def test_generate_dos(silicon, tmp_path, datadir, pytestconfig):
             parameters={'pseudo_library': 'pseudo_dojo_standard', 'base_functional': 'pbesol', 'from_scratch': True},
             name='si', **silicon)
         calc = wf.new_calculator('projwfc')
+        calc.directory = Path()
 
         # Make sure the pseudopotential files exist where the calculator will expect them to be
         pseudo_dir = calc.directory / calc.parameters.outdir / (calc.parameters.prefix + '.save')
@@ -35,10 +35,8 @@ def test_generate_dos(silicon, tmp_path, datadir, pytestconfig):
 
         if pytestconfig.getoption('generate_benchmark'):
             # Write the DOS to file
-            with open(benchmark_filename(calc), 'w') as fd:
-                write_encoded_json(dos, fd)
+            write_pkl(dos, benchmark_filename(calc))
         else:
             # Compare with the DOS on file
-            with open(benchmark_filename(calc), 'r') as fd:
-                dos_ref = read_encoded_json(fd)
+            dos_ref = read_pkl(benchmark_filename(calc))
             assert dos == dos_ref

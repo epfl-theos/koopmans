@@ -3,18 +3,22 @@ from pathlib import Path
 from typing import Set, Tuple
 
 from koopmans import calculators
+from koopmans.utils import HasDirectoryAttr
 
 
-def benchmark_filename(calc: calculators.CalculatorExt) -> Path:
+def benchmark_filename(obj: HasDirectoryAttr) -> Path:
     base_directory = Path(__file__).parents[3]
     benchmark_dir = base_directory / 'tests' / 'benchmarks'
-    abs_calc_directory = calc.directory.resolve()
-    if base_directory / 'tests' / 'tmp' in abs_calc_directory.parents:
+    assert obj.directory is not None
+    abs_obj_directory = obj.directory.resolve()
+    if base_directory / 'tests' / 'tmp' in abs_obj_directory.parents:
         parent = base_directory / 'tests' / 'tmp'
     else:
         parent = base_directory
-    benchmark_name = abs_calc_directory.relative_to(parent) / calc.prefix
-    return benchmark_dir / (str(benchmark_name).replace(os.path.sep, '-') + '.json')
+    name = getattr(obj, 'name', None)
+    assert isinstance(name, str)
+    benchmark_name = abs_obj_directory.relative_to(parent) / name
+    return benchmark_dir / (str(benchmark_name).replace(os.path.sep, '-') + '.pkl')
 
 
 def metadata_filename(calc: calculators.CalculatorExt) -> Path:

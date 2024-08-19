@@ -3,9 +3,7 @@ from pathlib import Path
 import pytest
 from deepdiff import DeepDiff
 
-from koopmans.io import read
-from koopmans.io import read_kwf as read_encoded_json
-from koopmans.io import write_kwf as write_encoded_json
+from koopmans.io import read, read_pkl, write_pkl
 from koopmans.utils import chdir
 
 tutorial_dir = Path(__file__).parents[2] / 'tutorials' / 'tutorial_5'
@@ -27,12 +25,10 @@ def test_run_trajectory_ml(tutorial_patch, tmpdir, pytestconfig):
 
         if pytestconfig.getoption('generate_benchmark'):
             # Write the power spectrum tensor to file
-            with open(benchmark_file, 'w') as fd:
-                write_encoded_json(alphas, fd)
+            write_pkl(alphas, benchmark_file)
         else:
             # Compare with the power spectrum on file
-            with open(benchmark_file, 'r') as fd:
-                alphas_ref = read_encoded_json(fd)
+            alphas_ref = read_pkl(benchmark_file)
             assert DeepDiff(alphas, alphas_ref, significant_digits=8,
                             number_format_notation='e', ignore_numeric_type_changes=True) == {}
 
@@ -55,10 +51,8 @@ def test_run_convergence_ml(tutorial_patch, tmpdir, pytestconfig, sys2file):
         benchmark_file = benchmark_dir / 'test_run_convergence_ml.json'
 
         if pytestconfig.getoption('generate_benchmark'):
-            with open(benchmark_file, 'w') as fd:
-                write_encoded_json(results, fd)
+            write_pkl(results, benchmark_file)
         else:
-            with open(benchmark_file, 'r') as fd:
-                results_ref = read_encoded_json(fd)
+            results_ref = read_pkl(benchmark_file)
             assert DeepDiff(results, results_ref, significant_digits=8,
                             number_format_notation='e', ignore_numeric_type_changes=True) == {}
