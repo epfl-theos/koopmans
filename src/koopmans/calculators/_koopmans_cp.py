@@ -184,6 +184,15 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         self.parameters.nelup, self.parameters.neldw = self.parameters.neldw, self.parameters.nelup
         self.parameters.tot_magnetization *= -1
 
+        # # Linked files
+        # for dst_file in self.linked_files:
+        #     if dst_file.endswith('1.dat'):
+        #         other_dst_file = dst_file.replace('1.dat', '2.dat')
+        #         if other_dst_file not in self.linked_files:
+        #             raise FileNotFoundError(f'Expected {other_dst_file} to be linked to the {self.prefix} calculator')
+        #         # Switch the links
+        #         self.linked_files[dst_file], self.linked_files[other_dst_file] = self.linked_files[other_dst_file], self.linked_files[dst_file]
+
         # alphas and filling
         self.alphas = self.alphas[::-1]
         self.filling = self.filling[::-1]
@@ -196,8 +205,9 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 self.results[key] = self.results[key][::-1]
 
         # Input and output files
-        for nd in [self.parameters.ndr, self.parameters.ndw]:
-            outdir = self.parameters.outdir / f'{self.parameters.prefix}_{nd}.save/K00001'
+        for subdirectory in [self.read_directory, self.write_directory]:
+            utils.warn('Here we manually are moving files; this will need to be refactored for compatibility with AiiDA')
+            outdir = self.directory / subdirectory / 'K00001'
 
             for fpath_1 in outdir.glob('*1.*'):
                 # Swap the two files around
@@ -205,8 +215,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 fpath_2 = fpath_1.parent / fpath_1.name.replace('1', '2')
 
                 if not fpath_2.exists():
-                    raise FileNotFoundError(
-                        '`{fpath_2}` does not exist')
+                    raise FileNotFoundError(f'`{fpath_2}` does not exist')
 
                 fpath_1.replace(fpath_tmp)
                 fpath_2.replace(fpath_1)

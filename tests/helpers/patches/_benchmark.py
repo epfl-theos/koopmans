@@ -58,6 +58,9 @@ class BenchmarkGenCalc():
 
         super().calculate()
 
+        # Store the calculator as a pickle file to use as a benchmark
+        write_pkl(self, benchmark_filename(self))
+
         # After running the calculation, make a new list of the files, and then work out which files have been
         # modified by the calculation
         files_after = find_subfiles_of_calc(self)
@@ -72,7 +75,7 @@ class BenchmarkGenCalc():
             wfc_prefix = os.path.relpath(self.parameters.outdir, self.directory) + f'/{self.parameters.prefix}.wfc'
             modified_files = [f for f in modified_files if not f.startswith(wfc_prefix)]
 
-        # Write out the modified files to the "_metadata.json" file
+        # Write out the modified files to the "_metadata.pkl" file
         fname = metadata_filename(self)
         with open(fname, 'w') as fd:
             json.dump({'output_files': modified_files}, fd)

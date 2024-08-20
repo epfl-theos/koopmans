@@ -81,7 +81,10 @@ class Process(ABC, Generic[InputModel, OutputModel]):
         ...
 
     def __repr__(self):
-        return f'{self.__class__.__name__}(inputs={self.inputs.__dict__}, outputs={self.outputs.__dict__})'
+        out = f'{self.__class__.__name__}(inputs={self.inputs.__dict__}'
+        if self._outputs is not None:
+            out += ', outputs={self.outputs.__dict__}'
+        return out + ')'
 
     def dump_inputs(self, directory: Path | None = None):
         dst = Path(f'{self.name}_inputs.pkl')

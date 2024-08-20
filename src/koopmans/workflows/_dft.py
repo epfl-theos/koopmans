@@ -81,10 +81,6 @@ class DFTPWWorkflow(DFTWorkflow):
         calc.parameters.ndw = 51
         calc.parameters.restart_mode = 'from_scratch'
 
-        # Remove old directories
-        if self.parameters.from_scratch:
-            utils.system_call(f'rm -r {calc.parameters.outdir} 2>/dev/null', False)
-
         # Run the calculator
         self.run_calculator(calc)
 

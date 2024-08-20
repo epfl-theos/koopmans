@@ -49,8 +49,7 @@ class MockCalc:
         with utils.chdir(self.directory):
             # By moving into the directory where the calculation was run, we ensure when we read in the settings that
             # paths are interpreted relative to this particular working directory
-            with open(benchmark_filename(self), 'r') as fd:
-                calc = read_encoded_json(fd)
+            calc = read_pkl(benchmark_filename(self).with_suffix('.pkl'))
 
         # Compare the settings
         for key in set(list(self.parameters.keys()) + list(calc.parameters.keys())):

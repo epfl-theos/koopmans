@@ -148,6 +148,7 @@ class KoopmansDFPTWorkflow(Workflow):
             self.print('Regular grid calculations', style='heading')
 
         wannier_files_to_link = {}
+        dft_ham_files = {}
         if all(self.atoms.pbc):
             # Run PW and Wannierization
             for key in self.calculator_parameters.keys():
@@ -173,7 +174,12 @@ class KoopmansDFPTWorkflow(Workflow):
                       wf_workflow.outputs.hr_files["emp"],
                       wf_workflow.outputs.centers_files["emp"]]:
                 assert f is not None
-                wannier_files_to_link[f.parent.prefix + '_emp' + f.name[len(f.parent.prefix):]] = f
+                wannier_files_to_link[f.parent.prefix + '_emp' + str(f.name)[len(f.parent.prefix):]] = f
+
+            if self.parameters.spin_polarized:
+                raise NotImplementedError('Need to adapt the following code for spin-polarized calculations')
+            for label in ['occ', 'emp']:
+                dft_ham_files[(label, None)] = wf_workflow.outputs.hr_files[label]
 
         else:
             # Run PW
@@ -235,8 +241,9 @@ class KoopmansDFPTWorkflow(Workflow):
                 # Assemble the Hamiltonian files required by the UI workflow
                 koopmans_ham_files = {("occ", None): FilePointer(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_occ.dat'),
                                       ("emp", None): FilePointer(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_emp.dat')}
-                dft_ham_files = {}
-                raise NotImplementedError('Need to implement the `dft_ham_files`')
+                if not dft_ham_files:
+                    raise ValueError(
+                        'The DFT Hamiltonian files have not been generated but are required for the UI workflow')
                 ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(
                     self, dft_ham_files=dft_ham_files, koopmans_ham_files=koopmans_ham_files)
                 ui_workflow.run(subdirectory='postproc')
@@ -341,8 +348,6 @@ def internal_new_calculator(workflow, calc_presets, **kwargs):
     calc.parameters.outdir = 'TMP'
     if all(workflow.atoms.pbc):
         calc.parameters.seedname = [c for c in workflow.calculations if isinstance(c, Wannier90Calculator)][-1].prefix
-    else:
-        raise NotImplementedError()
     calc.parameters.spin_component = 1
     calc.parameters.kcw_at_ks = not all(workflow.atoms.pbc)
     calc.parameters.read_unitary_matrix = all(workflow.atoms.pbc)

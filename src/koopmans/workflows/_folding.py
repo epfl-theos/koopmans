@@ -16,6 +16,8 @@ import numpy as np
 from koopmans import calculators, utils
 from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
+from koopmans.processes.merge_evc import MergeEVCProcess
+from koopmans.projections import ProjectionBlock
 
 from ._workflow import Workflow
 
@@ -92,20 +94,7 @@ class FoldToSupercellWorkflow(Workflow):
             for label, subset in self.projections.to_merge.items():
                 if len(subset) == 1:
                     for f in converted_files[subset[0].name]:
-                        if f.name[4] in ['1', '2']:
-                            spin = int(f.name[4])
-                        elif subset[0].spin == 'up':
-                            spin = 1
-                        elif subset[0].spin == 'down':
-                            spin = 2
-                        else:
-                            raise ValueError('Should not arrive here')
-                        if label == 'occ':
-                            dest_file = f'evc_occupied{spin}.dat'
-                        elif label == 'emp':
-                            dest_file = f'evc0_empty{spin}.dat'
-                        else:
-                            raise ValueError('Should not arrive here')
+                        dest_file = _construct_dest_filename(f.name, subset, label)
                         merged_files[dest_file] = f
                 else:
                     if self.parameters.spin_polarized:
@@ -114,24 +103,20 @@ class FoldToSupercellWorkflow(Workflow):
                         evc_fnames = ['evcw1.dat', 'evcw2.dat']
 
                     for evc_fname in evc_fnames:
-                        command = ' '.join([f'merge_evc.x -nr {np.prod(self.kpoints.grid)}']
-                                           + [f'-i {b.directory}/{evc_fname}' for b in subset]
-                                           + [f'-o {output_directory}/{evc_fname}'])
+                        src_files = [f for s in subset for f in converted_files[s.name] if f.name == evc_fname]
+                        merge_proc = MergeEVCProcess(kgrid=self.kpoints.grid,
+                                                     src_files=src_files, dest_filename=evc_fname)
                         if 'occ' in label:
                             tidy_label = 'occupied'
                         else:
                             tidy_label = 'empty'
                         if subset[0].spin:
-                            tidy_label += f' spin {subset[0].spin}'
-                        if self.parameters.from_scratch or not (output_directory / evc_fname).exists():
-                            self.parameters.from_scratch = True
-                            self.print(f'Merging the {tidy_label} band blocks... ', end='')
-                            utils.system_call(command)
-                            self.print('done')
-                        else:
-                            self.print(f'Not merging the {label} band blocks as this is already complete')
+                            tidy_label += f'_spin_{subset[0].spin}'
+                        merge_proc.name = 'merging_wavefunctions_for_' + tidy_label
+                        self.run_process(merge_proc)
 
-                        raise NotImplementedError("Need to populate `merged_files` dictionary")
+                        dest_file = _construct_dest_filename(evc_fname, subset, label)
+                        merged_files[dest_file] = merge_proc.outputs.merged_file
 
         else:
             # Create the calculator
@@ -146,3 +131,21 @@ class FoldToSupercellWorkflow(Workflow):
         self.outputs = self.output_model(kcp_files=merged_files)
 
         return
+
+
+def _construct_dest_filename(fname: str, proj: ProjectionBlock, label: str) -> str:
+    if fname[4] in ['1', '2']:
+        spin = int(fname[4])
+    elif proj.spin == 'up':
+        spin = 1
+    elif proj.spin == 'down':
+        spin = 2
+    else:
+        raise ValueError('Should not arrive here')
+    if label.startswith('occ'):
+        dest_file = f'evc_occupied{spin}.dat'
+    elif label.startswith('emp'):
+        dest_file = f'evc0_empty{spin}.dat'
+    else:
+        raise ValueError('Should not arrive here')
+    return dest_file

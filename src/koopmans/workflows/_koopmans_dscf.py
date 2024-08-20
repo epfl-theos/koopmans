@@ -315,7 +315,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 if use_ml:
                     calc.prefix += '_ml'
 
-                self.link(*n_electron_restart_dir, calc, n_electron_restart_dir.name, recursive_symlink=True)
+                self.link(*n_electron_restart_dir, calc, calc.read_directory, recursive_symlink=True)
                 self.run_calculator(calc)
 
         final_calc = calc
@@ -345,8 +345,7 @@ class KoopmansDSCFWorkflow(Workflow):
                     koopmans_ham_files=koopmans_ham_files,
                     dft_ham_files=dft_ham_files,
                     redo_smooth_dft=self._redo_smooth_dft)
-                raise NotImplementedError('Need to update this')
-                ui_workflow.run(subdirectory='postproc')
+                ui_workflow.run()
             else:
                 # Generate the DOS only
                 dos = DOS(self.calculations[-1], width=self.plotting.degauss, npts=self.plotting.nstep + 1)
@@ -522,9 +521,6 @@ class DeltaSCFIterationWorkflow(Workflow):
             # For a KI calculation with only filled bands, we don't have any further calculations to
             # do, so in this case don't print any headings
             print_headings = self.parameters.functional != 'ki' or not band.filled
-
-            if self.parameters.spin_polarized and band in first_band_of_each_channel:
-                self.print(f'Spin {band.spin + 1}', style='subheading')
 
             # Working out what to print for the orbital heading (grouping skipped bands together)
             if band in self.bands.to_solve or band == self.bands.get(spin=band.spin)[-1]:
@@ -740,7 +736,7 @@ class OrbitalDeltaSCFWorkflow(Workflow):
             # calc.parameters.fixed_band to keep track of which band we held fixed, because for empty
             # orbitals, calc.parameters.fixed_band is always set to the LUMO but in reality we're fixing
             # the band corresponding # to index_empty_to_save from an earlier calculation
-            calc.fixed_band: int = self.band.index
+            calc.fixed_band = self.band
 
             # Store the result
             # We store the results in one of two lists: alpha_indep_calcs and
@@ -776,7 +772,7 @@ class OrbitalDeltaSCFWorkflow(Workflow):
         # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
         # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
 
-        calcs = [c for c in alpha_dep_calcs + self._alpha_indep_calcs if c.fixed_band == self.band.index]
+        calcs = [c for c in alpha_dep_calcs + self._alpha_indep_calcs if c.fixed_band == self.band]
 
         alpha, error = self.calculate_alpha_from_list_of_calcs(
             calcs, self._trial_calc, self.band, filled=self.band.filled)

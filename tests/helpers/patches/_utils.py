@@ -15,7 +15,7 @@ def benchmark_filename(obj: HasDirectoryAttr) -> Path:
         parent = base_directory / 'tests' / 'tmp'
     else:
         parent = base_directory
-    name = getattr(obj, 'name', None)
+    name = getattr(obj, 'prefix', getattr(obj, 'name', None))
     assert isinstance(name, str)
     benchmark_name = abs_obj_directory.relative_to(parent) / name
     return benchmark_dir / (str(benchmark_name).replace(os.path.sep, '-') + '.pkl')
@@ -23,7 +23,7 @@ def benchmark_filename(obj: HasDirectoryAttr) -> Path:
 
 def metadata_filename(calc: calculators.CalculatorExt) -> Path:
     benchmark_path = benchmark_filename(calc)
-    return benchmark_path.with_name(benchmark_path.name.replace('.json', '_metadata.json'))
+    return benchmark_path.with_name(benchmark_path.name.replace('.pkl', '_metadata.pkl'))
 
 
 def find_subfiles_of_calc(calc: calculators.CalculatorExt) -> Set[Tuple[Path, float]]:
