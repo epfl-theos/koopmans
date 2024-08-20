@@ -23,7 +23,7 @@ def benchmark_filename(obj: HasDirectoryAttr) -> Path:
 
 def metadata_filename(calc: calculators.CalculatorExt) -> Path:
     benchmark_path = benchmark_filename(calc)
-    return benchmark_path.with_name(benchmark_path.name.replace('.pkl', '_metadata.pkl'))
+    return benchmark_path.with_name(benchmark_path.name.replace('.pkl', '_metadata.json'))
 
 
 def find_subfiles_of_calc(calc: calculators.CalculatorExt) -> Set[Tuple[Path, float]]:
