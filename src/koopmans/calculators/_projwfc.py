@@ -75,7 +75,8 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
             # The filename does not encode the principal quantum number n. In order to recover this number, we compare
             # the reported angular momentum quantum number l against the list of expected orbitals, and infer n
             # assuming only that the file corresponding to nl will come before (n+1)l
-            orbitals = copy.copy(self._expected_orbitals[atom.symbol])
+            label = atom.symbol + str(atom.tag) if atom.tag > 0 else atom.symbol
+            orbitals = copy.copy(self._expected_orbitals[label])
             for filename in filenames:
                 # Infer l from the filename
                 subshell = filename.name[-2]
