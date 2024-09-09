@@ -7,9 +7,6 @@ from ase import Atoms
 from ase.build import bulk, molecule
 from ase.spacegroup import crystal
 
-from koopmans.kpoints import Kpoints
-from koopmans.projections import ProjectionBlocks
-
 np.random.seed(0)
 
 
@@ -37,6 +34,9 @@ def water_snapshots(water) -> Dict[str, Any]:
 @pytest.fixture
 def silicon() -> Dict[str, Any]:
     # bulk silicon
+    from koopmans.kpoints import Kpoints
+    from koopmans.projections import ProjectionBlocks
+
     si: Atoms = bulk('Si')
     pdict = [{'fsite': [0.25, 0.25, 0.25], 'ang_mtm': 'sp3'}]
     si_projs = ProjectionBlocks.fromlist([pdict, pdict], spins=[None, None], atoms=si)
@@ -62,6 +62,9 @@ def ozone() -> Dict[str, Any]:
 @pytest.fixture
 def tio2() -> Dict[str, Any]:
     # rutile TiO2
+    from koopmans.kpoints import Kpoints
+    from koopmans.projections import ProjectionBlocks
+
     a = 4.6
     c = 2.95
     atoms: Atoms = crystal(['Ti', 'O'], basis=[(0, 0, 0), (0.3, 0.3, 0.0)],
@@ -82,6 +85,8 @@ def tio2() -> Dict[str, Any]:
 @pytest.fixture
 def gaas() -> Dict[str, Any]:
     # bulk gallium arsenide
+    from koopmans.kpoints import Kpoints
+    from koopmans.projections import ProjectionBlocks
     atoms: Atoms = bulk('GaAs', crystalstructure='zincblende', a=5.6536)
     gaas_projs = ProjectionBlocks.fromlist([["Ga: d"], ["As: sp3"], ["Ga: sp3"]],
                                            spins=[None, None, None],

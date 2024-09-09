@@ -2,11 +2,8 @@ import os
 from pathlib import Path
 from typing import Set, Tuple
 
-from koopmans import calculators
-from koopmans.utils import HasDirectoryAttr
 
-
-def benchmark_filename(obj: HasDirectoryAttr) -> Path:
+def benchmark_filename(obj) -> Path:
     base_directory = Path(__file__).parents[3]
     benchmark_dir = base_directory / 'tests' / 'benchmarks'
     assert obj.directory is not None
@@ -18,15 +15,15 @@ def benchmark_filename(obj: HasDirectoryAttr) -> Path:
     name = getattr(obj, 'prefix', getattr(obj, 'name', None))
     assert isinstance(name, str)
     benchmark_name = abs_obj_directory.relative_to(parent) / name
-    return benchmark_dir / (str(benchmark_name).replace(os.path.sep, '-') + '.pkl')
+    return benchmark_dir / benchmark_name.with_suffix('.pkl')
 
 
-def metadata_filename(calc: calculators.CalculatorExt) -> Path:
+def metadata_filename(calc) -> Path:
     benchmark_path = benchmark_filename(calc)
     return benchmark_path.with_name(benchmark_path.name.replace('.pkl', '_metadata.json'))
 
 
-def find_subfiles_of_calc(calc: calculators.CalculatorExt) -> Set[Tuple[Path, float]]:
+def find_subfiles_of_calc(calc) -> Set[Tuple[Path, float]]:
     files = find_subfiles_of_dir(calc.directory)
     if 'outdir' in calc.parameters.valid:
         files = files | find_subfiles_of_dir(calc.parameters.outdir)

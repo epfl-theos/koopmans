@@ -121,74 +121,161 @@ def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str
     return None
 
 
-class CheckCalc:
-    results_for_qc: List[str]
-    prefix: str
-    results: Dict[Any, Any]
+def calcname(self: Calc) -> str:
+    raise NotImplementedError()
 
-    @property
-    def _calcname(self) -> Path:
-        # type: ignore[attr-defined]
-        calcname: Path = (self.directory / self.prefix).relative_to((Path(__file__).parents[2] / 'tmp').resolve())
-        return calcname.relative_to(calcname.parts[0])
 
-    def _check_results(self, benchmark: Calc):
-        messages = self._generate_messages(benchmark)
-        self._print_messages(messages)
+def generate_messages(self, benchmark: Calc, results_for_qc: List[str]) -> List[Dict[str, str]]:
+    messages: List[Dict[str, str]] = []
 
-    def _generate_messages(self, benchmark: Calc) -> List[Dict[str, str]]:
-        messages: List[Dict[str, str]] = []
+    # Loop through results that require checking
+    for result_name, ref_result in benchmark.results.items():
+        # Only inspect results listed in self.results_for_qc
+        if result_name not in results_for_qc:
+            continue
+        assert result_name in self.results, f'Error in {calcname(self)}: {result_name} is missing'
+        result = self.results[result_name]
 
-        # Loop through results that require checking
-        for result_name, ref_result in benchmark.results.items():
-            # Only inspect results listed in self.results_for_qc
-            if result_name not in self.results_for_qc:
-                continue
-            assert result_name in self.results, f'Error in {self._calcname}: {result_name} is missing'
-            result = self.results[result_name]
+        # Check the result against the benchmark
+        message = compare(result, ref_result, result_name)
 
-            # Check the result against the benchmark
-            message = compare(result, ref_result, result_name)
+        if message is not None:
+            messages.append(message)
 
-            if message is not None:
-                messages.append(message)
+    return messages
 
-        return messages
 
-    def _print_messages(self, messages: List[Dict[str, str]]) -> None:
-        # Warn for warnings:
-        warnings = [f'  {m["message"]}' for m in messages if m['kind'] == 'warning']
-        if len(warnings) > 0:
-            message = f'Minor disagreements with benchmark detected for {self._calcname}\n' + '\n'.join(warnings)
-            if len(warnings) == 1:
-                message = message.replace('disagreements', 'disagreement')
-            utils.warn(message)
+def print_messages(self, messages: List[Dict[str, str]]) -> None:
+    # Warn for warnings:
+    warnings = [f'  {m["message"]}' for m in messages if m['kind'] == 'warning']
+    if len(warnings) > 0:
+        message = f'Minor disagreements with benchmark detected for {calcname(self)}\n' + '\n'.join(warnings)
+        if len(warnings) == 1:
+            message = message.replace('disagreements', 'disagreement')
+        utils.warn(message)
 
-        # Raise errors for errors:
-        errors = [f'  {m["message"]}' for m in messages if m['kind'] == 'error']
-        if len(errors) > 0:
-            message = f'Major disagreements with benchmark detected for {self._calcname}\n' + '\n'.join(errors)
-            if len(errors) == 1:
-                message = message.replace('disagreements', 'disagreement')
+    # Raise errors for errors:
+    errors = [f'  {m["message"]}' for m in messages if m['kind'] == 'error']
+    if len(errors) > 0:
+        message = f'Major disagreements with benchmark detected for {calcname(self)}\n' + '\n'.join(errors)
+        if len(errors) == 1:
+            message = message.replace('disagreements', 'disagreement')
 
-            raise CalculationFailed(message)
+        raise CalculationFailed(message)
 
-    def _load_benchmark(self) -> Calc:
-        with utils.chdir(self.directory):  # type: ignore[attr-defined]
-            # By moving into the directory where the calculation was run, we ensure when we read in the settings that
-            # paths are interpreted relative to this particular working directory
-            with open(benchmark_filename(self), 'r') as fd:
-                raise NotImplementedError()
-        return benchmark
+
+def load_benchmark(self) -> Calc:
+    with utils.chdir(self.directory):  # type: ignore[attr-defined]
+        # By moving into the directory where the calculation was run, we ensure when we read in the settings that
+        # paths are interpreted relative to this particular working directory
+        benchmark = read_pkl(benchmark_filename(self))
+    return benchmark
+
+
+def centers_spreads_allclose(center0, spread0, center1, spread1, tol):
+    if abs(spread0 - spread1) > tol:
+        return False
+    for x in itertools.product([0, 1, -1], repeat=3):
+        if np.allclose(center0, center1 + x, rtol=0, atol=tol):
+            return True
+    return False
+
+
+def wannier_generate_messages(self, benchmark: Calc) -> List[Dict[str, str]]:
+    # For a Wannier90 calculator, we don't want to check the contents of self.results key-by-key. Instead, we want
+    # to check if the same wannier functions have been found, accounting for permutations and for periodic images
+
+    messages: List[Dict[str, str]] = []
+
+    for key in ['centers', 'spreads']:
+        assert len(self.results[key]) == len(benchmark.results[key]), f'The list of {key} is the wrong length'
+
+    # If an empty list, return immediately
+    if len(benchmark.results['centers']) == 0:
+        return []
+
+    # Translate wannier centers to the unit cell
+    centers = self.atoms.cell.scaled_positions(np.array(self.results['centers'])) % 1
+    ref_centers = self.atoms.cell.scaled_positions(np.array(benchmark.results['centers'])) % 1
+
+    for i, (ref_center, ref_spread) in enumerate(zip(ref_centers, benchmark.results['spreads'])):
+        ref_result = np.append(ref_center, ref_spread)
+        match = False
+        rough_match = False
+        for j, (center, spread) in enumerate(zip(centers, self.results['spreads'])):
+            result = np.append(center, spread)
+            if centers_spreads_allclose(center, spread, ref_center, ref_spread, tolerances['centersandspreads'][0]):
+                match = True
+                break
+            elif centers_spreads_allclose(center, spread, ref_center, ref_spread,
+                                          tolerances['centersandspreads'][1]):
+                rough_match = True
+                match_index = j
+                match_spread = ref_spread
+                match_center_str = ', '.join([f'{x:.5f}' for x in benchmark.results['centers'][match_index]])
+
+        ref_center_str = ', '.join([f'{x:.5f}' for x in benchmark.results['centers'][i]])
+
+        if match:
+            pass
+        elif rough_match:
+            message = f'Wannier function #{i+1}, with center = {ref_center_str} and spread = {ref_spread:.5f} ' \
+                      f'does not precisely match the benchmark Wannier function #{j+1}, with center = ' \
+                      f'{match_center_str} and spread = {match_spread:.5f}'
+            messages.append({'kind': 'warning', 'message': message})
+        else:
+            message = f'Wannier function #{i+1}, with center = {ref_center_str} and spread = {ref_spread:.5f} ' \
+                'not found'
+            messages.append({'kind': 'error', 'message': message})
+
+    return messages
+
+
+def compare_output(output, bench_output):
+    """Recursively compare the contents of any FilePointers or Paths within the output against the benchmark"""
+    if isinstance(output, (FilePointer, Path)):
+        # Compare the file contents
+        if isinstance(output, FilePointer):
+            binary = output.name.suffix in ['.npy', '.dat']
+            numpy = output.name.suffix in ['.npy']
+            bench_output_contents = bench_output.read(binary=binary, numpy=numpy)
+            output_contents = output.read(binary=binary, numpy=numpy)
+        else:
+            mode = 'rb' if output.suffix in ['.npy', '.dat'] else 'r'
+            with open(output, mode) as fd:
+                output_contents = fd.read()
+            with open(bench_output, mode) as fd:
+                bench_output_contents = fd.read()
+
+        if isinstance(output_contents, np.ndarray):
+            assert np.all(output_contents ==
+                          bench_output_contents), f'Contents of {output} differs from the benchmark'
+        else:
+            assert output_contents == bench_output_contents, f'Contents of {output} differs from the benchmark'
+    elif isinstance(output, dict):
+        # Recurse over the dictionary
+        for k, v in output.items():
+            compare_output(v, bench_output[k])
+    elif isinstance(output, list):
+        # Recurse over the list
+        for v1, v2 in zip(output, bench_output, strict=True):
+            compare_output(v1, v2)
+    else:
+        pass
+
+
+def patch_calculator(c, monkeypatch, results_for_qc, generate_messages_function):
+    unpatched_pre_calculate = c._pre_calculate
+    unpatched_post_calculate = c._post_calculate
 
     def _pre_calculate(self):
         """Before running the calculation, check the settings are the same"""
 
         # Perform the pre_calculate first, as sometimes this function modifies the input parameters
-        super()._pre_calculate()
+        unpatched_pre_calculate(self)
 
         # Load the benchmark
-        benchmark = self._load_benchmark()
+        benchmark = load_benchmark(self)
 
         # Compare the settings
         unique_keys: Set[str] = set(list(self.parameters.keys()) + list(benchmark.parameters.keys()))
@@ -222,9 +309,9 @@ class CheckCalc:
         # Check that the right files exist
         # TODO
 
-    def _post_calculate(self):
+    def _post_calculate(self, generate_messages_function=generate_messages):
         # Perform the post_calculate first, as sometimes this function adds extra entries to self.results
-        super()._post_calculate()
+        unpatched_post_calculate(self)
 
         # Check the results
         if self.skip_qc:
@@ -233,8 +320,9 @@ class CheckCalc:
             # the corresponding workflow
             pass
         else:
-            benchmark = self._load_benchmark()
-            self._check_results(benchmark)
+            benchmark = load_benchmark(self)
+            messages = generate_messages_function(self, benchmark, results_for_qc)
+            print_messages(self, messages)
 
         # Check the expected files were produced
         with open(metadata_filename(self), 'r') as fd:
@@ -242,126 +330,14 @@ class CheckCalc:
 
         for output_file in metadata['output_files']:
             assert (self.directory
-                    / output_file).exists(), f'Error in {self._calcname}: {output_file} was not generated'
+                    / output_file).exists(), f'Error in {calcname(self)}: {output_file} was not generated'
+
+    monkeypatch.setattr(c, '_pre_calculate', _pre_calculate)
+    monkeypatch.setattr(c, '_post_calculate', _post_calculate)
 
 
-class CheckKoopmansCPCalculator(CheckCalc, KoopmansCPCalculator):
-    results_for_qc = ['energy', 'homo_energy', 'lumo_energy']
-    pass
-
-
-class CheckPhCalculator(CheckCalc, PhCalculator):
-    results_for_qc = ['dielectric tensor']
-    pass
-
-
-class CheckPWCalculator(CheckCalc, PWCalculator):
-    results_for_qc = ['energy', 'eigenvalues', 'band structure']
-    pass
-
-
-class CheckEnvironCalculator(CheckCalc, EnvironCalculator):
-    results_for_qc = ['energy', 'electrostatic embedding']
-    pass
-
-
-def centers_spreads_allclose(center0, spread0, center1, spread1, tol):
-    if abs(spread0 - spread1) > tol:
-        return False
-    for x in itertools.product([0, 1, -1], repeat=3):
-        if np.allclose(center0, center1 + x, rtol=0, atol=tol):
-            return True
-    return False
-
-
-class CheckWannier90Calculator(CheckCalc, Wannier90Calculator):
-    results_for_qc = ['centers', 'spreads']
-
-    def _generate_messages(self, benchmark: Calc) -> List[Dict[str, str]]:
-        # For a Wannier90 calculator, we don't want to check the contents of self.results key-by-key. Instead, we want
-        # to check if the same wannier functions have been found, accounting for permutations and for periodic images
-
-        messages: List[Dict[str, str]] = []
-
-        for key in ['centers', 'spreads']:
-            assert len(self.results[key]) == len(benchmark.results[key]), f'The list of {key} is the wrong length'
-
-        # If an empty list, return immediately
-        if len(benchmark.results['centers']) == 0:
-            return []
-
-        # Translate wannier centers to the unit cell
-        centers = self.atoms.cell.scaled_positions(np.array(self.results['centers'])) % 1
-        ref_centers = self.atoms.cell.scaled_positions(np.array(benchmark.results['centers'])) % 1
-
-        for i, (ref_center, ref_spread) in enumerate(zip(ref_centers, benchmark.results['spreads'])):
-            ref_result = np.append(ref_center, ref_spread)
-            match = False
-            rough_match = False
-            for j, (center, spread) in enumerate(zip(centers, self.results['spreads'])):
-                result = np.append(center, spread)
-                if centers_spreads_allclose(center, spread, ref_center, ref_spread, tolerances['centersandspreads'][0]):
-                    match = True
-                    break
-                elif centers_spreads_allclose(center, spread, ref_center, ref_spread,
-                                              tolerances['centersandspreads'][1]):
-                    rough_match = True
-                    match_index = j
-                    match_spread = ref_spread
-                    match_center_str = ', '.join([f'{x:.5f}' for x in benchmark.results['centers'][match_index]])
-
-            ref_center_str = ', '.join([f'{x:.5f}' for x in benchmark.results['centers'][i]])
-
-            if match:
-                pass
-            elif rough_match:
-                message = f'Wannier function #{i+1}, with center = {ref_center_str} and spread = {ref_spread:.5f} ' \
-                          f'does not precisely match the benchmark Wannier function #{j+1}, with center = ' \
-                          f'{match_center_str} and spread = {match_spread:.5f}'
-                messages.append({'kind': 'warning', 'message': message})
-            else:
-                message = f'Wannier function #{i+1}, with center = {ref_center_str} and spread = {ref_spread:.5f} ' \
-                    'not found'
-                messages.append({'kind': 'error', 'message': message})
-
-        return messages
-
-
-class CheckPW2WannierCalculator(CheckCalc, PW2WannierCalculator):
-    results_for_qc: List[str] = []
-    pass
-
-
-class CheckWann2KCPCalculator(CheckCalc, Wann2KCPCalculator):
-    results_for_qc: List[str] = []
-    pass
-
-
-class CheckWann2KCCalculator(CheckCalc, Wann2KCCalculator):
-    results_for_qc: List[str] = []
-    pass
-
-
-class CheckKoopmansScreenCalculator(CheckCalc, KoopmansScreenCalculator):
-    results_for_qc = ['alphas']
-    pass
-
-
-class CheckKoopmansHamCalculator(CheckCalc, KoopmansHamCalculator):
-    results_for_qc = ['ki_eigenvalues_on_grid', 'band structure']
-    pass
-
-
-class CheckProjwfcCalculator(CheckCalc, ProjwfcCalculator):
-    results_for_qc = ['dos']
-    pass
-
-
-class CheckProcess():
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.name = self.name.replace('check_', '')
+def patch_process(p, monkeypatch):
+    unpatched_run = p._run
 
     def _run(self):
         # Load the benchmark
@@ -370,8 +346,7 @@ class CheckProcess():
         # Compare the inputs
         assert bench_process.inputs == self.inputs
 
-        # Run the process
-        super()._run()
+        unpatched_run(self)
 
         # Compare the outputs
         assert bench_process.outputs == self.outputs
@@ -379,47 +354,48 @@ class CheckProcess():
         # If any outputs are files, compare the file contents
         for k, output in self.outputs:
             bench_output = getattr(bench_process.outputs, k)
-            if isinstance(output, FilePointer):
-                # Compare the file contents
-                binary = output.name.suffix in ['.npy']
-                numpy = output.name.suffix in ['.npy']
-                bench_output_contents = bench_output.read(binary=binary, numpy=numpy)
-                output_contents = output.read(binary=binary, numpy=numpy)
 
-                if isinstance(output_contents, np.ndarray):
-                    assert np.all(output_contents ==
-                                  bench_output_contents), f'Contents of {output} differs from the benchmark'
-                else:
-                    assert output_contents == bench_output_contents, f'Contents of {output} differs from the benchmark'
+            # Recurse over the output and compare against the benchmark (it might be a dictionary or a list)
+            compare_output(output, bench_output)
+
+    monkeypatch.setattr(p, '_run', _run)
 
 
-class CheckBin2XMLProcess(CheckProcess, Bin2XMLProcess):
-    pass
+def monkeypatch_check(monkeypatch):
+    from koopmans.calculators import (EnvironCalculator, KoopmansCPCalculator,
+                                      KoopmansHamCalculator,
+                                      KoopmansScreenCalculator, PhCalculator,
+                                      ProjwfcCalculator, PW2WannierCalculator,
+                                      PWCalculator, Wann2KCCalculator,
+                                      Wann2KCPCalculator, Wannier90Calculator)
+    from koopmans.processes.bin2xml import Bin2XMLProcess
+    from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
+                                                ConvertFilesFromSpin2To1)
+    from koopmans.processes.power_spectrum import (
+        ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
+    from koopmans.processes.ui import UnfoldAndInterpolateProcess
+    from koopmans.processes.wannier import ExtendProcess, MergeProcess
 
+    # Calculators
+    results_for_qc = {KoopmansCPCalculator: ['energy', 'homo_energy', 'lumo_energy'],
+                      PhCalculator: ['dielectric tensor'],
+                      PWCalculator: ['energy', 'eigenvalues', 'band structure'],
+                      EnvironCalculator: ['energy', 'electrostatic embedding'],
+                      Wannier90Calculator: ['centers', 'spreads'],
+                      PW2WannierCalculator: [],
+                      Wann2KCPCalculator: [],
+                      Wann2KCCalculator: [],
+                      KoopmansScreenCalculator: ['alphas'],
+                      KoopmansHamCalculator: ['ki_eigenvalues_on_grid', 'band structure'],
+                      ProjwfcCalculator: ['dos']}
+    for c, r_for_qc in results_for_qc.items():
+        if c == Wannier90Calculator:
+            gm_func = wannier_generate_messages
+        else:
+            gm_func = generate_messages
+        patch_calculator(c, monkeypatch, r_for_qc, gm_func)
 
-class CheckConvertFilesFromSpin1To2(CheckProcess, ConvertFilesFromSpin1To2):
-    pass
-
-
-class CheckConvertFilesFromSpin2To1(CheckProcess, ConvertFilesFromSpin2To1):
-    pass
-
-
-class CheckComputePowerSpectrumProcess(CheckProcess, ComputePowerSpectrumProcess):
-    pass
-
-
-class CheckExtractCoefficientsFromXMLProcess(CheckProcess, ExtractCoefficientsFromXMLProcess):
-    pass
-
-
-class CheckUnfoldAndInterpolateProcess(CheckProcess, UnfoldAndInterpolateProcess):
-    pass
-
-
-class CheckMergeProcess(CheckProcess, MergeProcess):
-    pass
-
-
-class CheckExtendProcess(CheckProcess, ExtendProcess):
-    pass
+    # Processes
+    for p in [ExtractCoefficientsFromXMLProcess, ComputePowerSpectrumProcess, Bin2XMLProcess, ConvertFilesFromSpin1To2,
+              ConvertFilesFromSpin2To1, ExtendProcess, MergeProcess, UnfoldAndInterpolateProcess]:
+        patch_process(p, monkeypatch)
