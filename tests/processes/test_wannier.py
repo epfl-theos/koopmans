@@ -9,6 +9,7 @@ from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         extend_wannier_u_dis_file_content,
                                         merge_wannier_hr_file_contents)
 from koopmans.utils import (chdir, parse_wannier_hr_file_contents,
+                            parse_wannier_u_file_contents,
                             read_wannier_hr_file, write_content)
 
 
@@ -54,9 +55,18 @@ def test_merge_process(tmp_path):
         assert file3.read() == file1_contents + file2_contents
 
 
-def test_extend_wannier_u_dis_file_content(tmp_path):
-    raise NotImplementedError(
-        'Need to get dfpt si test working first, as this will give us the files to use in this test')
+def test_extend_wannier_u_dis_file_content(tmp_path, datadir):
+    with open(datadir / 'w90' / 'wannier90_u_dis.mat') as f:
+        filecontent = f.readlines()
+
+    nbnd = 10
+    nwann = 8
+
+    with chdir(tmp_path):
+        contents = extend_wannier_u_dis_file_content(filecontent, nbnd=nbnd, nwann=nwann)
+        umat, _, nk = parse_wannier_u_file_contents(contents)
+
+        assert umat.shape == (nk, nwann, nbnd)
 
 
 def test_extend_process(tmp_path):

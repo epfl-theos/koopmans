@@ -7,12 +7,12 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from koopmans import settings, utils
-from koopmans.calculators._koopmans_cp import (KoopmansCPCalculator, allowed,
-                                               convert_flat_alphas_for_kcp,
-                                               good_fft)
+from koopmans.calculators import KoopmansCPCalculator
+from koopmans.calculators._koopmans_cp import allowed, good_fft
 
 
 def test_convert_flat_alphas_for_kcp():
+
     nbnd = 10
     nspin = 2
     nelup = 5
@@ -32,6 +32,7 @@ def test_convert_flat_alphas_for_kcp():
 
 
 def test_read_write_ham_pkl(water, tmp_path):
+
     with utils.chdir(tmp_path):
         # Create a kcp calculator
         calc = KoopmansCPCalculator(outdir='tmp', nspin=2, **water)
@@ -52,6 +53,7 @@ def test_read_write_ham_pkl(water, tmp_path):
 
 
 def test_read_ham(water, datadir, tmp_path):
+
     with utils.chdir(tmp_path):
         # Create a kcp calculator
         calc = KoopmansCPCalculator(outdir='tmp', nspin=2, nelec=8, ndw=50, prefix='test_read_ham', **water)
@@ -86,6 +88,7 @@ def test_allowed_nr(p2: int, p3: int, p5: int, p7: int, p11: int, p13: int):
     '''
     The allowed() function should return True if nr has no prime factors greater than 5
     '''
+
     nr = 2 ** p2 * 3 ** p3 * 5 ** p5 * 7 ** p7 * 11 ** p11 * 13 * p13
 
     allow = allowed(nr)
