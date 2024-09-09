@@ -94,7 +94,7 @@ class FoldToSupercellWorkflow(Workflow):
             for label, subset in self.projections.to_merge.items():
                 if len(subset) == 1:
                     for f in converted_files[subset[0].name]:
-                        dest_file = _construct_dest_filename(f.name, subset, label)
+                        dest_file = _construct_dest_filename(f.name, subset[0], label)
                         merged_files[dest_file] = f
                 else:
                     if self.parameters.spin_polarized:

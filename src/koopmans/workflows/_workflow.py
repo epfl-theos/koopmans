@@ -768,8 +768,7 @@ class Workflow(ABC):
             if not master_calc.from_scratch:
                 # Locate the preceeding nspin=2 calculation from which the calculation is configured to read
                 # (and from which we will fetch the nspin=2 wavefunctions)
-                ndr_directory = str(master_calc.parameters.outdir /
-                                    f'{master_calc.parameters.prefix}_{master_calc.parameters.ndr}.save')
+                ndr_directory = str(master_calc.read_directory)
                 if ndr_directory not in master_calc.linked_files.keys():
                     raise ValueError(
                         'This calculator needs to be linked to a previous `nspin=2` calculation before `run_calculator` is called')
@@ -1016,7 +1015,7 @@ class Workflow(ABC):
         dest_calc.link_file(src_calc, src_path, dest_path, symlink=symlink,  # type: ignore
                             recursive_symlink=recursive_symlink, overwrite=overwrite)
 
-    def print(self, text: str = '', style='body', parse_asterisks=True, flush=True, **kwargs: Any):
+    def print(self, text: str = '', style='body', parse_asterisks=True, flush=True, wrap=True, **kwargs: Any):
         if sys.stdout.isatty():
             if style == 'heading' and '**' not in text:
                 text = f'**{text}**'
@@ -1026,10 +1025,10 @@ class Workflow(ABC):
                 while '*' in text:
                     text = text.replace('*', '\033[3m', 1).replace('*', '\033[0m', 1)
         if style == 'body':
-            utils.indented_print(text, self.print_indent + 2, flush=flush, **kwargs)
+            utils.indented_print(text, self.print_indent + 2, flush=flush, wrap=wrap, **kwargs)
         elif style == 'heading':
             assert kwargs.get('end', '\n') == '\n'
-            utils.indented_print(text, self.print_indent, flush=flush, **kwargs)
+            utils.indented_print(text, self.print_indent, flush=flush, wrap=wrap, **kwargs)
         else:
             raise ValueError(f'Invalid choice `{style}` for style; must be `heading`/`body`')
 
@@ -1310,8 +1309,8 @@ class Workflow(ABC):
                 for citation in citations:
                     add_ref(citation, f'Citation for the {psp_lib.replace("_", " ")} pseudopotential library')
 
-        self.print(
-            f'\n> [!NOTE] \n> Please cite the papers listed in `{self.name}.bib` in work involving this calculation')
+        utils.print_alert(
+            'note', f'Please cite the papers listed in `{self.name}.bib` in work involving this calculation')
         relevant_references.to_file(self.name + '.bib')
 
     def print_preamble(self):
@@ -1321,8 +1320,6 @@ class Workflow(ABC):
         self.print(header())
 
         self.print_bib()
-
-        self.print()
 
     def print_conclusion(self):
         from koopmans.io import write
@@ -1339,7 +1336,7 @@ class Workflow(ABC):
             write(self.ml_model, self.name + '_ml_model.pkl')
 
         # Print farewell message
-        print('\n**Workflow complete** 🎉')
+        self.print('\n**Workflow complete** 🎉')
 
     def toinputjson(self) -> Dict[str, Dict[str, Any]]:
 
@@ -1621,7 +1618,7 @@ def header():
               "",
               f"📦 **Version:** {__version__}  ",
               "🧑 **Authors:** Edward Linscott, Nicola Colonna, Riccardo De Gennaro, Ngoc Linh Nguyen, Giovanni Borghi, Andrea Ferretti, Ismaila Dabo, and Nicola Marzari  ",
-              "📝 **Documentation:** https://koopmans-functionals.org  ",
+              "📚 **Documentation:** https://koopmans-functionals.org  ",
               "❓ **Support:** https://groups.google.com/g/koopmans-users  ",
               "🐛 **Report a bug:** https://github.com/epfl-theos/koopmans/issues/new"
               ]

@@ -219,33 +219,34 @@ class WannierizeWorkflow(Workflow):
                             self.run_process(merge_centers_proc)
                             centers_files[label] = FilePointer(merge_centers_proc, merge_centers_proc.outputs.dst_file)
 
-                # For the last block, extend the U_dis matrix file
+                # For the last block, extend the U_dis matrix file if necessary
                 num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
                 num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
                 if num_bands > num_wann and self.parameters.method == 'dfpt':
-                    # Extend the u_dis file
-
-                    # First, calculate how many empty bands we have
-                    spin = block[0].spin
-                    if spin:
-                        nbnd_occ = self.number_of_electrons(spin)
-                    else:
-                        nbnd_occ = self.number_of_electrons() // 2
-                    nbnd_tot = self.calculator_parameters['pw'].nbnd - nbnd_occ
-
-                    # Second, calculate how many empty wannier functions we have
-                    nwann_tot = sum([p.num_wann for p in block])
-
-                    # Finally, construct and run a Process to perform the file manipulation
                     calc_with_u_dis = block[-1].w90_calc
-                    filling_label = '_emp' if label == 'emp' else ''
-                    extend_function = partial(extend_wannier_u_dis_file_content, nbnd=nbnd_tot, nwann=nwann_tot)
-                    extend_proc = ExtendProcess(extend_function=extend_function,
-                                                src_file=(calc_with_u_dis, calc_with_u_dis.prefix + '_u_dis.mat'),
-                                                dst_file=calc_with_u_dis.prefix + f'{filling_label}_u_dis.mat')
-                    extend_proc.name = f'extend_{label}_wannier_u_dis'
-                    self.run_process(extend_proc)
-                    u_dis_file = FilePointer(extend_proc, extend_proc.outputs.dst_file)
+                    if len(block) == 1:
+                        u_dis_file = FilePointer(calc_with_u_dis, calc_with_u_dis.prefix + '_u_dis.mat')
+                    else:
+                        # First, calculate how many empty bands we have
+                        spin = block[0].spin
+                        if spin:
+                            nbnd_occ = self.number_of_electrons(spin)
+                        else:
+                            nbnd_occ = self.number_of_electrons() // 2
+                        nbnd_tot = self.calculator_parameters['pw'].nbnd - nbnd_occ
+
+                        # Second, calculate how many empty wannier functions we have
+                        nwann_tot = sum([p.num_wann for p in block])
+
+                        # Finally, construct and run a Process to perform the file manipulation
+                        filling_label = '_emp' if label == 'emp' else ''
+                        extend_function = partial(extend_wannier_u_dis_file_content, nbnd=nbnd_tot, nwann=nwann_tot)
+                        extend_proc = ExtendProcess(extend_function=extend_function,
+                                                    src_file=(calc_with_u_dis, calc_with_u_dis.prefix + '_u_dis.mat'),
+                                                    dst_file=calc_with_u_dis.prefix + f'{filling_label}_u_dis.mat')
+                        extend_proc.name = f'extend_{label}_wannier_u_dis'
+                        self.run_process(extend_proc)
+                        u_dis_file = FilePointer(extend_proc, extend_proc.outputs.dst_file)
 
         dos = None
         bs_list = []

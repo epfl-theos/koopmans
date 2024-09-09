@@ -8,7 +8,7 @@ import traceback
 
 import koopmans.mpl_config
 from koopmans.io import read
-from koopmans.utils import indented_print
+from koopmans.utils import print_alert
 
 
 def _custom_exception_hook(exception_type, exception_value, traceback):
@@ -16,8 +16,7 @@ def _custom_exception_hook(exception_type, exception_value, traceback):
     spaced_text = re.sub(r'([a-z])([A-Z])', r'\1 \2', exception_type.__name__)
     spaced_text = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1 \2', spaced_text)
 
-    indented_print(f'\n\n  > [!CAUTION] {spaced_text}')
-    indented_print(str(exception_value) + '\n', initial_indent='  > ', subsequent_indent='  > ')
+    print_alert('caution', str(exception_value), header=spaced_text, indent=1)
 
 
 def main():

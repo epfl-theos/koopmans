@@ -13,7 +13,7 @@ import traceback
 import warnings
 from typing import Optional, TextIO, Type, Union
 
-from ._io import indented_print
+from ._io import indented_print, print_alert
 
 
 class CalculatorNotConvergedWarning(UserWarning):
@@ -25,14 +25,8 @@ def _warning(message: Union[str, Warning], category: Type[Warning] = UserWarning
     '''
     Monkey-patching warnings.warn, with added aesthetics
     '''
-    from ._io import previous_indent
-    width = 120 - previous_indent
-    message = "\n".join(["",
-                         f'> [!WARNING] ',
-                         textwrap.fill(str(message), width=width, initial_indent='> ', subsequent_indent='> '),
-                         ""
-                         ])
-    indented_print(message, indent=-1)
+
+    print_alert('warning', str(message))
 
 
 def _warn_with_traceback(message: Union[str, Warning], category: Type[Warning] = UserWarning, filename: str = '',

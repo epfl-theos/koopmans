@@ -15,7 +15,7 @@ from ._io import (construct_atomic_positions_block,
                   generate_wannier_u_file_contents, indented_print, parse_dict,
                   parse_wannier_centers_file_contents,
                   parse_wannier_hr_file_contents,
-                  parse_wannier_u_file_contents, read_alpha_file,
+                  parse_wannier_u_file_contents, print_alert, read_alpha_file,
                   read_atomic_positions, read_cell_parameters,
                   read_wannier_hr_file, write_alpha_file)
 from ._misc import flatten, update_nested_dict

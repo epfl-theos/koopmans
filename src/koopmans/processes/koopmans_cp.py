@@ -54,7 +54,7 @@ class ConvertFilesFromSpin1To2(Process):
 
         for spin_1_file, spin_2_up_file, spin_2_down_file in zip(self.inputs.spin_1_files,
                                                                  self.inputs.spin_2_up_files,
-                                                                 self.inputs.spin_2_down_files):
+                                                                 self.inputs.spin_2_down_files, strict=True):
 
             contents = utils.get_binary_content(*spin_1_file)
 
@@ -69,3 +69,45 @@ class ConvertFilesFromSpin1To2(Process):
             utils.write_binary_content(spin_2_down_file, contents)
 
         self.outputs = self.output_model(generated_files=self.inputs.spin_2_up_files + self.inputs.spin_2_down_files)
+
+
+class SwapSpinFilesInputModel(OutputModel):
+    read_directory: FilePointer
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+class SwapSpinFilesOutputModel(OutputModel):
+    write_directory: Path
+
+
+class SwapSpinFilesProcess(Process):
+
+    input_model = SwapSpinFilesInputModel
+    output_model = SwapSpinFilesOutputModel
+
+    def _run(self):
+        spin_up_files = list(self.inputs.read_directory.rglob('*1.*'))
+        spin_down_files = list(self.inputs.read_directory.rglob('*2.*'))
+        for src in self.inputs.read_directory.rglob('*'):
+            if src.is_dir():
+                continue
+
+            if not src.name.parent.exists():
+                src.name.parent.mkdir(parents=True, exist_ok=True)
+
+            if src in spin_up_files:
+                dst = Path(str(src.name).replace('1.', '2.'))
+            elif src in spin_down_files:
+                dst = Path(str(src.name).replace('2.', '1.'))
+            else:
+                dst = src.name
+
+            try:
+                utils.symlink(src.aspath(), dst)
+            except FileExistsError:
+                assert src.aspath() == dst.resolve()
+                pass
+
+        self.outputs = self.output_model(write_directory=self.inputs.read_directory.name)

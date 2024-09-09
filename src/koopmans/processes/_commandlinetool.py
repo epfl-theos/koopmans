@@ -1,6 +1,7 @@
 import subprocess
 from abc import abstractmethod
 
+from koopmans import utils
 from koopmans.commands import Command
 
 from ._process import Process

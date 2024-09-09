@@ -37,6 +37,9 @@ class FilePointer(NamedTuple):
             content = get_content(self.parent, self.name)
             write_content(dst, content)
 
+    def exists(self):
+        return self.aspath().exists()
+
     def read(self, binary: bool = False, numpy: bool = False) -> Any:
         if binary:
             binary_content = get_binary_content(self.parent, self.name)
@@ -50,6 +53,13 @@ class FilePointer(NamedTuple):
                 return np.array(content)
             else:
                 return content
+
+    def rglob(self, pattern: str):
+        for f in self.aspath().rglob(pattern):
+            yield FilePointer(parent=self.parent, name=f.relative_to(self.parent.directory))
+
+    def is_dir(self):
+        return self.aspath().is_dir()
 
     def __eq__(self, other):
         if not isinstance(other, FilePointer):

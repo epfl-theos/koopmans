@@ -8,6 +8,7 @@ Moved into utils Sep 2021
 """
 
 import json
+import sys
 import textwrap
 from datetime import datetime
 from pathlib import Path
@@ -176,7 +177,7 @@ previous_indent = 0
 
 
 def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n',
-                   flush: bool = False, initial_indent: str | None = None, subsequent_indent: str | None = None):
+                   flush: bool = False, initial_indent: str | None = None, subsequent_indent: str | None = None, wrap=True):
     global print_call_end
     global previous_indent
     if indent < 0:
@@ -185,7 +186,8 @@ def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '
         if print_call_end in ['\n', '\r']:
             initial_indent = ' ' * indent if initial_indent is None else initial_indent
             subsequent_indent = ' ' * indent if subsequent_indent is None else subsequent_indent
-            message = textwrap.fill(substring, width=120, initial_indent=initial_indent,
+            width = 120 if wrap else len(text) + indent
+            message = textwrap.fill(substring, width=width, initial_indent=initial_indent,
                                     subsequent_indent=subsequent_indent, break_long_words=False, break_on_hyphens=False,
                                     drop_whitespace=False)
             print(message, sep=sep, end=end, flush=flush)
@@ -193,6 +195,30 @@ def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '
             print(substring, sep=sep, end=end, flush=flush)
     print_call_end = end
     previous_indent = indent
+
+
+def print_alert(kind, message, header=None, indent=-1, **kwargs):
+    global previous_indent
+    allowed_kinds = {'note': "ℹ️ ", 'tip': "💡", 'important': "❕", 'warning': "🚨", 'caution': "❗"}
+    if kind not in allowed_kinds:
+        raise ValueError('`kind` must be one of ' + '/'.join(allowed_kinds.keys()))
+    if sys.stdout.isatty():
+        if indent < 0:
+            indent = previous_indent
+        header = "" if header is None else header + ': ' if message else header
+        indented_print('\n' + allowed_kinds[kind] + ' ' + header + message + '\n', indent, **kwargs)
+    else:
+        if indent >= 0:
+            width = 120 - indent
+        else:
+            width = 120 - previous_indent
+        header = "" if header is None else header
+        message = "\n".join(["",
+                             f'> [!{kind.upper()}] {header} ',
+                             textwrap.fill(str(message), width=width, initial_indent='> ', subsequent_indent='> '),
+                             ""
+                             ])
+        indented_print(message, indent=indent)
 
 
 def generate_wannier_hr_file_contents(ham: np.ndarray, rvect: List[List[int]], weights: List[int]) -> List[str]:

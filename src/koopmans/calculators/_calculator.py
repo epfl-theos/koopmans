@@ -36,6 +36,7 @@ from ase.spectrum.band_structure import BandStructure
 from numpy import typing as npt
 
 from koopmans import settings, utils
+from koopmans.files import FilePointer
 
 
 def sanitize_filenames(filenames: Union[str, Path, List[str], List[Path]], ext_in: str, ext_out: str) -> List[Path]:
@@ -415,12 +416,19 @@ class KCWannCalculator(CalculatorExt):
 class CalculatorCanEnforceSpinSym(ABC):
     # Abstract base class for calculators that can run a sequence of calculations in order to enforce spin symmetry
     # (with the goal of avoiding spin contamination)
-    @abstractproperty
+    @property
+    @abstractmethod
     def from_scratch(self) -> bool:
         ...
 
+    @property
     @abstractmethod
-    def convert_wavefunction_2to1(self):
+    def files_to_convert_with_spin2_to_spin1(self) -> Dict[str, List[FilePointer] | List[str]]:
+        ...
+
+    @property
+    @abstractmethod
+    def files_to_convert_with_spin1_to_spin2(self) -> Dict[str, List[FilePointer] | List[str]]:
         ...
 
     @abstractmethod
@@ -432,13 +440,5 @@ class CalculatorCanEnforceSpinSym(ABC):
         ...
 
     @abstractmethod
-    def convert_wavefunction_1to2(self):
-        ...
-
-    @abstractmethod
     def nspin2_dummy_calculator(self) -> CalculatorCanEnforceSpinSym:
-        ...
-
-    @abstractmethod
-    def prepare_to_read_nspin1(self):
         ...

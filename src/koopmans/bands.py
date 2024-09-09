@@ -387,14 +387,20 @@ class Bands(object):
     def update_errors(self, value, group=None):
         self.update_attrib_with_history('error', value)
 
-    def _create_dataframe(self, attr) -> pd.DataFrame:
+    def _create_dataframe(self, attr, spin=None, only_to_solve=True) -> pd.DataFrame:
         # Generate a dataframe containing the requested attribute, sorting the bands first by index, then by spin
-        if self.spin_polarized:
-            columns = pd.MultiIndex.from_tuples([(f'spin {b.spin}', b.index) for b in self])
-            band_subset = sorted(self, key=lambda x: (x.spin, x.index))
+        if self.spin_polarized and spin is None:
+            if only_to_solve:
+                blist = self.to_solve
+            else:
+                blist = self
+
+            columns = pd.MultiIndex.from_tuples([(f'spin {b.spin}', b.index) for b in blist])
+            band_subset = sorted(blist, key=lambda x: (x.spin, x.index))
         else:
-            columns = [b.index for b in self.get(spin=0)]
-            band_subset = self.get(spin=0)
+            spin = 0 if spin is None else spin
+            columns = [b.index for b in self.get(spin=spin, to_solve=only_to_solve)]
+            band_subset = self.get(spin=spin, to_solve=only_to_solve)
 
         if isinstance(getattr(band_subset[0], attr), list):
             # Create an array of values padded with NaNs
@@ -407,14 +413,11 @@ class Bands(object):
             df = pd.DataFrame(arr, columns=columns)
         return df
 
-    @property
-    def alpha_history(self) -> pd.DataFrame:
-        return self._create_dataframe('alpha_history')
+    def alpha_history(self, spin=None) -> pd.DataFrame:
+        return self._create_dataframe('alpha_history', spin=spin)
 
-    @property
-    def error_history(self) -> pd.DataFrame:
-        return self._create_dataframe('error_history')
+    def error_history(self, spin=None) -> pd.DataFrame:
+        return self._create_dataframe('error_history', spin=spin)
 
-    @property
-    def predicted_alpha_history(self) -> pd.DataFrame:
-        return self._create_dataframe('predicted_alpha')
+    def predicted_alpha_history(self, spin=None) -> pd.DataFrame:
+        return self._create_dataframe('predicted_alpha', spin=spin)

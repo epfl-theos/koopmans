@@ -20,6 +20,7 @@ from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
 from koopmans.settings import KoopmansCPSettingsDict
 
+from ._koopmans_cp_with_spin_swap import KoopmansCPWithSpinSwapWorkflow
 from ._workflow import Workflow
 
 
@@ -264,7 +265,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         else:
             self.print('Skipping calculation of screening parameters', end='')
-            if len(self.bands.alpha_history) == 0:
+            if len(self.bands.alpha_history()) == 0:
                 self.print('; reading values from file')
                 self.bands.alphas = self.read_alphas_from_file()
             print_alpha_history(self)
@@ -353,7 +354,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
     def _overwrite_canonical_with_variational_orbitals(self, calc: calculators.KoopmansCPCalculator) -> None:
         self.print('Overwriting the variational orbitals with Kohn-Sham orbitals')
-        savedir = calc.parameters.outdir / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
+        savedir = calc.parameters.write_directory / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
         for ispin in range(2):
             raise NotImplementedError('Need to replace this shutil call')
             shutil.copy(savedir / f'evc{ispin + 1}.dat', savedir / f'evc0{ispin + 1}.dat')
@@ -389,7 +390,7 @@ class CalculateScreeningViaDSCF(Workflow):
 
         variational_orbital_files = self._initial_variational_orbital_files
         n_electron_calc = self._initial_cp_calculation
-        dummy_calcs: Dict[Tuple[int, int], calculators.KoopmansCPCalculator] = {}
+        dummy_outdirs: Dict[Tuple[int, int], FilePointer] = {}
 
         while not converged and i_sc < self.parameters.alpha_numsteps:
             i_sc += 1
@@ -397,7 +398,7 @@ class CalculateScreeningViaDSCF(Workflow):
             iteration_wf = DeltaSCFIterationWorkflow.fromparent(self, variational_orbital_files=variational_orbital_files,
                                                                 previous_n_electron_calculation=n_electron_calc,
                                                                 precomputed_descriptors=self._precomputed_descriptors,
-                                                                dummy_calcs=dummy_calcs,
+                                                                dummy_outdirs=dummy_outdirs,
                                                                 i_sc=i_sc, alpha_indep_calcs=alpha_indep_calcs)
             iteration_wf.name = f'Iteration {i_sc}'
 
@@ -421,7 +422,7 @@ class CalculateScreeningViaDSCF(Workflow):
                                'instantly; to save computational time set `alpha_numsteps == 1`')
 
             n_electron_calc = iteration_wf.outputs.n_electron_restart_dir.parent
-            dummy_calcs = iteration_wf.outputs.dummy_calcs
+            dummy_outdirs = iteration_wf.outputs.dummy_outdirs
             variational_orbital_files = {}
 
         if not converged:
@@ -435,7 +436,7 @@ class CalculateScreeningViaDSCF(Workflow):
 class DeltaSCFIterationOutputs(OutputModel):
     converged: bool
     n_electron_restart_dir: FilePointer
-    dummy_calcs: Dict[Tuple[int, int], calculators.KoopmansCPCalculator | None]
+    dummy_outdirs: Dict[Tuple[int, int], FilePointer | None]
 
     class Config:
         arbitrary_types_allowed = True
@@ -447,13 +448,13 @@ class DeltaSCFIterationWorkflow(Workflow):
 
     def __init__(self, *args, variational_orbital_files: Dict[str, Tuple[calculators.KoopmansCPCalculator, str]],
                  previous_n_electron_calculation=calculators.KoopmansCPCalculator,
-                 dummy_calcs: Dict[Tuple[int, int], calculators.KoopmansCPCalculator], i_sc: int,
+                 dummy_outdirs: Dict[Tuple[int, int], FilePointer], i_sc: int,
                  alpha_indep_calcs: List[calculators.KoopmansCPCalculator], precomputed_descriptors: List[FilePointer] | None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._variational_orbital_files = variational_orbital_files
         self._previous_n_electron_calculation = previous_n_electron_calculation
         self._precomputed_descriptors = precomputed_descriptors
-        self._dummy_calcs = dummy_calcs
+        self._dummy_outdirs = dummy_outdirs
         self._i_sc = i_sc
         self._alpha_indep_calcs = alpha_indep_calcs
 
@@ -487,7 +488,10 @@ class DeltaSCFIterationWorkflow(Workflow):
             trial_calc.parameters.do_innerloop = True
 
         # Run the calculation
-        self.run_calculator(trial_calc, enforce_spin_symmetry=self.parameters.fix_spin_contamination)
+        try:
+            self.run_calculator(trial_calc, enforce_spin_symmetry=self.parameters.fix_spin_contamination)
+        except:
+            raise ValueError()
         alpha_dep_calcs = [trial_calc]
 
         # Update the bands' self-Hartree and energies (assuming spin-symmetry)
@@ -527,15 +531,6 @@ class DeltaSCFIterationWorkflow(Workflow):
                 if band not in self.bands.to_solve and (self.parameters.spin_polarized or band.spin == 0):
                     skipped_orbitals.append(band.index)
                 if len(skipped_orbitals) > 0:
-                    if len(skipped_orbitals) == 1:
-                        if print_headings:
-                            self.print(f'Orbital {skipped_orbitals[0]}', style='subheading')
-                    else:
-                        orb_range = f'{skipped_orbitals[0]}-{skipped_orbitals[-1]}'
-                        if print_headings:
-                            self.print(f'Orbitals {orb_range}', style='heading')
-                    if print_headings:
-                        self.print(f'Skipping; will use the screening parameter of an equivalent orbital')
                     skipped_orbitals = []
                 if band not in self.bands.to_solve:
                     continue
@@ -562,13 +557,13 @@ class DeltaSCFIterationWorkflow(Workflow):
             else:
                 # Calculate the screening parameters ab initio
                 assert isinstance(band.index, int)
-                dummy_calc = self._dummy_calcs.get((band.index, band.spin), None)
+                dummy_outdir = self._dummy_outdirs.get((band.index, band.spin), None)
                 subwf = OrbitalDeltaSCFWorkflow.fromparent(
-                    self, band=band, trial_calc=trial_calc, dummy_calc=dummy_calc, i_sc=self._i_sc, alpha_indep_calcs=self._alpha_indep_calcs)
+                    self, band=band, trial_calc=trial_calc, dummy_outdir=dummy_outdir, i_sc=self._i_sc, alpha_indep_calcs=self._alpha_indep_calcs)
                 subwf.run()
                 alpha = subwf.outputs.alpha
                 error = subwf.outputs.error
-                self._dummy_calcs[(band.index, band.spin)] = subwf.outputs.dummy_calc
+                self._dummy_outdirs[(band.index, band.spin)] = subwf.outputs.dummy_outdir
 
             for b in self.bands:
                 if b == band or (b.group is not None and b.group == band.group):
@@ -597,15 +592,15 @@ class DeltaSCFIterationWorkflow(Workflow):
             # # Print summary of all predictions
             # predicted = [self.ml_model.predict(b) for b in self.bands.to_solve]
 
-        n_electron_restart_dir = FilePointer(trial_calc, trial_calc.parameters.outdir)
+        n_electron_restart_dir = FilePointer(trial_calc, trial_calc.write_directory)
         self.outputs = DeltaSCFIterationOutputs(
-            converged=converged, n_electron_restart_dir=n_electron_restart_dir, dummy_calcs=self._dummy_calcs)
+            converged=converged, n_electron_restart_dir=n_electron_restart_dir, dummy_outdirs=self._dummy_outdirs)
 
 
 class OrbitalDeltaSCFOutputs(OutputModel):
     alpha: float
     error: float
-    dummy_calc: calculators.KoopmansCPCalculator | None
+    dummy_outdir: FilePointer | None
 
     class Config:
         arbitrary_types_allowed = True
@@ -616,13 +611,13 @@ class OrbitalDeltaSCFWorkflow(Workflow):
     output_model = OrbitalDeltaSCFOutputs  # type: ignore
 
     def __init__(self, band: Band, trial_calc: calculators.KoopmansCPCalculator,
-                 dummy_calc: calculators.KoopmansCPCalculator | None, i_sc: int,
+                 dummy_outdir: FilePointer | None, i_sc: int,
                  alpha_indep_calcs: List[calculators.KoopmansCPCalculator],
                  **kwargs):
         super().__init__(**kwargs)
         self.band = band
         self._trial_calc = trial_calc
-        self._dummy_calc = dummy_calc
+        self._dummy_outdir = dummy_outdir
         self._i_sc = i_sc
         self._alpha_indep_calcs = alpha_indep_calcs
 
@@ -637,7 +632,8 @@ class OrbitalDeltaSCFWorkflow(Workflow):
 
         # Don't repeat if this particular alpha_i was converged
         if hasattr(self.band, 'error') and abs(self.band.error) < self.parameters.alpha_conv_thr:
-            self.outputs = self.output_model(alpha=self.band.alpha, error=self.band.error, dummy_calc=self._dummy_calc)
+            self.outputs = self.output_model(alpha=self.band.alpha, error=self.band.error,
+                                             dummy_outdir=self._dummy_outdir)
             return
 
         # When we write/update the alpharef files in the work directory
@@ -658,7 +654,7 @@ class OrbitalDeltaSCFWorkflow(Workflow):
                 if self._i_sc == 1:
                     calc_types = ['dft_n+1_dummy', 'pz_print', 'dft_n+1']
                 else:
-                    assert self._dummy_calc is not None
+                    assert self._dummy_outdir is not None
                     calc_types = ['pz_print', 'dft_n+1']
         else:
             if self.band.filled:
@@ -667,10 +663,10 @@ class OrbitalDeltaSCFWorkflow(Workflow):
                 if self._i_sc == 1:
                     calc_types = ['dft_n+1_dummy', 'kipz_print', 'kipz_n+1']
                 else:
-                    assert self._dummy_calc is not None
+                    assert self._dummy_outdir is not None
                     calc_types = ['kipz_print', 'kipz_n+1']
 
-        dummy_calc = self._dummy_calc
+        dummy_outdir = self._dummy_outdir
         print_calc = None
 
         for calc_type in calc_types:
@@ -720,17 +716,25 @@ class OrbitalDeltaSCFWorkflow(Workflow):
                           calc, calc.read_directory, recursive_symlink=True)
 
             if calc_type in ['dft_n+1', 'kipz_n+1']:
-                assert print_calc is not None
-                assert dummy_calc is not None
-                self.link(dummy_calc, dummy_calc.parameters.outdir, calc,
+                assert dummy_outdir is not None
+                self.link(*dummy_outdir, calc,
                           calc.parameters.outdir, recursive_symlink=True)
                 # Copying of evcfixed_empty.dat to evc_occupied.dat
+                assert print_calc is not None
                 for ispin in range(1, 3):
                     self.link(print_calc, print_calc.write_directory / f'K00001/evcfixed_empty{ispin}.dat',
                               calc, calc.read_directory / f'K00001/evc_occupied{ispin}.dat', symlink=True, overwrite=True)
 
             # Run kcp.x
-            self.run_calculator(calc)
+            if calc.parameters.nelup < calc.parameters.neldw:
+                subwf = KoopmansCPWithSpinSwapWorkflow.fromparent(self, calc=calc)
+                subwf.run()
+                if 'dummy' in calc_type:
+                    dummy_outdir = subwf.outputs.outdir
+            else:
+                self.run_calculator(calc)
+                if 'dummy' in calc_type:
+                    dummy_outdir = FilePointer(calc, calc.parameters.outdir)
 
             # Store the band that we've perturbed as calc.fixed_band. Note that we can't use
             # calc.parameters.fixed_band to keep track of which band we held fixed, because for empty
@@ -765,8 +769,6 @@ class OrbitalDeltaSCFWorkflow(Workflow):
             # Storing the calculators to allow for the copying of evcfixed_empty.dat to evc_occupied.dat
             if calc_type in ['pz_print', 'kipz_print']:
                 print_calc = calc
-            if 'dummy' in calc_type:
-                dummy_calc = calc
 
         # Calculate an updated alpha and a measure of the error
         # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
@@ -793,7 +795,7 @@ class OrbitalDeltaSCFWorkflow(Workflow):
         elif alpha > 1:
             utils.warn(warning_message.format('greater than 1'))
 
-        self.outputs = self.output_model(alpha=alpha, error=error, dummy_calc=dummy_calc)
+        self.outputs = self.output_model(alpha=alpha, error=error, dummy_outdir=dummy_outdir)
 
     def calculate_alpha_from_list_of_calcs(self,
                                            calcs: List[calculators.KoopmansCPCalculator],
@@ -1289,13 +1291,31 @@ def print_alpha_history(wf: Workflow):
     # Printing out a progress summary
     if not wf.ml.predict:
         wf.print(f'\n**α**')
-        wf.print(wf.bands.alpha_history.to_markdown())
+        if wf.parameters.spin_polarized:
+            wf.print('\n**spin up**')
+            wf.print(wf.bands.alpha_history(spin=0).to_markdown(), wrap=False)
+            wf.print('\n**spin down**')
+            wf.print(wf.bands.alpha_history(spin=1).to_markdown(), wrap=False)
+        else:
+            wf.print(wf.bands.alpha_history().to_markdown(), wrap=False)
 
     if None not in [b.predicted_alpha for b in wf.bands]:
         wf.print(f'\n**predicted α**')
-        wf.print(wf.bands.predicted_alpha_history.to_markdown())
+        if wf.parameters.spin_polarized:
+            wf.print('\n**spin up**')
+            wf.print(wf.bands.predicted_alpha_history(spin=0).to_markdown(), wrap=False)
+            wf.print('\n**spin down**')
+            wf.print(wf.bands.predicted_alpha_history(spin=1).to_markdown(), wrap=False)
+        else:
+            wf.print(wf.bands.predicted_alpha_history().to_markdown(), wrap=False)
 
-    if not wf.bands.error_history.empty:
+    if not wf.bands.error_history().empty:
         wf.print(f'\n**ΔE<sub>i</sub> - λ<sub>ii</sub> (eV)**')
-        wf.print(wf.bands.error_history.to_markdown())
+        if wf.parameters.spin_polarized:
+            wf.print('\n**spin up**')
+            wf.print(wf.bands.error_history(spin=0).to_markdown(), wrap=False)
+            wf.print('\n**spin down**')
+            wf.print(wf.bands.error_history(spin=1).to_markdown(), wrap=False)
+        else:
+            wf.print(wf.bands.error_history().to_markdown(), wrap=False)
     wf.print('')

@@ -69,7 +69,8 @@ def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True
             except FileExistsError:
                 pass
         else:
-            dest.symlink_to(src)
+            if relative:
+                dest.symlink_to(src)
 
 
 def symlink_tree(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool = False, force: bool = False):

@@ -12,7 +12,6 @@ from koopmans import calculators, ml, utils
 from koopmans.bands import Band
 from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
-from koopmans.processes.bin2xml import Bin2XMLProcess
 from koopmans.processes.power_spectrum import (
     ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
 from koopmans.settings import KoopmansCPSettingsDict
@@ -151,6 +150,8 @@ class ConvertOrbitalFilesToXMLWorkflow(Workflow):
         """
         Converts the binary files produced by a previous calculation to python-readable xml files.
         """
+
+        from koopmans.processes.bin2xml import Bin2XMLProcess
 
         # Convert total density to XML
         binary = FilePointer(self.calc_that_produced_orbital_densities,

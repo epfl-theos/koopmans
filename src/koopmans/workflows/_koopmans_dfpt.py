@@ -165,12 +165,12 @@ class KoopmansDFPTWorkflow(Workflow):
             # Populate a list of files to link to subsequent calculations
             for f in [wf_workflow.outputs.u_matrices_files["occ"],
                       wf_workflow.outputs.hr_files["occ"],
-                      wf_workflow.outputs.u_dis_file,
                       wf_workflow.outputs.centers_files["occ"]]:
                 assert f is not None
                 wannier_files_to_link[f.name] = f
 
             for f in [wf_workflow.outputs.u_matrices_files["emp"],
+                      wf_workflow.outputs.u_dis_file,
                       wf_workflow.outputs.hr_files["emp"],
                       wf_workflow.outputs.centers_files["emp"]]:
                 assert f is not None
