@@ -1,7 +1,7 @@
 from koopmans import io
 
 # Load the workflow object
-wf = io.read('ozone.kwf')
+wf = io.read('ozone.pkl')
 
 # Access the results from the very last calculation
 results = wf.calculations[-1].results

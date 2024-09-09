@@ -1,10 +1,10 @@
 from koopmans.io import read
 
 # Load the workflow object
-wf = read('si.kwf')
+wf = read('si.pkl')
 
-# Access the band structure from the very last calculation
-results = wf.calculations[-1].results
+# Access the band structure from the bands calculation
+results = wf.calculations[-2].results
 bs = results['band structure']
 
 # Print the band strucutre to file

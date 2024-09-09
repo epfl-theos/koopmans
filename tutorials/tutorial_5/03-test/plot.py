@@ -3,8 +3,8 @@ import numpy as np
 
 from koopmans import io
 
-# Load the workflow python object from the .kwf file
-wf = io.read('h2o_test.kwf')
+# Load the workflow python object from the .pkl file
+wf = io.read('h2o_test.pkl')
 
 # Select the calculations that correspond to the final KI calculations using predicted/ab initio screening parameters
 calculations_with_predicted_alpha = [c for c in wf.calculations if c.prefix == 'ki_final_ml']

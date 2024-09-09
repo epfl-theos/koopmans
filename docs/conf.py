@@ -38,9 +38,9 @@ language = "en"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['recommonmark', 'sphinx.ext.mathjax', 'sphinx.ext.autosectionlabel',
+extensions = ['sphinx.ext.mathjax', 'sphinx.ext.autosectionlabel',
               'sphinxcontrib.bibtex', 'sphinx_toolbox.collapse', 'sphinx.ext.autodoc',
-              'numpydoc', 'sphinx.ext.autosummary']
+              'numpydoc', 'sphinx.ext.autosummary', 'myst_parser']
 bibtex_bibfiles = ['../src/koopmans/references.bib']
 autosectionlabel_prefix_document = True
 

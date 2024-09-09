@@ -9,8 +9,8 @@ import numpy as np
 from koopmans import io
 
 if __name__ == '__main__':
-    # Extract the eigenvalue information from the .kwf file
-    wf = io.read('h2o_predict.kwf')
+    # Extract the eigenvalue information from the .pkl file
+    wf = io.read('h2o_predict.pkl')
     calcs = [c for c in wf.calculations if c.prefix == 'ki_final_ml']
     eigenvalues = np.array([c.results['eigenvalues'][0] for c in calcs])
 

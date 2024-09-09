@@ -8,7 +8,7 @@ matplotlib.use('Agg')  # nopep8
 import matplotlib.pyplot as plt  # nopep8
 
 # Read in the workflow
-wf = io.read('h2o_conv.kwf')
+wf = io.read('h2o_conv.pkl')
 calcs = wf.calculations
 
 # Create a simple function for extracting celldm1 from a calculator
