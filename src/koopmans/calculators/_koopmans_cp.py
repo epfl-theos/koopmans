@@ -14,7 +14,7 @@ import os
 import pickle
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 from ase import Atoms

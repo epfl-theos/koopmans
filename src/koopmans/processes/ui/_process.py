@@ -22,6 +22,7 @@ from numpy.typing import ArrayLike, NDArray
 from pydantic import ConfigDict, Field
 
 from koopmans import calculators, utils
+from koopmans.files import FilePointer
 from koopmans.kpoints import Kpoints, kpath_to_dict
 from koopmans.settings import (PlotSettingsDict,
                                UnfoldAndInterpolateSettingsDict)
@@ -46,16 +47,16 @@ class UnfoldAndInterpolateInputs(IOModel):
     spreads: List[float] = \
         Field(..., description="spreads of Wannier functions (in Ang^2)")
 
-    kc_ham_file: Tuple[utils.HasDirectoryAttr, Path] = \
+    kc_ham_file: FilePointer = \
         Field(..., description='The Koopmans Hamiltonian')
 
-    dft_ham_file: Tuple[utils.HasDirectoryAttr, Path] = \
+    dft_ham_file: FilePointer = \
         Field(..., description='The DFT Hamiltonian')
 
-    dft_smooth_ham_file: Optional[Tuple[utils.HasDirectoryAttr, Path]] = \
+    dft_smooth_ham_file: Optional[FilePointer] = \
         Field(default=None, description='The DFT Hamiltonian, evaluated on the smooth grid')
 
-    wf_phases_file: Optional[Tuple[utils.HasDirectoryAttr, Path]] = \
+    wf_phases_file: Optional[FilePointer] = \
         Field(default=None, description='The file containing the phases of the Wannier functions')
 
     plotting_parameters: PlotSettingsDict = \
