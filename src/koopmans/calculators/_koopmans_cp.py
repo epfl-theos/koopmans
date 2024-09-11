@@ -568,7 +568,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return self.parameters.restart_mode == 'from_scratch'
 
     @property
-    def files_to_convert_with_spin2_to_spin1(self) -> Dict[str, List[FilePointer] | List[str]]:
+    def files_to_convert_with_spin2_to_spin1(self) -> Dict[str, List[FilePointer] | List[Path]]:
         nspin_2_files = []
         nspin_1_files = []
         for f in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
@@ -581,7 +581,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             nspin_2_file = FilePointer(self, self.read_directory / 'K00001' / f'{prefix}1.{suffix}')
             if nspin_2_file.exists():
                 nspin_2_files.append(nspin_2_file)
-                nspin_1_files.append(f)
+                nspin_1_files.append(Path(f))
 
         return {'spin_2_files': nspin_2_files, 'spin_1_files': nspin_1_files}
 

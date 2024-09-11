@@ -789,8 +789,8 @@ class Workflow(ABC):
                           calc_nspin1, calc_nspin1.parameters.outdir)
 
                 # Copy over nspin=2 wavefunction to nspin=1 tmp directory
-                process2to1 = ConvertFilesFromSpin2To1(
-                    **prev_calc_nspin2.files_to_convert_with_spin2_to_spin1)
+                process2to1 = ConvertFilesFromSpin2To1(name=None,
+                                                       **prev_calc_nspin2.files_to_convert_with_spin2_to_spin1)
                 self.run_process(process2to1)
                 for f in process2to1.outputs.generated_files:
                     dst_dir = calc_nspin1.parameters.outdir / \

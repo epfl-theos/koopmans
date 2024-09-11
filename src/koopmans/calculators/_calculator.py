@@ -423,12 +423,12 @@ class CalculatorCanEnforceSpinSym(ABC):
 
     @property
     @abstractmethod
-    def files_to_convert_with_spin2_to_spin1(self) -> Dict[str, List[FilePointer] | List[str]]:
+    def files_to_convert_with_spin2_to_spin1(self) -> Dict[str, List[FilePointer] | List[Path]]:
         ...
 
     @property
     @abstractmethod
-    def files_to_convert_with_spin1_to_spin2(self) -> Dict[str, List[FilePointer] | List[str]]:
+    def files_to_convert_with_spin1_to_spin2(self) -> Dict[str, List[FilePointer] | List[Path]]:
         ...
 
     @abstractmethod
