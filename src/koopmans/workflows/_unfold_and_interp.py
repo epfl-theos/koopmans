@@ -104,7 +104,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         if self.parameters.spin_polarized:
             energies = [[c.results['band structure'].energies for c in subset]
                         for subset in [self.calculations[-4:-2], self.calculations[-2:]]]
-            reference = np.max([e[0] for e in energies])
+            reference = np.max([np.max(e[0]) for e in energies])
             energies_np = np.concatenate([np.concatenate(e, axis=2) for e in energies], axis=0)
         else:
             energies = [c.results['band structure'].energies for c in self.calculations[-2:]]
