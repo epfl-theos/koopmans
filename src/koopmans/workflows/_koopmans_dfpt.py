@@ -415,7 +415,7 @@ class KoopmansDFPTWorkflow(Workflow):
             utils.symlink(f'wannier/emp{dir_suffix}/wann_u.mat',
                           f'{calc.directory}/wann_emp_u.mat', exist_ok=True)
             if Path(f'wannier/emp{dir_suffix}/wann_u_dis.mat').exists():
-                utils.symlink(f'wannier/emp/wann_u_dis.mat',
+                utils.symlink(f'wannier/emp{dir_suffix}/wann_u_dis.mat',
                               f'{calc.directory}/wann_emp_u_dis.mat', exist_ok=True)
             utils.symlink(
                 f'wannier/occ{dir_suffix}/wann_centres.xyz', f'{calc.directory}/', exist_ok=True)
