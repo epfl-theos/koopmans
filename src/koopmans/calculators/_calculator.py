@@ -281,7 +281,8 @@ class CalculatorExt():
             setattr(calc, k.lstrip('_'), v)
         return calc
 
-    def link_file(self, src_calc: utils.HasDirectoryAttr | None, src_filename: Path, dest_filename: Path, symlink: bool = False, recursive_symlink: bool = False, overwrite: bool = False):
+    def link_file(self, src_calc: utils.HasDirectoryAttr | None, src_filename: Path, dest_filename: Path, symlink: bool = False,
+                  recursive_symlink: bool = False, overwrite: bool = False):
         if src_filename.is_absolute() and src_calc is not None:
             raise ValueError(f'`src_filename` in `{self.__class__.__name__}.link_file()` must be a relative path if a '
                              f'`src_calc` is provided')
