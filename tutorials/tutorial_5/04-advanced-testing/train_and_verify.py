@@ -20,7 +20,7 @@ for i in range(n_total):
 
     # Set the atomic positions for the current snapshot
     ab_initio_wf.atoms = ab_initio_wf.snapshots[i]
-    ab_initio_wf.parameters.from_scratch = False
+    ab_initio_wf.parameters.from_scratch = True
 
     # Run the workflow
     ab_initio_wf.run(subdirectory=f'ab_initio/snapshot_{i + 1}')
