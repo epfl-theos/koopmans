@@ -21,7 +21,7 @@ from koopmans.processes.ui import UnfoldAndInterpolateProcess
 from koopmans.processes.wannier import ExtendProcess, MergeProcess
 
 from ._utils import (benchmark_filename, find_subfiles_of_calc,
-                     metadata_filename)
+                     metadata_filename, recursively_find_files)
 
 
 def patch_calculator(c, monkeypatch):
@@ -83,6 +83,11 @@ def patch_process(p, monkeypatch):
         if not filename.parent.exists():
             filename.parent.mkdir(parents=True)
         write_pkl(self, filename)
+
+        # Copy over all files that are outputs of the process that need to be read
+        for filepointer in recursively_find_files([o for _, o in self.outputs]):
+            if filepointer.name in ['power_spectrum.npy']:
+                shutil.copy(filepointer, benchmark_filename(self).parent / filepointer.name)
 
     monkeypatch.setattr(p, '_run', _run)
 

@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 from typing import Set, Tuple
 
+from koopmans.files import FilePointer
+
 
 def benchmark_filename(obj) -> Path:
     base_directory = Path(__file__).parents[3]
@@ -37,3 +39,17 @@ def find_subfiles_of_dir(base_dir: Path) -> Set[Tuple[Path, float]]:
     else:
         files = set([])
     return files
+
+
+def recursively_find_files(obj):
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            yield from recursively_find_files(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from recursively_find_files(v)
+    elif isinstance(obj, FilePointer):
+        yield obj.aspath()
+    elif isinstance(obj, Path):
+        yield obj
+    return

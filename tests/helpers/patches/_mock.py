@@ -11,7 +11,8 @@ from koopmans.files import FilePointer
 from koopmans.io import read_pkl
 from koopmans.utils import chdir, symlink
 
-from ._utils import benchmark_filename, metadata_filename
+from ._utils import (benchmark_filename, metadata_filename,
+                     recursively_find_files)
 
 
 def write_mock_file(filename: Union[Path, str], written_by: str):
@@ -125,20 +126,6 @@ def patch_generate_dos(calc_class, monkeypatch):
     monkeypatch.setattr(calc_class, 'generate_dos', generate_dos)
 
 
-def recursively_find_files(obj):
-    if isinstance(obj, dict):
-        for k, v in obj.items():
-            yield from recursively_find_files(v)
-    elif isinstance(obj, list):
-        for v in obj:
-            yield from recursively_find_files(v)
-    elif isinstance(obj, FilePointer):
-        yield obj.aspath()
-    elif isinstance(obj, Path):
-        yield obj
-    return
-
-
 def mock_process_run(self):
     # Load the inputs from file
     bench_process = read_pkl(benchmark_filename(self))
@@ -146,7 +133,11 @@ def mock_process_run(self):
     self.outputs = bench_process.outputs
 
     for f in recursively_find_files([o for _, o in self.outputs]):
-        write_mock_file(f, self.name)
+        if f.name in ['power_spectrum.npy']:
+            assert (benchmark_filename(self).parent / f.name).exists()
+            shutil.copy(benchmark_filename(self).parent / f.name, f)
+        else:
+            write_mock_file(f, self.name)
 
 
 def monkeypatch_mock(monkeypatch):

@@ -8,7 +8,9 @@ from hypothesis import strategies as st
 
 from koopmans import settings, utils
 from koopmans.calculators import KoopmansCPCalculator
-from koopmans.calculators._koopmans_cp import allowed, good_fft
+from koopmans.calculators._koopmans_cp import (allowed,
+                                               convert_flat_alphas_for_kcp,
+                                               good_fft)
 
 
 def test_convert_flat_alphas_for_kcp():

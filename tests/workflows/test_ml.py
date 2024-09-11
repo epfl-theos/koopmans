@@ -12,7 +12,7 @@ from koopmans.workflows import TrajectoryWorkflow
 @pytest.mark.parametrize('descriptor', ['orbital_density', 'self_hartree'])
 @pytest.mark.parametrize('estimator', ['mean', 'ridge_regression'])
 @pytest.mark.parametrize('occ_and_emp_together', [True, False])
-def test_ml_train_water(tmp_path, water_snapshots, descriptor, estimator, occ_and_emp_together):
+def test_ml_train_water(tmp_path, workflow_patch, water_snapshots, descriptor, estimator, occ_and_emp_together):
     with chdir(tmp_path):
         projs = ProjectionBlocks.fromlist([[{'site': 'O', 'ang_mtm': 'sp3'}], [{'site': 'H', 'ang_mtm': 's'}]], spins=[
                                           None, None], atoms=water_snapshots['atoms'])
