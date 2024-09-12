@@ -25,6 +25,7 @@ class IOModel(BaseModel):
             if isinstance(cond, np.ndarray):
                 cond = cond.all()
             if not cond:
+                raise ValueError(f'Debug: {key} differs: {getattr(self, key)} != {getattr(other, key)}')
                 return False
         return True
 
