@@ -83,7 +83,8 @@ def patch_process(p, monkeypatch):
         filename = benchmark_filename(self)
         if not filename.parent.exists():
             filename.parent.mkdir(parents=True)
-        write_pkl(self, filename)
+        write_pkl(self, filename.name)
+        shutil.move(filename.name, filename)
 
         # Copy over all files that are outputs of the process that need to be read
         for filepointer in recursively_find_files([o for _, o in self.outputs]):
