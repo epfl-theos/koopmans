@@ -40,7 +40,8 @@ def patch_calculator(c, monkeypatch):
         filename = benchmark_filename(self)
         if not filename.parent.exists():
             filename.parent.mkdir(parents=True)
-        write_pkl(self, benchmark_filename(self))
+        write_pkl(self, filename.name)
+        shutil.move(filename.name, filename)
 
         # After running the calculation, make a new list of the files, and then work out which files have been
         # modified by the calculation
