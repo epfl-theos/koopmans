@@ -22,6 +22,8 @@ from koopmans.processes.wannier import ExtendProcess, MergeProcess
 from ._utils import (benchmark_filename, find_subfiles_of_calc,
                      metadata_filename, recursively_find_files)
 
+base_directory = Path(__file__).parents[3]
+
 
 def patch_calculator(c, monkeypatch):
 
@@ -43,7 +45,7 @@ def patch_calculator(c, monkeypatch):
 
         self.parent, parent = None, self.parent
         self.linked_files, linked_files = [], self.linked_files
-        write_pkl(self, filename)
+        write_pkl(self, filename, base_directory=base_directory)
         self.parent = parent
         self.linked_files = linked_files
 
@@ -89,7 +91,7 @@ def patch_process(p, monkeypatch):
             filename.parent.mkdir(parents=True)
         # Temporarily wipe the parent attribute so that the entire workflow doesn't get pickled
         self.parent, parent = None, self.parent
-        write_pkl(self, filename)
+        write_pkl(self, filename, base_directory=base_directory)
         self.parent = parent
 
         # Copy over all files that are outputs of the process that need to be read
@@ -105,7 +107,7 @@ def patch_process(p, monkeypatch):
             # Because we wipe parents when storing benchmarks (see above), this prevents us from being able to construct
             # an absolute directory to locate files. Usually, this would raise an error. For the purposes of the test suite,
             # instead simply use the base directory of the repo
-            return Path().resolve().relative_to(Path(__file__).parents[3])
+            return Path().resolve().relative_to(base_directory)
         else:
             # Default behavior
             return unpatched_absolute_directory.__get__(self)
