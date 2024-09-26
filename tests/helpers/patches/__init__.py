@@ -17,7 +17,7 @@ def patch_path_comparison(monkeypatch):
             # In some cases we store paths relative to a base directory. Without knowing
             # the base directory, the best we can do is check that the relative path
             # ends the same as the absolute path
-            return str(self).endswith(str(other)) or str(other).endswith(str(self))
+            return str(self.resolve()).endswith(str(other)) or str(other).endswith(str(self))
     monkeypatch.setattr('pathlib.Path.__eq__', path_eq)
 
 

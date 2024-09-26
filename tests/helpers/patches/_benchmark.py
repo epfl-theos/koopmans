@@ -10,7 +10,6 @@ from koopmans.calculators import (EnvironCalculator, KoopmansCPCalculator,
                                   ProjwfcCalculator, PW2WannierCalculator,
                                   PWCalculator, Wann2KCCalculator,
                                   Wann2KCPCalculator, Wannier90Calculator)
-from koopmans.files import FilePointer
 from koopmans.io import write_pkl
 from koopmans.processes.bin2xml import Bin2XMLProcess
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
@@ -35,13 +34,18 @@ def patch_calculator(c, monkeypatch):
         # Run the calculation
         unpatched_calculate(self)
 
-        # Store the calculator as a pickle file to use as a benchmark
+        # Store the calculator as a pickle file to use as a benchmark, Temporary wiping the parent attribute so that
+        # the entire workflow doesn't get pickled
         self.results.pop('walltime', None)
         filename = benchmark_filename(self)
         if not filename.parent.exists():
             filename.parent.mkdir(parents=True)
-        write_pkl(self, filename.name)
-        shutil.move(filename.name, filename)
+
+        self.parent, parent = None, self.parent
+        self.linked_files, linked_files = [], self.linked_files
+        write_pkl(self, filename)
+        self.parent = parent
+        self.linked_files = linked_files
 
         # After running the calculation, make a new list of the files, and then work out which files have been
         # modified by the calculation
@@ -83,15 +87,31 @@ def patch_process(p, monkeypatch):
         filename = benchmark_filename(self)
         if not filename.parent.exists():
             filename.parent.mkdir(parents=True)
-        write_pkl(self, filename.name)
-        shutil.move(filename.name, filename)
+        # Temporarily wipe the parent attribute so that the entire workflow doesn't get pickled
+        self.parent, parent = None, self.parent
+        write_pkl(self, filename)
+        self.parent = parent
 
         # Copy over all files that are outputs of the process that need to be read
-        for filepointer in recursively_find_files([o for _, o in self.outputs]):
-            if filepointer.name in ['power_spectrum.npy']:
-                shutil.copy(filepointer, benchmark_filename(self).parent / filepointer.name)
+        for filepath in recursively_find_files([o for _, o in self.outputs]):
+            if filepath.name in ['power_spectrum.npy']:
+                shutil.copy(filepath, benchmark_filename(self).parent / filepath.name)
+
+    # Patching the absolute_directory property
+    unpatched_absolute_directory = p.absolute_directory
+
+    def absolute_directory(self) -> Path:
+        if self.parent is None:
+            # Because we wipe parents when storing benchmarks (see above), this prevents us from being able to construct
+            # an absolute directory to locate files. Usually, this would raise an error. For the purposes of the test suite,
+            # instead simply use the base directory of the repo
+            return Path().resolve().relative_to(Path(__file__).parents[3])
+        else:
+            # Default behavior
+            return unpatched_absolute_directory.__get__(self)
 
     monkeypatch.setattr(p, '_run', _run)
+    monkeypatch.setattr(p, 'absolute_directory', property(absolute_directory))
 
 
 def monkeypatch_bench(monkeypatch):

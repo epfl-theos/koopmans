@@ -452,9 +452,8 @@ def ConvergenceWorkflowFactory(subworkflow: Workflow, observable: Union[str, Cal
     observable = ObservableFactory(observable) if isinstance(
         observable, str) else observable
 
-    # Co-opt the fromparent method to use the subworkflow settings to initialize a ConvergenceWorkflow...
-    wf = ConvergenceWorkflow.fromparent(subworkflow, subworkflow_class=subworkflow.__class__,
+    # Initialize a ConvergenceWorkflow copying the settings of the subworkflow
+    wf = ConvergenceWorkflow.from_other(subworkflow, subworkflow_class=subworkflow.__class__,
                                         variables=variables, observable=observable, threshold=threshold)
-    wf.parent = None  # ... making sure we remove wf.parent immediately afterwards
 
     return wf

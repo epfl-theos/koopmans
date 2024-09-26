@@ -67,7 +67,6 @@ class FoldToSupercellWorkflow(Workflow):
                     pass
 
                 # Link the input files
-                assert isinstance(calc_w2k, utils.HasDirectoryAttr)
                 self.link(*self._hr_files[block.name], calc_w2k, self._hr_files[block.name].name, symlink=True)
                 self.link(*self._nscf_outdir, calc_w2k, calc_w2k.parameters.outdir, recursive_symlink=True)
                 self.link(w90_pp_calc, w90_pp_calc.prefix + '.nnkp', calc_w2k,

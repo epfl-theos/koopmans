@@ -475,7 +475,7 @@ class DeltaSCFIterationWorkflow(Workflow):
 
         # Link the temporary files from the previous calculation
         previous_calc = self._previous_n_electron_calculation
-        assert isinstance(previous_calc, utils.HasDirectoryAttr)
+        assert isinstance(previous_calc, utils.HasDirectoryInfo)
         self.link(previous_calc, previous_calc.write_directory, trial_calc,
                   trial_calc.read_directory, recursive_symlink=True)
 

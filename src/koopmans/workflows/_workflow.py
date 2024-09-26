@@ -114,6 +114,7 @@ class Workflow(ABC):
     snapshots: List[Atoms]
     version: str
     _step_counter: int
+    _base_directory: Path | None
 
     def __init__(self, atoms: Atoms,
                  pseudopotentials: Dict[str, str] = {},
@@ -129,6 +130,7 @@ class Workflow(ABC):
                  snapshots: Optional[List[Atoms]] = None,
                  autogenerate_settings: bool = True,
                  version: Optional[str] = None,
+                 parent: Optional[Workflow] = None,
                  **kwargs: Dict[str, Any]):
 
         # Parsing parameters
@@ -149,6 +151,10 @@ class Workflow(ABC):
         self.steps: List = []
         self.silent = False
         self.print_indent = 0
+        self.parent = parent
+        self._base_directory = None
+        if self.parent is None:
+            self.base_directory = Path()
 
         if projections is None:
             proj_list: List[List[Any]]
@@ -259,7 +265,9 @@ class Workflow(ABC):
             else:
                 pseudo_dir = Path.cwd()
 
-            self.parameters.pseudo_directory = pseudo_dir.resolve()
+            self.parameters.pseudo_directory = os.path.relpath(pseudo_dir.resolve(), self.base_directory)
+        elif self.parameters.pseudo_directory.is_absolute():
+            self.parameters.pseudo_directory = os.path.relpath(self.parameters.pseudo_directory, self.base_directory)
 
         # For any kwargs...
         for key, value in kwargs.items():
@@ -278,7 +286,8 @@ class Workflow(ABC):
         if self.parameters.task != 'ui' and autogenerate_settings:
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
-            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
+            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials,
+                                       self.base_directory / self.parameters.pseudo_directory)
             tot_charge = calculator_parameters['kcp'].get('tot_charge', 0)
             nelec -= tot_charge
             tot_mag = calculator_parameters['kcp'].get('tot_magnetization', nelec % 2)
@@ -292,7 +301,7 @@ class Workflow(ABC):
                 for i, (l, p) in enumerate(self.pseudopotentials.items()):
                     # ASE uses absolute values; QE uses the fraction of the valence
                     frac_mag = calculator_parameters['kcp'].pop(f'starting_magnetization({i + 1})', 0.0)
-                    valence = valence_from_pseudo(p, self.parameters.pseudo_directory)
+                    valence = valence_from_pseudo(p, self.base_directory / self.parameters.pseudo_directory)
                     starting_magmoms[l] = frac_mag * valence
                 atoms.set_initial_magnetic_moments([starting_magmoms[l] for l in labels])
             elif tot_mag != 0:
@@ -345,9 +354,6 @@ class Workflow(ABC):
                        'a calculator. This calculator will be ignored.')
             self.atoms.calc = None
 
-        # Initialize self.parent
-        self.parent: Optional[Workflow] = None
-
         # Adding excluded_bands info to self.projections
         if self.projections:
             for spin in ['up', 'down', None]:
@@ -365,6 +371,9 @@ class Workflow(ABC):
 
         # Initialize the step counter
         self._step_counter = 0
+
+        # Initialize the directories
+        self._directory: Path | None = None
 
     def __eq__(self, other: Any):
         if isinstance(other, Workflow):
@@ -387,6 +396,45 @@ class Workflow(ABC):
         entries.append(f'pseudopotentials={self.pseudopotentials}')
         return f'{self.__class__.__name__}(' + ',\n   '.join(entries) + ')'
 
+    @property
+    def base_directory(self) -> Path:
+        if self.parent is not None:
+            return self.parent.base_directory
+        else:
+            if self._base_directory is None:
+                raise ValueError(f'{self.__class__.__name__}.base_directory has not been set')
+            return self._base_directory
+
+    @base_directory.setter
+    def base_directory(self, value: Path):
+        if self.parent is not None:
+            raise ValueError(f'{self.__class__.__name__}.base_directory should not be set for subworkflows')
+
+        # If the pseudo_directory has been set, we need to update it too (because it is stored relative to base_directory)
+        if self.parameters.pseudo_directory is not None and self._base_directory is not None:
+            abs_pseudo_dir = (self._base_directory / self.parameters.pseudo_directory).resolve()
+            assert abs_pseudo_dir.is_dir()
+            self.parameters.pseudo_directory = os.path.relpath(abs_pseudo_dir, value.resolve())
+
+        self._base_directory = value.resolve()
+
+    @property
+    def directory(self) -> Path:
+        if self.parent is None:
+            return Path()
+        elif self._directory is None:
+            raise ValueError(f'{self.__class__.__name__}.directory has not been set')
+        return self._directory
+
+    @directory.setter
+    def directory(self, value: Path):
+        if value.is_absolute():
+            raise ValueError(
+                f'{self.__class__.__name__} directory must be relative to the {self.__class__.__name__},base directory')
+        if len(value.parents) > 1:
+            raise ValueError(f'{self.__class__.__name__}.directory should not be a nested directory')
+        self._directory = value
+
     def run(self, subdirectory: Optional[str] = None, from_scratch: Optional[bool] = None) -> None:
         '''
         Run the workflow
@@ -408,9 +456,11 @@ class Workflow(ABC):
                 self._run()
         else:
             if subdirectory:
+                self.base_directory = Path(subdirectory).resolve()
                 with utils.chdir(subdirectory):
                     self._run()
             else:
+                self.base_directory = Path.cwd().resolve()
                 self._run()
 
         self.print_conclusion()
@@ -435,6 +485,41 @@ class Workflow(ABC):
     def pseudopotentials(self, value: Dict[str, str]):
         self._pseudopotentials = value
 
+    def get_step_by_uuid(self, uuid: str):
+        for step in self.steps:
+            if step.uuid == uuid:
+                return step
+        raise ValueError(f'No step with UUID {uuid} found in workflow')
+
+    @classmethod
+    def from_other(cls: Type[W], other_wf: Workflow, **kwargs: Any) -> W:
+        '''
+        Creates a new workflow from another workflow, copying all settings and parameters
+        e.g.
+        >>> new_wf = Workflow.fromother(other_wf)
+        '''
+
+        parameters = copy.deepcopy(other_wf.parameters)
+
+        # Pass the pseudo_directory as an absolute path
+        if 'pseudo_directory' in parameters:
+            parameters['pseudo_directory'] = other_wf.base_directory / parameters['pseudo_directory']
+
+        for k in list(kwargs):
+            if parameters.is_valid(k):
+                parameters[k] = kwargs.pop(k)
+        kwargs.update(**dict(atoms=copy.deepcopy(other_wf.atoms),
+                             parameters=parameters,
+                             calculator_parameters=copy.deepcopy(other_wf.calculator_parameters),
+                             pseudopotentials=copy.deepcopy(other_wf.pseudopotentials),
+                             kpoints=copy.deepcopy(other_wf.kpoints),
+                             projections=other_wf.projections,
+                             plotting=copy.deepcopy(other_wf.plotting),
+                             ml=copy.deepcopy(other_wf.ml),
+                             ml_model=other_wf.ml_model))
+
+        return cls(**kwargs)
+
     @classmethod
     def fromparent(cls: Type[W], parent_wf: Workflow, **kwargs: Any) -> W:
         '''
@@ -442,24 +527,7 @@ class Workflow(ABC):
         e.g.
         >>> sub_wf = Workflow.fromparent(self)
         '''
-
-        parameters = copy.deepcopy(parent_wf.parameters)
-        parameter_kwargs = {k: v for k, v in kwargs.items() if parameters.is_valid(k)}
-        wf_kwargs = dict(atoms=copy.deepcopy(parent_wf.atoms),
-                         parameters=parameters,
-                         calculator_parameters=copy.deepcopy(parent_wf.calculator_parameters),
-                         pseudopotentials=copy.deepcopy(parent_wf.pseudopotentials),
-                         kpoints=copy.deepcopy(parent_wf.kpoints),
-                         projections=parent_wf.projections,
-                         plotting=copy.deepcopy(parent_wf.plotting),
-                         ml=copy.deepcopy(parent_wf.ml),
-                         ml_model=parent_wf.ml_model)
-        wf_kwargs.update(**{k: v for k, v in kwargs.items() if not parameters.is_valid(k)})
-        parameters.update(**parameter_kwargs)
-
-        child_wf = cls(**wf_kwargs)
-        child_wf.parent = parent_wf
-        return child_wf
+        return cls.from_other(other_wf=parent_wf, parent=parent_wf, **kwargs)
 
     def _run_sanity_checks(self):
         # Check internal consistency of workflow settings
@@ -566,13 +634,13 @@ class Workflow(ABC):
             self.calculator_parameters['kcp'].do_wf_cmplx = True
 
         # Check pseudopotentials exist
-        if not os.path.isdir(self.parameters.pseudo_directory):
+        if not os.path.isdir(self.base_directory / self.parameters.pseudo_directory):
             raise NotADirectoryError(
-                f'The pseudopotential directory you provided (`{self.parameters.pseudo_directory}`) does not exist')
+                f'The pseudopotential directory you provided (`{self.base_directory / self.parameters.pseudo_directory}`) does not exist')
         if self.parameters.task != 'ui':
             for pseudo in self.pseudopotentials.values():
-                if not (self.parameters.pseudo_directory / pseudo).exists():
-                    raise FileNotFoundError(f'`{self.parameters.pseudo_directory / pseudo}` does not exist. Please '
+                if not (self.base_directory / self.parameters.pseudo_directory / pseudo).exists():
+                    raise FileNotFoundError(f'`{self.base_directory / self.parameters.pseudo_directory / pseudo}` does not exist. Please '
                                             'double-check your pseudopotential settings')
 
         # Make sanity checks for the ML model
@@ -674,7 +742,7 @@ class Workflow(ABC):
             raise ValueError(f'Cound not find a calculator of type `{calc_type}`')
 
         # Merge calculator_parameters and kwargs, giving kwargs higher precedence
-        all_kwargs: Dict[str, Any] = {}
+        all_kwargs: Dict[str, Any] = {'parent': self}
         calculator_parameters = self.calculator_parameters[calc_type]
         all_kwargs.update(**calculator_parameters)
         all_kwargs.update(**kwargs)
@@ -710,7 +778,8 @@ class Workflow(ABC):
         # Link the pseudopotentials if relevant
         if calculator_parameters.is_valid('pseudo_dir'):
             for pseudo in self.pseudopotentials.values():
-                self.link(None, self.parameters.pseudo_directory / pseudo, calc, Path('pseudopotentials') / pseudo)
+                self.link(None, self.base_directory / self.parameters.pseudo_directory /
+                          pseudo, calc, Path('pseudopotentials') / pseudo)
             calc.parameters.pseudo_dir = 'pseudopotentials'
 
         return calc
@@ -834,16 +903,16 @@ class Workflow(ABC):
         # Check that calc.directory was not set
         if qe_calc.directory is not None:
             raise ValueError(
-                f'`calc.directory` should not be set manually, but it was set to `{os.path.relpath(qe_calc.directory)}`')
+                f'`calc.directory` should not be set manually, but it was set to `{qe_calc.directory}`')
 
         # Prepend calc.directory with a counter
         self._step_counter += 1
-        qe_calc.directory = Path(f'{self._step_counter:02}-{qe_calc.prefix}').resolve()
+        qe_calc.directory = Path(f'{self._step_counter:02}-{qe_calc.prefix}')
 
         # Check that another calculation hasn't already been run in this directory
-        if any([calc.directory == qe_calc.directory for calc in self.calculations]):
+        if any([calc.absolute_directory == qe_calc.absolute_directory for calc in self.calculations]):
             raise ValueError(
-                f'A calculation has already been run in `{os.path.relpath(qe_calc.directory)}`; this should not happen')
+                f'A calculation has already been run in `{qe_calc.directory}`; this should not happen')
 
         # If an output file already exists, check if the run completed successfully
         if not self.parameters.from_scratch:
@@ -934,6 +1003,7 @@ class Workflow(ABC):
 
         calcs_to_run = []
         for calc in calcs:
+            calc.parent = self
             proceed = self._pre_run_calculator(calc)
             if proceed:
                 calcs_to_run.append(calc)
@@ -948,8 +1018,9 @@ class Workflow(ABC):
         Run a Process
         '''
 
+        process.parent = self
         self._step_counter += 1
-        process.directory = Path(f'{self._step_counter:02}-{process.name}').resolve()
+        process.directory = Path(f'{self._step_counter:02}-{process.name}')
 
         if not self.parameters.from_scratch and process.is_complete():
             self.print(f'- ⏭️  Not running `{os.path.relpath(process.directory)}` as it is already complete  ')
@@ -980,7 +1051,7 @@ class Workflow(ABC):
 
         return old_calc.is_complete()
 
-    def link(self, src_calc: utils.HasDirectoryAttr | None, src_path: Path | str, dest_calc: calculators.Calc, dest_path: Path | str, symlink=False, recursive_symlink=False, overwrite=False) -> None:
+    def link(self, src_calc: utils.HasDirectoryInfo | None, src_path: Path | str, dest_calc: calculators.Calc, dest_path: Path | str, symlink=False, recursive_symlink=False, overwrite=False) -> None:
         """Link a file from one calculator to another
 
         Paths must be provided relative to the the calculator's directory i.e. calc.directory, unless src_calc is None
@@ -1009,6 +1080,9 @@ class Workflow(ABC):
         if src_path.is_absolute() and src_calc is not None:
             raise ValueError(f'`src_path` in `{self.__class__.__name__}.link()` must be a relative path if a '
                              f'`src_calc` is provided')
+        if src_calc is None and not src_path.is_absolute():
+            raise ValueError(
+                f'`src_path` in `{self.__class__.__name__}.link()` must be an absolute path if `src_calc` is not provided')
         if dest_path.is_absolute():
             raise ValueError(f'`dest_path` in `{self.__class__.__name__}.link()` must be a relative path')
 
@@ -1071,16 +1145,9 @@ class Workflow(ABC):
             subdirectory_path = Path(f'{self.parent._step_counter:02}-{subdirectory}')
             if self.parameters.from_scratch and subdirectory_path.is_dir():
                 shutil.rmtree(subdirectory_path)
-            # Update directories
-            for key in self.calculator_parameters.keys():
-                params = self.calculator_parameters[key]
-                for setting in params.are_paths:
-                    if setting == 'pseudo_dir':
-                        continue
-                    path = getattr(params, setting, None)
-                    if path is not None and Path.cwd() in path.parents:
-                        new_path = subdirectory_path.resolve() / os.path.relpath(path)
-                        setattr(params, setting, new_path)
+
+            # Store the directory
+            self.directory = subdirectory_path
 
             # Run the workflow
             with utils.chdir(subdirectory_path):
@@ -1591,7 +1658,8 @@ class Workflow(ABC):
 
     def number_of_electrons(self, spin: Optional[str] = None) -> int:
         # Return the number of electrons in a particular spin channel
-        nelec_tot = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
+        nelec_tot = nelec_from_pseudos(self.atoms, self.pseudopotentials,
+                                       self.base_directory / self.parameters.pseudo_directory)
         pw_params = self.calculator_parameters['pw']
         if self.parameters.spin_polarized:
             nelec = nelec_tot - pw_params.get('tot_charge', 0)

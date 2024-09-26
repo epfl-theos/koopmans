@@ -186,15 +186,19 @@ def find_executable(program: Union[Path, str]) -> Optional[Path]:
 
 
 @runtime_checkable
-class HasDirectoryAttr(Protocol):
+class HasDirectoryInfo(Protocol):
     directory: Path | None
 
+    @property
+    def absolute_directory(self) -> Path | None:
+        ...
 
-def get_binary_content(source: HasDirectoryAttr, relpath: Path | str) -> bytes:
+
+def get_binary_content(source: HasDirectoryInfo, relpath: Path | str) -> bytes:
     if isinstance(relpath, str):
         relpath = Path(relpath)
-    assert source.directory is not None
-    with open(source.directory / relpath, "rb") as f:
+    assert source.absolute_directory is not None
+    with open(source.absolute_directory / relpath, "rb") as f:
         flines = f.read()
     return flines
 
@@ -207,14 +211,14 @@ def write_binary_content(dst_file: Path | str, merged_filecontents: bytes):
         f.write(merged_filecontents)
 
 
-def get_content(source: HasDirectoryAttr | None, relpath: Path | str) -> List[str]:
+def get_content(source: HasDirectoryInfo | None, relpath: Path | str) -> List[str]:
     if isinstance(relpath, str):
         relpath = Path(relpath)
 
-    if source is None or source.directory is None:
+    if source is None or source.absolute_directory is None:
         full_path = relpath
     else:
-        full_path = source.directory / relpath
+        full_path = source.absolute_directory / relpath
 
     with open(full_path, "r") as f:
         flines = [l.strip('\n') for l in f.readlines()]

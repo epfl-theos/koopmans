@@ -5,13 +5,17 @@ Inspired by CWL."""
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Generic, Tuple, Type, TypeVar
+from typing import TYPE_CHECKING, Dict, Generic, Tuple, Type, TypeVar
+from uuid import uuid4
 
 import dill
 import numpy as np
 from pydantic import BaseModel
 
 from koopmans import utils
+
+if TYPE_CHECKING:
+    from koopmans.workflows import Workflow
 
 
 class IOModel(BaseModel):
@@ -36,7 +40,7 @@ OutputModel = TypeVar('OutputModel', bound=IOModel)
 
 class Process(ABC, Generic[InputModel, OutputModel]):
 
-    __slots__ = ['inputs', '_outputs', 'name', 'directory']
+    __slots__ = ['inputs', '_outputs', 'name', 'directory', 'parent', 'uuid', '_base_directory']
 
     def __init__(self, name: str | None = None, **kwargs):
         self.inputs: InputModel = self.input_model(**kwargs)
@@ -48,6 +52,11 @@ class Process(ABC, Generic[InputModel, OutputModel]):
         else:
             self.name = name
         self.directory: Path | None = None
+        self.parent: Workflow | None = None
+        self.uuid = str(uuid4())
+        self._base_directory: Path | None = None
+        if self.parent is None:
+            self.base_directory = Path()
 
     def run(self):
         assert self.directory is not None, 'Process directory must be set before running'
@@ -111,3 +120,37 @@ class Process(ABC, Generic[InputModel, OutputModel]):
         if self.directory is None:
             raise ValueError('Process directory must be set before checking if it is complete')
         return (self.directory / f'{self.name}_outputs.pkl').exists()
+
+    @property
+    def base_directory(self) -> Path:
+        if self.parent is not None:
+            return self.parent.base_directory
+        else:
+            if self._base_directory is None:
+                raise ValueError(f'{self.__class__.__name__}.base_directory has not been set')
+            return self._base_directory
+
+    @base_directory.setter
+    def base_directory(self, value: Path):
+        if self.parent is not None:
+            raise ValueError(f'{self.__class__.__name__}.base_directory should not be set for processes with parents')
+        self._base_directory = value.resolve()
+
+    @property
+    def absolute_directory(self) -> Path:
+        assert self.directory is not None
+        if self.parent is None:
+            return self.base_directory / self.directory
+        path = self.parent.directory / self.directory
+
+        # Recursive through the parents, adding their directories to path (these are all relative paths)...
+        obj = self.parent
+        while getattr(obj, 'parent', None):
+            assert obj.parent is not None
+            path = obj.parent.directory / path
+            obj = obj.parent
+
+        # ... until we reach the top-level parent, which should have a base_directory attribute (an absolute path)
+        if not hasattr(obj, 'base_directory'):
+            raise AttributeError(f'Expected `{obj.__class__.__name__}` instance to have a `base_directory` attribute')
+        return obj.base_directory / path

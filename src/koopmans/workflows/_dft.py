@@ -122,55 +122,49 @@ class DFTBandsWorkflow(DFTWorkflow):
 
         self.print('DFT bandstructure workflow', style='heading')
 
-        if self.parameters.from_scratch:
-            path = Path('dft_bands')
-            if path.exists():
-                shutil.rmtree(path)
+        # First, a scf calculation
+        calc_scf = self.new_calculator('pw', nbnd=None)
+        calc_scf.prefix = 'scf'
+        self.run_calculator(calc_scf)
 
-        with utils.chdir('dft_bands'):
-            # First, a scf calculation
-            calc_scf = self.new_calculator('pw', nbnd=None)
-            calc_scf.prefix = 'scf'
-            self.run_calculator(calc_scf)
+        # Second, a bands calculation
+        if self.parameters.calculate_bands in (True, None):
+            calc_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpoints.path)
+        else:
+            calc_bands = self.new_calculator('pw', calculation='nscf')
+        calc_bands.prefix = 'bands'
+        self.link(calc_scf, calc_scf.parameters.outdir, calc_bands, calc_bands.parameters.outdir, symlink=True)
+        self.run_calculator(calc_bands)
 
-            # Second, a bands calculation
+        # Prepare the band structure for plotting
+        if self.parameters.calculate_bands in (True, None):
+            bs = calc_bands.results['band structure']
+
+        # Third, a PDOS calculation
+        pseudos = [pseudopotentials.read_pseudo_file(calc_scf.directory / calc_scf.parameters.pseudo_dir / p) for p in
+                   self.pseudopotentials.values()]
+        if all([int(p['header'].get('number_of_wfc', 0)) > 0 for p in pseudos]):
+            calc_dos = self.new_calculator('projwfc')
+            self.link(calc_bands, calc_bands.parameters.outdir, calc_dos, calc_dos.parameters.outdir, symlink=True)
+            self.run_calculator(calc_dos)
+
+            # Prepare the DOS for plotting
+            dos = copy.deepcopy(calc_dos.results['dos'])
             if self.parameters.calculate_bands in (True, None):
-                calc_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpoints.path)
-            else:
-                calc_bands = self.new_calculator('pw', calculation='nscf')
-            calc_bands.prefix = 'bands'
-            self.link(calc_scf, calc_scf.parameters.outdir, calc_bands, calc_bands.parameters.outdir, symlink=True)
-            self.run_calculator(calc_bands)
+                dos._energies -= bs.reference
+        else:
+            # Skip if the pseudos don't have the requisite PP_PSWFC blocks
+            utils.warn('Some of the pseudopotentials do not have `PP_PSWFC` blocks, which means a projected DOS '
+                       'calculation is not possible. Skipping...')
+            dos = None
 
-            # Prepare the band structure for plotting
-            if self.parameters.calculate_bands in (True, None):
-                bs = calc_bands.results['band structure']
-
-            # Third, a PDOS calculation
-            pseudos = [pseudopotentials.read_pseudo_file(calc_scf.directory / calc_scf.parameters.pseudo_dir / p) for p in
-                       self.pseudopotentials.values()]
-            if all([int(p['header'].get('number_of_wfc', 0)) > 0 for p in pseudos]):
-                calc_dos = self.new_calculator('projwfc')
-                self.link(calc_bands, calc_bands.parameters.outdir, calc_dos, calc_dos.parameters.outdir, symlink=True)
-                self.run_calculator(calc_dos)
-
-                # Prepare the DOS for plotting
-                dos = copy.deepcopy(calc_dos.results['dos'])
-                if self.parameters.calculate_bands in (True, None):
-                    dos._energies -= bs.reference
-            else:
-                # Skip if the pseudos don't have the requisite PP_PSWFC blocks
-                utils.warn('Some of the pseudopotentials do not have `PP_PSWFC` blocks, which means a projected DOS '
-                           'calculation is not possible. Skipping...')
-                dos = None
-
-            # Plot the band structure and DOS
-            if self.parameters.calculate_bands in (True, None):
-                self.plot_bandstructure(bs.subtract_reference(), dos)
-            elif dos is not None:
-                workflow_name = self.__class__.__name__.lower()
-                filename = f'{self.name}_{workflow_name}_dos'
-                dos.plot(filename=filename)
+        # Plot the band structure and DOS
+        if self.parameters.calculate_bands in (True, None):
+            self.plot_bandstructure(bs.subtract_reference(), dos)
+        elif dos is not None:
+            workflow_name = self.__class__.__name__.lower()
+            filename = f'{self.name}_{workflow_name}_dos'
+            dos.plot(filename=filename)
 
     def new_calculator(self,
                        calc_type: str,

@@ -229,7 +229,7 @@ class UnfoldAndInterpolateProcess(Process):
         write_results calls write_bands and write_dos if the DOS was calculated
         """
         if directory is None:
-            directory = self.directory
+            directory = Path()
 
         self.write_bands(directory)
 
@@ -246,7 +246,7 @@ class UnfoldAndInterpolateProcess(Process):
         """
 
         if directory is None:
-            directory = self.directory
+            directory = Path()
 
         kvec = []
         for kpt in self.inputs.parameters.kpath.kpts:

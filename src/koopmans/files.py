@@ -4,8 +4,8 @@ from typing import Any, NamedTuple
 
 import numpy as np
 
-from koopmans.utils import (HasDirectoryAttr, get_binary_content, get_content,
-                            write_binary_content, write_content)
+from koopmans.utils import (HasDirectoryInfo, get_binary_content, get_content,
+                            warn, write_binary_content, write_content)
 
 
 class FilePointer(NamedTuple):
@@ -17,17 +17,19 @@ class FilePointer(NamedTuple):
     to koopmans/AiiDA) and a name (which is the path of the file relative to the parent's directory).
 
     """
-    parent: HasDirectoryAttr
+    parent: HasDirectoryInfo
     name: Path
 
     def __repr__(self):
-        assert self.parent.directory is not None
-        relpath: str = os.path.relpath(self.parent.directory, Path.cwd())
-        return f'FilePointer({relpath}/{self.name})'
+        assert self.parent.absolute_directory is not None
+        return f'FilePointer({self.parent.absolute_directory}/{self.name})'
 
-    def aspath(self):
-        assert self.parent.directory is not None
-        return self.parent.directory / self.name
+    def aspath(self, absolute: bool = True) -> Path:
+        if absolute:
+            assert self.parent.absolute_directory is not None
+            return self.parent.absolute_directory / self.name
+        else:
+            return self.name
 
     def copy(self, dst: Path, binary=False):
         if binary:
@@ -56,7 +58,8 @@ class FilePointer(NamedTuple):
 
     def rglob(self, pattern: str):
         for f in self.aspath().rglob(pattern):
-            yield FilePointer(parent=self.parent, name=f.relative_to(self.parent.directory))
+            assert self.parent.absolute_directory is not None
+            yield FilePointer(parent=self.parent, name=f.relative_to(self.parent.absolute_directory))
 
     def is_dir(self):
         return self.aspath().is_dir()
@@ -64,7 +67,27 @@ class FilePointer(NamedTuple):
     def __eq__(self, other):
         if not isinstance(other, FilePointer):
             return False
+        # Note that we don't check self.parent.absolute_directory
         return self.parent.directory == other.parent.directory and self.name == other.name
+
+    def __reduce__(self):
+        # We don't want to store the entire parent object in the database; we only need the directory information
+        abs_dir = self.parent.absolute_directory
+        dummy_parent = ParentPlaceholder(directory=self.parent.directory,
+                                         absolute_directory=self.parent.absolute_directory)
+        return (FilePointer, (dummy_parent, self.name))
+
+
+class ParentPlaceholder:
+    # Move into the test suite?
+    def __init__(self, directory, absolute_directory):
+        self.directory = directory
+        self._absolute_directory = absolute_directory
+
+    @property
+    def absolute_directory(self):
+        # This is a property in order to follow the HasDirectoryInfo protocol
+        return Path(__file__).parents[2] / self._absolute_directory
 
 
 class AbsolutePath:
@@ -78,6 +101,10 @@ class AbsolutePath:
         if not isinstance(other, AbsolutePath):
             return False
         return self.directory == other.directory
+
+    @property
+    def absolute_directory(self) -> Path | None:
+        return self.directory
 
 
 def AbsoluteFilePointer(path: Path | str) -> FilePointer:

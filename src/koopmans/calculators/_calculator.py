@@ -24,8 +24,9 @@ import copy
 import os
 from abc import ABC, abstractmethod, abstractproperty
 from pathlib import Path
-from typing import (Any, Dict, Generic, List, Optional, Tuple, Type, TypeVar,
-                    Union)
+from typing import (TYPE_CHECKING, Any, Dict, Generic, List, Optional, Tuple,
+                    Type, TypeVar, Union)
+from uuid import UUID, uuid4
 
 import ase.io as ase_io
 import numpy as np
@@ -37,6 +38,9 @@ from numpy import typing as npt
 
 from koopmans import settings, utils
 from koopmans.files import FilePointer
+
+if TYPE_CHECKING:
+    from koopmans.workflows import Workflow
 
 
 def sanitize_filenames(filenames: Union[str, Path, List[str], List[Path]], ext_in: str, ext_out: str) -> List[Path]:
@@ -74,8 +78,10 @@ class CalculatorExt():
     results: Dict[str, Any]
     ext_in: str = ''
     ext_out: str = ''
+    parent: Workflow | None
+    uuid: str
 
-    def __init__(self, skip_qc: bool = False, **kwargs: Any):
+    def __init__(self, parent=None, skip_qc: bool = False, **kwargs: Any):
         # Remove arguments that should not be treated as QE keywords
         kwargs.pop('directory', None)
 
@@ -87,7 +93,13 @@ class CalculatorExt():
         self.skip_qc = skip_qc
 
         # Prepare a dictionary to store a record of linked files
-        self.linked_files: Dict[str, Tuple[utils.HasDirectoryAttr | None, Path, bool, bool, bool]] = {}
+        self.linked_files: Dict[str, Tuple[utils.HasDirectoryInfo | None, Path, bool, bool, bool]] = {}
+
+        # Store the parent workflow
+        self.parent = parent
+
+        # Generate a unique identifier for this calculation
+        self.uuid = str(uuid4())
 
     def __repr__(self):
         entries = []
@@ -129,7 +141,28 @@ class CalculatorExt():
             return
         if not isinstance(value, Path):
             value = Path(value)
+        if value.is_absolute():
+            raise ValueError(f'`{self.__class__.__name__}.directory` must be a relative path')
         self._directory = value
+
+    @property
+    def absolute_directory(self) -> Path:
+        assert self.directory is not None
+        if self.parent is None:
+            return self.directory.resolve()
+        path = self.parent.directory / self.directory
+
+        # Recursive through the parents, adding their directories to path (these are all relative paths)...
+        obj = self.parent
+        while getattr(obj, 'parent', None):
+            assert obj.parent is not None
+            path = obj.parent.directory / path
+            obj = obj.parent
+
+        # ... until we reach the top-level parent, which should have a base_directory attribute (an absolute path)
+        if not hasattr(obj, 'base_directory'):
+            raise AttributeError(f'Expected `{obj.__class__.__name__}` instance to have a `base_directory` attribute')
+        return obj.base_directory / path
 
     def calculate(self):
         """Generic function for running a calculator"""
@@ -166,7 +199,7 @@ class CalculatorExt():
             if src_calc is None:
                 src_filename = src_filename.resolve()
             else:
-                src_filename = (src_calc.directory / src_filename).resolve()
+                src_filename = src_calc.absolute_directory / src_filename
             dest_filename = self.directory / dest_filename
 
             if not src_filename.exists():
@@ -232,9 +265,7 @@ class CalculatorExt():
         # Load calculator from input file
         calc: Calculator = ase_io.read(input_file).calc
 
-        # Update self based off the input file, first updating self.directory in order to ensure any settings that are
-        # relative paths are appropriately stored
-        self.directory = input_file.parent
+        # Update self based off the input file
         self.parameters = calc.parameters
         if isinstance(calc.atoms, Atoms):
             # Some calculators (e.g. wann2kc) can't reconstruct atoms from an input file
@@ -281,7 +312,7 @@ class CalculatorExt():
             setattr(calc, k.lstrip('_'), v)
         return calc
 
-    def link_file(self, src_calc: utils.HasDirectoryAttr | None, src_filename: Path, dest_filename: Path, symlink: bool = False,
+    def link_file(self, src_calc: utils.HasDirectoryInfo | None, src_filename: Path, dest_filename: Path, symlink: bool = False,
                   recursive_symlink: bool = False, overwrite: bool = False):
         if src_filename.is_absolute() and src_calc is not None:
             raise ValueError(f'`src_filename` in `{self.__class__.__name__}.link_file()` must be a relative path if a '
@@ -359,7 +390,6 @@ class CalculatorABC(ABC, Generic[TCalc]):
 
         # Read qe output file
         for filename in [f for f in sanitized_filenames if f.suffix == cls.ext_out]:
-            calc.directory = filename.parent
             calc.prefix = filename.stem
             try:
                 calc.read_results()
@@ -368,7 +398,9 @@ class CalculatorABC(ABC, Generic[TCalc]):
                 pass
 
         # Update calc.directory and calc.parameters.prefix
-        calc.directory = sanitized_filenames[0].parent
+        assert hasattr(calc, 'parent')
+        base_directory = Path() if calc.parent is None else calc.parent.base_directory / calc.parent.directory
+        calc.directory = Path(os.path.relpath(sanitized_filenames[0].parent, base_directory))
         calc.prefix = sanitized_filenames[0].stem
 
         # Return the new calc object

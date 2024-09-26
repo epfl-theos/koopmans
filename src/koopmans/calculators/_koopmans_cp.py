@@ -519,7 +519,10 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return self.parameters.nbnd > nel
 
     def nspin1_dummy_calculator(self) -> KoopmansCPCalculator:
+        self.parent, parent = None, self.parent
         calc = copy.deepcopy(self)
+        self.parent = parent
+        calc.parent = parent
         calc.prefix += '_nspin1_dummy'
         calc.parameters.do_outerloop = False
         calc.parameters.do_outerloop_empty = False
@@ -536,7 +539,10 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return calc
 
     def nspin1_calculator(self) -> KoopmansCPCalculator:
+        self.parent, parent = None, self.parent
         calc = copy.deepcopy(self)
+        calc.parent = parent
+        self.parent = parent
         calc.prefix += '_nspin1'
         calc.parameters.nspin = 1
         calc.parameters.nelup = None

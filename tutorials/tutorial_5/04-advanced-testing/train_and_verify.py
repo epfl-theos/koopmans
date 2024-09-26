@@ -46,21 +46,19 @@ for i_snapshot in range(n_train, n_total):
     eigenvalue_errors = []
 
     # Run the initialization workflow (which we don't want to repeat for each model)
-    init_wf = InitializationWorkflow.fromparent(ab_initio_wf)
+    init_wf = InitializationWorkflow.from_other(ab_initio_wf)
     init_wf.bands = copy.deepcopy(ab_initio_wf.bands)
-    init_wf.parent = None
     init_wf.ml.train = False
     init_wf.run(subdirectory=f'ml/snapshot_{i_snapshot + 1}/init')
     descriptors = [b.power_spectrum for b in init_wf.bands.to_solve]
 
     for i_train, model in enumerate(models):
         # Create a Koopmans DSCF workflow, linking the outputs of the initialization workflow
-        ml_wf = KoopmansDSCFWorkflow.fromparent(ab_initio_wf,
+        ml_wf = KoopmansDSCFWorkflow.from_other(ab_initio_wf,
                                                 initial_variational_orbital_files=init_wf.outputs.variational_orbital_files,
                                                 previous_cp_calc=init_wf.outputs.final_calc,
                                                 precomputed_descriptors=descriptors)
         ml_wf.bands = copy.deepcopy(ab_initio_wf.bands)
-        ml_wf.parent = None
 
         # Attach the model that we want to test to the workflow
         ml_wf.ml_model = model

@@ -29,7 +29,7 @@ class Bin2XMLProcess(CommandLineTool):
     output_model = Bin2XMLOutput
 
     def _pre_run(self):
-        if not (self.inputs.binary.parent.directory / self.inputs.binary.name).exists():
+        if not (self.inputs.binary.parent.absolute_directory / self.inputs.binary.name).exists():
             raise FileNotFoundError(f'`{self.inputs.binary}` does not exist')
 
         # Load the file

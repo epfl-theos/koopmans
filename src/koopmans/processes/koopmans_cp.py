@@ -88,6 +88,8 @@ class SwapSpinFilesProcess(Process):
     output_model = SwapSpinFilesOutputModel
 
     def _run(self):
+        if not self.inputs.read_directory.exists():
+            raise FileNotFoundError(f'{self.inputs.read_directory} does not exist')
         spin_up_files = list(self.inputs.read_directory.rglob('*1.*'))
         spin_down_files = list(self.inputs.read_directory.rglob('*2.*'))
         for src in self.inputs.read_directory.rglob('*'):

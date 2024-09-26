@@ -9,7 +9,7 @@ import numpy as np
 
 from koopmans.files import FilePointer
 from koopmans.io import read_pkl
-from koopmans.utils import chdir, symlink
+from koopmans.utils import chdir, symlink, warn
 
 from ._utils import (benchmark_filename, metadata_filename,
                      recursively_find_files)
@@ -31,7 +31,7 @@ def mock_calculator__calculate(self):
     with chdir(self.directory):
         # By moving into the directory where the calculation was run, we ensure when we read in the settings that
         # paths are interpreted relative to this particular working directory
-        calc = read_pkl(benchmark_filename(self).with_suffix('.pkl'))
+        calc = read_pkl(benchmark_filename(self))
 
     # Compare the settings
     for key in set(list(self.parameters.keys()) + list(calc.parameters.keys())):
@@ -87,7 +87,8 @@ def mock_calculator__calculate(self):
                     continue
 
                 # Find the actual upf file and symlink it (so that we can read its contents if need be)
-                [upf_file] = [x for x in (self.directory / 'pseudopotentials').glob(filename)]
+                [upf_file] = [os.path.relpath(x, directory)
+                              for x in (self.directory / 'pseudopotentials').glob(filename)]
 
                 with chdir(directory):
                     symlink(upf_file, filename)
@@ -134,8 +135,9 @@ def mock_process_run(self):
 
     for f in recursively_find_files([o for _, o in self.outputs]):
         if f.name in ['power_spectrum.npy']:
-            assert (benchmark_filename(self).parent / f.name).exists()
-            shutil.copy(benchmark_filename(self).parent / f.name, f)
+            src = benchmark_filename(self).parent / f.name
+            assert src.exists()
+            shutil.copy(src, f.name)
         else:
             write_mock_file(f, self.name)
 
