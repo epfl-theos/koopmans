@@ -18,10 +18,7 @@ class CustomPicklerUsePlaceholder(dill.Pickler):
             if self.base_directory == obj:
                 return ('Path', BASE_PLACEHOLDER)
             # Return a tuple to identify this as a Path that needs special handling
-            tup = ('Path', str((Path(BASE_PLACEHOLDER) / os.path.relpath(obj, self.base_directory))))
-            if 'data' in tup[1]:
-                assert '..' in tup[1]
-            return tup
+            return ('Path', str((Path(BASE_PLACEHOLDER) / os.path.relpath(obj, self.base_directory))))
         return None  # No special handling required for other objects
 
 
@@ -34,10 +31,7 @@ class CustomUnpicklerReplacePlaceholder(dill.Unpickler):
         """Called when unpickling to resolve persistent ids."""
         if isinstance(pid, tuple) and pid[0] == 'Path' and pid[1].startswith(BASE_PLACEHOLDER):
             # Replace the placeholder with the actual current working directory
-            path = (self.base_directory / pid[1][len(BASE_PLACEHOLDER):]).resolve()
-            if 'data' in pid[1]:
-                assert 'tmp' not in str(path)
-            return path
+            return (self.base_directory / pid[1][len(BASE_PLACEHOLDER):]).resolve()
         return pid  # If it's not a special persistent id, return as is
 
 
