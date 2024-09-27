@@ -140,7 +140,9 @@ class Process(ABC, Generic[InputModel, OutputModel]):
     def absolute_directory(self) -> Path:
         assert self.directory is not None
         if self.parent is None:
-            return self.base_directory / self.directory
+            abs_dir = Path(self.base_directory / self.directory)
+            assert abs_dir.is_absolute()
+            return abs_dir
         path = self.parent.directory / self.directory
 
         # Recursive through the parents, adding their directories to path (these are all relative paths)...
@@ -150,7 +152,5 @@ class Process(ABC, Generic[InputModel, OutputModel]):
             path = obj.parent.directory / path
             obj = obj.parent
 
-        # ... until we reach the top-level parent, which should have a base_directory attribute (an absolute path)
-        if not hasattr(obj, 'base_directory'):
-            raise AttributeError(f'Expected `{obj.__class__.__name__}` instance to have a `base_directory` attribute')
-        return obj.base_directory / path
+        # Finally, 'path' is relative to self.base_directory
+        return self.base_directory / path

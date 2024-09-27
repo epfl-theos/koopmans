@@ -38,5 +38,5 @@ def test_generate_dos(silicon, tmp_path, datadir, pytestconfig):
             write_pkl(dos, benchmark_filename(calc))
         else:
             # Compare with the DOS on file
-            dos_ref = read_pkl(benchmark_filename(calc), base_directory=Path(__file__).parents[2])
+            dos_ref = read_pkl(benchmark_filename(calc))
             assert dos == dos_ref

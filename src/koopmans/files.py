@@ -72,43 +72,87 @@ class FilePointer(NamedTuple):
 
     def __reduce__(self):
         # We don't want to store the entire parent object in the database; we only need the directory information
-        abs_dir = self.parent.absolute_directory
-        dummy_parent = ParentPlaceholder(directory=self.parent.directory,
-                                         absolute_directory=self.parent.absolute_directory)
+        dummy_parent = ParentPlaceholder.fromobj(self.parent)
         return (FilePointer, (dummy_parent, self.name))
 
 
 class ParentPlaceholder:
-    # Move into the test suite?
-    def __init__(self, directory, absolute_directory):
+    # Placeholder parent for FilePointers that don't have a Workflow/Process/Calculator as a parent
+    def __init__(self, parent, directory, base_directory=None):
+        self.parent = parent
         self.directory = directory
-        self._absolute_directory = absolute_directory
+        if self.parent is None:
+            self.base_directory = base_directory
+        else:
+            self._base_directory = None
+
+    def __repr__(self):
+        return f'ParentPlaceholder(directory={self.absolute_directory})'
+
+    @classmethod
+    def fromobj(cls, obj, replace_parents_with_placeholders=False):
+        if replace_parents_with_placeholders:
+            if obj.parent is None:
+                parent = None
+            else:
+                parent = cls.fromobj(obj, replace_parents_with_placeholders=True)
+        else:
+            parent = obj.parent
+
+        if parent is None:
+            base_directory = obj.base_directory
+        else:
+            base_directory = None
+        directory = obj.directory
+        new_obj = cls(parent, directory, base_directory)
+
+        # Sanity checks
+        assert new_obj.directory == obj.directory
+        assert new_obj.absolute_directory == obj.absolute_directory
+        assert new_obj.base_directory == obj.base_directory
+
+        return new_obj
+
+    @classmethod
+    def frompath(cls, path: Path):
+        return cls(None, Path(), path)
 
     @property
-    def absolute_directory(self):
-        # This is a property in order to follow the HasDirectoryInfo protocol
-        return Path(__file__).parents[2] / self._absolute_directory
+    def base_directory(self) -> Path:
+        if self.parent is not None:
+            return self.parent.base_directory
+        else:
+            if self._base_directory is None:
+                raise ValueError(f'{self.__class__.__name__}.base_directory has not been set')
+            return self._base_directory
 
-
-class AbsolutePath:
-    """ A class that can stand in as a parent in a FilePointer when the file is unattached to a Calculator or Process """
-
-    def __init__(self, directory: Path | str | None):
-        directory = Path(directory) if isinstance(directory, str) else directory
-        self.directory: Path | None = directory
-
-    def __eq__(self, other):
-        if not isinstance(other, AbsolutePath):
-            return False
-        return self.directory == other.directory
+    @base_directory.setter
+    def base_directory(self, value: Path):
+        if self.parent is not None:
+            raise ValueError(f'{self.__class__.__name__}.base_directory should not be set for processes with parents')
+        self._base_directory = value.resolve()
 
     @property
-    def absolute_directory(self) -> Path | None:
-        return self.directory
+    def absolute_directory(self) -> Path:
+        assert self.directory is not None
+        if self.parent is None:
+            abs_dir = Path(self.base_directory / self.directory)
+            assert abs_dir.is_absolute()
+            return abs_dir
+        path = self.parent.directory / self.directory
+
+        # Recursive through the parents, adding their directories to path (these are all relative paths)...
+        obj = self.parent
+        while getattr(obj, 'parent', None):
+            assert obj.parent is not None
+            path = obj.parent.directory / path
+            obj = obj.parent
+
+        # Finally, 'path' is relative to self.base_directory
+        return self.base_directory / path
 
 
 def AbsoluteFilePointer(path: Path | str) -> FilePointer:
     path = path if isinstance(path, Path) else Path(path)
-    path = path.resolve()
-    parent = AbsolutePath(directory=path.parent)
+    parent = ParentPlaceholder.frompath(path.parent)
     return FilePointer(parent=parent, name=Path(path.name))

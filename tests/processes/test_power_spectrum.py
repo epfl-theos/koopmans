@@ -7,11 +7,11 @@ from ase import Atoms
 from koopmans import utils
 from koopmans.bands import Bands
 from koopmans.files import AbsoluteFilePointer
+from koopmans.processes.power_spectrum import (
+    ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
 
 
 def test_extract_coefficients_from_xml_process(tmpdir, datadir, check_patch):
-    from koopmans.processes.power_spectrum import \
-        ExtractCoefficientsFromXMLProcess
 
     with utils.chdir(tmpdir):
 
@@ -48,8 +48,6 @@ def test_extract_coefficients_from_xml_process(tmpdir, datadir, check_patch):
 
 
 def test_compute_power_spectrum_process(tmpdir, datadir, check_patch):
-    from koopmans.processes.power_spectrum import ComputePowerSpectrumProcess
-
     with utils.chdir(tmpdir):
 
         # set up the test system

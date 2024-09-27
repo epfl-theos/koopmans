@@ -164,6 +164,14 @@ class CalculatorExt():
             raise AttributeError(f'Expected `{obj.__class__.__name__}` instance to have a `base_directory` attribute')
         return obj.base_directory / path
 
+    @property
+    def base_directory(self) -> Path:
+        if self.parent is not None:
+            return self.parent.base_directory
+        else:
+            raise ValueError(
+                f'{self.__class__.__name__} does not have a parent, so `base_directory` cannot be accessed')
+
     def calculate(self):
         """Generic function for running a calculator"""
 

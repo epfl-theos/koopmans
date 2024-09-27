@@ -45,7 +45,7 @@ def patch_calculator(c, monkeypatch):
 
         self.parent, parent = None, self.parent
         self.linked_files, linked_files = [], self.linked_files
-        write_pkl(self, filename, base_directory=base_directory)
+        write_pkl(self, filename, self.base_directory)
         self.parent = parent
         self.linked_files = linked_files
 
@@ -91,7 +91,7 @@ def patch_process(p, monkeypatch):
             filename.parent.mkdir(parents=True)
         # Temporarily wipe the parent attribute so that the entire workflow doesn't get pickled
         self.parent, parent = None, self.parent
-        write_pkl(self, filename, base_directory=base_directory)
+        write_pkl(self, filename, self.base_directory)
         self.parent = parent
 
         # Copy over all files that are outputs of the process that need to be read
@@ -99,21 +99,7 @@ def patch_process(p, monkeypatch):
             if filepath.name in ['power_spectrum.npy']:
                 shutil.copy(filepath, benchmark_filename(self).parent / filepath.name)
 
-    # Patching the absolute_directory property
-    unpatched_absolute_directory = p.absolute_directory
-
-    def absolute_directory(self) -> Path:
-        if self.parent is None:
-            # Because we wipe parents when storing benchmarks (see above), this prevents us from being able to construct
-            # an absolute directory to locate files. Usually, this would raise an error. For the purposes of the test suite,
-            # instead simply use the base directory of the repo
-            return Path().resolve().relative_to(base_directory)
-        else:
-            # Default behavior
-            return unpatched_absolute_directory.__get__(self)
-
     monkeypatch.setattr(p, '_run', _run)
-    monkeypatch.setattr(p, 'absolute_directory', property(absolute_directory))
 
 
 def monkeypatch_bench(monkeypatch):

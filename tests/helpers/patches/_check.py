@@ -341,7 +341,7 @@ def patch_process(p, monkeypatch):
 
     def _run(self):
         # Load the benchmark
-        bench_process = read_pkl(benchmark_filename(self))
+        bench_process = read_pkl(benchmark_filename(self), base_directory=self.base_directory)
 
         # Compare the inputs
         assert bench_process.inputs == self.inputs

@@ -1,45 +1,68 @@
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import dill
 
+BASE_PLACEHOLDER = '/BASE_DIRECTORY_PLACEHOLDER/'
 
-class PicklerWithRelativePaths(dill.Pickler):
-    # A pickler that converts absolute paths to relative paths, used during the test suite in combination
-    # with a monkeypatching of the Path.__eq__ method
+
+class CustomPicklerUsePlaceholder(dill.Pickler):
     def __init__(self, base_directory, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.base_directory = base_directory
 
-    def reducer_override(self, obj):
-        if isinstance(obj, Path):
-            return Path, pickle_path(obj, self.base_directory)
-        else:
-            return NotImplemented
+    def persistent_id(self, obj):
+        """Called when pickling objects. If obj is a Path, return a unique identifier."""
+        if isinstance(obj, Path) and obj.is_absolute():
+            if self.base_directory == obj:
+                return ('Path', BASE_PLACEHOLDER)
+            # Return a tuple to identify this as a Path that needs special handling
+            tup = ('Path', str((Path(BASE_PLACEHOLDER) / os.path.relpath(obj, self.base_directory))))
+            if 'data' in tup[1]:
+                assert '..' in tup[1]
+            return tup
+        return None  # No special handling required for other objects
 
 
-def pickle_path(path: Path, base_directory: Path):
-    # Convert the path to relative if it's absolute
-    base_directory = base_directory.resolve()
-    if path.is_absolute():
-        rel_path = os.path.relpath(path, base_directory)
-        return (str(rel_path),)
-    else:
-        # Return relative paths as-is
-        return (str(path),)
+class CustomUnpicklerReplacePlaceholder(dill.Unpickler):
+    def __init__(self, base_directory, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.base_directory = base_directory.resolve()
+
+    def persistent_load(self, pid):
+        """Called when unpickling to resolve persistent ids."""
+        if isinstance(pid, tuple) and pid[0] == 'Path' and pid[1].startswith(BASE_PLACEHOLDER):
+            # Replace the placeholder with the actual current working directory
+            path = (self.base_directory / pid[1][len(BASE_PLACEHOLDER):]).resolve()
+            if 'data' in pid[1]:
+                assert 'tmp' not in str(path)
+            return path
+        return pid  # If it's not a special persistent id, return as is
 
 
-def read_pkl(filename: Path | str) -> Any:
+class CustomUnpicklerKeepPlaceholder(dill.Unpickler):
+    def persistent_load(self, pid):
+        if isinstance(pid, tuple) and pid[0] == 'Path':
+            return Path(pid[1])
+
+
+def read_pkl(filename: Path | str, base_directory: Optional[Path] = None) -> Any:
     with open(filename, 'rb') as fd:
-        out = dill.load(fd)
+        if base_directory is None:
+            unpickler = CustomUnpicklerKeepPlaceholder(fd)
+        else:
+            unpickler = CustomUnpicklerReplacePlaceholder(base_directory, fd)
+        out = unpickler.load()
+
     return out
 
 
 def write_pkl(obj: Any, filename: Path | str, base_directory: Path | None = None):
     filename = Path(filename) if not isinstance(filename, Path) else filename
-    if base_directory is None:
-        base_directory = filename.parent
     with open(filename, 'wb') as fd:
-        pickler = PicklerWithRelativePaths(base_directory, fd)
+        if base_directory is None:
+            pickler = dill.Pickler(fd)
+        else:
+            pickler = CustomPicklerUsePlaceholder(base_directory, fd)
         pickler.dump(obj)

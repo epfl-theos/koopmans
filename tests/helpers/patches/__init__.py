@@ -6,21 +6,6 @@ from ._mock import monkeypatch_mock
 from ._utils import benchmark_filename
 
 
-@pytest.fixture(autouse=True)
-def patch_path_comparison(monkeypatch):
-    def path_eq(self, other):
-        if not isinstance(other, type(self)):
-            return False
-        if self.is_absolute() == other.is_absolute():
-            return str(self) == str(other)
-        else:
-            # In some cases we store paths relative to a base directory. Without knowing
-            # the base directory, the best we can do is check that the relative path
-            # ends the same as the absolute path
-            return str(self.resolve()).endswith(str(other)) or str(other).endswith(str(self))
-    monkeypatch.setattr('pathlib.Path.__eq__', path_eq)
-
-
 def monkeypatch_stumble(monkeypatch):
     from ._stumble import (StumblingConvergenceWorkflow,
                            StumblingDeltaSCFWorkflow, StumblingDFTCPWorkflow,

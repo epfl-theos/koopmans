@@ -29,7 +29,7 @@ def test_read_dynG(tio2, tmp_path, datadir, pytestconfig):
 
         if pytestconfig.getoption('generate_benchmark'):
             # Write the dielectric tensor to file
-            write_pkl(eps, benchmark_filename(calc), base_directory=Path(__file__).parents[2])
+            write_pkl(eps, benchmark_filename(calc))
         else:
             # Compare with the dielectric tensor on file
             eps_ref = read_pkl(benchmark_filename(calc))

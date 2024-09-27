@@ -5,8 +5,7 @@ import pytest
 import koopmans
 
 from .helpers.os import datadir, sys2file
-from .helpers.patches import (check_patch, espresso_patch,
-                              patch_path_comparison, tutorial_patch,
+from .helpers.patches import (check_patch, espresso_patch, tutorial_patch,
                               workflow_patch)
 from .helpers.strategies import ase_cells, bandpaths, kpoints
 from .helpers.systems import gaas, ozone, silicon, tio2, water, water_snapshots

@@ -31,7 +31,7 @@ def mock_calculator__calculate(self):
     with chdir(self.directory):
         # By moving into the directory where the calculation was run, we ensure when we read in the settings that
         # paths are interpreted relative to this particular working directory
-        calc = read_pkl(benchmark_filename(self))
+        calc = read_pkl(benchmark_filename(self), base_directory=self.directory)
 
     # Compare the settings
     for key in set(list(self.parameters.keys()) + list(calc.parameters.keys())):
@@ -129,7 +129,7 @@ def patch_generate_dos(calc_class, monkeypatch):
 
 def mock_process_run(self):
     # Load the inputs from file
-    bench_process = read_pkl(benchmark_filename(self))
+    bench_process = read_pkl(benchmark_filename(self), base_directory=self.base_directory)
     assert self.inputs == bench_process.inputs
     self.outputs = bench_process.outputs
 
