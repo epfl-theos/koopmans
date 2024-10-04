@@ -56,6 +56,12 @@ class ConvertFilesFromSpin1To2(Process):
                                                                  self.inputs.spin_2_up_files,
                                                                  self.inputs.spin_2_down_files, strict=True):
 
+            if spin_2_up_file.is_absolute() or spin_2_down_file.is_absolute():
+                # Prevent writing to an absolute path because this means that the process can affect files
+                # outside of its working directory
+                raise ValueError(
+                    f'{self.__class__.__name__} is attempting to write to a file outside of its working directory; this is not allowed')
+
             contents = utils.get_binary_content(*spin_1_file)
 
             contents = contents.replace(b'nk="1"', b'nk="2"')
