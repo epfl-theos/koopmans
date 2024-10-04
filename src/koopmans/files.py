@@ -80,6 +80,9 @@ class FilePointer(NamedTuple):
             raise TypeError(f'Cannot compare FilePointer with {type(other)}')
         return self.aspath() > other.aspath()
 
+    def __lt__(self, other):
+        return not self > other
+
 
 class ParentPlaceholder(HasDirectory):
     # Placeholder parent for FilePointers that don't have a Workflow/Process/Calculator as a parent
