@@ -344,7 +344,11 @@ def patch_process(p, monkeypatch):
         bench_process = read_pkl(benchmark_filename(self), base_directory=self.base_directory)
 
         # Compare the inputs
-        assert bench_process.inputs == self.inputs
+        if not bench_process.inputs == self.inputs:
+            utils.warn(f'Inputs for {self.prefix} differ from the benchmark')
+            utils.warn(f'Inputs: {self.inputs}')
+            utils.warn(f'Benchmark inputs: {bench_process.inputs}')
+            raise ValueError()
 
         unpatched_run(self)
 
