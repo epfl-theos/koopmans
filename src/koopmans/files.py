@@ -67,8 +67,8 @@ class FilePointer(NamedTuple):
     def __eq__(self, other):
         if not isinstance(other, FilePointer):
             return False
-        # Note that we don't check self.parent.absolute_directory
-        return self.absolute_directory == other.absolute_directory and self.name == other.name
+        # Note that we only check the parent's directory, not the parent details
+        return self.parent.absolute_directory == other.parent.absolute_directory and self.name == other.name
 
     def __reduce__(self):
         # We don't want to store the entire parent object in the database; we only need the directory information
