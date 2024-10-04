@@ -1605,8 +1605,7 @@ class Workflow(utils.HasDirectory, ABC):
 
         # Saving the figure to file (as png and also in editable form)
         workflow_name = self.name
-        for s in ['workflow', 'mock', 'benchgen', 'stumbling', 'check']:
-            workflow_name = workflow_name.replace(s, '')
+        workflow_name = workflow_name.replace('workflow', '').replace(' ', '_')
         filename = filename if filename is not None else f'{workflow_name}_bandstructure'
         legends = [ax.get_legend() for ax in axes if ax.get_legend() is not None]
         utils.savefig(fname=filename + '.png', bbox_extra_artists=legends, bbox_inches='tight')
