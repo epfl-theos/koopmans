@@ -75,6 +75,11 @@ class FilePointer(NamedTuple):
         dummy_parent = ParentPlaceholder.fromobj(self.parent)
         return (FilePointer, (dummy_parent, self.name))
 
+    def __gt__(self, other):
+        if not isinstance(other, FilePointer):
+            raise TypeError(f'Cannot compare FilePointer with {type(other)}')
+        return self.aspath() > other.aspath()
+
 
 class ParentPlaceholder(HasDirectory):
     # Placeholder parent for FilePointers that don't have a Workflow/Process/Calculator as a parent
