@@ -19,7 +19,7 @@ from ._io import (construct_atomic_positions_block,
                   read_atomic_positions, read_cell_parameters,
                   read_wannier_hr_file, write_alpha_file)
 from ._misc import flatten, update_nested_dict
-from ._os import (HasDirectoryInfo, chdir, copy, find_executable,
+from ._os import (HasDirectory, chdir, copy, find_executable,
                   get_binary_content, get_content, remove, set_env, symlink,
                   symlink_tree, system_call, write_binary_content,
                   write_content)

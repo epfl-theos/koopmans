@@ -23,7 +23,7 @@ from ase.units import Bohr
 from koopmans.cell import (cell_follows_qe_conventions, cell_to_parameters,
                            parameters_to_cell)
 
-from ._os import HasDirectoryInfo, get_content
+from ._os import HasDirectory, get_content
 
 
 def parse_dict(dct: Dict[str, Any]) -> Dict[str, Any]:
@@ -293,7 +293,7 @@ def parse_wannier_hr_file_contents(lines: List[str]) -> Tuple[np.ndarray, np.nda
     return hr_np, rvect_np, weights, nrpts
 
 
-def read_wannier_hr_file(src_calc_path: Tuple[HasDirectoryInfo, Path]) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
+def read_wannier_hr_file(src_calc_path: Tuple[HasDirectory, Path]) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
     lines = get_content(*src_calc_path)
     return parse_wannier_hr_file_contents(lines)
 

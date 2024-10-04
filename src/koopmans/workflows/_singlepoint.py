@@ -18,6 +18,9 @@ from koopmans.calculators import ProjwfcCalculator
 from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
 
+from ._dft import DFTCPWorkflow, DFTPhWorkflow
+from ._koopmans_dfpt import KoopmansDFPTWorkflow
+from ._koopmans_dscf import KoopmansDSCFWorkflow
 from ._workflow import Workflow
 
 load_results_from_output = True
@@ -70,10 +73,6 @@ class SinglepointWorkflow(Workflow):
     def _run(self) -> None:
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
-        from koopmans.workflows import (DFTCPWorkflow, DFTPhWorkflow,
-                                        KoopmansDFPTWorkflow,
-                                        KoopmansDSCFWorkflow)
-
         if self.parameters.eps_inf == 'auto':
             eps_workflow = DFTPhWorkflow.fromparent(self)
             if self.parameters.from_scratch and Path('calculate_eps').exists():
@@ -133,36 +132,6 @@ class SinglepointWorkflow(Workflow):
 
                 # Run the workflow
                 kc_workflow.run(subdirectory=functional)
-
-                # Provide the pKIPZ and KIPZ calculations with a KI starting point
-                # if functional == 'ki':
-                #     # pKIPZ
-                #     for dir in ['init', 'calc_alpha', 'TMP-CP']:
-                #         src = Path(f'ki/{dir}/')
-                #         if src.is_dir():
-                #             utils.system_call(f'rsync -a {src} pkipz/')
-                #     for f in ['ki_final.cpi', 'ki_final.cpo', 'ki_final.ham.pkl', 'ki_final.bare_ham.pkl']:
-                #         file = Path(f'ki/final/{f}')
-                #         if file.is_file():
-                #             utils.system_call(f'rsync -a {file} pkipz/final/')
-                #     if all(self.atoms.pbc) and self.calculator_parameters['ui'].do_smooth_interpolation:
-                #         if not Path('pkipz/postproc').is_dir():
-                #             utils.system_call('mkdir pkipz/postproc')
-                #         for dir in ['wannier', 'TMP', 'pdos']:
-                #             if Path(f'ki/postproc/{dir}').exists():
-                #                 utils.system_call(f'rsync -a ki/postproc/{dir} pkipz/postproc/')
-
-                #     # KIPZ
-                #     utils.system_call('rsync -a ki/final/ kipz/init/')
-                #     utils.system_call('mv kipz/init/ki_final.cpi kipz/init/ki_init.cpi')
-                #     utils.system_call('mv kipz/init/ki_final.cpo kipz/init/ki_init.cpo')
-                #     if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-                #         utils.system_call('rsync -a ki/init/wannier kipz/init/')
-                #     if all(self.atoms.pbc) and self.calculator_parameters['ui'].do_smooth_interpolation:
-                #         # Copy over the smooth PBE calculation from KI for KIPZ to use
-                #         for dir in ['wannier', 'TMP', 'pdos']:
-                #             if Path(f'ki/postproc/{dir}').exists():
-                #                 utils.system_call(f'rsync -a ki/postproc/{dir} kipz/postproc/')
 
         else:
             # self.functional != all and self.method != 'dfpt'

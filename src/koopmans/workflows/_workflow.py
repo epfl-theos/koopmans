@@ -67,7 +67,7 @@ T = TypeVar('T', bound='calculators.CalculatorExt')
 W = TypeVar('W', bound='Workflow')
 
 
-class Workflow(ABC):
+class Workflow(utils.HasDirectory, ABC):
 
     r'''
     Abstract base class that defines a Koopmans workflow
@@ -109,12 +109,14 @@ class Workflow(ABC):
     _pseudopotentials: Dict[str, str]
     pseudo_dir: Path
     projections: ProjectionBlocks
-    parent: Optional[Workflow]
     ml_model: Optional[AbstractMLModel]
     snapshots: List[Atoms]
     version: str
     _step_counter: int
-    _base_directory: Path | None
+
+    __slots__ = utils.HasDirectory.__slots__ + ['atoms', 'parameters', 'calculator_parameters', 'name', 'kpoints', '_pseudopotentials',
+                                                'projections', 'ml_model', 'snapshots', 'version', '_step_counter', 'calculations', 'processes',
+                                                'steps', 'silent', 'print_indent', 'plotting', 'ml', '_bands']
 
     def __init__(self, atoms: Atoms,
                  pseudopotentials: Dict[str, str] = {},
@@ -132,6 +134,9 @@ class Workflow(ABC):
                  version: Optional[str] = None,
                  parent: Optional[Workflow] = None,
                  **kwargs: Dict[str, Any]):
+
+        # Initialize the HasDirectory information (parent, base_directory, directory)
+        super().__init__(parent)
 
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
@@ -151,10 +156,7 @@ class Workflow(ABC):
         self.steps: List = []
         self.silent = False
         self.print_indent = 0
-        self.parent = parent
-        self._base_directory = None
-        if self.parent is None:
-            self.base_directory = Path()
+        self._bands = None
 
         if projections is None:
             proj_list: List[List[Any]]
@@ -372,13 +374,14 @@ class Workflow(ABC):
         # Initialize the step counter
         self._step_counter = 0
 
-        # Initialize the directories
-        self._directory: Path | None = None
-
     def __eq__(self, other: Any):
-        if isinstance(other, Workflow):
-            return self.__dict__ == other.__dict__
-        return False
+        if self.__class__ != other.__class__:
+            return False
+        else:
+            for key in self.__slots__:
+                if getattr(self, key) != getattr(other, key):
+                    return False
+        return True
 
     def __repr__(self):
         entries = []
@@ -396,44 +399,19 @@ class Workflow(ABC):
         entries.append(f'pseudopotentials={self.pseudopotentials}')
         return f'{self.__class__.__name__}(' + ',\n   '.join(entries) + ')'
 
-    @property
-    def base_directory(self) -> Path:
-        if self.parent is not None:
-            return self.parent.base_directory
-        else:
-            if self._base_directory is None:
-                raise ValueError(f'{self.__class__.__name__}.base_directory has not been set')
-            return self._base_directory
-
-    @base_directory.setter
+    @utils.HasDirectory.base_directory.setter  # type: ignore
     def base_directory(self, value: Path):
-        if self.parent is not None:
-            raise ValueError(f'{self.__class__.__name__}.base_directory should not be set for subworkflows')
+        old_base_directory = getattr(self, '_base_directory', None)
 
-        # If the pseudo_directory has been set, we need to update it too (because it is stored relative to base_directory)
-        if self.parameters.pseudo_directory is not None and self._base_directory is not None:
-            abs_pseudo_dir = (self._base_directory / self.parameters.pseudo_directory).resolve()
+        super(Workflow, Workflow).base_directory.__set__(self, value)
+
+        # If the pseudo_directory has been set, we need to update it too (because it is stored relative to
+        # base_directory). Note that during workflow initialization, we set base_directory prior to defining
+        # self.parameters (in which case we don't need to update pseudo_directory)
+        if hasattr(self, 'parameters') and self.parameters.pseudo_directory is not None and old_base_directory is not None:
+            abs_pseudo_dir = (old_base_directory / self.parameters.pseudo_directory).resolve()
             assert abs_pseudo_dir.is_dir()
-            self.parameters.pseudo_directory = os.path.relpath(abs_pseudo_dir, value.resolve())
-
-        self._base_directory = value.resolve()
-
-    @property
-    def directory(self) -> Path:
-        if self.parent is None:
-            return Path()
-        elif self._directory is None:
-            raise ValueError(f'{self.__class__.__name__}.directory has not been set')
-        return self._directory
-
-    @directory.setter
-    def directory(self, value: Path):
-        if value.is_absolute():
-            raise ValueError(
-                f'{self.__class__.__name__} directory must be relative to the {self.__class__.__name__},base directory')
-        if len(value.parents) > 1:
-            raise ValueError(f'{self.__class__.__name__}.directory should not be a nested directory')
-        self._directory = value
+            self.parameters.pseudo_directory = os.path.relpath(abs_pseudo_dir, self.base_directory)
 
     def run(self, subdirectory: Optional[str] = None, from_scratch: Optional[bool] = None) -> None:
         '''
@@ -901,7 +879,7 @@ class Workflow(ABC):
         """
 
         # Check that calc.directory was not set
-        if qe_calc.directory is not None:
+        if qe_calc.directory_has_been_set():
             raise ValueError(
                 f'`calc.directory` should not be set manually, but it was set to `{qe_calc.directory}`')
 
@@ -964,7 +942,8 @@ class Workflow(ABC):
         """
 
         for calc in calcs:
-            dir_str = os.path.relpath(calc.directory)
+            assert calc.directory is not None
+            dir_str = str(os.path.relpath(calc.directory))
             if sys.stdout.isatty():
                 self.print(f'- 🖥️  Running `{dir_str}`...', end='\r', flush=True)
 
@@ -1036,6 +1015,7 @@ class Workflow(ABC):
 
     def load_old_calculator(self, qe_calc: calculators.Calc) -> bool:
         # This is a separate function so that it can be monkeypatched by the test suite
+        assert qe_calc.directory is not None
         old_calc = qe_calc.__class__.fromfile(qe_calc.directory / qe_calc.prefix)
 
         if old_calc.is_complete():
@@ -1051,7 +1031,7 @@ class Workflow(ABC):
 
         return old_calc.is_complete()
 
-    def link(self, src_calc: utils.HasDirectoryInfo | None, src_path: Path | str, dest_calc: calculators.Calc, dest_path: Path | str, symlink=False, recursive_symlink=False, overwrite=False) -> None:
+    def link(self, src_calc: utils.HasDirectory | None, src_path: Path | str, dest_calc: calculators.Calc, dest_path: Path | str, symlink=False, recursive_symlink=False, overwrite=False) -> None:
         """Link a file from one calculator to another
 
         Paths must be provided relative to the the calculator's directory i.e. calc.directory, unless src_calc is None
@@ -1134,11 +1114,10 @@ class Workflow(ABC):
         self.processes = self.parent.processes
 
         # Link the bands
-        if hasattr(self.parent, 'bands'):
+        if self.parent.bands is not None:
             self.bands = self.parent.bands
 
         subdirectory = self.name.replace(' ', '-').lower() if subdirectory is None else subdirectory
-
         try:
             # Prepend the step counter to the subdirectory name
             self.parent._step_counter += 1
@@ -1157,7 +1136,7 @@ class Workflow(ABC):
             if from_scratch is None:
                 self.parent.parameters.from_scratch = self.parameters.from_scratch
 
-            if hasattr(self, 'bands') and not hasattr(self.parent, 'bands'):
+            if self.bands is not None and self.parent.bands is None:
                 # Copy the entire bands object
                 self.parent.bands = self.bands
 
@@ -1195,9 +1174,7 @@ class Workflow(ABC):
         return wf
 
     @property
-    def bands(self):
-        if not hasattr(self, '_bands'):
-            raise AttributeError('Bands have not been initialized')
+    def bands(self) -> Bands | None:
         return self._bands
 
     @bands.setter

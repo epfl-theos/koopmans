@@ -17,6 +17,7 @@ def test_absolute_file_pointer():
 def test_filepointer_reduce(water, tmp_path):
     with chdir(tmp_path):
         wf = SinglepointWorkflow(**water)
+        wf.directory = Path()
         calc = KoopmansCPCalculator(outdir='tmp', nspin=2, nelec=8, ndw=50, prefix='test_read_ham', **water)
         calc.parent = wf
         calc.directory = Path()

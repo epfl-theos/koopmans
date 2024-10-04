@@ -15,6 +15,7 @@ def test_read_dynG(tio2, tmp_path, datadir, pytestconfig):
         wf = workflows.DFTPhWorkflow(
             parameters={'pseudo_library': 'pseudo_dojo_standard', 'base_functional': 'pbesol', 'from_scratch': True},
             name='tio2', **tio2)
+        wf.directory = Path()
 
         calc = wf.new_calculator('ph', epsil=True, fildyn=f'{wf.name}.dynG')
         calc.directory = Path()

@@ -66,7 +66,7 @@ TCalc = TypeVar('TCalc', bound='CalculatorExt')
 TCalcABC = TypeVar('TCalcABC', bound='CalculatorABC')
 
 
-class CalculatorExt():
+class CalculatorExt(utils.HasDirectory):
 
     '''
     This generic class is designed to be a parent class of a calculator that also inherits from an ASE calculator and
@@ -82,6 +82,8 @@ class CalculatorExt():
     uuid: str
 
     def __init__(self, parent=None, skip_qc: bool = False, **kwargs: Any):
+        super().__init__(parent=parent)
+
         # Remove arguments that should not be treated as QE keywords
         kwargs.pop('directory', None)
 
@@ -93,10 +95,7 @@ class CalculatorExt():
         self.skip_qc = skip_qc
 
         # Prepare a dictionary to store a record of linked files
-        self.linked_files: Dict[str, Tuple[utils.HasDirectoryInfo | None, Path, bool, bool, bool]] = {}
-
-        # Store the parent workflow
-        self.parent = parent
+        self.linked_files: Dict[str, Tuple[utils.HasDirectory | None, Path, bool, bool, bool]] = {}
 
         # Generate a unique identifier for this calculation
         self.uuid = str(uuid4())
@@ -108,7 +107,7 @@ class CalculatorExt():
         entries.append(f'prefix={self.prefix}')
 
         # directory
-        if self.directory is not None:
+        if self.directory_has_been_set():
             entries.append(f'directory={os.path.relpath(self.directory, ".")}')
 
         entries.append(f'parameters={self.parameters.briefrepr()}')
@@ -130,47 +129,6 @@ class CalculatorExt():
             self._parameters.data = {}
             if value is not None:
                 self._parameters.update(**value)
-
-    @property
-    def directory(self) -> Path:
-        return self._directory
-
-    @directory.setter
-    def directory(self, value: Path | str | None):
-        if value is None or value in ['.', 'None']:
-            return
-        if not isinstance(value, Path):
-            value = Path(value)
-        if value.is_absolute():
-            raise ValueError(f'`{self.__class__.__name__}.directory` must be a relative path')
-        self._directory = value
-
-    @property
-    def absolute_directory(self) -> Path:
-        assert self.directory is not None
-        if self.parent is None:
-            return self.directory.resolve()
-        path = self.parent.directory / self.directory
-
-        # Recursive through the parents, adding their directories to path (these are all relative paths)...
-        obj = self.parent
-        while getattr(obj, 'parent', None):
-            assert obj.parent is not None
-            path = obj.parent.directory / path
-            obj = obj.parent
-
-        # ... until we reach the top-level parent, which should have a base_directory attribute (an absolute path)
-        if not hasattr(obj, 'base_directory'):
-            raise AttributeError(f'Expected `{obj.__class__.__name__}` instance to have a `base_directory` attribute')
-        return obj.base_directory / path
-
-    @property
-    def base_directory(self) -> Path:
-        if self.parent is not None:
-            return self.parent.base_directory
-        else:
-            raise ValueError(
-                f'{self.__class__.__name__} does not have a parent, so `base_directory` cannot be accessed')
 
     def calculate(self):
         """Generic function for running a calculator"""
@@ -320,7 +278,7 @@ class CalculatorExt():
             setattr(calc, k.lstrip('_'), v)
         return calc
 
-    def link_file(self, src_calc: utils.HasDirectoryInfo | None, src_filename: Path, dest_filename: Path, symlink: bool = False,
+    def link_file(self, src_calc: utils.HasDirectory | None, src_filename: Path, dest_filename: Path, symlink: bool = False,
                   recursive_symlink: bool = False, overwrite: bool = False):
         if src_filename.is_absolute() and src_calc is not None:
             raise ValueError(f'`src_filename` in `{self.__class__.__name__}.link_file()` must be a relative path if a '
@@ -358,7 +316,7 @@ class CalculatorABC(ABC, Generic[TCalc]):
         ...
 
     @directory.setter
-    def directory(self, value: Union[Path, str]) -> None:
+    def directory(self, value: Path) -> None:
         ...
 
     @abstractmethod
@@ -407,7 +365,10 @@ class CalculatorABC(ABC, Generic[TCalc]):
 
         # Update calc.directory and calc.parameters.prefix
         assert hasattr(calc, 'parent')
-        base_directory = Path() if calc.parent is None else calc.parent.base_directory / calc.parent.directory
+        if calc.parent is None:
+            base_directory = sanitized_filenames[0].parents[1]
+        else:
+            base_directory = calc.parent.base_directory / calc.parent.directory
         calc.directory = Path(os.path.relpath(sanitized_filenames[0].parent, base_directory))
         calc.prefix = sanitized_filenames[0].stem
 

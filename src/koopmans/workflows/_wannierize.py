@@ -405,7 +405,7 @@ class WannierizeBlockWorkflow(Workflow):
         self.run_calculator(calc_w90)
         self.block.w90_calc = calc_w90
 
-        if hasattr(self, 'bands'):
+        if self.bands is not None:
             # Add centers and spreads info to self.bands
             if self.block.spin is None:
                 remaining_bands = [b for b in self.bands if b.center is None and b.spin == 0]

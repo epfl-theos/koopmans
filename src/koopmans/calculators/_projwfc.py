@@ -31,6 +31,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
     def __init__(self, atoms: Atoms, *args, **kwargs):
         # Define the valid settings
         self.parameters = ProjwfcSettingsDict()
+        self.parent = None
 
         # Initialize first using the ASE parent and then CalculatorExt
         Projwfc.__init__(self, atoms=atoms)

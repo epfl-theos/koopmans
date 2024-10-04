@@ -185,16 +185,114 @@ def find_executable(program: Union[Path, str]) -> Optional[Path]:
     return None
 
 
-@runtime_checkable
-class HasDirectoryInfo(Protocol):
-    directory: Path | None
+class HasDirectory:
+    # This class will eventually be merged with the Process class
+    # For the moment it only contains information related to parents and directories. Once calculators and workflows
+    # have been transformed to have pydantic inputs and outputs then those classes will be able to inherit directly
+    # from Process
+
+    __slots__ = ['_parent', '_directory', '_base_directory']
+
+    def __init__(self, parent=None, directory=None):
+        self._parent: Optional[HasDirectory] = None
+        self._directory: Optional[Path] = None
+        self._base_directory: Optional[Path] = None
+
+        self.parent = parent
+
+        if self.parent is None:
+            if directory is not None:
+                raise ValueError('If `parent` is not provided, `directory` should also not be provided')
+            self.base_directory = Path()
+            self.directory = Path()
+        else:
+            if directory is not None:
+                self.directory = directory
 
     @property
-    def absolute_directory(self) -> Path | None:
-        ...
+    def parent(self):
+        return self._parent
+
+    @parent.setter
+    def parent(self, value):
+        assert isinstance(value, HasDirectory) or value is None
+
+        # Check that value != self
+        if self == value:
+            raise ValueError(f'{self.__class__.__name__}.parent cannot be set to self')
+
+        # Check that self is not one of value's ancestors
+        if value is not None:
+            for ancestor in value.ancestors():
+                if self == ancestor:
+                    raise ValueError(f'{self.__class__.__name__}.parent cannot be set to an ancestor')
+
+        self._parent = value
+
+    def ancestors(self):
+        obj = self
+        while obj.parent is not None:
+            yield obj.parent
+            obj = obj.parent
+
+    @property
+    def directory(self) -> Path:
+        if self._directory is None:
+            raise ValueError(f'{self.__class__.__name__}.directory has not been set')
+        return self._directory
+
+    @directory.setter
+    def directory(self, value: Path | str):
+        if value is None:
+            raise ValueError('')
+
+        # Sanitize input
+        if isinstance(value, str):
+            value = Path(value)
+
+        # Sanity checks
+        if value.is_absolute():
+            raise ValueError(
+                f'{self.__class__.__name__} directory must be relative to the {self.__class__.__name__},base directory')
+        if len(value.parents) > 1:
+            raise ValueError(f'{self.__class__.__name__}.directory should not be a nested directory')
+
+        self._directory = value
+
+    @property
+    def base_directory(self) -> Path:
+        if self.parent is not None:
+            return self.parent.base_directory
+        else:
+            if self._base_directory is None:
+                raise ValueError(f'{self.__class__.__name__}.base_directory has not been set')
+            return self._base_directory
+
+    @base_directory.setter
+    def base_directory(self, value: Path):
+        if self.parent is not None:
+            raise ValueError(f'{self.__class__.__name__}.base_directory should not be set for processes with parents')
+        self._base_directory = value.resolve()
+
+    @property
+    def absolute_directory(self) -> Path:
+        # Recurse through the parents, if they exist, concatenating their respective directories
+        path = Path(self.directory)
+        obj = self
+        while obj.parent is not None:
+            obj = obj.parent
+            path = obj.directory / path
+
+        # `path` is relative to self.base_directory
+        abs_dir = self.base_directory / path
+        assert abs_dir.is_absolute()
+        return abs_dir
+
+    def directory_has_been_set(self):
+        return self._directory is not None
 
 
-def get_binary_content(source: HasDirectoryInfo, relpath: Path | str) -> bytes:
+def get_binary_content(source: HasDirectory, relpath: Path | str) -> bytes:
     if isinstance(relpath, str):
         relpath = Path(relpath)
     assert source.absolute_directory is not None
@@ -211,7 +309,7 @@ def write_binary_content(dst_file: Path | str, merged_filecontents: bytes):
         f.write(merged_filecontents)
 
 
-def get_content(source: HasDirectoryInfo | None, relpath: Path | str) -> List[str]:
+def get_content(source: HasDirectory | None, relpath: Path | str) -> List[str]:
     if isinstance(relpath, str):
         relpath = Path(relpath)
 

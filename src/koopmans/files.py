@@ -4,7 +4,7 @@ from typing import Any, NamedTuple
 
 import numpy as np
 
-from koopmans.utils import (HasDirectoryInfo, get_binary_content, get_content,
+from koopmans.utils import (HasDirectory, get_binary_content, get_content,
                             warn, write_binary_content, write_content)
 
 
@@ -17,7 +17,7 @@ class FilePointer(NamedTuple):
     to koopmans/AiiDA) and a name (which is the path of the file relative to the parent's directory).
 
     """
-    parent: HasDirectoryInfo
+    parent: HasDirectory
     name: Path
 
     def __repr__(self):
@@ -76,26 +76,24 @@ class FilePointer(NamedTuple):
         return (FilePointer, (dummy_parent, self.name))
 
 
-class ParentPlaceholder:
+class ParentPlaceholder(HasDirectory):
     # Placeholder parent for FilePointers that don't have a Workflow/Process/Calculator as a parent
     def __init__(self, parent, directory, base_directory=None):
-        self.parent = parent
+        super().__init__(parent)
         self.directory = directory
         if self.parent is None:
             self.base_directory = base_directory
-        else:
-            self._base_directory = None
 
     def __repr__(self):
         return f'ParentPlaceholder(directory={self.absolute_directory})'
 
     @classmethod
-    def fromobj(cls, obj, replace_parents_with_placeholders=False):
+    def fromobj(cls, obj, replace_parents_with_placeholders=True):
         if replace_parents_with_placeholders:
             if obj.parent is None:
                 parent = None
             else:
-                parent = cls.fromobj(obj, replace_parents_with_placeholders=True)
+                parent = cls.fromobj(obj.parent, replace_parents_with_placeholders=True)
         else:
             parent = obj.parent
 
@@ -116,40 +114,6 @@ class ParentPlaceholder:
     @classmethod
     def frompath(cls, path: Path):
         return cls(None, Path(), path)
-
-    @property
-    def base_directory(self) -> Path:
-        if self.parent is not None:
-            return self.parent.base_directory
-        else:
-            if self._base_directory is None:
-                raise ValueError(f'{self.__class__.__name__}.base_directory has not been set')
-            return self._base_directory
-
-    @base_directory.setter
-    def base_directory(self, value: Path):
-        if self.parent is not None:
-            raise ValueError(f'{self.__class__.__name__}.base_directory should not be set for processes with parents')
-        self._base_directory = value.resolve()
-
-    @property
-    def absolute_directory(self) -> Path:
-        assert self.directory is not None
-        if self.parent is None:
-            abs_dir = Path(self.base_directory / self.directory)
-            assert abs_dir.is_absolute()
-            return abs_dir
-        path = self.parent.directory / self.directory
-
-        # Recursive through the parents, adding their directories to path (these are all relative paths)...
-        obj = self.parent
-        while getattr(obj, 'parent', None):
-            assert obj.parent is not None
-            path = obj.parent.directory / path
-            obj = obj.parent
-
-        # Finally, 'path' is relative to self.base_directory
-        return self.base_directory / path
 
 
 def AbsoluteFilePointer(path: Path | str) -> FilePointer:

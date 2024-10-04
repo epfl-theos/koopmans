@@ -83,6 +83,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         else:
             spins = [None]
 
+        assert self.bands is not None
         for spin, band_filling in zip(spins, self.bands.filling):
             # Extract the centers and spreads corresponding to this particular spin
             centers = np.array([center for c, p in zip(w90_calcs, self.projections)

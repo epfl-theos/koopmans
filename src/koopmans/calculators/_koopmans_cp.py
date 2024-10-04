@@ -91,6 +91,9 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
     def __init__(self, atoms: Atoms, alphas: Optional[List[List[float]]] = None,
                  filling: Optional[List[List[bool]]] = None, **kwargs):
+
+        self.parent = None
+
         # Define the valid parameters
         self.parameters = settings.KoopmansCPSettingsDict()
 

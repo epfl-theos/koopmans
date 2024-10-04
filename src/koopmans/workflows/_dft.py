@@ -40,7 +40,6 @@ class DFTCPWorkflow(DFTWorkflow):
         calc = self.new_calculator('kcp')
 
         calc.prefix = 'dft'
-        calc.directory = '.'
         calc.parameters.ndr = 50
         calc.parameters.ndw = 51
         calc.parameters.restart_mode = 'from_scratch'

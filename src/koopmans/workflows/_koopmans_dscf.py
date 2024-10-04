@@ -9,7 +9,7 @@ Split off from workflow.py Oct 2020
 
 import shutil
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Mapping, Optional, Tuple
 
 import numpy as np
 from ase.dft import DOS
@@ -213,6 +213,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
     def convert_kcp_to_supercell(self):
         # Multiply all extensive KCP settings by the appropriate prefactor
+        assert self.kpoints.grid is not None
         prefactor = np.prod(self.kpoints.grid)
         for attr in ['nelec', 'nelup', 'neldw', 'nbnd', 'conv_thr', 'esic_conv_thr', 'tot_charge', 'tot_magnetization']:
             value = getattr(self.calculator_parameters['kcp'], attr, None)
@@ -265,6 +266,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         else:
             self.print('Skipping calculation of screening parameters', end='')
+            assert self.bands is not None
             if len(self.bands.alpha_history()) == 0:
                 self.print('; reading values from file')
                 self.bands.alphas = self.read_alphas_from_file()
@@ -302,6 +304,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
                 final_calc_type += '_final'
 
+                assert self.bands is not None
                 if use_ml:
                     alphas = self.bands.predicted_alphas
                 else:
@@ -390,7 +393,7 @@ class CalculateScreeningViaDSCF(Workflow):
 
         variational_orbital_files = self._initial_variational_orbital_files
         n_electron_calc = self._initial_cp_calculation
-        dummy_outdirs: Dict[Tuple[int, int], FilePointer] = {}
+        dummy_outdirs: Dict[Tuple[int, int], FilePointer | None] = {}
 
         while not converged and i_sc < self.parameters.alpha_numsteps:
             i_sc += 1
@@ -411,6 +414,7 @@ class CalculateScreeningViaDSCF(Workflow):
 
             converged = iteration_wf.outputs.converged or self.ml.predict
 
+            assert self.bands is not None
             if self.parameters.functional == 'ki' and self.bands.num(filled=False) == 0:
                 # For this case the screening parameters are guaranteed to converge instantly
                 if self.parameters.alpha_numsteps == 1:
@@ -421,7 +425,9 @@ class CalculateScreeningViaDSCF(Workflow):
                     utils.warn('The screening parameters for a KI calculation with no empty states will converge '
                                'instantly; to save computational time set `alpha_numsteps == 1`')
 
-            n_electron_calc = iteration_wf.outputs.n_electron_restart_dir.parent
+            parent = iteration_wf.outputs.n_electron_restart_dir.parent
+            assert isinstance(parent, calculators.KoopmansCPCalculator)
+            n_electron_calc = parent
             dummy_outdirs = iteration_wf.outputs.dummy_outdirs
             variational_orbital_files = {}
 
@@ -445,10 +451,11 @@ class DeltaSCFIterationOutputs(OutputModel):
 class DeltaSCFIterationWorkflow(Workflow):
 
     output_model = DeltaSCFIterationOutputs  # type: ignore
+    outputs: DeltaSCFIterationOutputs
 
     def __init__(self, *args, variational_orbital_files: Dict[str, Tuple[calculators.KoopmansCPCalculator, str]],
                  previous_n_electron_calculation=calculators.KoopmansCPCalculator,
-                 dummy_outdirs: Dict[Tuple[int, int], FilePointer], i_sc: int,
+                 dummy_outdirs: Dict[Tuple[int, int], FilePointer | None], i_sc: int,
                  alpha_indep_calcs: List[calculators.KoopmansCPCalculator], precomputed_descriptors: List[FilePointer] | None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._variational_orbital_files = variational_orbital_files
@@ -475,7 +482,7 @@ class DeltaSCFIterationWorkflow(Workflow):
 
         # Link the temporary files from the previous calculation
         previous_calc = self._previous_n_electron_calculation
-        assert isinstance(previous_calc, utils.HasDirectoryInfo)
+        assert isinstance(previous_calc, calculators.KoopmansCPCalculator)
         self.link(previous_calc, previous_calc.write_directory, trial_calc,
                   trial_calc.read_directory, recursive_symlink=True)
 
@@ -576,9 +583,11 @@ class DeltaSCFIterationWorkflow(Workflow):
 
             # add alpha to training data
             if self.ml.train:
+                assert self.ml_model is not None
                 self.ml_model.add_training_data([band])
                 # if the user wants to train on the fly, train the model after the calculation of each orbital
                 if self.ml.train_on_the_fly:
+                    assert self.ml_model is not None
                     self.ml_model.train()
 
         print_alpha_history(self)
@@ -588,6 +597,7 @@ class DeltaSCFIterationWorkflow(Workflow):
         if self.ml.train:
             # if the user doesn't want to train on the fly, train the model at the end of each snapshot
             if not self.ml.train_on_the_fly:
+                assert self.ml_model is not None
                 self.ml_model.train()
             # # Print summary of all predictions
             # predicted = [self.ml_model.predict(b) for b in self.bands.to_solve]
@@ -632,6 +642,7 @@ class OrbitalDeltaSCFWorkflow(Workflow):
 
         # Don't repeat if this particular alpha_i was converged
         if hasattr(self.band, 'error') and abs(self.band.error) < self.parameters.alpha_conv_thr:
+            assert self.band.alpha is not None
             self.outputs = self.output_model(alpha=self.band.alpha, error=self.band.error,
                                              dummy_outdir=self._dummy_outdir)
             return
@@ -694,6 +705,7 @@ class OrbitalDeltaSCFWorkflow(Workflow):
                 alphas = self.bands.alphas
                 alphas[self.band.spin].append(alphas[self.band.spin][-1])
                 filling = self.bands.filling
+                assert self.band.index is not None
                 filling[self.band.spin][self.band.index - 1] = True
                 filling[self.band.spin].append(False)
             else:
@@ -1220,6 +1232,7 @@ class InitializationWorkflow(Workflow):
                     self.print('Skipping the optimisation of the variational orbitals since they are invariant under '
                                'unitary transformations')
                 else:
+                    assert self.bands is not None
                     calc = internal_new_kcp_calculator(self, 'pz_innerloop_init', alphas=self.bands.alphas)
 
                     # Use the KS eigenfunctions as initial guesses for the variational orbitals
@@ -1289,6 +1302,7 @@ class InitializationWorkflow(Workflow):
 
 def print_alpha_history(wf: Workflow):
     # Printing out a progress summary
+    assert wf.bands is not None
     if not wf.ml.predict:
         wf.print(f'\n**α**')
         if wf.parameters.spin_polarized:

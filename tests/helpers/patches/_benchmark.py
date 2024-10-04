@@ -36,16 +36,17 @@ def patch_calculator(c, monkeypatch):
         # Run the calculation
         unpatched_calculate(self)
 
-        # Store the calculator as a pickle file to use as a benchmark, Temporary wiping the parent attribute so that
-        # the entire workflow doesn't get pickled
+        # Store the calculator as a pickle file to use as a benchmark
         self.results.pop('walltime', None)
         filename = benchmark_filename(self)
         if not filename.parent.exists():
             filename.parent.mkdir(parents=True)
 
+        # Temporary wipe the parent and linked_files attributes so that the entire workflow doesn't get pickled
+        base_directory = self.base_directory
         self.parent, parent = None, self.parent
         self.linked_files, linked_files = [], self.linked_files
-        write_pkl(self, filename, self.base_directory)
+        write_pkl(self, filename, base_directory)
         self.parent = parent
         self.linked_files = linked_files
 
@@ -90,8 +91,9 @@ def patch_process(p, monkeypatch):
         if not filename.parent.exists():
             filename.parent.mkdir(parents=True)
         # Temporarily wipe the parent attribute so that the entire workflow doesn't get pickled
+        base_directory = self.base_directory
         self.parent, parent = None, self.parent
-        write_pkl(self, filename, self.base_directory)
+        write_pkl(self, filename, base_directory)
         self.parent = parent
 
         # Copy over all files that are outputs of the process that need to be read

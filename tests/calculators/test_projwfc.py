@@ -15,6 +15,7 @@ def test_generate_dos(silicon, tmp_path, datadir, pytestconfig):
         wf = workflows.DFTBandsWorkflow(
             parameters={'pseudo_library': 'pseudo_dojo_standard', 'base_functional': 'pbesol', 'from_scratch': True},
             name='si', **silicon)
+        wf.directory = Path()
         calc = wf.new_calculator('projwfc')
         calc.directory = Path()
 
