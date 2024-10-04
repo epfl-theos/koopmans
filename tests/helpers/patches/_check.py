@@ -235,13 +235,14 @@ def compare_output(output, bench_output):
     """Recursively compare the contents of any FilePointers or Paths within the output against the benchmark"""
     if isinstance(output, (FilePointer, Path)):
         # Compare the file contents
+        binary_formats = ['.npy', '.dat', '.xml']
         if isinstance(output, FilePointer):
-            binary = output.name.suffix in ['.npy', '.dat']
+            binary = output.name.suffix in binary_formats
             numpy = output.name.suffix in ['.npy']
             bench_output_contents = bench_output.read(binary=binary, numpy=numpy)
             output_contents = output.read(binary=binary, numpy=numpy)
         else:
-            mode = 'rb' if output.suffix in ['.npy', '.dat'] else 'r'
+            mode = 'rb' if output.suffix in binary_formats else 'r'
             with open(output, mode) as fd:
                 output_contents = fd.read()
             with open(bench_output, mode) as fd:
