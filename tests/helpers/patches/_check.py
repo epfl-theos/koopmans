@@ -348,8 +348,8 @@ def patch_process(p, monkeypatch):
             utils.warn(f'Inputs differ from the benchmark')
             for k in self.inputs.model_fields:
                 utils.warn(f'Input {k} differs')
-                utils.warn('input has ' + ', '.join([x.name for x in getattr(self.inputs, k)]))
-                utils.warn('bench has ' + ', '.join([x.name for x in getattr(bench_process.inputs, k)]))
+                utils.warn('input has ' + ', '.join([str(x.name) for x in getattr(self.inputs, k)]))
+                utils.warn('bench has ' + ', '.join([str(x.name) for x in getattr(bench_process.inputs, k)]))
                 for x, y in zip(getattr(self.inputs, k), getattr(bench_process.inputs, k)):
                     utils.warn(f'input {k}: {x} != {y}')
             raise ValueError()
