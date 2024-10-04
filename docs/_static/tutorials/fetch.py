@@ -21,8 +21,7 @@ def extract(filename_in, filename_out, start=0, end=None, heading=None):
             if not line.startswith(' ' * (indent + 1)):
                 end = i
                 break
-
-        if end is None:
+        else:
             raise ValueError(f'Could not find the end of the {heading} block')
 
     flines = flines[start:end]
@@ -40,6 +39,14 @@ def extract(filename_in, filename_out, start=0, end=None, heading=None):
 
 
 if __name__ == '__main__':
+
+    # Tutorial 2
+    extract('../../../tutorials/tutorial_2/si_wannierize.md', 'tutorial_2/md_excerpts/si_wannierize.md', start=18)
+    extract('../../../tutorials/tutorial_2/si_ki.md', 'tutorial_2/md_excerpts/si_ki_wannierize.md', heading="Wannierize")
+    extract('../../../tutorials/tutorial_2/si_ki.md', 'tutorial_2/md_excerpts/si_ki_fold.md', heading="Fold To Supercell")
+    extract('../../../tutorials/tutorial_2/si_ki.md', 'tutorial_2/md_excerpts/si_ki_screening.md', 51, 61)
+    extract('../../../tutorials/tutorial_2/si_ki.md',
+            'tutorial_2/md_excerpts/si_ki_postproc.md', heading="Unfold And Interpolate")
 
     # Tutorial 3
     extract('../../../tutorials/tutorial_3/01-ki/zno.md',

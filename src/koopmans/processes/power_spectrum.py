@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Tuple
 
 import numpy as np
 from ase.cell import Cell
+from pydantic import ConfigDict
 
 from koopmans import ml, utils
 from koopmans.bands import Band
@@ -15,6 +16,8 @@ from ._process import IOModel, Process
 
 
 class ExtractCoefficientsFromXMLInput(IOModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     n_max: int
     l_max: int
     r_min: float
@@ -26,18 +29,14 @@ class ExtractCoefficientsFromXMLInput(IOModel):
     orbital_densities_xml: List[FilePointer]
     bands: List[Band]
 
-    class Config:
-        arbitrary_types_allowed = True
-
 
 class ExtractCoefficientsFromXMLOutput(IOModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     precomputed_alphas: FilePointer
     precomputed_betas: FilePointer
     total_coefficients: List[FilePointer]
     orbital_coefficients: List[FilePointer]
-
-    class Config:
-        arbitrary_types_allowed = True
 
 
 class ExtractCoefficientsFromXMLProcess(Process):

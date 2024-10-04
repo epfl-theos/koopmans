@@ -67,7 +67,7 @@ class UnfoldAndInterpolateOutputs(IOModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
 
     band_structure: BandStructure
-    dos: DOS | None = None
+    dos: Optional[DOS] = None
 
 
 class UnfoldAndInterpolateProcess(Process):

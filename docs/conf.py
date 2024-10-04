@@ -72,7 +72,7 @@ master_doc = 'index'
 
 # -- Autodoc options ----------------------------------------------------------
 autodoc_typehints = 'none'
-autodoc_mock_imports = ['ase']
+autodoc_mock_imports = ['ase', 'pydantic']
 numpydoc_show_class_members = False
 
 # -- Chronological bibliography style -----------------------------------------

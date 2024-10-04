@@ -25,7 +25,7 @@ from ._workflow import Workflow
 
 class UnfoldAndInterpolateOutput(outputs.OutputModel):
     band_structure: BandStructure
-    dos: DOS | None
+    dos: Optional[DOS]
 
     class Config:
         arbitrary_types_allowed = True

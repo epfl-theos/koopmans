@@ -128,7 +128,7 @@ These individual projections (either as dictionaries or as strings) must be prov
 
 We can achieve both of the above via the list-of-lists syntax. Consider the following example for the wannierization of bulk ZnO
 
-.. literalinclude:: ../tutorials/tutorial_3/zno.json
+.. literalinclude:: ../tutorials/tutorial_3/01-ki/zno.json
   :lines: 47-55
   :dedent:
 
