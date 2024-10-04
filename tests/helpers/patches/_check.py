@@ -345,7 +345,7 @@ def patch_process(p, monkeypatch):
 
         # Compare the inputs
         if not bench_process.inputs == self.inputs:
-            utils.warn(f'Inputs for {self.prefix} differ from the benchmark')
+            utils.warn(f'Inputs differ from the benchmark')
             utils.warn(f'Inputs: {self.inputs}')
             utils.warn(f'Benchmark inputs: {bench_process.inputs}')
             raise ValueError()
