@@ -346,13 +346,12 @@ def patch_process(p, monkeypatch):
         # Compare the inputs
         if not bench_process.inputs == self.inputs:
             utils.warn(f'Inputs differ from the benchmark')
-            for k, v in self.inputs.dict().items():
-                if v != getattr(bench_process.inputs, k):
-                    utils.warn(f'Input {k} differs')
-                    for x in v:
-                        print(f'input {k}: ', x)
-                    for x in getattr(bench_process.inputs, k):
-                        print(f'bench {k}: ', x)
+            for k in self.inputs.model_fields:
+                utils.warn(f'Input {k} differs')
+                for x in getattr(self.inputs, k):
+                    utils.warn(f'input {k}: ', x)
+                for x in getattr(bench_process.inputs, k):
+                    utils.warn(f'bench {k}: ', x)
             raise ValueError()
 
         unpatched_run(self)
