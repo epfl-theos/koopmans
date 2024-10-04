@@ -8,7 +8,7 @@ from koopmans.workflows import SinglepointWorkflow
 
 
 def test_absolute_file_pointer():
-    path = Path('/tmp/test.txt')
+    path = Path('/tmp/test.txt').resolve()
     abs_fp = AbsoluteFilePointer(path)
     assert abs_fp.aspath() == path
     assert abs_fp.parent.absolute_directory == path.parent
