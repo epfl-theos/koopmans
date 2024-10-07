@@ -61,6 +61,9 @@ if __name__ == '__main__':
     extract('../../../tutorials/tutorial_3/01-ki/zno.md', 'tutorial_3/md_excerpts/zno_ham.md', -3, -2)
     copy('../../../tutorials/tutorial_3/01-ki/01-koopmans-dfpt/Koopmans_DFPT_bandstructure.png', 'tutorial_3/')
 
+    # Tutorial 4
+    extract('../../../tutorials/tutorial_4/h2o_conv.md', 'tutorial_4/md_excerpts/h2o_conv.md', 18, 36)
+
     # Tutorial 5
     extract('../../../tutorials/tutorial_5/01-train/h2o_train.md', 'tutorial_5/md_excerpts/train.md', 45, 92)
     extract('../../../tutorials/tutorial_5/02-predict/h2o_predict.md',

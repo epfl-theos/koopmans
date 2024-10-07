@@ -36,9 +36,7 @@ nrb_variable = workflows.ConvergenceVariable(name='nrb',
                                              get_value=get_nrb,
                                              set_value=set_nrb)
 
-# Create the convergence workflow using the convergence factory. Because koopmans knows how to
-# converge with respect to ecutwfc, we don't need to implement a custom ConvergenceVariable for it
-# and instead can just tell it the variable name
+# Create the convergence workflow using the convergence factory
 workflow = workflows.ConvergenceWorkflowFactory(subworkflow,
                                                 observable='total energy',
                                                 threshold=1e-3,
