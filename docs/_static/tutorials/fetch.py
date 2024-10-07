@@ -27,8 +27,8 @@ def extract(filename_in, filename_out, start=0, end=None, heading=None):
     flines = flines[start:end]
 
     # Find the shortest leading whitespace and strip this from all lines (as otherwise the markdown will be rendered as a code block)
-    min_indent = min(len(line) - len(line.lstrip()) for line in flines)
-    flines = [line[min_indent:] for line in flines]
+    min_indent = min(len(line) - len(line.lstrip()) for line in flines if line.strip())
+    flines = [line if line == "\n" else line[min_indent:]for line in flines]
 
     # Manual conversion of double spaces to /
     flines = [line[:-2] + '\ \n' if (line.endswith('  \n')
@@ -39,6 +39,12 @@ def extract(filename_in, filename_out, start=0, end=None, heading=None):
 
 
 if __name__ == '__main__':
+    # Tutorial 1
+    # extract('../../../tutorials/tutorial_1/ozone.md', 'tutorial_1/md_excerpts/ozone_init.md', heading='Initialization')
+    # extract('../../../tutorials/tutorial_1/ozone.md', 'tutorial_1/md_excerpts/ozone_alpha.md', 24, 33)
+    # extract('../../../tutorials/tutorial_1/ozone.md', 'tutorial_1/md_excerpts/ozone_alpha_10.md', 45, 49)
+    extract('../../../tutorials/tutorial_1/ozone.md', 'tutorial_1/md_excerpts/ozone_tables.md', 50, 62)
+    extract('../../../tutorials/tutorial_1/ozone.md', 'tutorial_1/md_excerpts/ozone_final.md', -4)
 
     # Tutorial 2
     extract('../../../tutorials/tutorial_2/si_wannierize.md', 'tutorial_2/md_excerpts/si_wannierize.md', start=18)
