@@ -40,9 +40,9 @@ def extract(filename_in, filename_out, start=0, end=None, heading=None):
 
 if __name__ == '__main__':
     # Tutorial 1
-    # extract('../../../tutorials/tutorial_1/ozone.md', 'tutorial_1/md_excerpts/ozone_init.md', heading='Initialization')
-    # extract('../../../tutorials/tutorial_1/ozone.md', 'tutorial_1/md_excerpts/ozone_alpha.md', 24, 33)
-    # extract('../../../tutorials/tutorial_1/ozone.md', 'tutorial_1/md_excerpts/ozone_alpha_10.md', 45, 49)
+    extract('../../../tutorials/tutorial_1/ozone.md', 'tutorial_1/md_excerpts/ozone_init.md', heading='Initialization')
+    extract('../../../tutorials/tutorial_1/ozone.md', 'tutorial_1/md_excerpts/ozone_alpha.md', 24, 33)
+    extract('../../../tutorials/tutorial_1/ozone.md', 'tutorial_1/md_excerpts/ozone_alpha_10.md', 45, 49)
     extract('../../../tutorials/tutorial_1/ozone.md', 'tutorial_1/md_excerpts/ozone_tables.md', 50, 62)
     extract('../../../tutorials/tutorial_1/ozone.md', 'tutorial_1/md_excerpts/ozone_final.md', -4)
 
@@ -60,3 +60,9 @@ if __name__ == '__main__':
     extract('../../../tutorials/tutorial_3/01-ki/zno.md', 'tutorial_3/md_excerpts/zno_w2kc.md', -4, -3)
     extract('../../../tutorials/tutorial_3/01-ki/zno.md', 'tutorial_3/md_excerpts/zno_ham.md', -3, -2)
     copy('../../../tutorials/tutorial_3/01-ki/01-koopmans-dfpt/Koopmans_DFPT_bandstructure.png', 'tutorial_3/')
+
+    # Tutorial 5
+    extract('../../../tutorials/tutorial_5/01-train/h2o_train.md', 'tutorial_5/md_excerpts/train.md', 45, 92)
+    extract('../../../tutorials/tutorial_5/02-predict/h2o_predict.md',
+            'tutorial_5/md_excerpts/predict.md', heading='Calculate Screening Via DSCF')
+    extract('../../../tutorials/tutorial_5/03-test/h2o_test.md', 'tutorial_5/md_excerpts/test.md', 45, 96)

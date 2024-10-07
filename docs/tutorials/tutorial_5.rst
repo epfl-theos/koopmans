@@ -35,7 +35,7 @@ For this task, we don't provide the ``"atomic_positions"`` directly to the input
   :emphasize-lines: 3
   :lineno-start: 23
 
-Note that this ``.xyz`` file contains five confiugurations of water.
+Note that this ``.xyz`` file contains five configurations of water.
 
 Finally, to enable the machine-learning process we provide a ``ml`` block and set ``train`` to ``true``:
 
@@ -56,12 +56,14 @@ The other keywords in the ``ml`` block specify the fact that we will predicting 
   * :math:`r_{min}` determines the smallest cutoff radius for the radial basis functions
   * :math:`r_{max}` determines the largest cutoff radius for the radial basis functions
 
-Running this calculation, you will see the five Koopmans calculations (for each of the training snapshots). The one extra step that you will spot that is not present in earlier tutorials is the power spectrum decomposition step, where the orbital densities are converted into a power spectrum
+Running this calculation, you will see the five Koopmans calculations (one for each of the training snapshots). The one extra step that you will spot that is not present in earlier tutorials is the power spectrum decomposition step, where the orbital densities are converted into a power spectrum
 
-.. literalinclude:: ../../tutorials/tutorial_5/01-train/h2o_train.md
-  :lines: 46-91
-  :language: md
-  :lineno-start: 46
+----
+
+.. include:: ../_static/tutorials/tutorial_5/md_excerpts/train.md
+  :parser: myst_parser.sphinx_
+
+----
 
 Once the calculation is complete you will see a new file: ``h2o_train_ml_model.pkl``. This file contains the trained machine learning model.
 
@@ -78,10 +80,12 @@ Now that we have a model at our disposal, we can use it to predict the screening
 
 Running this calculation, you will see that the core of the ΔSCF cycle -- the :math:`N \pm 1` calculations -- are skipped, and the predicted screening parameters are reported instead:
 
-.. literalinclude:: ../../tutorials/tutorial_5/02-predict/h2o_predict.md
-  :lines: 46-69
-  :language: md
-  :lineno-start: 46
+----
+
+.. include:: ../_static/tutorials/tutorial_5/md_excerpts/predict.md
+  :parser: myst_parser.sphinx_
+
+----
 
 Note that the calculation still takes some time to complete, because some ab initio calculations (Wannierization, power spectrum decomposition, and the final KI calculation) are still performed.
 
@@ -108,13 +112,14 @@ To test a model, we need to compare predicted screening parameters against those
 
 Running this calculation, you will see the same output as in the previous calculation, but with the reappearance of the :math:`N \pm 1` calculations that are required to calculate the screening parameters ab initio.
 
-.. literalinclude:: ../../tutorials/tutorial_5/03-test/h2o_test.md
-  :lines: 46-96
-  :language: md
-  :linenos:
-  :lineno-start: 46
+----
 
-We can compare the results using the :download:`accompanying python script <../../tutorials/tutorial_5/03-test/plot.py>`, which extracts the orbital energies from the ``.kwf`` file and generates the following plot
+.. include:: ../_static/tutorials/tutorial_5/md_excerpts/test.md
+  :parser: myst_parser.sphinx_
+
+----
+
+We can compare the results using the :download:`accompanying python script <../../tutorials/tutorial_5/03-test/plot.py>`, which extracts the orbital energies from the ``.pkl`` file and generates the following plot
 
 .. figure:: ../../tutorials/tutorial_5/03-test/testing.png
   :width: 700

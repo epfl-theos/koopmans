@@ -7,22 +7,22 @@
   📦 **Version:** 1.1.0  
   🧑 **Authors:** Edward Linscott, Nicola Colonna, Riccardo De Gennaro, Ngoc Linh Nguyen, Giovanni Borghi, Andrea 
   Ferretti, Ismaila Dabo, and Nicola Marzari  
-  📝 **Documentation:** https://koopmans-functionals.org  
+  📚 **Documentation:** https://koopmans-functionals.org  
   ❓ **Support:** https://groups.google.com/g/koopmans-users  
   🐛 **Report a bug:** https://github.com/epfl-theos/koopmans/issues/new
 
-  > [!NOTE]
+  > [!NOTE]  
   > Please cite the papers listed in `h2o_predict.bib` in work involving this calculation
 
   h2o_predict
   -----------
 
-  > [!WARNING]
+  > [!WARNING]  
   > This system is not cubic and will therefore not have a uniform dielectric tensor. However, the image-correction
   > schemes that are currently implemented assume a uniform dielectric. Proceed with caution
 
 
-  > [!WARNING]
+  > [!WARNING]  
   > Predicting screening parameters with machine-learning is an experimental feature; proceed with caution
 
   - **Koopmans DSCF Snapshot 1 of 15**
@@ -686,4 +686,4 @@
 
     - ✅ `03-ki_final_ml` completed  
 
-**Workflow complete** 🎉
+  **Workflow complete** 🎉
