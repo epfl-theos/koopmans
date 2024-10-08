@@ -55,8 +55,6 @@ class FoldToSupercellWorkflow(Workflow):
                 # Create the calculator
                 calc_w2k = self.new_calculator('wann2kcp', spin_component=block.spin, wan_mode='wannier2kcp')
                 calc_w2k.prefix = f'convert_{block.name}_to_supercell'
-                if block.spin:
-                    calc_w2k.prefix += f'_spin{block.spin}'
 
                 # Checking that gamma_trick is consistent with gamma_only
                 if calc_w2k.parameters.gamma_trick and not self.kpoints.gamma_only:
@@ -114,7 +112,7 @@ class FoldToSupercellWorkflow(Workflow):
                         merge_proc.name = 'merging_wavefunctions_for_' + tidy_label
                         self.run_process(merge_proc)
 
-                        dest_file = _construct_dest_filename(evc_fname, subset, label)
+                        dest_file = _construct_dest_filename(evc_fname, subset[0], label)
                         merged_files[dest_file] = merge_proc.outputs.merged_file
 
         else:

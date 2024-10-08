@@ -491,17 +491,30 @@ class UnfoldAndInterpolateProcess(Process):
         return phase
 
 
-def generate_dos(band_structure: BandStructure, plotting_parameters: PlotSettingsDict) -> DOS:
+def generate_dos(band_structure: BandStructure, plotting_parameters: PlotSettingsDict, spin_polarized=False) -> DOS:
     """
     Generate the density of states using the DOS function from ASE
     """
+
+    if spin_polarized:
+        nspins = 2
+        if band_structure.energies.shape[0] != 2:
+            raise ValueError(
+                'Requested to generate a spin-polarized DOS but the provided band structure only has 1 spin channel')
+        e_skn = band_structure.energies.copy()
+    else:
+        nspins = 1
+        if band_structure.energies.shape[0] == 1:
+            e_skn = band_structure.energies.copy()
+        else:
+            e_skn = np.array([band_structure.energies[0, :]])
 
     dos = DOS(None,
               width=plotting_parameters.degauss,
               window=(plotting_parameters.Emin, plotting_parameters.Emax),
               npts=plotting_parameters.nstep + 1,
               w_k=np.ones(len(band_structure.path.kpts)),
-              nspins=1,
-              e_skn=np.array([band_structure.energies[0, :]]))
+              nspins=nspins,
+              e_skn=e_skn)
 
     return dos

@@ -356,6 +356,7 @@ class CalculatorABC(ABC, Generic[TCalc]):
 
         # Read qe output file
         for filename in [f for f in sanitized_filenames if f.suffix == cls.ext_out]:
+            calc.directory = filename.parent
             calc.prefix = filename.stem
             try:
                 calc.read_results()

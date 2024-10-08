@@ -115,7 +115,8 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                     dft_smooth_ham_file = None
 
                 process = self.new_ui_process(presets, centers=centers[mask], spreads=spreads[mask].tolist(),
-                                              dft_smooth_ham_file=dft_smooth_ham_file)
+                                              dft_smooth_ham_file=dft_smooth_ham_file,
+                                              dft_ham_file=self._dft_ham_files[(filling, spin)])
 
                 # Run the process
                 self.run_process(process)
@@ -124,8 +125,8 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         if self.parameters.spin_polarized:
             energies = [[p.outputs.band_structure.energies for p in subset]
                         for subset in [self.processes[-4:-2], self.processes[-2:]]]
-            reference = np.max([e[0] for e in energies])
             energies_np = np.concatenate([np.concatenate(e, axis=2) for e in energies], axis=0)
+            reference = np.max([np.max(e[0]) for e in energies])
         else:
             energies = [p.outputs.band_structure.energies for p in self.processes[-2:]]
             reference = np.max(energies[0])
@@ -133,7 +134,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         merged_bs = BandStructure(self.kpoints.path, energies_np, reference=reference)
 
         if process.inputs.parameters.do_dos:
-            merged_dos = generate_dos(merged_bs, self.plotting)
+            merged_dos = generate_dos(merged_bs, self.plotting, self.parameters.spin_polarized)
 
         # Plot the band structure and DOS
         if process.inputs.parameters.do_dos:
