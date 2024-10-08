@@ -1248,9 +1248,8 @@ class InitializationWorkflow(Workflow):
 
         elif self.parameters.functional == 'kipz':
             # DFT from scratch
-            calc = internal_new_kcp_calculator(self, 'dft_init')
-            calc.directory = Path('init')
-            self.run_calculator(calc, enforce_spin_symmetry=self.parameters.fix_spin_contamination)
+            calc_dft = internal_new_kcp_calculator(self, 'dft_init')
+            self.run_calculator(calc_dft, enforce_spin_symmetry=self.parameters.fix_spin_contamination)
 
             if self.parameters.init_orbitals == 'kohn-sham':
                 # Initialize the density with DFT and use the KS eigenfunctions as guesses for the variational orbitals
@@ -1260,7 +1259,7 @@ class InitializationWorkflow(Workflow):
             elif self.parameters.init_orbitals == 'pz':
                 # PZ from DFT (generating PZ density and PZ orbitals)
                 calc = internal_new_kcp_calculator(self, 'pz_init')
-                calc.directory = Path('init')
+                self.link(calc_dft, calc_dft.write_directory, calc, calc.read_directory, recursive_symlink=True)
                 self.run_calculator(calc)
             else:
                 raise ValueError('Should not arrive here')
