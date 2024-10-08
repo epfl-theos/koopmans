@@ -356,10 +356,10 @@ class CalculatorABC(ABC, Generic[TCalc]):
 
         # Read qe output file
         for filename in [f for f in sanitized_filenames if f.suffix == cls.ext_out]:
-            calc.directory = filename.parent
             calc.prefix = filename.stem
             try:
-                calc.read_results()
+                with utils.chdir(filename.parent):
+                    calc.read_results()
             except Exception:
                 # Calculation could not be read; must have been incomplete
                 pass
