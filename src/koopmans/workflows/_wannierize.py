@@ -293,7 +293,7 @@ class WannierizeWorkflow(Workflow):
             # Prepare the band structures for plotting
             ax = None
             labels = ['explicit'] \
-                + [f'interpolation ({c.directory.parent.name.split("-", 2)[-1].replace("block-", "block ").replace("spin-", "spin ").replace("_",", ")})'
+                + [f'interpolation ({c.absolute_directory.parent.name.split("-", 2)[-1].replace("block-", "block ").replace("spin-", "spin ").replace("-",", ")})'
                    for c in selected_calcs]
             color_cycle = plt.rcParams['axes.prop_cycle']()
             bsplot_kwargs_list = []
