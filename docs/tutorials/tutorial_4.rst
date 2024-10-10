@@ -27,9 +27,12 @@ The output file
 '''''''''''''''
 When you run the calculation, you should see something like this after the header:
 
-.. literalinclude:: ../../tutorials/tutorial_4/h2o_conv.log
-  :lines: 15-34
-  :language: text
+----
+
+.. include:: ../_static/tutorials/tutorial_4/md_excerpts/h2o_conv.md
+  :parser: myst_parser.sphinx_
+
+----
 
 Here, the code is attempting to use progressively larger energy cutoffs and cell sizes. It will ultimately arrive at a converged solution, with a ``ecutwfc`` of 50.0 Ha and a cell slightly larger than that provided in the ``.json`` input file.
 
@@ -58,9 +61,9 @@ Hopefully, the first thing you will see is that there are now some warnings abou
 
 .. code-block:: text
 
-  UserWarning: Small box parameters "nrb" not provided in input: these will be automatically set to safe default values. These values can probably be decreased, but this would require convergence tests.
-  Estimated real mesh dimension (nr1, nr2, nr3) = ...
-  Small box mesh dimension (nr1b, nr2b, nr3b) = ...
+  🚨 Small box parameters `nrb` not provided in input: these will be automatically set to safe default values. These 
+  values can probably be decreased, but this would require convergence tests. Estimated real mesh dimension `(nr1, 
+  nr2, nr3) = 36 36 45`. Small box mesh dimension `(nr1b, nr2b, nr3b) = 20 18 20`.
 
 These parameters are associated with the way ``Quantum ESPRESSO`` handles non-local core corrections in pseudopotentials, and corrections are present in the new set of pseudopotentials but absent in the SG15 pseudopotentials.
 
@@ -71,4 +74,4 @@ So, let's perform a convergence test! The ``nrb`` parameters are not directly im
 Running this script will perform a convergence test with respect to ``nrb 1-3``.
 
 .. warning:: 
-  This tutorial performs convergence tests in a slightly incorrect way, To see this, add the keyword ``length = 10`` to the ``ConvergenceVarialbe`` in the above script. How is the behaviour different? Which behaviour is correct? Why?
+  This tutorial performs convergence tests in a slightly incorrect way, To see this, add the keyword ``length = 10`` to the ``ConvergenceVariable`` in the above script. How is the behavior different? Which behavior is correct? Why?

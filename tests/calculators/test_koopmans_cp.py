@@ -1,17 +1,20 @@
 import shutil
+from pathlib import Path
 
 import numpy as np
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from koopmans import settings, utils, workflows
+from koopmans import settings, utils
+from koopmans.calculators import KoopmansCPCalculator
 from koopmans.calculators._koopmans_cp import (allowed,
                                                convert_flat_alphas_for_kcp,
                                                good_fft)
 
 
 def test_convert_flat_alphas_for_kcp():
+
     nbnd = 10
     nspin = 2
     nelup = 5
@@ -31,10 +34,11 @@ def test_convert_flat_alphas_for_kcp():
 
 
 def test_read_write_ham_pkl(water, tmp_path):
+
     with utils.chdir(tmp_path):
-        # Create a kcp calculator to match the one that was used to generate the pdos files
-        wf = workflows.KoopmansDSCFWorkflow(**water)
-        calc = wf.new_kcp_calculator('ki_final')
+        # Create a kcp calculator
+        calc = KoopmansCPCalculator(outdir='tmp', nspin=2, **water)
+        calc.directory = Path()
 
         # generate a random array for our "Hamiltonian", making sure to set the random seed in order to always
         # generate the same random array
@@ -51,13 +55,14 @@ def test_read_write_ham_pkl(water, tmp_path):
 
 
 def test_read_ham(water, datadir, tmp_path):
+
     with utils.chdir(tmp_path):
-        # Create a kcp calculator to match the one that was used to generate the pdos files
-        wf = workflows.KoopmansDSCFWorkflow(**water)
-        calc = wf.new_kcp_calculator('ki_final')
+        # Create a kcp calculator
+        calc = KoopmansCPCalculator(outdir='tmp', nspin=2, nelec=8, ndw=50, prefix='test_read_ham', **water)
+        calc.directory = Path()
 
         # Copy over the XML Hamiltonian files
-        destdir = calc.parameters.outdir / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save' / 'K00001'
+        destdir = calc.write_directory / 'K00001'
         destdir.mkdir(parents=True)
         for f in (datadir / 'kcp').glob('ham*'):
             shutil.copy(f, destdir)
@@ -85,6 +90,7 @@ def test_allowed_nr(p2: int, p3: int, p5: int, p7: int, p11: int, p13: int):
     '''
     The allowed() function should return True if nr has no prime factors greater than 5
     '''
+
     nr = 2 ** p2 * 3 ** p3 * 5 ** p5 * 7 ** p7 * 11 ** p11 * 13 * p13
 
     allow = allowed(nr)

@@ -6,7 +6,6 @@ from koopmans.calculators import (Calc, CalcType, KoopmansCPCalculator,
                                   KoopmansHamCalculator,
                                   KoopmansScreenCalculator, PhCalculator,
                                   PW2WannierCalculator, PWCalculator,
-                                  UnfoldAndInterpolateCalculator,
                                   Wann2KCCalculator, Wann2KCPCalculator,
                                   Wannier90Calculator)
 
@@ -37,8 +36,6 @@ def read_calculator(filenames: Union[Path, List[Path]]) -> Calc:
         calc_class = PW2WannierCalculator
     elif extensions.issubset(set(['.wki', '.wko'])):
         calc_class = Wann2KCPCalculator
-    elif extensions.issubset(set(['.uii', '.uio'])):
-        calc_class = UnfoldAndInterpolateCalculator
     elif extensions.issubset(set(['.w2ki', '.w2ko'])):
         calc_class = Wann2KCCalculator
     elif extensions.issubset(set(['.ksi', '.kso'])):
@@ -46,7 +43,7 @@ def read_calculator(filenames: Union[Path, List[Path]]) -> Calc:
     elif extensions.issubset(set(['.khi', '.kho'])):
         calc_class = KoopmansHamCalculator
     else:
-        raise ValueError('Could not identify the extensions of ' + '/'.join([str(f) for f in filenames]))
+        raise ValueError('Could not identify the extensions of `' + '`/`'.join([str(f) for f in filenames]) + '`')
 
     calc = calc_class.fromfile(filenames)
 

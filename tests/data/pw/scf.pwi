@@ -1,7 +1,7 @@
 &CONTROL
    calculation      = 'scf'
    verbosity        = 'high'
-   outdir           = '/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_si_ki_dfpt_ex0/wannier/TMP/'
+   outdir           = 'wannier/TMP/'
    prefix           = 'kc'
    pseudo_dir       = '/home/elinscott/code/koopmans/src/koopmans/pseudopotentials/sg15_v1.2/pbe/'
 /

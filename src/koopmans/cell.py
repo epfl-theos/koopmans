@@ -35,7 +35,7 @@ def parameters_to_cell(ibrav: int, celldms: Dict[int, float]) -> Cell:
     '''
 
     if not isinstance(celldms, dict):
-        raise ValueError('Please provide celldms as a dictionary e.g. "celldms": {"1": 10.0, "3": 0.75}')
+        raise ValueError('Please provide `celldms` as a dictionary e.g. `celldms = {"1": 10.0, "3": 0.75}`')
 
     # Convert from Bohr to Angstrom
     celldms = copy.deepcopy(celldms)
@@ -158,7 +158,7 @@ def cell_to_parameters(cell: Cell) -> CellParams:
     if abs(cell.volume - new_cell.volume) > 1e-6:
         raise ValueError('You have provided a cell that appears not to be Niggli-reduced.\n'
                          'Try running\n'
-                         ' >>> cell.get_bravais_lattice().tocell()\n'
+                         '```\n cell.get_bravais_lattice().tocell()\n```\n'
                          'within python to obtain a reduced cell')
     celldms: Dict[int, float] = {}
     [A, B, C, _, _, gamma] = new_cell.cellpar(radians=True)
@@ -254,7 +254,7 @@ def cell_to_parameters(cell: Cell) -> CellParams:
         celldms[5] = cosbeta
         celldms[6] = cosgamma
     else:
-        raise ValueError(f"Unrecognised Bravais lattice {lat.name}")
+        raise ValueError(f"Unrecognised Bravais lattice `{lat.name}`")
 
     # Convert to Bohr radii
     celldms[1] /= Bohr

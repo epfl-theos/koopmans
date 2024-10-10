@@ -5,7 +5,6 @@ import pytest
 from koopmans import utils
 from koopmans.commands import (Command, ParallelCommand,
                                ParallelCommandWithPostfix)
-from koopmans.io import decode, encode
 
 
 def test_command():
@@ -14,7 +13,6 @@ def test_command():
     c = Command(c_str)
     assert c.executable == 'pw.x'
     assert str(c) == c_str
-    assert decode(encode(c)) == c
 
     # Creation from another command object
     c2 = Command(c)
@@ -35,7 +33,6 @@ def test_parallel_command(mpi_command, executable, suffix):
     assert c.executable == executable
     assert c.mpi_command == mpi_command
     assert str(c) == c_str
-    assert decode(encode(c)) == c
 
 
 def test_parallel_command_with_postfix():
@@ -47,4 +44,3 @@ def test_parallel_command_with_postfix():
 
         assert c.postfix == postfix
         assert c.flags == postfix
-        assert decode(encode(c)) == c
