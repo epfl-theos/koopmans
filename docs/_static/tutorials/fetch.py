@@ -26,13 +26,14 @@ def extract(filename_in, filename_out, start=0, end=None, heading=None):
 
     flines = flines[start:end]
 
-    # Find the shortest leading whitespace and strip this from all lines (as otherwise the markdown will be rendered as a code block)
+    # Find the shortest leading whitespace and strip this from all lines (as otherwise the markdown will be rendered
+    # as a code block)
     min_indent = min(len(line) - len(line.lstrip()) for line in flines if line.strip())
     flines = [line if line == "\n" else line[min_indent:]for line in flines]
 
-    # Manual conversion of double spaces to /
-    flines = [line[:-2] + '\ \n' if (line.endswith('  \n')
-                                     and not line.strip().startswith('-')) else line for line in flines]
+    # Manual conversion of double spaces to "\"
+    flines = [line[:-2] + '\\ \n' if (line.endswith('  \n')
+                                      and not line.strip().startswith('-')) else line for line in flines]
 
     with open(filename_out, 'w') as fd:
         fd.writelines(flines)
@@ -48,15 +49,17 @@ if __name__ == '__main__':
 
     # Tutorial 2
     extract('../../../tutorials/tutorial_2/si_wannierize.md', 'tutorial_2/md_excerpts/si_wannierize.md', start=18)
-    extract('../../../tutorials/tutorial_2/si_ki.md', 'tutorial_2/md_excerpts/si_ki_wannierize.md', heading="Wannierize")
-    extract('../../../tutorials/tutorial_2/si_ki.md', 'tutorial_2/md_excerpts/si_ki_fold.md', heading="Fold To Supercell")
+    extract('../../../tutorials/tutorial_2/si_ki.md', 'tutorial_2/md_excerpts/si_ki_wannierize.md',
+            heading="Wannierize")
+    extract('../../../tutorials/tutorial_2/si_ki.md', 'tutorial_2/md_excerpts/si_ki_fold.md',
+            heading="Fold To Supercell")
     extract('../../../tutorials/tutorial_2/si_ki.md', 'tutorial_2/md_excerpts/si_ki_screening.md', 51, 61)
-    extract('../../../tutorials/tutorial_2/si_ki.md',
-            'tutorial_2/md_excerpts/si_ki_postproc.md', heading="Unfold And Interpolate")
+    extract('../../../tutorials/tutorial_2/si_ki.md', 'tutorial_2/md_excerpts/si_ki_postproc.md',
+            heading="Unfold And Interpolate")
 
     # Tutorial 3
-    extract('../../../tutorials/tutorial_3/01-ki/zno.md',
-            'tutorial_3/md_excerpts/zno_wannierize_section.md', heading='Wannierize')
+    extract('../../../tutorials/tutorial_3/01-ki/zno.md', 'tutorial_3/md_excerpts/zno_wannierize_section.md',
+            heading='Wannierize')
     extract('../../../tutorials/tutorial_3/01-ki/zno.md', 'tutorial_3/md_excerpts/zno_w2kc.md', -4, -3)
     extract('../../../tutorials/tutorial_3/01-ki/zno.md', 'tutorial_3/md_excerpts/zno_ham.md', -3, -2)
     copy('../../../tutorials/tutorial_3/01-ki/01-koopmans-dfpt/Koopmans_DFPT_bandstructure.png', 'tutorial_3/')
@@ -66,13 +69,13 @@ if __name__ == '__main__':
 
     # Tutorial 5
     extract('../../../tutorials/tutorial_5/01-train/h2o_train.md', 'tutorial_5/md_excerpts/train.md', 45, 92)
-    extract('../../../tutorials/tutorial_5/02-predict/h2o_predict.md',
-            'tutorial_5/md_excerpts/predict.md', heading='Calculate Screening Via DSCF')
+    extract('../../../tutorials/tutorial_5/02-predict/h2o_predict.md', 'tutorial_5/md_excerpts/predict.md',
+            heading='Calculate Screening Via DSCF')
     extract('../../../tutorials/tutorial_5/03-test/h2o_test.md', 'tutorial_5/md_excerpts/test.md', 45, 96)
 
     # Tutorial 6
     extract('../../../tutorials/tutorial_6/cri3.md', 'tutorial_6/md_excerpts/cri3_wannierize_spin_up.md', 20, 35)
     extract('../../../tutorials/tutorial_6/cri3.md', 'tutorial_6/md_excerpts/cri3_wannierize_spin_down.md', 43, 55)
     extract('../../../tutorials/tutorial_6/cri3.md', 'tutorial_6/md_excerpts/cri3_final.md', heading='02-ki_final')
-    extract('../../../tutorials/tutorial_6/cri3.md',
-            'tutorial_6/md_excerpts/cri3_postproc.md', heading='Unfold And Interpolate')
+    extract('../../../tutorials/tutorial_6/cri3.md', 'tutorial_6/md_excerpts/cri3_postproc.md',
+            heading='Unfold And Interpolate')

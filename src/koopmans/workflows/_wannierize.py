@@ -79,7 +79,7 @@ class WannierizeWorkflow(Workflow):
                 if not spin:
                     num_bands_occ /= 2
                 divs = self.projections.divisions(spin)
-                cumulative_divs = [sum(divs[:i+1]) for i in range(len(divs))]
+                cumulative_divs = [sum(divs[:i + 1]) for i in range(len(divs))]
                 if num_bands_occ not in cumulative_divs:
                     message = 'The provided `Wannier90` projections are not commensurate with the number of ' \
                               'electrons; divide your list of projections into sublists that represent blocks ' \
@@ -104,8 +104,8 @@ class WannierizeWorkflow(Workflow):
             pass
 
         else:
-            raise NotImplementedError('`WannierizeWorkflow` only supports setting `init_orbitals` and `init_empty_orbitals` '
-                                      'to `mlwfs`/`projwfs`/`kohn-sham`')
+            raise NotImplementedError('`WannierizeWorkflow` only supports setting `init_orbitals` and '
+                                      '`init_empty_orbitals` to `mlwfs`/`projwfs`/`kohn-sham`')
 
         # Spin-polarization
         self._force_nspin2 = force_nspin2
@@ -163,7 +163,8 @@ class WannierizeWorkflow(Workflow):
             for block in self.projections:
                 wannierize_block_subworkflow = WannierizeBlockWorkflow.fromparent(
                     self, force_nspin2=self._force_nspin2, block=block)
-                wannierize_block_subworkflow.name = f'Wannierize {block.name.replace("_", " ").replace("block", "Block")}'
+                wannierize_block_subworkflow.name = \
+                    f'Wannierize {block.name.replace("_", " ").replace("block", "Block")}'
                 wannierize_block_subworkflow.run()
 
                 # Store the results
@@ -211,10 +212,11 @@ class WannierizeWorkflow(Workflow):
                             u_matrices_files[label] = FilePointer(merge_u_proc, merge_u_proc.outputs.dst_file)
 
                             # Merging the wannier centers files
-                            merge_centers_proc = MergeProcess(merge_function=partial(merge_wannier_centers_file_contents, atoms=self.atoms),
-                                                              src_files=[(calc, Path(calc.prefix + '_centres.xyz'))
-                                                                         for calc in src_calcs],
-                                                              dst_file=prefix + f'{emp_label}_centres.xyz')
+                            merge_centers_proc = MergeProcess(
+                                merge_function=partial(merge_wannier_centers_file_contents, atoms=self.atoms),
+                                src_files=[(calc, Path(calc.prefix + '_centres.xyz'))
+                                           for calc in src_calcs],
+                                dst_file=prefix + f'{emp_label}_centres.xyz')
                             merge_centers_proc.name = f'merge_{label}_wannier_centers'
                             self.run_process(merge_centers_proc)
                             centers_files[label] = FilePointer(merge_centers_proc, merge_centers_proc.outputs.dst_file)
@@ -259,7 +261,8 @@ class WannierizeWorkflow(Workflow):
 
             # Link the save directory so that the bands calculation can use the old density
             self.link(calc_nscf, (calc_nscf.parameters.outdir / calc_nscf.parameters.prefix).with_suffix('.save'),
-                      calc_pw_bands, (calc_pw_bands.parameters.outdir / calc_pw_bands.parameters.prefix).with_suffix('.save'))
+                      calc_pw_bands,
+                      (calc_pw_bands.parameters.outdir / calc_pw_bands.parameters.prefix).with_suffix('.save'))
             self.run_calculator(calc_pw_bands)
 
             # Calculate a projected DOS
@@ -292,9 +295,9 @@ class WannierizeWorkflow(Workflow):
 
             # Prepare the band structures for plotting
             ax = None
-            labels = ['explicit'] \
-                + [f'interpolation ({c.absolute_directory.parent.name.split("-", 2)[-1].replace("block-", "block ").replace("spin-", "spin ").replace("-",", ")})'
-                   for c in selected_calcs]
+            labels = ['explicit'] + [f'interpolation ({c.absolute_directory.parent.name})' for c in selected_calcs]
+            labels = [l.split("-", 2)[-1].replace("block-", "block ").replace("spin-", "spin ").replace("-", ", ")
+                      for l in labels]
             color_cycle = plt.rcParams['axes.prop_cycle']()
             bsplot_kwargs_list = []
             colors = {}
