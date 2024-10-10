@@ -1680,13 +1680,14 @@ def read_atoms_dict(dct: Dict[str, Any]) -> Tuple[Atoms, List[Atoms]]:
         subdct = dct.pop('atomic_positions')
         snapshots = ase_read(subdct['snapshots'], index=':')
 
-        # If periodic is manually provided, ovveride what is provided in the xyz file
-        periodic = dct.get('cell_parameters', {}).get('periodic', None)
-        if periodic is not None:
-            for s in snapshots:
-                s.pbc = periodic
-
         atoms = snapshots[0]
+
+        # If cell parameters are manually provided, override what is provided in the xyz file
+        if 'cell_parameters' in dct:
+            utils.read_cell_parameters(atoms, dct['cell_parameters'])
+            for s in snapshots[1:]:
+                s.cell = atoms.cell
+                s.pbc = atoms.pbc
     else:
         atoms = Atoms()
         snapshots = None
