@@ -13,11 +13,9 @@ First, let us inspect the input file:
 .. literalinclude:: ../../tutorials/tutorial_6/cri3.json
   :lines: 1-10
   :lineno-start: 1
-  :emphasize-lines: 4,6,10
+  :emphasize-lines: 4,6,8,9,10
 
-Here we tell the code to calculate the KI bandstructure using the ΔSCF supercell cell approach. We will not actually calculate the screening parameters in this tutorial (because this calculation takes a bit of time) so we have set ``calculate_alpha`` to ``False`` and we have provided a reasonable value for the screening parameters in the ``alpha_guess`` field. (This value corresponds to the inverse of the (average of the) macroscopic dielectric function, computed using DFT.)
-
-In its low-temperature phase, bulk CrI\ :sub:`3` is a ferromagnetic semiconductor with 3 unpaired *d* electrons on each of the two Cr atoms in the primitive cell. We provide this information in the input file by setting ``spin_polarized`` to ``true`` and by specifying the expected total magnetization in the ``calculator parameters`` block.
+Here we tell the code to calculate the KI bandstructure using the ΔSCF supercell cell approach. We will not actually calculate the screening parameters in this tutorial (because this calculation takes a bit of time) so we have set ``calculate_alpha`` to ``False`` and we have provided a reasonable value for the screening parameters in the ``alpha_guess`` field. (This value corresponds to the inverse of the (average of the) macroscopic dielectric function, computed using DFT.) In its low-temperature phase, bulk CrI\ :sub:`3` is a ferromagnetic semiconductor with 3 unpaired *d* electrons on each of the two Cr atoms in the primitive cell. We provide this information in the input file by setting ``spin_polarized`` to ``true`` and by specifying the expected total magnetization in the ``calculator parameters`` block.
 
 .. note::
 
@@ -39,38 +37,41 @@ Running the calculation
 
 Running ``koopmans cri3.json`` should produce an output with several sections printing information on the different steps: after the header, the Wannierization is performed for the two spin channels, one at the time:
 
-.. literalinclude:: ../../tutorials/tutorial_6/cri3.out
-  :lines: 23-25
-  :lineno-start: 23
-  :language: text
+----
+
+.. include:: ../_static/tutorials/tutorial_6/md_excerpts/cri3_wannierize_spin_up.md
+  :parser: myst_parser.sphinx_
 
 ...
 
-.. literalinclude:: ../../tutorials/tutorial_6/cri3.out
-  :lines: 38-40
-  :lineno-start: 38
-  :language: text
+.. include:: ../_static/tutorials/tutorial_6/md_excerpts/cri3_wannierize_spin_down.md
+  :parser: myst_parser.sphinx_
 
+----
 
 Having completed the Wannierization, the results are converted to a supercell for subsequent ``kcp.x`` calculations, and the DFT initialization in the supercell is run. If we had instructed the code to calculate the screening parameters, this would then be followed by an extra step where these are calculated. But since we have told the code not to compute the screening parameters, the workflow progresses immediately to the final step
 
-.. literalinclude:: ../../tutorials/tutorial_6/cri3.out
-  :lines: 90-92
-  :lineno-start: 90
-  :language: text
+----
+
+.. include:: ../_static/tutorials/tutorial_6/md_excerpts/cri3_final.md
+  :parser: myst_parser.sphinx_
+
+----
 
 where the KI Hamiltonian is constructed and diagonalized in the supercell. To get the final band structure plot on the path specified in the input file, a postprocessing step is needed to unfold the bands from the Γ-point of the supercell into the Brillouin zone of the primitive cell: 
 
-.. literalinclude:: ../../tutorials/tutorial_6/cri3.out
-  :lines: 95-100
-  :lineno-start: 95
-  :language: text
+----
+
+.. include:: ../_static/tutorials/tutorial_6/md_excerpts/cri3_postproc.md
+  :parser: myst_parser.sphinx_
+
+----
 
 
 Plotting the results
 ^^^^^^^^^^^^^^^^^^^^
 
-To plot the final KI band structure, we will load all of the information from the ``cri3.kwf`` file, as we already did for ZnO in :ref:`Tutorial 3 <tutorial_3>`. This is done in the ``plot_bands.py`` script, which generates the following figure:
+To plot the final KI band structure, we will load all of the information from the ``cri3.pkl`` file, as we already did for ZnO in :ref:`Tutorial 3 <tutorial_3>`. This is done in the ``plot_bands.py`` script, which generates the following figure:
 
 .. figure:: ../../tutorials/tutorial_6/cri3_bandstructures.png
   :width: 600

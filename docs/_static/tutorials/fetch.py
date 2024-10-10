@@ -69,3 +69,10 @@ if __name__ == '__main__':
     extract('../../../tutorials/tutorial_5/02-predict/h2o_predict.md',
             'tutorial_5/md_excerpts/predict.md', heading='Calculate Screening Via DSCF')
     extract('../../../tutorials/tutorial_5/03-test/h2o_test.md', 'tutorial_5/md_excerpts/test.md', 45, 96)
+
+    # Tutorial 6
+    extract('../../../tutorials/tutorial_6/cri3.md', 'tutorial_6/md_excerpts/cri3_wannierize_spin_up.md', 20, 35)
+    extract('../../../tutorials/tutorial_6/cri3.md', 'tutorial_6/md_excerpts/cri3_wannierize_spin_down.md', 43, 55)
+    extract('../../../tutorials/tutorial_6/cri3.md', 'tutorial_6/md_excerpts/cri3_final.md', heading='02-ki_final')
+    extract('../../../tutorials/tutorial_6/cri3.md',
+            'tutorial_6/md_excerpts/cri3_postproc.md', heading='Unfold And Interpolate')
