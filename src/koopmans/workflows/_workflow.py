@@ -102,7 +102,7 @@ class Workflow(utils.HasDirectory, ABC):
     calculator_parameters: Dict[str, settings.SettingsDict]
     name: str
     kpoints: Kpoints
-    _pseudopotentials: OrderedDict[str, str]
+    _pseudopotentials: Dict[str, str]
     pseudo_dir: Path
     projections: ProjectionBlocks
     ml_model: Optional[AbstractMLModel]
@@ -466,13 +466,15 @@ class Workflow(utils.HasDirectory, ABC):
         ...
 
     @property
-    def pseudopotentials(self) -> Dict[str, str]:
-        return self._pseudopotentials
+    def pseudopotentials(self) -> OrderedDict[str, str]:
+        # Always return the pseudopotentials in alphabetical order
+        out = OrderedDict()
+        for k in sorted(self._pseudopotentials):
+            out[k] = self._pseudopotentials[k]
+        return out
 
     @pseudopotentials.setter
-    def pseudopotentials(self, value: Union[Dict[str, str], OrderedDict[str, str]]):
-        if not isinstance(value, OrderedDict):
-            value = OrderedDict(value)
+    def pseudopotentials(self, value: Dict[str, str]):
         self._pseudopotentials = value
 
     def get_step_by_uuid(self, uuid: str):
