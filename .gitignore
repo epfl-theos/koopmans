@@ -17,15 +17,6 @@ coverage.xml
 .mypy_cache/
 TMP-CP/
 TMP/
-calc_alpha/
-calculate_eps/
-dft_bands/
-final/
-init/
-pdos/
-postproc/
-wannier/
-screening/
-hamiltonian/
+??-*/
 build/
 dist/

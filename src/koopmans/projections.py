@@ -5,13 +5,15 @@ from ase import Atoms
 from ase.io.wannier90 import (list_to_formatted_str, num_wann_from_projections,
                               proj_string_to_dict)
 
+from koopmans import calculators
+
 
 class ProjectionBlock(object):
     # This simple object contains the projections, filling, and spin corresponding to a block of bands
     def __init__(self,
                  projections: List[Union[str, Dict[str, Any]]],
                  spin: Optional[str] = None,
-                 directory: Optional[Path] = None,
+                 name: Optional[str] = None,
                  num_wann: Optional[int] = None,
                  num_bands: Optional[int] = None,
                  include_bands: Optional[List[int]] = None,
@@ -23,11 +25,12 @@ class ProjectionBlock(object):
                 proj = proj_string_to_dict(proj)
             self.projections.append(proj)
         self.spin = spin
-        self.directory = directory
+        self.name = name
         self.num_wann = num_wann
         self.num_bands = num_bands
         self.include_bands = include_bands
         self.exclude_bands = exclude_bands
+        self.w90_calc: calculators.Wannier90Calculator | None = None
 
     def __repr__(self) -> str:
         out = f'ProjectionBlock({[self.projections]}'
@@ -50,6 +53,7 @@ class ProjectionBlock(object):
 
     def todict(self) -> dict:
         dct = {k: v for k, v in self.__dict__.items()}
+        dct.pop('w90_calc')
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
@@ -61,7 +65,8 @@ class ProjectionBlock(object):
         for key in ['projections', 'num_wann', 'num_bands', 'exclude_bands']:
             val = getattr(self, key, None)
             if val is None and key != 'exclude_bands':
-                raise AttributeError(f'You must define {self.__class__.__name__}.{key} before requesting w90_kwargs')
+                raise AttributeError(
+                    f'You must define `{self.__class__.__name__}.{key}` before requesting `w90_kwargs`')
             kwargs[key] = val
         if self.spin is not None:
             kwargs['spin'] = self.spin
@@ -110,6 +115,12 @@ class ProjectionBlocks(object):
             return self.__dict__ == other.__dict__
         return False
 
+    def __getitem__(self, key):
+        return self._blocks[key]
+
+    def __setitem__(self, key, value):
+        self._blocks[key] = value
+
     def divisions(self, spin: Optional[str]) -> List[int]:
         # This algorithm works out the size of individual "blocks" in the set of bands
         divs: List[int] = []
@@ -121,7 +132,7 @@ class ProjectionBlocks(object):
                     excl_bands.remove(excl_band)
                     divs.append(1)
                 elif excl_band > sum(divs) and excl_band <= sum(divs) + block_size:
-                    raise ValueError('The Wannier90 excluded bands are mixed with a block of projections. '
+                    raise ValueError('The `Wannier90` excluded bands are mixed with a block of projections. '
                                      'Please redefine excluded_bands such that the remaining included bands are '
                                      'commensurate with the provided projections')
             divs.append(block_size)
@@ -162,11 +173,11 @@ class ProjectionBlocks(object):
                 if len(to_exclude) > 0:
                     b.exclude_bands = list_to_formatted_str(to_exclude)
 
-                # Construct directory
+                # Construct name
                 label = f'block_{iblock + 1}'
                 if spin:
                     label = f'spin_{spin}_{label}'
-                b.directory = Path(label)
+                b.name = label
 
         return self._blocks
 
@@ -181,7 +192,7 @@ class ProjectionBlocks(object):
                  atoms: Atoms):
 
         if not all([isinstance(p, list) for p in list_of_projections]):
-            raise ValueError('list_of_projections must be a list of lists')
+            raise ValueError('`list_of_projections` must be a list of lists')
         blocks: List[ProjectionBlock] = []
         blocks += [ProjectionBlock(p, s) for p, s in zip(list_of_projections, spins) if len(p) > 0]
 
@@ -223,15 +234,15 @@ class ProjectionBlocks(object):
         return new_bandblock
 
     @property
-    def to_merge(self) -> Dict[Path, List[ProjectionBlock]]:
+    def to_merge(self) -> Dict[str, List[ProjectionBlock]]:
         # Group the blocks by their correspondence to occupied/empty bands, and by their spin
-        dct: Dict[Path, List[ProjectionBlock]] = {}
+        dct: Dict[str, List[ProjectionBlock]] = {}
         for block in self.blocks:
             try:
                 n_occ_bands = self.num_occ_bands[block.spin]
             except KeyError:
                 raise AssertionError(
-                    'Initialize ProjectionBlocks.num_occ_bands before calling ProjectionBlocks.to_merge()')
+                    'Initialize `ProjectionBlocks.num_occ_bands` before calling `ProjectionBlocks.to_merge()`')
             if max(block.include_bands) <= n_occ_bands:
                 label = 'occ'
             elif min(block.include_bands) > n_occ_bands:
@@ -240,9 +251,8 @@ class ProjectionBlocks(object):
                 raise ValueError('Block spans both occupied and empty manifolds')
             if block.spin:
                 label += f'_{block.spin}'
-            directory = Path(label)
-            if directory in dct:
-                dct[directory].append(block)
+            if label in dct:
+                dct[label].append(block)
             else:
-                dct[directory] = [block]
+                dct[label] = [block]
         return dct

@@ -20,7 +20,7 @@ from koopmans import pseudopotentials
 from koopmans.commands import Command, ParallelCommand
 from koopmans.settings import ProjwfcSettingsDict
 
-from ._utils import CalculatorABC, CalculatorExt
+from ._calculator import CalculatorABC, CalculatorExt
 
 
 class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
@@ -31,6 +31,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
     def __init__(self, atoms: Atoms, *args, **kwargs):
         # Define the valid settings
         self.parameters = ProjwfcSettingsDict()
+        self.parent = None
 
         # Initialize first using the ASE parent and then CalculatorExt
         Projwfc.__init__(self, atoms=atoms)
@@ -49,12 +50,15 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         self.pseudo_dir: Optional[Path] = None
         self.spin_polarized: Optional[bool] = None
 
-    def _calculate(self):
+    def _pre_calculate(self):
+        super()._pre_calculate()
         for attr in ['pseudopotentials', 'pseudo_dir', 'spin_polarized']:
             if not hasattr(self, attr):
-                raise ValueError(f'Please set {self.__class__.__name__}.{attr} before calling '
-                                 f'{self.__class__.__name__.calculate()}')
-        super()._calculate()
+                raise ValueError(f'Please set `{self.__class__.__name__}.{attr}` before calling '
+                                 f'`{self.__class__.__name__}calculate()`')
+
+    def _post_calculate(self):
+        super()._post_calculate()
         self.generate_dos()
 
     @property
@@ -63,7 +67,10 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         Generates a list of orbitals (e.g. 1s, 2s, 2p, ...) expected for each element in the system, based on the
         corresponding pseudopotential.
         """
-        return pseudopotentials.expected_subshells(self.atoms, self.pseudopotentials, self.pseudo_dir)
+        # A projwfc does not naturally have access to the pseudopotentials via the standard pseudo_directory.
+        # Instead, they can be found in the TMP directory
+        pseudo_dir = self.directory / self.parameters.outdir / (self.parameters.prefix + '.save')
+        return pseudopotentials.expected_subshells(self.atoms, self.pseudopotentials, pseudo_dir)
 
     def generate_dos(self) -> GridDOSCollection:
         """
@@ -75,7 +82,8 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
             # The filename does not encode the principal quantum number n. In order to recover this number, we compare
             # the reported angular momentum quantum number l against the list of expected orbitals, and infer n
             # assuming only that the file corresponding to nl will come before (n+1)l
-            orbitals = copy.copy(self._expected_orbitals[atom.symbol])
+            label = atom.symbol + str(atom.tag) if atom.tag > 0 else atom.symbol
+            orbitals = copy.copy(self._expected_orbitals[label])
             for filename in filenames:
                 # Infer l from the filename
                 subshell = filename.name[-2]
@@ -104,7 +112,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         # Compare against the expected subshell
         if subshell != expected_subshell[1]:
             raise ValueError(
-                f"Unexpected pdos file {filename.name}, a pdos file corresponding to {expected_subshell} was expected")
+                f"Unexpected pdos file `{filename.name}`, a pdos file corresponding to {expected_subshell} was expected")
 
         # Work out what orbitals will be contained within the pDOS file
         orbital_order = {"s": ["s"], "p": ["pz", "px", "py"], "d": ["dz2", "dxz", "dyz", "dx2-y2", "dxy"]}

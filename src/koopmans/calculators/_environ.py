@@ -26,10 +26,9 @@ class EnvironCalculator(PWCalculator):
         # Add dictionary of environ settings
         self.environ_settings = copy.deepcopy(_default_settings)
 
-    def calculate(self):
-        # Generic function for running a calculation
+    def _pre_calculate(self):
         self.write_environ_in()
-        super().calculate()
+        super()._pre_calculate()
 
     def set_environ_settings(self, settings, use_defaults=True):
         self.environ_settings = settings
@@ -63,7 +62,7 @@ class EnvironCalculator(PWCalculator):
     def check_code_is_installed(self):
         super().check_code_is_installed()
         if not environ_addon_is_installed(self.command.path.parent):
-            raise OSError('The pw add-on "environ" is not installed')
+            raise OSError('The pw add-on `environ` is not installed')
 
 
 def environ_addon_is_installed(qe_directory):

@@ -57,7 +57,7 @@ for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rgl
         elif 'PAW' in original_library or original_library == 'Wentzcovitch':
             kind = 'projector-augmented wave'
         else:
-            raise ValueError(f'Unrecognized library {original_library}')
+            raise ValueError(f'Unrecognized library `{original_library}`')
         citations += ['Lejaeghere2016', 'Prandini2018']
         for key in ['cutoff_wfc', 'cutoff_rho']:
             kwargs[key] = metadata[key]
@@ -89,9 +89,9 @@ def fetch_pseudo(**kwargs: Any) -> Pseudopotential:
     matches = [psp for psp in pseudo_database if all([getattr(psp, k) == v for k, v in kwargs.items()])]
     request_str = ', '.join([f'{k} = {v}' for k, v in kwargs.items()])
     if len(matches) == 0:
-        raise ValueError('Could not find a pseudopotential in the database matching ' + request_str)
+        raise ValueError(f'Could not find a pseudopotential in the database matching `{request_str}`')
     elif len(matches) > 1:
-        raise ValueError('Found multiple pseudopotentials in the database matching ' + request_str)
+        raise ValueError(f'Found multiple pseudopotentials in the database matching `{request_str}`')
     else:
         return matches[0]
 
@@ -103,7 +103,15 @@ def read_pseudo_file(filename: Path) -> Dict[str, Any]:
 
     '''
 
-    upf: Dict[str, Any] = upf_to_json(open(filename, 'r').read(), filename.name)
+    if not filename.exists():
+        raise FileNotFoundError(f'Could not find the pseudopotential file `{filename}`')
+
+    with open(filename, 'r') as f:
+        upf_str = f.read()
+    upf = upf_to_json(upf_str, filename.name)
+
+    if upf is None:
+        raise ValueError(f'Failed to parse the pseudopotential file `{filename}`')
 
     return upf['pseudo_potential']
 
@@ -160,14 +168,15 @@ def expected_subshells(atoms: Atoms, pseudopotentials: Dict[str, str],
 
     expected_orbitals = {}
     for atom in atoms:
-        if atom.symbol in expected_orbitals:
+        label = atom.symbol + str(atom.tag) if atom.tag > 0 else atom.symbol
+        if label in expected_orbitals:
             continue
-        pseudo_file = pseudopotentials[atom.symbol]
+        pseudo_file = pseudopotentials[label]
         z_core = atom.number - valence_from_pseudo(pseudo_file, pseudo_dir)
         if z_core in z_core_to_first_orbital:
             first_orbital = z_core_to_first_orbital[z_core]
         else:
-            raise ValueError(f'Failed to identify the subshells of the valence of {pseudo_file}')
+            raise ValueError(f'Failed to identify the subshells of the valence of `{pseudo_file}`')
         all_orbitals = list(z_core_to_first_orbital.values()) + ['5d', '6p', '6d']
-        expected_orbitals[atom.symbol] = sorted(all_orbitals[all_orbitals.index(first_orbital):])
+        expected_orbitals[label] = sorted(all_orbitals[all_orbitals.index(first_orbital):])
     return expected_orbitals

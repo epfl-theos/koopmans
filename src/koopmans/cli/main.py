@@ -1,12 +1,22 @@
 #!/usr/bin/env python3
 
-import sys
 import argparse
+import re
+import sys
 import textwrap
+import traceback
 
 import koopmans.mpl_config
 from koopmans.io import read
-from koopmans.settings import WorkflowSettingsDict
+from koopmans.utils import print_alert
+
+
+def _custom_exception_hook(exception_type, exception_value, traceback):
+    # Adding spaces to the error name so that it is easier to read
+    spaced_text = re.sub(r'([a-z])([A-Z])', r'\1 \2', exception_type.__name__)
+    spaced_text = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1 \2', spaced_text)
+
+    print_alert('caution', str(exception_value), header=spaced_text, indent=1)
 
 
 def main():
@@ -25,10 +35,10 @@ def main():
     # Reading in JSON file
     workflow = read(args.json)
 
-    # Set traceback behaviour
+    # Set traceback behavior
     if not args.traceback:
         sys.tracebacklimit = 0
-    
+        sys.excepthook = _custom_exception_hook
 
     # Run workflow
     workflow.run()

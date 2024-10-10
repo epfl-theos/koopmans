@@ -9,8 +9,6 @@ from hypothesis import given, settings
 from hypothesis.strategies import (booleans, composite, decimals, floats,
                                    integers, lists)
 
-from koopmans.kpoints import Kpoints
-
 
 @composite
 def ase_cells(draw: Callable) -> Cell:
@@ -76,7 +74,8 @@ _offsets_nscf = lists(floats(min_value=0, max_value=1), min_size=3, max_size=3)
 
 
 @composite
-def _kpoints_via_bandpath(draw) -> Kpoints:
+def _kpoints_via_bandpath(draw):
+    from koopmans.kpoints import Kpoints
     gamma_only = draw(booleans())
     if gamma_only:
         grid = None
@@ -91,7 +90,8 @@ def _kpoints_via_bandpath(draw) -> Kpoints:
 
 
 @composite
-def _kpoints_via_pathstr(draw) -> Kpoints:
+def _kpoints_via_pathstr(draw):
+    from koopmans.kpoints import Kpoints
     gamma_only = draw(booleans())
     if gamma_only:
         grid = None

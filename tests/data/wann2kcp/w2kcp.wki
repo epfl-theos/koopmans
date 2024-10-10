@@ -1,5 +1,5 @@
 &inputpp
-   outdir           = '/home/elinscott/code/koopmans/tests/tmp/test_singlepoint_gaas_wan2odd0/init/wannier/TMP'
+   outdir           = 'init/wannier/TMP'
    prefix           = 'kc'
    seedname         = 'wann'
    wan_mode         = 'wannier2kcp'

@@ -6,7 +6,6 @@ from ase.lattice import (BCC, BCT, CUB, FCC, HEX, MCL, MCLC, ORC, ORCC, ORCF,
 from hypothesis import given, settings, strategies
 
 from koopmans.cell import cell_to_parameters, parameters_to_cell
-
 from tests.helpers import strategies as kst
 
 # Reference list of ASE Bravais lattice classes

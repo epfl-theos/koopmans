@@ -1,5 +1,5 @@
 &inputph
-   outdir           = '/home/elinscott/code/koopmans/tests/tmp/test_dftph_tio20/TMP'
+   outdir           = 'TMP'
    prefix           = 'kc'
    epsil            = .true.
    tr2_ph           = 1e-14

@@ -4,6 +4,7 @@ from ase.calculators.calculator import CalculationFailed
 
 from koopmans import utils
 from koopmans.calculators import EnvironCalculator
+from koopmans.outputs import OutputModel
 
 from ._workflow import Workflow
 
@@ -12,7 +13,14 @@ Workflow for performing delta SCF PBE calculations using pw.x --environ
 '''
 
 
+class DeltaSCFOutput(OutputModel):
+    pass
+
+
 class DeltaSCFWorkflow(Workflow):
+
+    output_model = DeltaSCFOutput
+    outputs: DeltaSCFOutput
 
     def _run(self):
         # Run workflow

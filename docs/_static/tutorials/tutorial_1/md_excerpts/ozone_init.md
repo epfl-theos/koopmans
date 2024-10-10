@@ -1,0 +1,5 @@
+- **Initialization**
+  - ✅ `01-dft_init_nspin1` completed  
+  - ✅ `02-dft_init_nspin2_dummy` completed  
+  - ✅ `03-convert_files_from_spin1to2` completed  
+  - ✅ `04-dft_init_nspin2` completed  

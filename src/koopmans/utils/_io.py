@@ -8,6 +8,8 @@ Moved into utils Sep 2021
 """
 
 import json
+import sys
+import textwrap
 from datetime import datetime
 from pathlib import Path
 from typing import IO, Any, Dict, List, Tuple, Union
@@ -20,6 +22,8 @@ from ase.units import Bohr
 
 from koopmans.cell import (cell_follows_qe_conventions, cell_to_parameters,
                            parameters_to_cell)
+
+from ._os import HasDirectory, get_content
 
 
 def parse_dict(dct: Dict[str, Any]) -> Dict[str, Any]:
@@ -130,10 +134,10 @@ def read_atomic_positions(atoms: Atoms, dct: Dict[str, Any]):
         scale_positions = True
     else:
         raise NotImplementedError(
-            f'atomic_positions units = {units} is not yet implemented')
+            f'atomic_positions `units = {units}` is not yet implemented')
 
     if not atoms.cell:
-        raise ValueError('io.read_atomic_positions() must be called after io.read_cell_parameters()')
+        raise ValueError('`io.read_atomic_positions()` must be called after `io.read_cell_parameters()`')
 
     assert len(atoms) == 0, 'Atoms should be length zero at this stage'
     if scale_positions:
@@ -149,8 +153,8 @@ def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
     atoms.pbc = dct.pop('periodic', True)
     if cell is None:
         if 'ibrav' not in dct:
-            raise KeyError('Cell has not been defined. Please specify either "ibrav" and related "celldm"s) '
-                           ' or a "cell_parameters" block in "setup"')
+            raise KeyError('Cell has not been defined. Please specify either `ibrav` and related `celldms`) '
+                           ' or a `cell_parameters` block')
         celldms = {int(k): v for k, v in dct.pop('celldms', {}).items()}
         cell = parameters_to_cell(celldms=celldms, **dct)
     elif units.lower() == 'angstrom':
@@ -160,7 +164,7 @@ def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
     elif units.lower() == 'alat':
         alat = dct.get('celldms', {}).get(1, None)
         if alat is None:
-            raise ValueError('Please provide celldm(1) for a cell specified in units of alat')
+            raise ValueError('Please provide `celldm(1)` for a cell specified in units of `alat`')
         cell = np.array(cell) * alat * Bohr
     else:
         raise ValueError('The combination of vectors, ibrav, & units in the cell_parameter block is not valid')
@@ -169,26 +173,61 @@ def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
 
 
 print_call_end = '\n'
+previous_indent = 0
 
 
 def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n',
-                   flush: bool = False):
+                   flush: bool = False, initial_indent: str | None = None, subsequent_indent: str | None = None, wrap=True):
     global print_call_end
+    global previous_indent
+    if indent < 0:
+        indent = previous_indent
     for substring in text.split('\n'):
-        if print_call_end == '\n':
-            print(' ' * indent + substring, sep=sep, end=end, flush=flush)
+        if print_call_end in ['\n', '\r']:
+            initial_indent = ' ' * indent if initial_indent is None else initial_indent
+            subsequent_indent = ' ' * indent if subsequent_indent is None else subsequent_indent
+            width = 120 if wrap else len(text) + indent
+            message = textwrap.fill(substring, width=width, initial_indent=initial_indent,
+                                    subsequent_indent=subsequent_indent, break_long_words=False, break_on_hyphens=False,
+                                    drop_whitespace=False)
+            print(message, sep=sep, end=end, flush=flush)
         else:
             print(substring, sep=sep, end=end, flush=flush)
     print_call_end = end
+    previous_indent = indent
 
 
-def write_wannier_hr_file(fname: Path, ham: np.ndarray, rvect: List[List[int]], weights: List[int]) -> None:
+def print_alert(kind, message, header=None, indent=-1, **kwargs):
+    global previous_indent
+    allowed_kinds = {'note': "ℹ️ ", 'tip': "💡", 'important': "❕", 'warning': "🚨", 'caution': "❗"}
+    if kind not in allowed_kinds:
+        raise ValueError('`kind` must be one of ' + '/'.join(allowed_kinds.keys()))
+    if sys.stdout.isatty():
+        if indent < 0:
+            indent = previous_indent
+        header = "" if header is None else header + ': ' if message else header
+        indented_print('\n' + allowed_kinds[kind] + ' ' + header + message + '\n', indent, **kwargs)
+    else:
+        if indent >= 0:
+            width = 120 - indent
+        else:
+            width = 120 - previous_indent
+        header = "" if header is None else header
+        message = "\n".join(["",
+                             f'> [!{kind.upper()}] {header} ',
+                             textwrap.fill(str(message), width=width, initial_indent='> ', subsequent_indent='> '),
+                             ""
+                             ])
+        indented_print(message, indent=indent)
+
+
+def generate_wannier_hr_file_contents(ham: np.ndarray, rvect: List[List[int]], weights: List[int]) -> List[str]:
 
     nrpts = len(rvect)
     num_wann = np.size(ham, -1)
     expected_shape = (nrpts, num_wann, num_wann)
     if ham.shape != expected_shape:
-        raise ValueError(f'ham has shape {ham.shape} which does not match the expected shape {expected_shape}')
+        raise ValueError(f'`ham` has shape {ham.shape} which does not match the expected shape {expected_shape}')
 
     flines = [f' Written on {datetime.now().isoformat(timespec="seconds")}']
     flines.append(f'{num_wann:12d}')
@@ -202,36 +241,25 @@ def write_wannier_hr_file(fname: Path, ham: np.ndarray, rvect: List[List[int]], 
         flines += [f'{r[0]:5d}{r[1]:5d}{r[2]:5d}{j+1:5d}{i+1:5d}{val.real:12.6f}{val.imag:12.6f}' for i,
                    row in enumerate(ham_block) for j, val in enumerate(row)]
 
-    # Make sure the parent directory exists
-    fname.parent.mkdir(exist_ok=True, parents=True)
-
-    # Write the Hamiltonian to file
-    with open(fname, 'w') as fd:
-        fd.write('\n'.join(flines))
+    return flines
 
 
-def read_wannier_hr_file(fname: Path) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
-    """
-    Reads in a hr file, but does not reshape the hamiltonian (because we want to reshape different Hamiltonians
-    differently)
+def parse_wannier_hr_file_contents(lines: List[str]) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
+    """ Parse the contents of a Hamiltonian file
 
     Returns a tuple containing...
-        - the hamiltonian
+        - the hamiltonian (not reshaped, because we want to reshape different Hamiltonians differently)
         - the r-vectors
         - the list of weights
         - the number of wannier functions
-
     """
-
-    with open(fname, 'r') as fd:
-        lines = fd.readlines()
 
     if 'written on' in lines[0].lower():
         pass
-    elif 'xml version' in lines[0] or fname == 'hamiltonian_emp.dat':
-        raise ValueError(f'The format of {fname} is no longer supported')
+    elif 'xml version' in lines[0]:
+        raise ValueError(f'The format of Hamiltonian file contents no longer supported')
     else:
-        raise ValueError(f'The format of {fname} is not recognized')
+        raise ValueError(f'The format of the Hamiltonian file contents are not recognized')
 
     # Read in the number of r-points and the number of Wannier functions
     nrpts = int(lines[2].split()[0])
@@ -265,10 +293,12 @@ def read_wannier_hr_file(fname: Path) -> Tuple[np.ndarray, np.ndarray, List[int]
     return hr_np, rvect_np, weights, nrpts
 
 
-def read_wannier_u_file(fname: Path) -> Tuple[npt.NDArray[np.complex128], npt.NDArray[np.float64], int]:
+def read_wannier_hr_file(src_calc_path: Tuple[HasDirectory, Path]) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
+    lines = get_content(*src_calc_path)
+    return parse_wannier_hr_file_contents(lines)
 
-    with open(fname, 'r') as fd:
-        lines = fd.readlines()
+
+def parse_wannier_u_file_contents(lines: List[str]) -> Tuple[npt.NDArray[np.complex128], npt.NDArray[np.float64], int]:
 
     nk, m, n = [int(x) for x in lines[1].split()]
 
@@ -286,7 +316,7 @@ def read_wannier_u_file(fname: Path) -> Tuple[npt.NDArray[np.complex128], npt.ND
     return umat, kpts, nk
 
 
-def write_wannier_u_file(fname: Path, umat: npt.NDArray[np.complex128], kpts: npt.NDArray[np.float64]):
+def generate_wannier_u_file_contents(umat: npt.NDArray[np.complex128], kpts: npt.NDArray[np.float64]) -> List[str]:
 
     flines = [f' Written on {datetime.now().isoformat(timespec="seconds")}']
     flines.append(''.join([f'{x:12d}' for x in umat.shape]))
@@ -296,14 +326,10 @@ def write_wannier_u_file(fname: Path, umat: npt.NDArray[np.complex128], kpts: np
         flines.append(''.join([f'{k:15.10f}' for k in kpt]))
         flines += [f'{c.real:15.10f}{c.imag:15.10f}' for c in umatk.flatten()]
 
-    with open(fname, 'w') as fd:
-        fd.write('\n'.join(flines))
+    return flines
 
 
-def read_wannier_centers_file(fname: Path):
-
-    with open(fname, 'r') as fd:
-        lines = fd.readlines()
+def parse_wannier_centers_file_contents(lines: List[str]) -> Tuple[List[List[float]], Atoms]:
 
     centers = []
     symbols = []
@@ -317,7 +343,7 @@ def read_wannier_centers_file(fname: Path):
     return centers, Atoms(symbols=symbols, positions=positions, pbc=True)
 
 
-def write_wannier_centers_file(fname: Path, centers: List[List[float]], atoms: Atoms):
+def generate_wannier_centers_file_contents(centers: List[List[float]], atoms: Atoms) -> List[str]:
     length = len(centers) + len(atoms)
 
     # Add the header
@@ -332,6 +358,4 @@ def write_wannier_centers_file(fname: Path, centers: List[List[float]], atoms: A
     for atom in atoms:
         flines.append(f'{atom.symbol: <5}' + ''.join([f'{x:16.8f}' for x in atom.position]))
 
-    # Write to file
-    with open(fname, 'w') as fd:
-        fd.write('\n'.join(flines))
+    return flines
