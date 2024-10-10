@@ -30,7 +30,7 @@ jobs:
            run: |
               python bin/update_cff.py
          - name: Validate CITATION.cff
-           uses: dieghernan/cff-validator@main
+           uses: dieghernan/cff-validator@v3
          - name: Commit changes
            uses: test-room-7/action-update-file@v1
            with:
