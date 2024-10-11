@@ -115,8 +115,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                     dft_smooth_ham_file = None
 
                 process = self.new_ui_process(presets, centers=centers[mask], spreads=spreads[mask].tolist(),
-                                              dft_smooth_ham_file=dft_smooth_ham_file,
-                                              dft_ham_file=self._dft_ham_files[(filling, spin)])
+                                              dft_smooth_ham_file=dft_smooth_ham_file)
 
                 # Run the process
                 self.run_process(process)
@@ -178,8 +177,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             preset_tuple = (presets, None)
 
         kwargs['kc_ham_file'] = self._koopmans_ham_files[preset_tuple]
-        if self.calculator_parameters['ui'].do_smooth_interpolation:
-            kwargs['dft_ham_file'] = self._dft_ham_files[preset_tuple]
+        kwargs['dft_ham_file'] = self._dft_ham_files[preset_tuple]
 
         parameters = self.calculator_parameters['ui']
         parameters.kgrid = self.kpoints.grid

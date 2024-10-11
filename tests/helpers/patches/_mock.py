@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Union
 
 import numpy as np
+from ase import Atoms
 
 from koopmans.files import FilePointer
 from koopmans.io import read_pkl
@@ -13,6 +14,19 @@ from koopmans.utils import chdir, symlink, warn
 
 from ._utils import (benchmark_filename, metadata_filename,
                      recursively_find_files)
+
+
+def atoms_eq(self, other):
+    # Patching the Atoms class to compare positions and cell with np.allclose rather than strict equality
+    if not isinstance(other, Atoms):
+        return False
+    a = self.arrays
+    b = other.arrays
+    return (len(self) == len(other) and
+            np.allclose(a['positions'], b['positions']) and
+            (a['numbers'] == b['numbers']).all() and
+            np.allclose(self.cell, other.cell) and
+            (self.pbc == other.pbc).all())
 
 
 def write_mock_file(filename: Union[Path, str], written_by: str):
@@ -173,3 +187,6 @@ def monkeypatch_mock(monkeypatch):
     # Processes
     for p in [ExtractCoefficientsFromXMLProcess, ComputePowerSpectrumProcess, Bin2XMLProcess, ConvertFilesFromSpin1To2, ConvertFilesFromSpin2To1, ExtendProcess, MergeProcess, UnfoldAndInterpolateProcess, MergeEVCProcess]:
         monkeypatch.setattr(p, '_run', mock_process_run)
+
+    # Patch the Atoms class
+    monkeypatch.setattr(Atoms, '__eq__', atoms_eq)

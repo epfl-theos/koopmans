@@ -81,28 +81,3 @@ class UIAtoms(Atoms):
 
         # Return the new UIAtoms object
         return ui_atoms
-
-    def __eq__(self, other):
-        # Patching for test
-        if not isinstance(other, UIAtoms):
-            return False
-        a = self.arrays
-        b = other.arrays
-        if len(self) != len(other):
-            utils.warn('Atoms have different lengths')
-            return False
-        if (a['numbers'] != b['numbers']).any():
-            utils.warn('Atoms have different numbers')
-            return False
-        if (a['positions'] != b['positions']).any():
-            utils.warn('Atoms have different positions')
-            utils.warn(f'{a["positions"]}\n{b["positions"]}')
-            utils.warn(f'{a["positions"] == b["positions"]}')
-            return False
-        if not (self.cell == other.cell).all():
-            utils.warn('Atoms have different cells')
-            return False
-        if not (self.pbc == other.pbc).all():
-            utils.warn('Atoms have different pbc')
-            return False
-        return True
