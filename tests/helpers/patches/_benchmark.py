@@ -14,6 +14,7 @@ from koopmans.io import write_pkl
 from koopmans.processes.bin2xml import Bin2XMLProcess
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
+from koopmans.processes.merge_evc import MergeEVCProcess
 from koopmans.processes.power_spectrum import (
     ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
 from koopmans.processes.ui import UnfoldAndInterpolateProcess
@@ -111,5 +112,5 @@ def monkeypatch_bench(monkeypatch):
         patch_calculator(c, monkeypatch)
 
     for p in [Bin2XMLProcess, ComputePowerSpectrumProcess, ConvertFilesFromSpin1To2, ConvertFilesFromSpin2To1,
-              ExtractCoefficientsFromXMLProcess, UnfoldAndInterpolateProcess, ExtendProcess, MergeProcess]:
+              ExtractCoefficientsFromXMLProcess, UnfoldAndInterpolateProcess, ExtendProcess, MergeProcess, MergeEVCProcess]:
         patch_process(p, monkeypatch)

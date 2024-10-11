@@ -152,6 +152,7 @@ def monkeypatch_mock(monkeypatch):
     from koopmans.processes.bin2xml import Bin2XMLProcess
     from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                                 ConvertFilesFromSpin2To1)
+    from koopmans.processes.merge_evc import MergeEVCProcess
     from koopmans.processes.power_spectrum import (
         ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
     from koopmans.processes.ui import UnfoldAndInterpolateProcess
@@ -170,5 +171,5 @@ def monkeypatch_mock(monkeypatch):
     #     monkeypatch.setattr(c, 'generate_band_structure', mock_generate_band_structure)
 
     # Processes
-    for p in [ExtractCoefficientsFromXMLProcess, ComputePowerSpectrumProcess, Bin2XMLProcess, ConvertFilesFromSpin1To2, ConvertFilesFromSpin2To1, ExtendProcess, MergeProcess, UnfoldAndInterpolateProcess]:
+    for p in [ExtractCoefficientsFromXMLProcess, ComputePowerSpectrumProcess, Bin2XMLProcess, ConvertFilesFromSpin1To2, ConvertFilesFromSpin2To1, ExtendProcess, MergeProcess, UnfoldAndInterpolateProcess, MergeEVCProcess]:
         monkeypatch.setattr(p, '_run', mock_process_run)

@@ -102,7 +102,7 @@ class Workflow(utils.HasDirectory, ABC):
     calculator_parameters: Dict[str, settings.SettingsDict]
     name: str
     kpoints: Kpoints
-    _pseudopotentials: Dict[str, str]
+    pseudopotentials: Dict[str, str]
     pseudo_dir: Path
     projections: ProjectionBlocks
     ml_model: Optional[AbstractMLModel]
@@ -111,7 +111,7 @@ class Workflow(utils.HasDirectory, ABC):
     _step_counter: int
 
     __slots__ = utils.HasDirectory.__slots__ + ['atoms', 'parameters', 'calculator_parameters', 'name', 'kpoints',
-                                                '_pseudopotentials', 'projections', 'ml_model', 'snapshots',
+                                                'pseudopotentials', 'projections', 'ml_model', 'snapshots',
                                                 'version', '_step_counter', 'calculations', 'processes',
                                                 'steps', 'silent', 'print_indent', 'plotting', 'ml', '_bands']
 
@@ -464,18 +464,6 @@ class Workflow(utils.HasDirectory, ABC):
     @abstractmethod
     def output_model(self) -> Type[outputs.OutputModel]:
         ...
-
-    @property
-    def pseudopotentials(self) -> OrderedDict[str, str]:
-        # Always return the pseudopotentials in alphabetical order
-        out = OrderedDict()
-        for k in sorted(self._pseudopotentials):
-            out[k] = self._pseudopotentials[k]
-        return out
-
-    @pseudopotentials.setter
-    def pseudopotentials(self, value: Dict[str, str]):
-        self._pseudopotentials = value
 
     def get_step_by_uuid(self, uuid: str):
         for step in self.steps:
@@ -1185,7 +1173,7 @@ class Workflow(utils.HasDirectory, ABC):
         wf = cls(atoms=dct.pop('atoms'),
                  parameters=dct.pop('parameters'),
                  calculator_parameters=dct.pop('calculator_parameters'),
-                 pseudopotentials=dct.pop('_pseudopotentials'),
+                 pseudopotentials=dct.pop('pseudopotentials'),
                  kpoints=dct.pop('kpoints'),
                  projections=dct.pop('projections'),
                  autogenerate_settings=False,
@@ -1219,7 +1207,6 @@ class Workflow(utils.HasDirectory, ABC):
 
     @classmethod
     def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}, **kwargs):
-
         # Override all keywords provided explicitly
         utils.update_nested_dict(bigdct, override)
 
