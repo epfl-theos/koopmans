@@ -96,6 +96,7 @@ class UIAtoms(Atoms):
             return False
         if (a['positions'] != b['positions']).any():
             utils.warn('Atoms have different positions')
+            utils.warn(f'{a["positions"]}\n{b["positions"]}')
             return False
         if not (self.cell == other.cell).all():
             utils.warn('Atoms have different cells')
