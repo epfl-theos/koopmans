@@ -173,7 +173,9 @@ def monkeypatch_mock(monkeypatch):
     from koopmans.processes.wannier import ExtendProcess, MergeProcess
 
     # Replace calculators with mock versions that obtain results from the database
-    for c in [KoopmansCPCalculator, Wannier90Calculator, PW2WannierCalculator, Wann2KCPCalculator, PhCalculator, PWCalculator, KoopmansCPCalculator, EnvironCalculator, Wann2KCCalculator, KoopmansScreenCalculator, KoopmansHamCalculator, ProjwfcCalculator]:
+    for c in [KoopmansCPCalculator, Wannier90Calculator, PW2WannierCalculator, Wann2KCPCalculator, PhCalculator,
+              PWCalculator, KoopmansCPCalculator, EnvironCalculator, Wann2KCCalculator, KoopmansScreenCalculator,
+              KoopmansHamCalculator, ProjwfcCalculator]:
         monkeypatch.setattr(c, '_calculate', mock_calculator__calculate)
         monkeypatch.setattr(c, 'is_complete', mock_calculator_is_complete)
         monkeypatch.setattr(c, 'check_code_is_installed', mock_calculator_check_code_is_installed)
@@ -185,7 +187,8 @@ def monkeypatch_mock(monkeypatch):
     #     monkeypatch.setattr(c, 'generate_band_structure', mock_generate_band_structure)
 
     # Processes
-    for p in [ExtractCoefficientsFromXMLProcess, ComputePowerSpectrumProcess, Bin2XMLProcess, ConvertFilesFromSpin1To2, ConvertFilesFromSpin2To1, ExtendProcess, MergeProcess, UnfoldAndInterpolateProcess, MergeEVCProcess]:
+    for p in [ExtractCoefficientsFromXMLProcess, ComputePowerSpectrumProcess, Bin2XMLProcess, ConvertFilesFromSpin1To2,
+              ConvertFilesFromSpin2To1, ExtendProcess, MergeProcess, UnfoldAndInterpolateProcess, MergeEVCProcess]:
         monkeypatch.setattr(p, '_run', mock_process_run)
 
     # Patch the Atoms class

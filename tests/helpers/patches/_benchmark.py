@@ -112,5 +112,6 @@ def monkeypatch_bench(monkeypatch):
         patch_calculator(c, monkeypatch)
 
     for p in [Bin2XMLProcess, ComputePowerSpectrumProcess, ConvertFilesFromSpin1To2, ConvertFilesFromSpin2To1,
-              ExtractCoefficientsFromXMLProcess, UnfoldAndInterpolateProcess, ExtendProcess, MergeProcess, MergeEVCProcess]:
+              ExtractCoefficientsFromXMLProcess, UnfoldAndInterpolateProcess, ExtendProcess, MergeProcess,
+              MergeEVCProcess]:
         patch_process(p, monkeypatch)
