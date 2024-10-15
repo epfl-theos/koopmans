@@ -18,7 +18,7 @@ from koopmans.commands import Command, ParallelCommandWithPostfix
 from koopmans.pseudopotentials import nelec_from_pseudos
 from koopmans.settings import PWSettingsDict
 
-from ._utils import CalculatorABC, CalculatorExt, ReturnsBandStructure
+from ._calculator import CalculatorABC, CalculatorExt, ReturnsBandStructure
 
 
 class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC):
@@ -38,25 +38,32 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
             self.command = ParallelCommandWithPostfix(os.environ.get(
                 'ASE_ESPRESSO_COMMAND', self.command))
 
-    def calculate(self):
+    def _pre_calculate(self):
         # Update ibrav and celldms
         if cell_follows_qe_conventions(self.atoms.cell):
             self.parameters.update(**cell_to_parameters(self.atoms.cell))
         else:
             self.parameters.ibrav = 0
-        super().calculate()
 
-    def _calculate(self):
+        # Make sure kpts has been correctly provided
         if self.parameters.calculation == 'bands':
             if not isinstance(self.parameters.kpts, BandPath):
-                raise KeyError('You are running a calculation that requires a kpoint path; please provide a BandPath '
-                               'as the kpts parameter')
+                raise KeyError('You are running a calculation that requires a kpoint path; please provide a `BandPath` '
+                               'as the `kpts` parameter')
 
-        super()._calculate()
+        super()._pre_calculate()
+
+        return
+
+    def _post_calculate(self):
+
+        super()._post_calculate()
 
         if isinstance(self.parameters.kpts, BandPath):
             # Add the bandstructure to the results. This is very un-ASE-y and might eventually be replaced
             self.generate_band_structure()
+
+        return
 
     def is_complete(self):
         return self.results.get('job done', False)
@@ -77,7 +84,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
 
         # Fetch the total number of electrons in the system
         nelec = nelec_from_pseudos(self.atoms, self.parameters.pseudopotentials,
-                                   self.parameters.pseudo_dir) + self.parameters.get('tot_charge', 0)
+                                   self.directory / self.parameters.pseudo_dir) + self.parameters.get('tot_charge', 0)
 
         # Determine the number of occupied bands in each spin channel
         if self.parameters.nspin == 1:

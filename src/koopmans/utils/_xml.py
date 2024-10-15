@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 
@@ -36,18 +36,18 @@ def read_xml_nr(xml_file: Path, string: str = 'EFFECTIVE-POTENTIAL') -> List[int
 
 
 def read_xml_array(
-    xml_file: Path, norm_const: float, string: str = 'EFFECTIVE-POTENTIAL', retain_final_element: bool=False
-    ) -> np.ndarray:
+    xml_file: Path, norm_const: float, string: str = 'EFFECTIVE-POTENTIAL', retain_final_element: bool = False
+) -> np.ndarray:
     """
     Loads an array from an xml file.
-    
+
     :param xml_file: The xml file to read from
     :param norm_const: The normalization constant to multiply the array with (in our case 1/((Bohr radii)^3)
-    :param string: The name of the field in the xml file that contains the array, in our case either 
+    :param string: The name of the field in the xml file that contains the array, in our case either
     'EFFECTIVE-POTENTIAL' or 'CHARGE-DENSITY'
-    :param retain_final_element: If True, the array is returned in with periodic boundary conditions, i.e. the last 
+    :param retain_final_element: If True, the array is returned in with periodic boundary conditions, i.e. the last
     element in each dimension is equal to the first element in each dimension. This is required for the xsf format.
-    
+
     :return: The array
     """
 
@@ -60,7 +60,7 @@ def read_xml_array(
     # Extract the array
     array_xml = np.zeros((nr_xml[2], nr_xml[1], nr_xml[0]), dtype=float)
     for k in range(nr_xml[2]):
-        current_name = 'z.' + str(k % (nr_xml[2]-1)+1)
+        current_name = 'z.' + str(k % (nr_xml[2] - 1) + 1)
         entry = branch.find(current_name)
         assert isinstance(entry, ET.Element)
         text = entry.text
@@ -68,10 +68,10 @@ def read_xml_array(
         rho_tmp = np.array(text.split('\n')[1:-1], dtype=float)
         for j in range(nr_xml[1]):
             for i in range(nr_xml[0]):
-                array_xml[k, j, i] = rho_tmp[(j % (nr_xml[1]-1))*(nr_xml[0]-1)+(i % (nr_xml[0]-1))]
+                array_xml[k, j, i] = rho_tmp[(j % (nr_xml[1] - 1))*(nr_xml[0] - 1) + (i % (nr_xml[0] - 1))]
     array_xml *= norm_const
 
-    if retain_final_element: 
+    if retain_final_element:
         # the xsf format requires an array where the last element is equal to the first element in each dimension
         return array_xml
     else:

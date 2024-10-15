@@ -10,7 +10,6 @@ from koopmans.calculators import (Calc, KoopmansCPCalculator,
                                   KoopmansHamCalculator,
                                   KoopmansScreenCalculator, PhCalculator,
                                   PW2WannierCalculator, PWCalculator,
-                                  UnfoldAndInterpolateCalculator,
                                   Wann2KCCalculator, Wann2KCPCalculator,
                                   Wannier90Calculator)
 from koopmans.io._calculators import read_calculator
@@ -21,7 +20,6 @@ example_files = {KoopmansCPCalculator: 'kcp/ki_final',
                  PW2WannierCalculator: 'pw2wannier/pw2wan',
                  PhCalculator: 'ph/eps',
                  PWCalculator: 'pw/scf',
-                 UnfoldAndInterpolateCalculator: 'ui/ki',
                  Wann2KCCalculator: ['kcw/kc.w2ki', 'kcw/kc.w2ko'],
                  Wann2KCPCalculator: 'wann2kcp/w2kcp',
                  Wannier90Calculator: 'w90/wann'}

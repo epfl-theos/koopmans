@@ -13,12 +13,21 @@ from typing import Dict
 from koopmans import pseudopotentials, utils
 from koopmans.bands import Bands
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
-                                  Wann2KCCalculator)
+                                  Wann2KCCalculator, Wannier90Calculator)
+from koopmans.files import FilePointer
+from koopmans.outputs import OutputModel
 
 from ._workflow import Workflow
 
 
+class KoopmansDFPTOutputs(OutputModel):
+    pass
+
+
 class KoopmansDFPTWorkflow(Workflow):
+
+    output_model = KoopmansDFPTOutputs  # type: ignore
+    outputs: KoopmansDFPTOutputs
 
     def __init__(self, scf_kgrid=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -42,7 +51,7 @@ class KoopmansDFPTWorkflow(Workflow):
                     'with Kohn-Sham orbitals as the variational orbitals')
         if self.parameters.dfpt_coarse_grid is not None and not self.parameters.calculate_alpha:
             raise ValueError('Using a DFPT coarse grid to calculate the screening parameters is not possible '
-                             'when calculate_alpha = False')
+                             'when `calculate_alpha = False`')
         for params in self.calculator_parameters.values():
             if all(self.atoms.pbc):
                 # Gygi-Baldereschi
@@ -51,8 +60,7 @@ class KoopmansDFPTWorkflow(Workflow):
                         if params.l_vcut is None:
                             params.l_vcut = True
                         if not params.l_vcut:
-                            raise ValueError(
-                                'Gygi-Baldereschi corrections require l_vcut = True')
+                            raise ValueError('Gygi-Baldereschi corrections require `l_vcut = True`')
 
                 # Makov-Payne
                 if self.parameters.mp_correction:
@@ -62,8 +70,8 @@ class KoopmansDFPTWorkflow(Workflow):
                 # Martyna-Tuckerman (not used for periodic systems)
                 if hasattr(params, 'assume_isolated'):
                     if params.assume_isolated not in ['none', None]:
-                        raise ValueError('Periodic systems must have "assume_isolated" = "none", but it is set to '
-                                         + params.assume_isolated)
+                        raise ValueError('Periodic systems must have `assume_isolated = "none"`, but it is set to `'
+                                         + params.assume_isolated + '`')
 
             else:
                 # Gygi-Baldereschi (not used for aperiodic systems)
@@ -71,13 +79,11 @@ class KoopmansDFPTWorkflow(Workflow):
                     if params.l_vcut is None:
                         params.l_vcut = False
                     if params.l_vcut:
-                        raise ValueError(
-                            'Aperiodic systems require l_vcut = False')
+                        raise ValueError('Aperiodic systems require `l_vcut = False`')
 
                 # Makov-Payne (not used for aperiodic systems)
                 if getattr(params, 'eps_inf', None) not in [None, 1.0]:
-                    raise ValueError(
-                        'Aperiodic systems should not have a non-zero eps_inf')
+                    raise ValueError('Aperiodic systems should not have a non-zero `eps_inf`')
 
                 # Martyna-Tuckerman
                 if self.parameters.mt_correction:
@@ -86,7 +92,7 @@ class KoopmansDFPTWorkflow(Workflow):
                             params.assume_isolated = 'm-t'
                         if params.assume_isolated not in ['martyna-tuckerman', 'm-t', 'mt']:
                             raise ValueError(
-                                f'assume_isolated = {params.assume_isolated} is incompatible with mt_correction = True')
+                                f'`assume_isolated = {params.assume_isolated}` is incompatible with `mt_correction = True`')
 
         # Initialize the bands
         if self.parameters.spin_polarized:
@@ -174,15 +180,39 @@ class KoopmansDFPTWorkflow(Workflow):
             coarse_wf.run(subdirectory='coarse_grid')
             self.print('Regular grid calculations', style='heading')
 
+        wannier_files_to_link = {}
+        dft_ham_files = {}
         if all(self.atoms.pbc):
             # Run PW and Wannierization
             for key in self.calculator_parameters.keys():
                 if key.startswith('w90'):
                     self.calculator_parameters[key].write_u_matrices = True
                     self.calculator_parameters[key].write_xyz = True
-            wf_workflow = WannierizeWorkflow.fromparent(
-                self, force_nspin2=True, scf_kgrid=self._scf_kgrid)
-            wf_workflow.run()
+            wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True, scf_kgrid=self._scf_kgrid)
+            wf_workflow.run(subdirectory='wannier')
+
+            # Store the NSCF calculation because it uses nosym, so we can use its outdir for subsequent calculations
+            init_pw = [c for c in self.calculations if isinstance(
+                c, PWCalculator) and c.parameters.calculation == 'nscf'][-1]
+
+            # Populate a list of files to link to subsequent calculations
+            for f in [wf_workflow.outputs.u_matrices_files["occ"],
+                      wf_workflow.outputs.hr_files["occ"],
+                      wf_workflow.outputs.centers_files["occ"]]:
+                assert f is not None
+                wannier_files_to_link[f.name] = f
+
+            for f in [wf_workflow.outputs.u_matrices_files["emp"],
+                      wf_workflow.outputs.u_dis_file,
+                      wf_workflow.outputs.hr_files["emp"],
+                      wf_workflow.outputs.centers_files["emp"]]:
+                assert f is not None
+                wannier_files_to_link[f.parent.prefix + '_emp' + str(f.name)[len(f.parent.prefix):]] = f
+
+            if self.parameters.spin_polarized:
+                raise NotImplementedError('Need to adapt the following code for spin-polarized calculations')
+            for label in ['occ', 'emp']:
+                dft_ham_files[(label, None)] = wf_workflow.outputs.hr_files[label]
 
         else:
             # Run PW
@@ -195,121 +225,73 @@ class KoopmansDFPTWorkflow(Workflow):
             # Update settings
             pw_params = pw_workflow.calculator_parameters['pw']
             pw_params.nspin = 2
-            #pw_params.tot_magnetization = 0
 
             # Run the subworkflow
-            with utils.chdir('init'):
-                pw_workflow.run()
+            pw_workflow.run()
 
-        # Copy the outdir to the base directory
-        base_outdir = self.calculator_parameters['pw'].outdir
-        base_outdir.mkdir(exist_ok=True)
-        scf_calcs = [c for c in self.calculations if isinstance(
-            c, PWCalculator) and c.parameters.calculation == 'scf']
-        init_outdir = scf_calcs[-1].parameters.outdir
-        if self.parameters.from_scratch and init_outdir != base_outdir:
-            utils.symlink(f'{init_outdir}/*', base_outdir)
+            init_pw = pw_workflow.calculations[0]
 
         spin_components = [1, 2] if self.parameters.spin_polarized else [1]
 
         for spin_component in spin_components:
 
             # Convert from wannier to KC
-            self.print('Conversion to Koopmans format', style='subheading')
-            wann2kc_calc = self.new_calculator(
-                'kcw_wannier', spin_component=spin_component)
-            if self.parameters.spin_polarized:
-                wann2kc_calc.directory /= f'spin_{spin_component}'
+            wann2kc_calc = self.new_calculator('wann2kc', spin_component=spin_component)
+            self.link(init_pw, init_pw.parameters.outdir, wann2kc_calc, wann2kc_calc.parameters.outdir)
+            for dst, f in wannier_files_to_link.items():
+                self.link(f.parent, f.name, wann2kc_calc, dst, symlink=True)
             self.run_calculator(wann2kc_calc)
 
             # Calculate screening parameters
             if self.parameters.calculate_alpha:
                 if self.parameters.dfpt_coarse_grid is None:
-                    self.print('Calculation of screening parameters',
-                               style='heading')
-
-                    # Group the bands by spread
-                    self.bands.assign_groups(
-                        sort_by='spread', allow_reassignment=True)
-
-                    if len(self.bands.to_solve) == len(self.bands):
-                        # If there is no orbital grouping, do all orbitals in one calculation
-                        # 1) Create the calculator
-                        kc_screen_calc = self.new_calculator(
-                            'kcw_screen', spin_component=spin_component)
-                        if self.parameters.spin_polarized:
-                            kc_screen_calc.directory /= f'spin_{spin_component}'
-
-                        # 2) Run the calculator
-                        self.run_calculator(kc_screen_calc)
-
-                        # 3) Store the computed screening parameters
-                        self.bands.alphas = kc_screen_calc.results['alphas']
+                    screen_wf = ComputeScreeningViaDFPTWorkflow.fromparent(
+                        self, wannier_files_to_link=wannier_files_to_link, spin_component=spin_component)
+                    screen_wf.run(subdirectory='screening')
+                else:
+                    # Load the alphas
+                    if self.parameters.alpha_from_file:
+                        self.bands.alphas = [utils.read_alpha_file(Path())]
                     else:
-                        # If there is orbital grouping, do the orbitals one-by-one
-                        for band in self.bands.to_solve:
-                            # 1) Create the calculator (in a subdirectory)
-                            kc_screen_calc = self.new_calculator(
-                                'kcw_screen', i_orb=band.index, spin_component=spin_component)
-                            if self.parameters.spin_polarized:
-                                kc_screen_calc.directory /= f'spin_{spin_component}'
-                            kc_screen_calc.directory /= f'band_{band.index}'
-
-                            # 2) Run the calculator
-                            self.run_calculator(kc_screen_calc)
-
-                            # 3) Store the computed screening parameter (accounting for band groupings)
-                            for b in self.bands:
-                                if b.group == band.group:
-                                    alpha = kc_screen_calc.results['alphas'][band.spin]
-                                    b.alpha = alpha[band.spin]
-                else:
-                    self.bands.alphas = coarse_wf.bands.alphas
-            else:
-                # Load the alphas
-                if self.parameters.alpha_from_file:
-                    self.bands.alphas = [utils.read_alpha_file(Path())]
-                else:
-                    self.bands.alphas = self.parameters.alpha_guess
+                        self.bands.alphas = self.parameters.alpha_guess
 
             # Calculate the Hamiltonian
             if self._perform_ham_calc:
-                self.print('Construction of the Hamiltonian', style='heading')
-                kc_ham_calc = self.new_calculator(
-                    'kcw_ham', kpts=self.kpoints.path, spin_component=spin_component)
-                if self.parameters.spin_polarized:
-                    kc_ham_calc.directory /= f'spin_{spin_component}'
-
-                if self.parameters.calculate_alpha and self.parameters.dfpt_coarse_grid is None:
-                    if kc_ham_calc.parameters.lrpa != kc_screen_calc.parameters.lrpa:
-                        raise ValueError(
-                            'Do not set "lrpa" to different values in the "screen" and "ham" blocks')
+                kc_ham_calc = self.new_calculator('kc_ham', kpts=self.kpoints.path, spin_component=spin_component)
+                self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.save'),
+                          kc_ham_calc, kc_ham_calc.parameters.outdir / (kc_ham_calc.parameters.prefix + '.save'), symlink=True)
+                self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.xml'),
+                          kc_ham_calc, kc_ham_calc.parameters.outdir / (kc_ham_calc.parameters.prefix + '.xml'), symlink=True)
+                self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / 'kcw', kc_ham_calc,
+                          kc_ham_calc.parameters.outdir / 'kcw', recursive_symlink=True)
+                for dst, f in wannier_files_to_link.items():
+                    self.link(f.parent, f.name, kc_ham_calc, dst, symlink=True)
                 self.run_calculator(kc_ham_calc)
 
                 # Postprocessing
                 if all(self.atoms.pbc) and self.projections and self.kpoints.path is not None \
                         and self.calculator_parameters['ui'].do_smooth_interpolation:
                     from koopmans.workflows import UnfoldAndInterpolateWorkflow
-                    self.print(f'\nPostprocessing', style='heading')
-                    ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(self)
-                    if self.parameters.spin_polarized:
-                        ui_workflow.run(
-                            subdirectory=f'postproc/spin_{spin_component}')
-                    else:
-                        ui_workflow.run(subdirectory='postproc')
 
-                # Plotting
-                self.plot_bandstructure()
+                    # Assemble the Hamiltonian files required by the UI workflow
+                    koopmans_ham_files = {("occ", None): FilePointer(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_occ.dat'),
+                                          ("emp", None): FilePointer(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_emp.dat')}
+                    if not dft_ham_files:
+                        raise ValueError(
+                            'The DFT Hamiltonian files have not been generated but are required for the UI workflow')
+                    ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(
+                        self, dft_ham_files=dft_ham_files, koopmans_ham_files=koopmans_ham_files)
+                    ui_workflow.run(subdirectory='postproc')
+
+                    # Plotting
+                    self.plot_bandstructure()
 
     def plot_bandstructure(self):
         if not all(self.atoms.pbc):
             return
 
         # Identify the relevant calculators
-        wann2kc_calc = [c for c in self.calculations if isinstance(
-            c, Wann2KCCalculator)][-1]
-        kc_ham_calc = [c for c in self.calculations if isinstance(
-            c, KoopmansHamCalculator)][-1]
+        kc_ham_calc = [c for c in self.calculations if isinstance(c, KoopmansHamCalculator)][-1]
 
         # Plot the bandstructure if the band path has been specified
         bs = kc_ham_calc.results['band structure']
@@ -317,109 +299,140 @@ class KoopmansDFPTWorkflow(Workflow):
             super().plot_bandstructure(bs.subtract_reference())
 
     def new_calculator(self, calc_presets, **kwargs):
-        if calc_presets not in ['kcw_ham', 'kcw_screen', 'kcw_wannier']:
-            raise ValueError(
-                f'Invalid choice calc_presets={calc_presets} in {self.__class__.__name__}.new_calculator()')
+        return internal_new_calculator(self, calc_presets, **kwargs)
 
-        calc = super().new_calculator(calc_presets)
 
-        calc.prefix = 'kc'
-        calc.parameters.prefix = 'kc'
-        calc.parameters.outdir = 'TMP'
-        calc.parameters.seedname = 'wann'
-        calc.parameters.spin_component = 1
-        calc.parameters.kcw_at_ks = not all(self.atoms.pbc)
-        calc.parameters.read_unitary_matrix = all(self.atoms.pbc)
+class ComputeScreeningViaDFPTOutputs(OutputModel):
+    pass
 
-        for k, v in kwargs.items():
-            setattr(calc.parameters, k, v)
 
-        if calc_presets == 'kcw_wannier':
-            if all(self.atoms.pbc):
-                calc.directory = 'wannier'
-            else:
-                calc.directory = 'init'
-        elif calc_presets == 'kcw_screen':
-            calc.directory = 'screening'
-            # If eps_inf is not provided in the kc_wann:screen subdictionary but there is a value provided in the
-            # workflow parameters, adopt that value
-            if self.parameters.eps_inf is not None and calc.parameters.eps_inf is None and all(self.atoms.pbc):
-                calc.parameters.eps_inf = self.parameters.eps_inf
+class ComputeScreeningViaDFPTWorkflow(Workflow):
+    output_model = ComputeScreeningViaDFPTOutputs
+    outputs: ComputeScreeningViaDFPTOutputs
+
+    def __init__(self, *args, wannier_files_to_link: Dict[str, FilePointer], **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._wannier_files_to_link = wannier_files_to_link
+
+    def _run(self):
+        # Group the bands by spread
+        self.bands.assign_groups(sort_by='spread', allow_reassignment=True)
+
+        if len(self.bands.to_solve) == len(self.bands):
+            # If there is no orbital grouping, do all orbitals in one calculation
+
+            # 1) Create the calculator
+            kc_screen_calc = self.new_calculator('kcw_screen')
+
+            # 2) Run the calculator
+            self.run_calculator(kc_screen_calc)
+
+            # 3) Store the computed screening parameters
+            self.bands.alphas = kc_screen_calc.results['alphas']
         else:
-            calc.directory = 'hamiltonian'
-            calc.parameters.do_bands = all(self.atoms.pbc)
-            if not self.parameters.spin_polarized and len(self.bands.alphas) != 1:
-                raise ValueError(
-                    'The list of screening parameters should be length 1 for spin-unpolarized calculations')
-            calc.alphas = self.bands.alphas[calc.parameters.spin_component - 1]
+            # If there is orbital grouping, do the orbitals one-by-one
 
-        if all(self.atoms.pbc):
-            if self.parameters.spin_polarized:
-                if calc.parameters.spin_component == 1:
-                    ntot = self.projections.num_wann(spin='up')
-                    nocc = self.calculator_parameters['kcp'].nelup
-                    nemp = self.projections.num_wann(spin='up') - nocc
-                    nemp_pw = self.calculator_parameters['pw'].nbnd - nocc
-                else:
-                    ntot = self.projections.num_wann(spin='down')
-                    nocc = self.calculator_parameters['kcp'].neldw
-                    nemp = self.projections.num_wann(spin='down') - nocc
-                    nemp_pw = self.calculator_parameters['pw'].nbnd - nocc
-            else:
-                nocc = self.bands.num(filled=True)
-                nemp = self.bands.num(filled=False)
-                nemp_pw = self.calculator_parameters['pw'].nbnd - nocc
+            kc_screen_calcs = []
+            # 1) Create the calculators
+            for band in self.bands.to_solve:
+                kc_screen_calc = self.new_calculator('kcw_screen', i_orb=band.index)
+                kc_screen_calc.prefix += f'_orbital_{band.index}'
+                kc_screen_calcs.append(kc_screen_calc)
 
-            have_empty = (nemp > 0)
-            # has_disentangle = (self.projections.num_bands() != nocc + nemp)
-            has_disentangle = (nemp != nemp_pw)
-        else:
-            if self.parameters.spin_polarized:
-                if calc.parameters.spin_component == 1:
-                    nocc = self.calculator_parameters['kcp'].nelup
-                    nemp = self.calculator_parameters['pw'].nbnd - nocc
-                else:
-                    nocc = self.calculator_parameters['kcp'].neldw
-                    nemp = self.calculator_parameters['pw'].nbnd - nocc
-            else:
-                nocc = self.calculator_parameters['kcp'].nelec // 2
-                nemp = self.calculator_parameters['pw'].nbnd - nocc
-            have_empty = (nemp > 0)
-            has_disentangle = False
-        calc.parameters.num_wann_occ = nocc
-        calc.parameters.num_wann_emp = nemp
-        calc.parameters.have_empty = have_empty
-        calc.parameters.has_disentangle = has_disentangle
+            # 2) Run the calculators (possibly in parallel)
+            self.run_calculators(kc_screen_calcs)
 
-        # Ensure that any additional calculator keywords passed as kwargs are still that value
-        for k, v in kwargs.items():
-            setattr(calc.parameters, k, v)
+            # 3) Store the computed screening parameters (accounting for band groupings)
+            for band, kc_screen_calc in zip(self.bands.to_solve, kc_screen_calcs):
+                for b in self.bands:
+                    if b.group == band.group:
+                        alpha = kc_screen_calc.results['alphas'][band.spin]
+                        b.alpha = alpha[band.spin]
+
+    def new_calculator(self, calc_type: str, *args, **kwargs):
+        assert calc_type == 'kc_screen', 'Only the "kc_screen" calculator is supported in DFPTScreeningWorkflow'
+
+        calc = internal_new_calculator(self, calc_type, *args, **kwargs)
+
+        # Link to the most recent wann2kc calculation
+        wann2kc_calc = [c for c in self.calculations if isinstance(c, Wann2KCCalculator)][-1]
+        self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.save'),
+                  calc, calc.parameters.outdir / (calc.parameters.prefix + '.save'), symlink=True)
+        self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.xml'),
+                  calc, calc.parameters.outdir / (calc.parameters.prefix + '.xml'), symlink=True)
+        self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / 'kcw', calc,
+                  calc.parameters.outdir / 'kcw', recursive_symlink=True)
+
+        for dst, f in self._wannier_files_to_link.items():
+            self.link(f.parent, f.name, calc, dst, symlink=True)
 
         return calc
 
-    def run_calculator(self, calc):
-        # Create this (possibly nested) directory
-        calc.directory.mkdir(parents=True, exist_ok=True)
 
-        # Provide the rotation matrices and the wannier centers
-        if all(self.atoms.pbc):
-            if self.parameters.spin_polarized:
-                if calc.parameters.spin_component == 1:
-                    dir_suffix = '_up'
-                else:
-                    dir_suffix = '_down'
+def internal_new_calculator(workflow, calc_presets, **kwargs):
+    if calc_presets not in ['kcw_ham', 'kcw_screen', 'kcw_wannier']:
+        raise ValueError(
+            f'Invalid choice `calc_presets={calc_presets}` in `{workflow.__class__.__name__}.new_calculator()`')
+
+    calc = super(workflow.__class__, workflow).new_calculator(calc_presets)
+
+    calc.prefix = calc_presets
+    calc.parameters.prefix = 'kc'
+    calc.parameters.outdir = 'TMP'
+    if all(workflow.atoms.pbc):
+        calc.parameters.seedname = [c for c in workflow.calculations if isinstance(c, Wannier90Calculator)][-1].prefix
+    calc.parameters.spin_component = 1
+    calc.parameters.kcw_at_ks = not all(workflow.atoms.pbc)
+    calc.parameters.read_unitary_matrix = all(workflow.atoms.pbc)
+
+    if calc_presets == 'kcw_wannier':
+        pass
+    elif calc_presets == 'kcw_screen':
+        # If eps_inf is not provided in the kc_wann:screen subdictionary but there is a value provided in the
+        # workflow parameters, adopt that value
+        if workflow.parameters.eps_inf is not None and calc.parameters.eps_inf is None and all(workflow.atoms.pbc):
+            calc.parameters.eps_inf = workflow.parameters.eps_inf
+    else:
+        calc.parameters.do_bands = all(workflow.atoms.pbc)
+        if not self.parameters.spin_polarized and len(workflow.bands.alphas) != 1:
+            raise ValueError('The list of screening parameters should be length 1 for spin-unpolarized calculations')
+        calc.alphas = workflow.bands.alphas[calc.parameters.spin_component - 1]
+
+    if all(workflow.atoms.pbc):
+        if workflow.parameters.spin_polarized:
+            if calc.parameters.spin_component == 1:
+                ntot = workflow.projections.num_wann(spin='up')
+                nocc = workflow.calculator_parameters['kcp'].nelup
+                nemp = workflow.projections.num_wann(spin='up') - nocc
             else:
-                dir_suffix = ''
-            utils.symlink(
-                f'wannier/occ{dir_suffix}/wann_u.mat', f'{calc.directory}/', exist_ok=True)
-            utils.symlink(f'wannier/emp{dir_suffix}/wann_u.mat',
-                          f'{calc.directory}/wann_emp_u.mat', exist_ok=True)
-            if Path(f'wannier/emp{dir_suffix}/wann_u_dis.mat').exists():
-                utils.symlink(f'wannier/emp{dir_suffix}/wann_u_dis.mat',
-                              f'{calc.directory}/wann_emp_u_dis.mat', exist_ok=True)
-            utils.symlink(
-                f'wannier/occ{dir_suffix}/wann_centres.xyz', f'{calc.directory}/', exist_ok=True)
-            utils.symlink(f'wannier/emp{dir_suffix}/wann_centres.xyz',
-                          f'{calc.directory}/wann_emp_centres.xyz', exist_ok=True)
+                ntot = workflow.projections.num_wann(spin='down')
+                nocc = workflow.calculator_parameters['kcp'].neldw
+                nemp = workflow.projections.num_wann(spin='down') - nocc
+        else:
+            nocc = workflow.bands.num(filled=True)
+            nemp = workflow.bands.num(filled=False)
+        nemp_pw = workflow.calculator_parameters['pw'].nbnd - nocc
+        have_empty = (nemp > 0)
+        has_disentangle = (nemp != nemp_pw)
+    else:
+        if self.parametetrs.spin_polarized:
+            if calc.parameters.spin_component == 1:
+                nocc = workflow.calculator_parameters['kcp'].nelup
+            else:
+                nocc = workflow.calculator_parameters['kcp'].neldw
+        else:
+            nocc = workflow.calculator_parameters['kcp'].nelec // 2
+        nemp = workflow.calculator_parameters['pw'].nbnd - nocc
+        have_empty = (nemp > 0)
+        has_disentangle = False
+    calc.parameters.num_wann_occ = nocc
+    calc.parameters.num_wann_emp = nemp
+    calc.parameters.have_empty = have_empty
+    calc.parameters.has_disentangle = has_disentangle
 
-        super().run_calculator(calc)
+    # Ensure that any additional calculator keywords passed as kwargs are still that value
+    for k, v in kwargs.items():
+        setattr(calc.parameters, k, v)
+
+    return calc

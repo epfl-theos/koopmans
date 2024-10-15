@@ -1,9 +1,9 @@
 [project]
 name = "koopmans"
-version = "1.0.1"
+version = "1.1.0"
 description = "Koopmans spectral functional calculations with python and Quantum ESPRESSO"
 readme = "README_pypi.rst"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 authors = [
     { name = "Edward Linscott", email = "edward.linscott@epfl.ch" },
     { name = "Riccardo De Gennaro", email = "riccardo.degennaro@epfl.ch" },
@@ -13,9 +13,9 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Chemistry",
     "Topic :: Scientific/Engineering :: Physics",
@@ -30,9 +30,12 @@ dependencies = [
     "pybtex>=0.24",
     "spglib>=1.9",
     "upf-to-json>=0.9.5",
-    "ase-koopmans==0.1.5",
+    "ase-koopmans==0.1.6",
     "scikit-learn>=1.0",
     "deepdiff>=5.8.1",
+    "pydantic>=2.7.0",
+    "dill>=0.3.8",
+    "tabulate==0.9.0",
 ]
 
 [project.urls]
@@ -69,12 +72,15 @@ filterwarnings = [
     "ignore:Could not find 2nd order Makov-Payne energy; applying first order only:UserWarning",
     "ignore:Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with caution:UserWarning",
     "ignore:Makov-Payne corrections are not being used; do this with caution for periodic systems:UserWarning",
-    "ignore:eps_inf missing in input; it will default to 1.0. Proceed with caution for periodic systems:UserWarning",
-    "ignore:Some of the pseudopotentials do not have PP_PSWFC blocks, which means a projected DOS calculation is not possible. Skipping...:UserWarning",
-    "ignore:Neither a pseudopotential library nor a list of pseudopotentials was provided; defaulting to sg15_v1.2:UserWarning",
+    "ignore:`eps_inf` missing in input; it will default to 1.0. Proceed with caution for periodic systems:UserWarning",
+    "ignore:Some of the pseudopotentials do not have `PP_PSWFC` blocks, which means a projected DOS calculation is not possible. Skipping...:UserWarning",
+    "ignore:Neither a pseudopotential library nor a list of pseudopotentials was provided; defaulting to `sg15_v1.2`:UserWarning",
     "ignore:The screening parameters for a KI calculation with no empty states will converge instantly; to save computational time set alpha_numsteps == 1:UserWarning",
+    "ignore:The screening parameters have been calculated but are not necessarily self-consistent. You may want to increase `alpha_numsteps` to obtain a more accurate result.:UserWarning",
     "ignore:This system is not cubic and will therefore not have a uniform dielectric tensor. However, the image-correction schemes that are currently implemented assume a uniform dielectric. Proceed with caution:UserWarning",
-    'ignore:Small box parameters "nrb" not provided in input:UserWarning',
+    'ignore:Small box parameters `nrb` not provided in input:UserWarning',
+    'ignore:The computed screening parameter is greater than 1. Proceed with caution.:UserWarning',
+    'ignore:Predicting screening parameters with machine-learning is an experimental feature; proceed with caution:UserWarning'
 ]
 addopts = "--show-capture=no --capture=sys --strict-markers --tb=short -rfEs --basetemp=tests/tmp"
 markers = [

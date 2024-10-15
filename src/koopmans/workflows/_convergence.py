@@ -21,6 +21,7 @@ from typing import (Any, Callable, Dict, Generic, List, Optional, Type,
 import numpy as np
 
 from koopmans import cell, utils
+from koopmans.outputs import OutputModel
 
 from ._workflow import Workflow
 
@@ -56,14 +57,14 @@ class ConvergenceVariable(Generic[T]):
     def values(self) -> List[T]:
         if self.initial_value is None:
             raise ValueError(
-                f'{self.__class__.__name__}.initial_value has not been set. Use {self.__class__.__name__}.get_initial_value() to set it.')
+                f'`{self.__class__.__name__}.initial_value` has not been set. Use `{self.__class__.__name__}.get_initial_value()` to set it.')
 
         return self.generate_values(self.initial_value, self.increment, self.length)
 
     def get_initial_value(self, workflow: Workflow):
         if self.initial_value is not None:
             raise ValueError(
-                f'Do not call {self.__class__.__name__}.get_initial_value() once {self.__class__.__name__}.initial_value has been initialized')
+                f'Do not call `{self.__class__.__name__}.get_initial_value()` once `{self.__class__.__name__}.initial_value` has been initialized')
         self.initial_value = self.get_value(workflow)
 
     def todict(self) -> Dict[str, Any]:
@@ -87,10 +88,10 @@ def get_calculator_parameter(wf: Workflow, key: str) -> None:
             val = settings[key]
             if val is None:
                 raise AttributeError(
-                    f'In order to converge wrt {key}, specify a baseline value for it')
+                    f'In order to converge wrt `{key}`, specify a baseline value for it')
             values.add(val)
     if len(values) > 1:
-        raise ValueError(f'{key} has different values for different calculators. This is not compatible with the'
+        raise ValueError(f'`{key}` has different values for different calculators. This is not compatible with the'
                          'convergence workflow')
     return values.pop()
 
@@ -109,7 +110,7 @@ def fetch_result_default(wf: Workflow, observable: str) -> float:
     observable = observable.replace('total ', '').replace(' ', '_')
     if observable not in calc.results:
         raise ValueError(
-            f'{calc.prefix} has not returned a value for {observable}')
+            f'`{calc.prefix}` has not returned a value for `{observable}`')
     return calc.results[observable]
 
 
@@ -198,6 +199,23 @@ def conv_var_kgrid(increment: List[int] = [1, 1, 1], **kwargs) -> ConvergenceVar
                                generate_values=_generate_kgrid_values, **kwargs)
 
 
+def _get_num_training_snapshots(wf: Workflow) -> int:
+    nts = wf.ml.number_of_training_snapshots
+    assert isinstance(nts, int)
+    return nts
+
+
+def _set_num_training_snapshots(wf: Workflow, value: int) -> None:
+    wf.ml.number_of_training_snapshots = value
+
+
+def conv_var_number_of_training_snapshots(increment: int = 1, **kwargs) -> ConvergenceVariable:
+    if 'length' not in kwargs:
+        kwargs['length'] = 10
+    return ConvergenceVariable('number_of_training_snapshots', increment, _get_num_training_snapshots,
+                               _set_num_training_snapshots, **kwargs)
+
+
 def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
 
     if conv_var == 'celldm1':
@@ -208,14 +226,24 @@ def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
         return conv_var_nbnd(**kwargs)
     elif conv_var == 'kgrid':
         return conv_var_kgrid(**kwargs)
+    elif conv_var == 'number_of_training_snapshots':
+        return conv_var_number_of_training_snapshots(**kwargs)
     else:
-        raise NotImplementedError(f'Convergence with respect to {conv_var} has not been directly implemented. You '
+        raise NotImplementedError(f'Convergence with respect to `{conv_var}` has not been directly implemented. You '
                                   'can still perform a convergence calculation with respect to this variable, but '
-                                  'you must first create an appropriate ConvergenceVariable object and then '
-                                  'construct your ConvergenceWorkflow using the ConvergenceWorkflowFactory')
+                                  'you must first create an appropriate `ConvergenceVariable` object and then '
+                                  'construct your `ConvergenceWorkflow` using the `ConvergenceWorkflowFactory`')
+
+
+class ConvergenceOutputs(OutputModel):
+
+    converged_values: Dict[str, Any]
 
 
 class ConvergenceWorkflow(Workflow):
+
+    output_model = ConvergenceOutputs  # type: ignore
+    outputs: ConvergenceOutputs
 
     '''
     A Workflow class that wraps another workflow in a convergence procedure in order to converge the observable within the specified tolerance with respect to the variables
@@ -250,20 +278,15 @@ class ConvergenceWorkflow(Workflow):
         # Check that everything has been initialized
         if self.observable is None:
             raise ValueError(
-                f'{self.__class__.__name__} has not been provided with an observable to converge')
+                f'`{self.__class__.__name__}` has not been provided with an observable to converge')
 
         if len(self.variables) == 0:
             raise ValueError(
-                f'{self.__class__.__name__} has not been provided with any variables with which to perform convergence')
+                f'`{self.__class__.__name__}` has not been provided with any variables with which to perform convergence')
 
         if self.threshold is None:
             raise ValueError(
-                f'{self.__class__.__name__} has not been provided with a threshold with which to perform convergence')
-
-        if self.parameters.from_scratch:
-            for c in self.variables:
-                for path in Path().glob(c.name + '*'):
-                    shutil.rmtree(str(path))
+                f'`{self.__class__.__name__}` has not been provided with a threshold with which to perform convergence')
 
         # Create array for storing calculation results
         results = np.empty([len(v) for v in self.variables])
@@ -297,22 +320,19 @@ class ConvergenceWorkflow(Workflow):
                 subwf = self._subworkflow_class.fromparent(self)
 
                 # For each parameter we're converging wrt...
-                header = ''
-                subdir = Path()
+                label = ''
                 for index, variable in zip(indices, self.variables):
                     value = variable.values[index]
                     if isinstance(value, float):
                         value_str = f'{value:.1f}'
                     else:
                         value_str = str(value)
-                    header += f'{variable.name} = {value_str}, '
 
                     if isinstance(value, list):
                         value_str = ''.join([str(x) for x in value])
 
                     # Create new working directory
-                    subdir /= f'{variable.name}_{value_str}'.replace(
-                        ' ', '_').replace('.', 'd')
+                    label += f' {variable.name} {value_str}'.replace('.', '_')
 
                     # Set the value
                     variable.set_value(subwf, value)
@@ -329,10 +349,9 @@ class ConvergenceWorkflow(Workflow):
                     #         for _ in range(extra_orbitals)]
                     # utils.write_alpha_file(directory=Path(), alphas=alphas, filling=filling)
 
-                self.print(header.rstrip(', '), style='subheading')
-
                 # Perform calculation
-                subwf.run(subdirectory=subdir)
+                subwf.name += label
+                subwf.run()
 
                 # Store the result
                 results[indices] = self.observable(subwf)
@@ -371,6 +390,8 @@ class ConvergenceWorkflow(Workflow):
                 self.print('\n Converged variables are '
                            + ', '.join([f'{p.name} = {p.converged_value}' for p in self.variables]))
 
+                self.outputs = self.output_model(converged_values={v.name: v.converged_value for v in self.variables})
+
                 return
             else:
                 # Work out which variables are yet to converge, and line up more calculations
@@ -379,7 +400,7 @@ class ConvergenceWorkflow(Workflow):
                 new_array_shape = list(np.shape(results))
                 new_array_slice: List[Union[int, slice]] = [
                     slice(None) for _ in indices]
-                self.print('Progress update', style='heading')
+                self.print('\nProgress update', style='heading')
                 for index, var in enumerate(self.variables):
                     subarray_slice = [slice(None) for _ in self.variables]
                     subarray_slice[index] = slice(0, -1)
@@ -403,6 +424,7 @@ class ConvergenceWorkflow(Workflow):
                         var.extend()
                         new_array_shape[index] += 1
                         new_array_slice[index] = slice(None, -1)
+                self.print()
 
                 new_results = np.empty(new_array_shape)
                 new_results[:] = np.nan
@@ -430,9 +452,8 @@ def ConvergenceWorkflowFactory(subworkflow: Workflow, observable: Union[str, Cal
     observable = ObservableFactory(observable) if isinstance(
         observable, str) else observable
 
-    # Co-opt the fromparent method to use the subworkflow settings to initialize a ConvergenceWorkflow...
-    wf = ConvergenceWorkflow.fromparent(subworkflow, subworkflow_class=subworkflow.__class__,
+    # Initialize a ConvergenceWorkflow copying the settings of the subworkflow
+    wf = ConvergenceWorkflow.from_other(subworkflow, subworkflow_class=subworkflow.__class__,
                                         variables=variables, observable=observable, threshold=threshold)
-    wf.parent = None  # ... making sure we remove wf.parent immediately afterwards
 
     return wf

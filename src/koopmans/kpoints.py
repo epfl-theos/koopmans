@@ -59,7 +59,7 @@ class Kpoints:
 
         if gamma_only:
             if grid and not grid == [1, 1, 1]:
-                raise ValueError(f'gamma_only = {gamma_only} and grid != None are incompatible')
+                raise ValueError(f'`gamma_only = {gamma_only}` and `grid != None` are incompatible')
             self.grid = None
             self.offset = [0, 0, 0]
             self.offset_nscf = None
@@ -91,7 +91,7 @@ class Kpoints:
     def grid(self, value: Optional[List[int]]):
         if value is not None:
             if len(value) != 3:
-                raise ValueError('"grid" must be a list of three integers')
+                raise ValueError('`grid` must be a list of three integers')
         self._grid = value
 
     @property
@@ -102,9 +102,9 @@ class Kpoints:
     def offset(self, value: Optional[List[int]]):
         if isinstance(value, list):
             if len(value) != 3:
-                raise ValueError('"offset" must be a list of three integers')
+                raise ValueError('`offset` must be a list of three integers')
             if any([x not in [0, 1] for x in value]):
-                raise ValueError('"offset" must only contain either 0 or 1s')
+                raise ValueError('`offset` must only contain either `0` or `1`s')
         self._offset = value
 
     @property
@@ -115,9 +115,9 @@ class Kpoints:
     def offset_nscf(self, value: Optional[Union[List[Union[int, float]], int, float]]):
         if isinstance(value, list):
             if len(value) != 3:
-                raise ValueError('"offset" must be a list of three numbers')
+                raise ValueError('`offset` must be a list of three numbers')
             if any([k <= -1 or k > 1 for k in value]):
-                raise ValueError('"offset_nscf" elements take values within (-1, 1]')
+                raise ValueError('`offset_nscf` elements take values within (-1, 1]')
             if all([k - int(k) == 0 for k in value]):
                 self._offset_nscf = [int(k) for k in value]
             else:
@@ -127,7 +127,7 @@ class Kpoints:
         elif value is None:
             self._offset_nscf = value
         else:
-            raise ValueError('"offset_nscf" must be a number or a list of three numbers')
+            raise ValueError('`offset_nscf` must be a number or a list of three numbers')
 
     @property
     def path(self) -> Optional[BandPath]:
@@ -136,7 +136,7 @@ class Kpoints:
     @path.setter
     def path(self, value: Optional[BandPath]):
         if isinstance(value, str):
-            raise ValueError('To set Kpoints.path with a string, please use Kpoints.set_path()')
+            raise ValueError('To set `Kpoints.path` with a string, please use `Kpoints.set_path()`')
         self._path = value
 
     def set_path(self, path: Optional[Union[str, BandPath]], cell: Optional[Cell] = None, density: float = 10.0):
@@ -145,7 +145,7 @@ class Kpoints:
             # Convert the string to a BandPath object
             if cell is None:
                 raise ValueError(
-                    'To set the path of a Kpoints object with a string, please provide a value for "cell"')
+                    'To set the path of a `Kpoints` object with a string, please provide a value for `cell`')
             path = convert_kpath_str_to_bandpath(path, cell, density)
         self.path = path
 

@@ -7,18 +7,16 @@ Written by Edward Linscott Jan 2020
 """
 
 from pathlib import Path
-from typing import List, Union
+from typing import Any, List, Union
 
-from koopmans.calculators import CalculatorExt
 from koopmans.utils import chdir
-from koopmans.workflows import Workflow
 
 from ._calculators import read_calculator
+from ._dill import read_pkl, write_pkl
 from ._json import read_json, write_json
-from ._kwf import read_kwf, write_kwf
 
 
-def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Union[Workflow, CalculatorExt]:
+def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Any:
     if isinstance(filename, str):
         filename = Path(filename)
     elif isinstance(filename, list):
@@ -26,9 +24,9 @@ def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Union[W
 
     # Generic "read" function
 
-    if isinstance(filename, Path) and filename.suffix == '.kwf':
-        with open(filename, 'r') as fd:
-            out = read_kwf(fd)
+    if isinstance(filename, Path) and filename.suffix == '.pkl':
+        with chdir(filename.parent):
+            out = read_pkl(filename.name)
         return out
     elif isinstance(filename, Path) and filename.suffix == '.json':
         with chdir(filename.parent):
@@ -39,19 +37,18 @@ def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Union[W
         try:
             return read_calculator(filename)
         except ValueError:
-            raise ValueError(f'Unrecognized file type for {filename}')
+            raise ValueError(f'Unrecognized file type for `{filename}`')
 
 
-def write(obj: Workflow, filename: Union[str, Path]):
+def write(obj: Any, filename: Union[str, Path]):
     if isinstance(filename, str):
         filename = Path(filename)
 
     # Generic "write" function
 
-    if filename.suffix == '.kwf':
-        with open(filename, 'w') as fd:
-            write_kwf(obj, fd)
+    if filename.suffix == '.pkl':
+        write_pkl(obj, filename)
     elif filename.suffix == '.json':
         write_json(obj, filename)
     else:
-        raise ValueError(f'Unrecognized file type for {filename}')
+        raise ValueError(f'Unrecognized file type for `{filename}`')
