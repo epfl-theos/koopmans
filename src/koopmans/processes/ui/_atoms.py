@@ -13,6 +13,8 @@ import numpy as np
 from ase import Atoms
 from ase.cell import Cell
 
+from koopmans import utils
+
 
 class UIAtoms(Atoms):
 

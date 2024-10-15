@@ -1,0 +1,82 @@
+{
+    "workflow": {
+        "task": "singlepoint",
+        "functional": "ki",
+        "base_functional": "lda",
+        "method": "dscf",
+        "init_orbitals": "mlwfs",
+        "calculate_alpha": false,
+        "alpha_guess": 0.122,
+        "spin_polarized": true,
+        "pseudo_library": "pseudo_dojo_standard"
+    },
+    "atoms": {
+        "cell_parameters": {
+            "periodic": true,
+            "units": "angstrom",
+            "vectors": [
+                [3.4335, 1.9823321493, 6.6023333333],
+                [-3.4335, 1.9823321493, 6.6023333333],
+                [0.0, -3.9646642985, 6.6023333333]
+            ]
+        },
+        "atomic_positions": {
+            "units": "crystal",
+            "positions": [
+                ["Cr", 0.3336766667, 0.3336766667, -0.6663233333],
+                ["Cr", 0.6663233333, 0.6663233333, -0.3336766667],
+                ["I", 0.5699400001, 0.92223, -0.72907],
+                ["I", 0.92223, 0.27093, -0.4300599999],
+                ["I", 0.27093, 0.5699400001, -0.07777],
+                ["I", 0.4300599999, 0.07777, -0.27093],
+                ["I", 1.07777, -0.27093, -0.5699400001],
+                ["I", 0.72907, -0.5699400001, 0.07777]
+            ]
+        }
+    },
+    "kpoints": {
+        "grid": [2, 2, 2],
+        "path": "GLFG",
+        "density": 30
+    },
+    "calculator_parameters": {
+        "ecutwfc": 30.0,
+        "tot_magnetization": 6,
+        "pw": {
+            "system": {
+                "nbnd": 42
+            }
+        },
+        "kcp": {
+            "nr1b": 24,
+            "nr2b": 24,
+            "nr3b": 24
+        },
+        "w90": {
+            "up": {
+                "projections": [
+                    [{ "site": "Cr", "ang_mtm": "l=0" }],
+                    [{ "site": "Cr", "ang_mtm": "l=1" }],
+                    [{ "site": "I", "ang_mtm": "l=0" }],
+                    [
+                        { "site": "I", "ang_mtm": "l=1" },
+                        "Cr:l=2,mr=1",
+                        "Cr:l=2,mr=4",
+                        "Cr:l=2,mr=5"
+                    ],
+                    ["Cr:l=2,mr=2", "Cr:l=2,mr=3"]
+                ]
+            },
+            "down": {
+                "projections": [
+                    [{ "site": "Cr", "ang_mtm": "l=0" }],
+                    [{ "site": "Cr", "ang_mtm": "l=1" }],
+                    [{ "site": "I", "ang_mtm": "l=0" }],
+                    [{ "site": "I", "ang_mtm": "l=1" }],
+                    ["Cr:l=2,mr=1", "Cr:l=2,mr=4", "Cr:l=2,mr=5"],
+                    ["Cr:l=2,mr=2", "Cr:l=2,mr=3"]
+                ]
+            }
+        }
+    }
+}

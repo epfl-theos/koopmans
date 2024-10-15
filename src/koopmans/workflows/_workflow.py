@@ -10,17 +10,14 @@ from __future__ import annotations
 
 import copy
 import json as json_ext
-import operator
 import os
 import re
 import shutil
-import subprocess
 import sys
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from contextlib import contextmanager
-from functools import reduce
 from pathlib import Path
-from types import ModuleType
 from typing import (Any, Callable, Dict, Generator, List, Optional, Tuple,
                     Type, TypeVar, Union)
 
@@ -34,7 +31,6 @@ import koopmans.mpl_config
 import matplotlib.pyplot as plt
 # isort: on
 
-import ase
 from ase import Atoms
 from ase.build.supercells import make_supercell
 from ase.calculators.calculator import CalculationFailed
@@ -77,7 +73,7 @@ class Workflow(utils.HasDirectory, ABC):
 
     atoms : Atoms
         an ASE ``Atoms`` object defining the atomic positions, cell, etc
-    pseudopotentials : Dict[str, str]
+    pseudopotentials : OrderedDict[str, str]
         a dictionary mapping atom labels to pseudopotential filenames
     kpoints : koopmans.kpoints.Kpoints
         a dataclass defining the k-point sampling and paths
@@ -106,7 +102,7 @@ class Workflow(utils.HasDirectory, ABC):
     calculator_parameters: Dict[str, settings.SettingsDict]
     name: str
     kpoints: Kpoints
-    _pseudopotentials: Dict[str, str]
+    pseudopotentials: Dict[str, str]
     pseudo_dir: Path
     projections: ProjectionBlocks
     ml_model: Optional[AbstractMLModel]
@@ -114,8 +110,9 @@ class Workflow(utils.HasDirectory, ABC):
     version: str
     _step_counter: int
 
-    __slots__ = utils.HasDirectory.__slots__ + ['atoms', 'parameters', 'calculator_parameters', 'name', 'kpoints', '_pseudopotentials',
-                                                'projections', 'ml_model', 'snapshots', 'version', '_step_counter', 'calculations', 'processes',
+    __slots__ = utils.HasDirectory.__slots__ + ['atoms', 'parameters', 'calculator_parameters', 'name', 'kpoints',
+                                                'pseudopotentials', 'projections', 'ml_model', 'snapshots',
+                                                'version', '_step_counter', 'calculations', 'processes',
                                                 'steps', 'silent', 'print_indent', 'plotting', 'ml', '_bands']
 
     def __init__(self, atoms: Atoms,
@@ -290,21 +287,32 @@ class Workflow(utils.HasDirectory, ABC):
             # and the kcp settings
             nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials,
                                        self.base_directory / self.parameters.pseudo_directory)
-            tot_charge = calculator_parameters['kcp'].get('tot_charge', 0)
+            tot_charge = calculator_parameters['pw'].get(
+                'tot_charge', calculator_parameters['kcp'].get('tot_charge', 0))
             nelec -= tot_charge
-            tot_mag = calculator_parameters['kcp'].get('tot_magnetization', nelec % 2)
+            tot_mag = calculator_parameters['pw'].get(
+                'tot_magnetization', calculator_parameters['kcp'].get('tot_charge', nelec % 2))
             nelup = int(nelec / 2 + tot_mag / 2)
             neldw = int(nelec / 2 - tot_mag / 2)
 
             # Setting up the magnetic moments
-            if 'starting_magnetization(1)' in calculator_parameters['kcp']:
-                labels = [s + str(t) if t > 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
-                starting_magmoms = {}
+            starting_mags = {k: v for k, v in calculator_parameters['kcp'].items(
+            ) if k.startswith('starting_magnetization')}
+            starting_mags.update(
+                {k: v for k, v in calculator_parameters['pw'].items() if k.startswith('starting_magnetization')})
+            if starting_mags:
+                labels = [a.symbol + str(a.tag) if a.tag > 0 else a.symbol for a in self.atoms]
+                starting_magmoms: Dict[str, float] = {}
                 for i, (l, p) in enumerate(self.pseudopotentials.items()):
-                    # ASE uses absolute values; QE uses the fraction of the valence
-                    frac_mag = calculator_parameters['kcp'].pop(f'starting_magnetization({i + 1})', 0.0)
-                    valence = valence_from_pseudo(p, self.base_directory / self.parameters.pseudo_directory)
-                    starting_magmoms[l] = frac_mag * valence
+                    mag = starting_mags.pop(f'starting_magnetization({i + 1})', 0.0)
+                    if abs(mag) < 1.0:
+                        # If |mag| < 1, QE interprets this as site magnetization *per valence electron*, whereas ASE
+                        # expects simply the site magnetization
+                        valence = valence_from_pseudo(p, self.base_directory / self.parameters.pseudo_directory)
+                        starting_magmoms[l] = mag * valence
+                    else:
+                        # If |mag| >= 1, QE interprets this as site magnetization
+                        starting_magmoms[l] = mag
                 atoms.set_initial_magnetic_moments([starting_magmoms[l] for l in labels])
             elif tot_mag != 0:
                 atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
@@ -334,13 +342,13 @@ class Workflow(utils.HasDirectory, ABC):
                 if self.parameters.spin_polarized is not ('up' in block or 'down' in block):
                     continue
                 if 'projections' in params or 'projections_blocks' in params:
-                    raise ValueError(f'You have provided projection information in the `calculator_parameters[{block}]` '
-                                     f'argument to `{self.__class__.__name__}`. Please instead specify projections '
-                                     'via the `projections` argument')
+                    raise ValueError(f'You have provided projection information in the '
+                                     f'`calculator_parameters[{block}]` argument to `{self.__class__.__name__}`. '
+                                     'Please instead specify projections via the `projections` argument')
                 for kw in ['exclude_bands', 'num_wann', 'num_bands', 'projections']:
                     if kw in params:
-                        utils.warn(f'`{kw}` will be overwritten by the workflow; it is best to not specify this keyword '
-                                   'and to instead double-check the keyword in the various `.win` files '
+                        utils.warn(f'`{kw}` will be overwritten by the workflow; it is best to not specify this '
+                                   'keyword and to instead double-check the keyword in the various `.win` files '
                                    'generated by the workflow.')
 
             # Replace "nelec" as a unit with its numerical value, for any settings that are specified implicitly in
@@ -350,10 +358,11 @@ class Workflow(utils.HasDirectory, ABC):
             # Store the sanitized parameters
             self.calculator_parameters[block] = params
 
-        # If atoms has a calculator, overwrite the kpoints and pseudopotentials variables and then detach the calculator
+        # If atoms has a calculator, overwrite the kpoints and pseudopotentials variables and then detach the
+        # calculator
         if atoms.calc is not None:
-            utils.warn(f'You have initialized a `{self.__class__.__name__}` object with an atoms object that possesses '
-                       'a calculator. This calculator will be ignored.')
+            utils.warn(f'You have initialized a `{self.__class__.__name__}` object with an atoms object that '
+                       'possesses a calculator. This calculator will be ignored.')
             self.atoms.calc = None
 
         # Adding excluded_bands info to self.projections
@@ -408,7 +417,8 @@ class Workflow(utils.HasDirectory, ABC):
         # If the pseudo_directory has been set, we need to update it too (because it is stored relative to
         # base_directory). Note that during workflow initialization, we set base_directory prior to defining
         # self.parameters (in which case we don't need to update pseudo_directory)
-        if hasattr(self, 'parameters') and self.parameters.pseudo_directory is not None and old_base_directory is not None:
+        if hasattr(self, 'parameters') and self.parameters.pseudo_directory is not None \
+                and old_base_directory is not None:
             abs_pseudo_dir = (old_base_directory / self.parameters.pseudo_directory).resolve()
             assert abs_pseudo_dir.is_dir()
             self.parameters.pseudo_directory = os.path.relpath(abs_pseudo_dir, self.base_directory)
@@ -454,14 +464,6 @@ class Workflow(utils.HasDirectory, ABC):
     @abstractmethod
     def output_model(self) -> Type[outputs.OutputModel]:
         ...
-
-    @property
-    def pseudopotentials(self) -> Dict[str, str]:
-        return self._pseudopotentials
-
-    @pseudopotentials.setter
-    def pseudopotentials(self, value: Dict[str, str]):
-        self._pseudopotentials = value
 
     def get_step_by_uuid(self, uuid: str):
         for step in self.steps:
@@ -593,8 +595,8 @@ class Workflow(utils.HasDirectory, ABC):
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] and not self.parameters.task.startswith('dft'):
             if len(self.projections) == 0:
-                raise ValueError(f'In order to use `init_orbitals={self.parameters.init_orbitals}`, projections must be '
-                                 'provided')
+                raise ValueError(f'In order to use `init_orbitals={self.parameters.init_orbitals}`, projections must '
+                                 'be provided')
             spin_set = set([p.spin for p in self.projections])
             if self.parameters.spin_polarized:
                 if spin_set != {'up', 'down'}:
@@ -613,13 +615,13 @@ class Workflow(utils.HasDirectory, ABC):
 
         # Check pseudopotentials exist
         if not os.path.isdir(self.base_directory / self.parameters.pseudo_directory):
-            raise NotADirectoryError(
-                f'The pseudopotential directory you provided (`{self.base_directory / self.parameters.pseudo_directory}`) does not exist')
+            raise NotADirectoryError('The pseudopotential directory you provided '
+                                     f'(`{self.base_directory / self.parameters.pseudo_directory}`) does not exist')
         if self.parameters.task != 'ui':
             for pseudo in self.pseudopotentials.values():
                 if not (self.base_directory / self.parameters.pseudo_directory / pseudo).exists():
-                    raise FileNotFoundError(f'`{self.base_directory / self.parameters.pseudo_directory / pseudo}` does not exist. Please '
-                                            'double-check your pseudopotential settings')
+                    raise FileNotFoundError(f'`{self.base_directory / self.parameters.pseudo_directory / pseudo}` '
+                                            'does not exist. Please double-check your pseudopotential settings')
 
         # Make sanity checks for the ML model
         if self.ml.predict or self.ml.train or self.ml.test:
@@ -627,15 +629,18 @@ class Workflow(utils.HasDirectory, ABC):
                        "caution")
             if self.ml_model is None:
                 raise ValueError("You have requested to train or predict with a machine-learning model, but no model "
-                                 "is attached to this workflow. Either set `ml:train` or `predict` to `True` when initializing "
-                                 "the workflow, or directly add a model to the workflow's `ml_model` attribute")
+                                 "is attached to this workflow. Either set `ml:train` or `predict` to `True` when "
+                                 "initializing the workflow, or directly add a model to the workflow's `ml_model` "
+                                 "attribute")
             if self.ml_model.estimator_type != self.ml.estimator:
-                utils.warn(f'The estimator type of the loaded ML model (`{self.ml_model.estimator_type}`) does not match '
-                           f'the estimator type specified in the Workflow settings (`{self.ml.estimator}`). Overriding...')
+                utils.warn(f'The estimator type of the loaded ML model (`{self.ml_model.estimator_type}`) does not '
+                           f'match the estimator type specified in the Workflow settings (`{self.ml.estimator}`). '
+                           'Overriding...')
                 self.ml.estimator = self.ml_model.estimator_type
             if self.ml_model.descriptor_type != self.ml.descriptor:
-                utils.warn(f'The descriptor type of the loaded ML model (`{self.ml_model.descriptor_type}`) does not match '
-                           f'the descriptor type specified in the Workflow settings (`{self.ml.descriptor}`). Overriding...')
+                utils.warn(f'The descriptor type of the loaded ML model (`{self.ml_model.descriptor_type}`) does not '
+                           f'match the descriptor type specified in the Workflow settings (`{self.ml.descriptor}`). '
+                           'Overriding...')
                 self.ml.descriptor = self.ml_model.descriptor_type
             if [self.ml.predict, self.ml.train, self.ml.test].count(True) > 1:
                 raise ValueError(
@@ -817,8 +822,8 @@ class Workflow(utils.HasDirectory, ABC):
                 # (and from which we will fetch the nspin=2 wavefunctions)
                 ndr_directory = str(master_calc.read_directory)
                 if ndr_directory not in master_calc.linked_files.keys():
-                    raise ValueError(
-                        'This calculator needs to be linked to a previous `nspin=2` calculation before `run_calculator` is called')
+                    raise ValueError('This calculator needs to be linked to a previous `nspin=2` calculation before '
+                                     '`run_calculator` is called')
                 prev_calc_nspin2 = master_calc.linked_files[ndr_directory][0]
                 if not isinstance(prev_calc_nspin2, calculators.KoopmansCPCalculator):
                     raise ValueError(
@@ -936,7 +941,8 @@ class Workflow(utils.HasDirectory, ABC):
     def _run_calculators(self, calcs: List[calculators.Calc]) -> None:
         """Run a list of calculators, without doing anything else (other than printing messages.)
 
-        Any pre- or post-processing of each calculator should have been done in _pre_run_calculator and _post_run_calculator.
+        Any pre- or post-processing of each calculator should have been done in _pre_run_calculator and
+        _post_run_calculator.
 
         :param calcs: The calculators to run
         """
@@ -1031,12 +1037,14 @@ class Workflow(utils.HasDirectory, ABC):
 
         return old_calc.is_complete()
 
-    def link(self, src_calc: utils.HasDirectory | None, src_path: Path | str, dest_calc: calculators.Calc, dest_path: Path | str, symlink=False, recursive_symlink=False, overwrite=False) -> None:
+    def link(self, src_calc: utils.HasDirectory | None, src_path: Path | str, dest_calc: calculators.Calc,
+             dest_path: Path | str, symlink=False, recursive_symlink=False, overwrite=False) -> None:
         """Link a file from one calculator to another
 
         Paths must be provided relative to the the calculator's directory i.e. calc.directory, unless src_calc is None
 
-        :param src_calc: The prior calculation or process which generated the file (None if it was not generated by a process/calculation)
+        :param src_calc: The prior calculation or process which generated the file (None if it was not generated by a
+            process/calculation)
         :type src_calc: calculators.Calc | Process | None
         :param src_path: The path of the file, relative to the directory of the calculation/process
         :type src_path: Path
@@ -1044,11 +1052,14 @@ class Workflow(utils.HasDirectory, ABC):
         :type dest_calc: calculators.Calc
         :param dest_path: The path (relative to dest_calc's directory) where this file should appear
         :type dest_path: Path
-        :param symlink: Whether to create a symlink instead of copying the file. Only do this if the file is not going to be modified by the dest_calc
+        :param symlink: Whether to create a symlink instead of copying the file. Only do this if the file is not going
+            to be modified by the dest_calc
         :type symlink: bool
-        :param recursive_symlink: If true, when linking a folder, link its contents individually and not the folder itself
+        :param recursive_symlink: If true, when linking a folder, link its contents individually and not the folder
+            itself
         :type recursive_symlink: bool
-        :param overwrite: If true, allow linking to a destination that has already been linked to, in which case the link will be overwritten
+        :param overwrite: If true, allow linking to a destination that has already been linked to, in which case the
+            link will be overwritten
         :type overwrite: bool
         """
 
@@ -1061,8 +1072,8 @@ class Workflow(utils.HasDirectory, ABC):
             raise ValueError(f'`src_path` in `{self.__class__.__name__}.link()` must be a relative path if a '
                              f'`src_calc` is provided')
         if src_calc is None and not src_path.is_absolute():
-            raise ValueError(
-                f'`src_path` in `{self.__class__.__name__}.link()` must be an absolute path if `src_calc` is not provided')
+            raise ValueError(f'`src_path` in `{self.__class__.__name__}.link()` must be an absolute path if '
+                             '`src_calc` is not provided')
         if dest_path.is_absolute():
             raise ValueError(f'`dest_path` in `{self.__class__.__name__}.link()` must be a relative path')
 
@@ -1162,7 +1173,7 @@ class Workflow(utils.HasDirectory, ABC):
         wf = cls(atoms=dct.pop('atoms'),
                  parameters=dct.pop('parameters'),
                  calculator_parameters=dct.pop('calculator_parameters'),
-                 pseudopotentials=dct.pop('_pseudopotentials'),
+                 pseudopotentials=dct.pop('pseudopotentials'),
                  kpoints=dct.pop('kpoints'),
                  projections=dct.pop('projections'),
                  autogenerate_settings=False,
@@ -1196,7 +1207,6 @@ class Workflow(utils.HasDirectory, ABC):
 
     @classmethod
     def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}, **kwargs):
-
         # Override all keywords provided explicitly
         utils.update_nested_dict(bigdct, override)
 
@@ -1305,8 +1315,8 @@ class Workflow(utils.HasDirectory, ABC):
 
         # Create the workflow. Note that any keywords provided in the calculator_parameters (i.e. whatever is left in
         # calcdict) are provided as kwargs
-        wf = cls(atoms, snapshots=snapshots, parameters=parameters, kpoints=kpts, calculator_parameters=calculator_parameters, **kwargs,
-                 **calcdict)
+        wf = cls(atoms, snapshots=snapshots, parameters=parameters, kpoints=kpts,
+                 calculator_parameters=calculator_parameters, **kwargs, **calcdict)
 
         if parameters.converge:
             # Wrap the workflow in a convergence outer loop
@@ -1521,7 +1531,8 @@ class Workflow(utils.HasDirectory, ABC):
         if isinstance(bsplot_kwargs, dict):
             bsplot_kwargs = [bsplot_kwargs]
         if len(bs) != len(bsplot_kwargs):
-            raise ValueError('The `bs` and `bsplot_kwargs` arguments to `plot_bandstructure()` should be the same length')
+            raise ValueError('The `bs` and `bsplot_kwargs` arguments to `plot_bandstructure()` should be the same '
+                             'length')
         spins: List[Optional[str]]
         if isinstance(dos, DOS):
             if self.parameters.spin_polarized:
@@ -1661,7 +1672,8 @@ def header():
               "*Koopmans spectral functional calculations with `Quantum ESPRESSO`*",
               "",
               f"📦 **Version:** {__version__}  ",
-              "🧑 **Authors:** Edward Linscott, Nicola Colonna, Riccardo De Gennaro, Ngoc Linh Nguyen, Giovanni Borghi, Andrea Ferretti, Ismaila Dabo, and Nicola Marzari  ",
+              "🧑 **Authors:** Edward Linscott, Nicola Colonna, Riccardo De Gennaro, Ngoc Linh Nguyen, Giovanni "
+              "Borghi, Andrea Ferretti, Ismaila Dabo, and Nicola Marzari  ",
               "📚 **Documentation:** https://koopmans-functionals.org  ",
               "❓ **Support:** https://groups.google.com/g/koopmans-users  ",
               "🐛 **Report a bug:** https://github.com/epfl-theos/koopmans/issues/new"

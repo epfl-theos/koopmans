@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Union
 
 import numpy as np
+from ase import Atoms
 
 from koopmans.files import FilePointer
 from koopmans.io import read_pkl
@@ -13,6 +14,19 @@ from koopmans.utils import chdir, symlink, warn
 
 from ._utils import (benchmark_filename, metadata_filename,
                      recursively_find_files)
+
+
+def atoms_eq(self, other):
+    # Patching the Atoms class to compare positions and cell with np.allclose rather than strict equality
+    if not isinstance(other, Atoms):
+        return False
+    a = self.arrays
+    b = other.arrays
+    return (len(self) == len(other) and
+            np.allclose(a['positions'], b['positions']) and
+            (a['numbers'] == b['numbers']).all() and
+            np.allclose(self.cell, other.cell) and
+            (self.pbc == other.pbc).all())
 
 
 def write_mock_file(filename: Union[Path, str], written_by: str):
@@ -152,13 +166,16 @@ def monkeypatch_mock(monkeypatch):
     from koopmans.processes.bin2xml import Bin2XMLProcess
     from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                                 ConvertFilesFromSpin2To1)
+    from koopmans.processes.merge_evc import MergeEVCProcess
     from koopmans.processes.power_spectrum import (
         ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
     from koopmans.processes.ui import UnfoldAndInterpolateProcess
     from koopmans.processes.wannier import ExtendProcess, MergeProcess
 
     # Replace calculators with mock versions that obtain results from the database
-    for c in [KoopmansCPCalculator, Wannier90Calculator, PW2WannierCalculator, Wann2KCPCalculator, PhCalculator, PWCalculator, KoopmansCPCalculator, EnvironCalculator, Wann2KCCalculator, KoopmansScreenCalculator, KoopmansHamCalculator, ProjwfcCalculator]:
+    for c in [KoopmansCPCalculator, Wannier90Calculator, PW2WannierCalculator, Wann2KCPCalculator, PhCalculator,
+              PWCalculator, KoopmansCPCalculator, EnvironCalculator, Wann2KCCalculator, KoopmansScreenCalculator,
+              KoopmansHamCalculator, ProjwfcCalculator]:
         monkeypatch.setattr(c, '_calculate', mock_calculator__calculate)
         monkeypatch.setattr(c, 'is_complete', mock_calculator_is_complete)
         monkeypatch.setattr(c, 'check_code_is_installed', mock_calculator_check_code_is_installed)
@@ -170,5 +187,9 @@ def monkeypatch_mock(monkeypatch):
     #     monkeypatch.setattr(c, 'generate_band_structure', mock_generate_band_structure)
 
     # Processes
-    for p in [ExtractCoefficientsFromXMLProcess, ComputePowerSpectrumProcess, Bin2XMLProcess, ConvertFilesFromSpin1To2, ConvertFilesFromSpin2To1, ExtendProcess, MergeProcess, UnfoldAndInterpolateProcess]:
+    for p in [ExtractCoefficientsFromXMLProcess, ComputePowerSpectrumProcess, Bin2XMLProcess, ConvertFilesFromSpin1To2,
+              ConvertFilesFromSpin2To1, ExtendProcess, MergeProcess, UnfoldAndInterpolateProcess, MergeEVCProcess]:
         monkeypatch.setattr(p, '_run', mock_process_run)
+
+    # Patch the Atoms class
+    monkeypatch.setattr(Atoms, '__eq__', atoms_eq)
