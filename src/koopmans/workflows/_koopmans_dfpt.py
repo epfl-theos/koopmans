@@ -17,6 +17,8 @@ from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
 from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
 
+from ._dft import DFTPWWorkflow
+from ._wannierize import WannierizeWorkflow
 from ._workflow import Workflow
 
 
@@ -33,9 +35,6 @@ class KoopmansDFPTWorkflow(Workflow):
         super().__init__(*args, **kwargs)
 
         # Check the consistency of keywords
-        # if self.parameters.spin_polarized:
-        #    raise NotImplementedError(
-        #        'Calculating screening parameters with DFPT is not yet possible for spin-polarized systems')
         if self.parameters.functional != 'ki':
             raise NotImplementedError(
                 'Calculating screening parameters with DFPT is not yet possible with functionals other than KI')
@@ -160,9 +159,6 @@ class KoopmansDFPTWorkflow(Workflow):
         This function runs the workflow from start to finish
         '''
 
-        # Import these here so that if they have been monkey-patched, we get the monkey-patched version
-        from koopmans.workflows import DFTPWWorkflow, WannierizeWorkflow
-
         if self.parameters.from_scratch:
             for output_directory in [self.calculator_parameters['pw'].outdir, 'wannier', 'init', 'screening',
                                      'hamiltonian', 'postproc']:
@@ -180,7 +176,7 @@ class KoopmansDFPTWorkflow(Workflow):
             coarse_wf.run(subdirectory='coarse_grid')
             self.print('Regular grid calculations', style='heading')
 
-        wannier_files_to_link = {}
+        wannier_files_to_link_by_spin = []
         dft_ham_files = {}
         if all(self.atoms.pbc):
             # Run PW and Wannierization
@@ -196,28 +192,26 @@ class KoopmansDFPTWorkflow(Workflow):
                 c, PWCalculator) and c.parameters.calculation == 'nscf'][-1]
 
             # Populate a list of files to link to subsequent calculations
-            for f in [wf_workflow.outputs.u_matrices_files["occ"],
-                      wf_workflow.outputs.hr_files["occ"],
-                      wf_workflow.outputs.centers_files["occ"]]:
-                assert f is not None
-                wannier_files_to_link[f.name] = f
+            suffixes = ['_up', '_down'] if self.parameters.spin_polarized else ['']
+            for suffix in suffixes:
+                wannier_files_to_link_by_spin.append({})
+                for filling in ['occ', 'emp']:
+                    key = filling + suffix
+                    for f in [wf_workflow.outputs.u_matrices_files[key],
+                              wf_workflow.outputs.hr_files[key],
+                              wf_workflow.outputs.centers_files[key]]:
+                        assert f is not None
 
-            for f in [wf_workflow.outputs.u_matrices_files["emp"],
-                      wf_workflow.outputs.u_dis_file,
-                      wf_workflow.outputs.hr_files["emp"],
-                      wf_workflow.outputs.centers_files["emp"]]:
-                assert f is not None
-                wannier_files_to_link[f.parent.prefix + '_emp' + str(f.name)[len(f.parent.prefix):]] = f
+                        if filling == 'occ':
+                            wannier_files_to_link_by_spin[-1][f.name] = f
+                        else:
+                            wannier_files_to_link_by_spin[-1]['wannier90_emp' + str(f.name)[9:]] = f
 
-            if self.parameters.spin_polarized:
-                raise NotImplementedError('Need to adapt the following code for spin-polarized calculations')
-            for label in ['occ', 'emp']:
-                dft_ham_files[(label, None)] = wf_workflow.outputs.hr_files[label]
+                    dft_ham_files[(filling, suffix[1:] if suffix else None)] = wf_workflow.outputs.hr_files[key]
 
         else:
             # Run PW
-            self.print(
-                'Initialization of density and variational orbitals', style='heading')
+            self.print('Initialization of density and variational orbitals', style='heading')
 
             # Create the workflow
             pw_workflow = DFTPWWorkflow.fromparent(self)
@@ -233,10 +227,10 @@ class KoopmansDFPTWorkflow(Workflow):
 
         spin_components = [1, 2] if self.parameters.spin_polarized else [1]
 
-        for spin_component in spin_components:
+        for spin_component, wannier_files_to_link in zip(spin_components, wannier_files_to_link_by_spin):
 
             # Convert from wannier to KC
-            wann2kc_calc = self.new_calculator('wann2kc', spin_component=spin_component)
+            wann2kc_calc = self.new_calculator('kcw_wannier', spin_component=spin_component)
             self.link(init_pw, init_pw.parameters.outdir, wann2kc_calc, wann2kc_calc.parameters.outdir)
             for dst, f in wannier_files_to_link.items():
                 self.link(f.parent, f.name, wann2kc_calc, dst, symlink=True)
@@ -310,10 +304,11 @@ class ComputeScreeningViaDFPTWorkflow(Workflow):
     output_model = ComputeScreeningViaDFPTOutputs
     outputs: ComputeScreeningViaDFPTOutputs
 
-    def __init__(self, *args, wannier_files_to_link: Dict[str, FilePointer], **kwargs):
+    def __init__(self, *args, spin_component: int, wannier_files_to_link: Dict[str, FilePointer], **kwargs):
         super().__init__(*args, **kwargs)
 
         self._wannier_files_to_link = wannier_files_to_link
+        self._spin_component = spin_component
 
     def _run(self):
         # Group the bands by spread
@@ -323,7 +318,7 @@ class ComputeScreeningViaDFPTWorkflow(Workflow):
             # If there is no orbital grouping, do all orbitals in one calculation
 
             # 1) Create the calculator
-            kc_screen_calc = self.new_calculator('kcw_screen')
+            kc_screen_calc = self.new_calculator('kcw_screen', self._spin_component)
 
             # 2) Run the calculator
             self.run_calculator(kc_screen_calc)
@@ -336,8 +331,9 @@ class ComputeScreeningViaDFPTWorkflow(Workflow):
             kc_screen_calcs = []
             # 1) Create the calculators
             for band in self.bands.to_solve:
-                kc_screen_calc = self.new_calculator('kcw_screen', i_orb=band.index)
-                kc_screen_calc.prefix += f'_orbital_{band.index}'
+                kc_screen_calc = self.new_calculator('kcw_screen', i_orb=band.index,
+                                                     spin_component=self._spin_component)
+                kc_screen_calc.prefix += f'_orbital_{band.index}_spin_{self._spin_component}'
                 kc_screen_calcs.append(kc_screen_calc)
 
             # 2) Run the calculators (possibly in parallel)
