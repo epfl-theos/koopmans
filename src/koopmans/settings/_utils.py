@@ -267,12 +267,12 @@ class IbravDict():
             return super().__setitem__(key, value)  # type: ignore
 
 
-kc_wann_defaults = {'outdir': 'TMP',
-                    'kcw_iverbosity': 1,
-                    'kcw_at_ks': False,
-                    'homo_only': False,
-                    'read_unitary_matrix': True,
-                    'lrpa': False,
-                    'check_ks': True,
-                    'have_empty': True,
-                    'has_disentangle': True}
+kcw_defaults = {'outdir': 'TMP',
+                'kcw_iverbosity': 1,
+                'kcw_at_ks': False,
+                'homo_only': False,
+                'read_unitary_matrix': True,
+                'lrpa': False,
+                'check_ks': True,
+                'have_empty': True,
+                'has_disentangle': True}

@@ -711,11 +711,11 @@ class Workflow(utils.HasDirectory, ABC):
             calc_class = calculators.PW2WannierCalculator
         elif calc_type == 'wann2kcp':
             calc_class = calculators.Wann2KCPCalculator
-        elif calc_type == 'wann2kc':
+        elif calc_type == 'kcw_wannier':
             calc_class = calculators.Wann2KCCalculator
-        elif calc_type == 'kc_screen':
+        elif calc_type == 'kcw_screen':
             calc_class = calculators.KoopmansScreenCalculator
-        elif calc_type == 'kc_ham':
+        elif calc_type == 'kcw_ham':
             calc_class = calculators.KoopmansHamCalculator
         elif calc_type == 'ph':
             calc_class = calculators.PhCalculator
@@ -1259,9 +1259,9 @@ class Workflow(utils.HasDirectory, ABC):
                     # Duplicate the UI block
                     calcdict[f'ui_{key}'] = calcdict['ui']
 
-        # Third, flatten the kc_wann subdicts
-        kc_wann_blocks = calcdict.pop('kc_wann', {'kc_ham': {}, 'kc_screen': {}, 'wann2kc': {}})
-        calcdict.update(**kc_wann_blocks)
+        # Third, flatten the kcw subdicts
+        kcw_blocks = calcdict.pop('kcw', {'ham': {}, 'screen': {}, 'wannier': {}})
+        calcdict.update(**{'kcw_' + k: v for k, v in kcw_blocks.items()})
 
         # Finally, generate a SettingsDict for every single kind of calculator, regardless of whether or not there was
         # a corresponding block in the json file
@@ -1473,7 +1473,7 @@ class Workflow(utils.HasDirectory, ABC):
                         calcdct[code][key] = {k: v for k, v in dict(
                             block).items() if v is not None}
 
-            elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham', 'projwfc', 'wann2kcp', 'ph']:
+            elif code in ['pw2wannier', 'kcw_wannier', 'kcw_screen', 'kcw_ham', 'projwfc', 'wann2kcp', 'ph']:
                 calcdct[code] = params_dict
             elif code.startswith('ui_'):
                 calcdct['ui'][code.split('_')[-1]] = params_dict
@@ -1529,7 +1529,7 @@ class Workflow(utils.HasDirectory, ABC):
         if isinstance(bs, BandStructure):
             bs = [bs]
         if isinstance(bsplot_kwargs, dict):
-            bsplot_kwargs = [bsplot_kwargs]
+            bsplot_kwargs = [bsplot_kwargs for _ in bs]
         if len(bs) != len(bsplot_kwargs):
             raise ValueError('The `bs` and `bsplot_kwargs` arguments to `plot_bandstructure()` should be the same '
                              'length')
@@ -1724,8 +1724,8 @@ def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]
     # Dictionary to be used as the default value for 'calculator_parameters' when initializing a workflow
     # We create this dynamically in order for the .directory attributes to make sense
     return {'kcp': settings.KoopmansCPSettingsDict(),
-            'kc_ham': settings.KoopmansHamSettingsDict(),
-            'kc_screen': settings.KoopmansScreenSettingsDict(),
+            'kcw_ham': settings.KoopmansHamSettingsDict(),
+            'kcw_screen': settings.KoopmansScreenSettingsDict(),
             'ph': settings.PhSettingsDict(),
             'projwfc': settings.ProjwfcSettingsDict(),
             'pw': settings.PWSettingsDict(),
@@ -1734,7 +1734,7 @@ def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]
             'ui': settings.UnfoldAndInterpolateSettingsDict(),
             'ui_occ': settings.UnfoldAndInterpolateSettingsDict(),
             'ui_emp': settings.UnfoldAndInterpolateSettingsDict(),
-            'wann2kc': settings.Wann2KCSettingsDict(),
+            'kcw_wannier': settings.Wann2KCSettingsDict(),
             'w90': settings.Wannier90SettingsDict(),
             'w90_up': settings.Wannier90SettingsDict(),
             'w90_down': settings.Wannier90SettingsDict(),
@@ -1743,9 +1743,9 @@ def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]
 
 # Define which function to use to read each block
 settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
-                    'kc_ham': settings.KoopmansHamSettingsDict,
-                    'kc_screen': settings.KoopmansScreenSettingsDict,
-                    'wann2kc': settings.Wann2KCSettingsDict,
+                    'kcw_ham': settings.KoopmansHamSettingsDict,
+                    'kcw_screen': settings.KoopmansScreenSettingsDict,
+                    'kcw_wannier': settings.Wann2KCSettingsDict,
                     'ph': settings.PhSettingsDict,
                     'projwfc': settings.ProjwfcSettingsDict,
                     'pw': settings.PWSettingsDict,
