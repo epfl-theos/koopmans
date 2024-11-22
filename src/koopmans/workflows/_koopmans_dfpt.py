@@ -10,6 +10,8 @@ import shutil
 from pathlib import Path
 from typing import Dict
 
+import numpy as np
+
 from koopmans import pseudopotentials, utils
 from koopmans.bands import Bands
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
@@ -280,20 +282,29 @@ class KoopmansDFPTWorkflow(Workflow):
                         self, dft_ham_files=dft_ham_files, koopmans_ham_files=koopmans_ham_files)
                     ui_workflow.run(subdirectory='postproc' + spin_suffix)
 
-                    # Plotting
-                    self.plot_bandstructure()
+        # Plotting
+        if self._perform_ham_calc:
+            self.plot_bandstructure()
 
     def plot_bandstructure(self):
         if not all(self.atoms.pbc):
             return
 
         # Identify the relevant calculators
-        kc_ham_calc = [c for c in self.calculations if isinstance(c, KoopmansHamCalculator)][-1]
+        n_calc = 2 if self.parameters.spin_polarized else 1
+        kc_ham_calcs = [c for c in self.calculations if isinstance(c, KoopmansHamCalculator)][-n_calc:]
 
         # Plot the bandstructure if the band path has been specified
-        bs = kc_ham_calc.results['band structure']
-        if bs.path.path:
-            super().plot_bandstructure(bs.subtract_reference())
+        bandstructures = [c.results['band structure'] for c in kc_ham_calcs]
+        ref = max([b.reference for b in bandstructures])
+        bs_to_plot = bandstructures[0].subtract_reference(ref)
+        if not bs_to_plot.path.path:
+            return
+
+        if self.parameters.spin_polarized:
+            bs_to_plot._energies = np.append(bs_to_plot._energies, bandstructures[1]._energies - ref, axis=0)
+
+        super().plot_bandstructure(bs_to_plot)
 
     def new_calculator(self, calc_presets, **kwargs):
         return internal_new_calculator(self, calc_presets, **kwargs)

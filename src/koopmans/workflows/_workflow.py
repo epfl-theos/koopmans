@@ -1529,7 +1529,7 @@ class Workflow(utils.HasDirectory, ABC):
         if isinstance(bs, BandStructure):
             bs = [bs]
         if isinstance(bsplot_kwargs, dict):
-            bsplot_kwargs = [bsplot_kwargs]
+            bsplot_kwargs = [bsplot_kwargs for _ in bs]
         if len(bs) != len(bsplot_kwargs):
             raise ValueError('The `bs` and `bsplot_kwargs` arguments to `plot_bandstructure()` should be the same '
                              'length')
