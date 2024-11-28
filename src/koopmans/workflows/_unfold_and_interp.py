@@ -64,9 +64,21 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         w90_calcs = [c for c in self.calculations if isinstance(c, calculators.Wannier90Calculator)
                      and c.command.flags == ''][-len(self.projections):]
 
+        # Creating new offset for nscf comensurate with smooth DFT grid
+        offset_old = self.kpoints.offset_nscf
+        if offset_old is not None:
+            scf_grid = self.kpoints.grid
+            smth_factor = self.calculator_parameters['ui'].smooth_int_factor
+            for i in range(len(offset_old)):
+                offset_new = offset_old[i] + 0.5 * (smth_factor[i] - 1) / (smth_factor[i] * scf_grid[i])
+
         if self.calculator_parameters['ui'].do_smooth_interpolation:
             wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kpoints.grid)
             assert self.kpoints.grid is not None
+
+            if offset_old is not None:
+                wannier_workflow.kpoints.offset_nscf = offset_new
+
             wannier_workflow.kpoints.grid = [x * y for x, y in zip(self.kpoints.grid,
                                              self.calculator_parameters['ui'].smooth_int_factor)]
 
