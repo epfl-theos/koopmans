@@ -70,7 +70,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             scf_grid = self.kpoints.grid
             smth_factor = self.calculator_parameters['ui'].smooth_int_factor
             for i in range(len(offset_old)):
-                offset_new = offset_old[i] + 0.5*(smth_factor[i] - 1) / (smth_factor[i] * scf_grid[i])
+                offset_new = offset_old[i] + 0.5 * (smth_factor[i] - 1) / (smth_factor[i] * scf_grid[i])
 
         if self.calculator_parameters['ui'].do_smooth_interpolation:
             wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kpoints.grid)
