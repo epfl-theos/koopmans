@@ -10,6 +10,7 @@ Converted to a workflow object Nov 2020
 import os
 import shutil
 from pathlib import Path
+from typing import Generator, List
 
 import numpy as np
 
@@ -17,6 +18,7 @@ from koopmans import utils
 from koopmans.calculators import ProjwfcCalculator
 from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
+from koopmans.step import Step
 
 from ._dft import DFTCPWorkflow, DFTPhWorkflow
 from ._koopmans_dfpt import KoopmansDFPTWorkflow
@@ -70,19 +72,17 @@ class SinglepointWorkflow(Workflow):
 
     output_model = SinglepointOutputs  # type: ignore
 
-    def _run(self) -> None:
+    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
         if self.parameters.eps_inf == 'auto':
             eps_workflow = DFTPhWorkflow.fromparent(self)
-            if self.parameters.from_scratch and Path('calculate_eps').exists():
-                shutil.rmtree('calculate_eps')
-            eps_workflow.run(subdirectory='calculate_eps')
+            yield from self.yield_from_subworkflows(eps_workflow)
             self.parameters.eps_inf = np.trace(eps_workflow.calculations[-1].results['dielectric tensor']) / 3
 
         if self.parameters.method == 'dfpt':
             workflow = KoopmansDFPTWorkflow.fromparent(self)
-            workflow.run()
+            yield from self.yield_from_subworkflows(workflow)
 
         elif self.parameters.functional == 'all':
             # if 'all', create subdirectories and run
@@ -111,6 +111,7 @@ class SinglepointWorkflow(Workflow):
                     assert ki_workflow is not None
                     variational_orbital_files = ki_workflow.outputs.variational_orbital_files
                     previous_cp_calc = ki_workflow.outputs.final_calc
+                    smooth_dft_ham_files = ki_workflow.outputs.smooth_dft_ham_files
                 else:
                     variational_orbital_files = None
                     previous_cp_calc = None
@@ -131,13 +132,13 @@ class SinglepointWorkflow(Workflow):
                     kc_workflow.primitive_to_supercell()
 
                 # Run the workflow
-                kc_workflow.run(subdirectory=functional)
+                yield from self.yield_from_subworkflows(kc_workflow, subdirectory=Path(functional))
 
         else:
             # self.functional != all and self.method != 'dfpt'
             if self.parameters.functional in ['ki', 'pkipz', 'kipz']:
                 dscf_workflow = KoopmansDSCFWorkflow.fromparent(self)
-                dscf_workflow.run()
+                yield from self.yield_from_subworkflows(dscf_workflow)
             else:
                 dft_workflow = DFTCPWorkflow.fromparent(self)
-                dft_workflow.run()
+                yield from self.yield_from_subworkflows(dft_workflow)

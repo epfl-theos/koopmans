@@ -9,7 +9,7 @@ Split off from workflow.py Oct 2020
 
 import shutil
 from pathlib import Path
-from typing import Dict, List, Mapping, Optional, Tuple
+from typing import Dict, Generator, List, Mapping, Optional, Tuple
 
 import numpy as np
 from ase.dft import DOS
@@ -19,8 +19,13 @@ from koopmans.bands import Band, Bands
 from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
 from koopmans.settings import KoopmansCPSettingsDict
+from koopmans.step import Step
 
+from ._folding import FoldToSupercellWorkflow
 from ._koopmans_cp_with_spin_swap import KoopmansCPWithSpinSwapWorkflow
+from ._ml import PowerSpectrumDecompositionWorkflow
+from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
+from ._wannierize import WannierizeWorkflow
 from ._workflow import Workflow
 
 
@@ -31,6 +36,7 @@ class KoopmansDSCFOutputs(OutputModel):
     variational_orbital_files: Dict[str, FilePointer]
     final_calc: calculators.KoopmansCPCalculator
     wannier_hamiltonian_files: Dict[Tuple[str, str | None], FilePointer] | None = None
+    smooth_dft_ham_files: Dict[Tuple[str], FilePointer] | None = None
 
     class Config:
         arbitrary_types_allowed = True
@@ -41,18 +47,19 @@ class KoopmansDSCFWorkflow(Workflow):
     output_model = KoopmansDSCFOutputs  # type: ignore
     outputs: KoopmansDSCFOutputs
 
-    def __init__(self, *args, redo_smooth_dft: Optional[bool] = None,
+    def __init__(self, *args,
                  initial_variational_orbital_files: Dict[str, FilePointer] | None = None,
                  previous_cp_calc: calculators.KoopmansCPCalculator | None = None,
+                 smooth_dft_ham_files: Dict[Tuple[str, str | None], FilePointer] | None = None,
                  precomputed_descriptors: List[FilePointer] | None = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         # The following two additional keywords allow for some tweaking of the workflow when running a singlepoint
         # workflow with functional == 'all'
 
-        # By default, we don't override self.parameters.from_scratch when we arrive at the higher-res DFT calculations.
-        # We change this flag to False for workflows where this is unnecessary (such as pKIPZ) to skip this step.
-        self._redo_smooth_dft = redo_smooth_dft
+        # If the higher-resolution DFT calculations have already been computed, the smooth DFT Hamiltonian can be provided
+        # via this keyword to avoid redoing these calculations unnecessarily
+        self._smooth_dft_ham_files = smooth_dft_ham_files
 
         # For the KIPZ calculation we restart from the old KI calculation
         self._initial_variational_orbital_files = initial_variational_orbital_files
@@ -238,7 +245,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         return alphas
 
-    def _run(self) -> None:
+    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
         '''
         This function runs a KI/pKIPZ/KIPZ workflow from start to finish
         '''
@@ -246,7 +253,7 @@ class KoopmansDSCFWorkflow(Workflow):
         init_wf: Optional[InitializationWorkflow] = None
         if self._initial_variational_orbital_files is None:
             init_wf = InitializationWorkflow.fromparent(self)
-            init_wf.run()
+            yield from self.yield_from_subworkflows(init_wf)
             self._initial_variational_orbital_files = init_wf.outputs.variational_orbital_files
             initial_cp_calculation = init_wf.outputs.final_calc
         else:
@@ -259,7 +266,7 @@ class KoopmansDSCFWorkflow(Workflow):
             screening_wf = CalculateScreeningViaDSCF.fromparent(self, initial_variational_orbital_files=self._initial_variational_orbital_files,
                                                                 initial_cp_calculation=initial_cp_calculation,
                                                                 precomputed_descriptors=self._precomputed_descriptors)
-            screening_wf.run()
+            yield from self.yield_from_subworkflows(screening_wf)
 
             # Store the files which will be needed for the final calculation
             n_electron_restart_dir = screening_wf.outputs.n_electron_restart_dir
@@ -320,18 +327,17 @@ class KoopmansDSCFWorkflow(Workflow):
                     calc.prefix += '_ml'
 
                 self.link(*n_electron_restart_dir, calc, calc.read_directory, recursive_symlink=True)
-                self.run_calculator(calc)
+                yield from self.yield_steps(calc)
 
         final_calc = calc
         variational_orbital_files = {f: FilePointer(final_calc, final_calc.read_directory / 'K00001' / f)
                                      for f in ['evc01.dat', 'evc02.dat', 'evc0_empty1.dat', 'evc0_empty2.dat']}
-        self.outputs = self.output_model(variational_orbital_files=variational_orbital_files, final_calc=final_calc)
 
         # Postprocessing
+        smooth_dft_ham_files = None
         if all(self.atoms.pbc):
             if self.parameters.calculate_bands in [None, True] and self.projections and self.kpoints.path is not None:
                 # Calculate interpolated band structure and DOS with UI
-                from koopmans import workflows
                 final_koopmans_calc = self.calculations[-1]
                 koopmans_ham_files: Dict[Tuple[str, str | None], FilePointer]
                 if self.parameters.spin_polarized:
@@ -344,16 +350,24 @@ class KoopmansDSCFWorkflow(Workflow):
                                           ('emp', None): FilePointer(final_koopmans_calc, Path('ham_emp_1.dat'))}
                 assert init_wf is not None
                 dft_ham_files = init_wf.outputs.wannier_hamiltonian_files
-                ui_workflow = workflows.UnfoldAndInterpolateWorkflow.fromparent(
+                ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(
                     self,
                     koopmans_ham_files=koopmans_ham_files,
                     dft_ham_files=dft_ham_files,
-                    redo_smooth_dft=self._redo_smooth_dft)
-                ui_workflow.run()
+                    smooth_dft_ham_files=self._smooth_dft_ham_files)
+                yield from self.yield_from_subworkflows(ui_workflow)
+                smooth_dft_ham_files = ui_workflow.outputs.smooth_dft_ham_files
             else:
                 # Generate the DOS only
                 dos = DOS(self.calculations[-1], width=self.plotting.degauss, npts=self.plotting.nstep + 1)
                 self.calculations[-1].results['dos'] = dos
+
+        yield tuple()
+
+        self.outputs = self.output_model(variational_orbital_files=variational_orbital_files, final_calc=final_calc,
+                                         smooth_dft_ham_files=smooth_dft_ham_files)
+
+        return
 
     def _overwrite_canonical_with_variational_orbitals(self, calc: calculators.KoopmansCPCalculator) -> None:
         self.print('Overwriting the variational orbitals with Kohn-Sham orbitals')
@@ -385,7 +399,7 @@ class CalculateScreeningViaDSCF(Workflow):
         self._initial_cp_calculation = initial_cp_calculation
         self._precomputed_descriptors = precomputed_descriptors
 
-    def _run(self) -> None:
+    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
         converged = False
         i_sc = 0
 
@@ -410,7 +424,7 @@ class CalculateScreeningViaDSCF(Workflow):
                 # For the first iteration, the spin contamination has already been addressed during the initialization
                 iteration_wf.parameters.fix_spin_contamination = False
 
-            iteration_wf.run()
+            yield from self.yield_from_subworkflows(iteration_wf)
 
             converged = iteration_wf.outputs.converged or self.ml.predict
 
@@ -437,6 +451,10 @@ class CalculateScreeningViaDSCF(Workflow):
 
         self.outputs = CalculateScreeningViaDSCFOutput(
             n_electron_restart_dir=iteration_wf.outputs.n_electron_restart_dir)
+
+        yield tuple()
+
+        return
 
 
 class DeltaSCFIterationOutputs(OutputModel):
@@ -468,13 +486,14 @@ class DeltaSCFIterationWorkflow(Workflow):
         # Set a more instructive name
         self.name = 'Iteration_' + str(i_sc)
 
-    def _run(self):
+    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
         # Do a KI/KIPZ calculation with the updated alpha values
         restart_from_wannier_pwscf = 'evc_occupied1.dat' in self._variational_orbital_files
         if self.parameters.task in ['singlepoint', 'trajectory'] and self.ml.descriptor == 'orbital_density':
             print_real_space_density = True
         else:
             print_real_space_density = False
+        assert self.bands is not None
         trial_calc = internal_new_kcp_calculator(self, calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
                                                  print_real_space_density=print_real_space_density,
                                                  alphas=self.bands.alphas,
@@ -495,10 +514,8 @@ class DeltaSCFIterationWorkflow(Workflow):
             trial_calc.parameters.do_innerloop = True
 
         # Run the calculation
-        try:
-            self.run_calculator(trial_calc, enforce_spin_symmetry=self.parameters.fix_spin_contamination)
-        except:
-            raise ValueError()
+        raise NotImplementedError('Need to implement spin contamination fix')
+        yield from self.yield_steps(trial_calc, enforce_spin_symmetry=self.parameters.fix_spin_contamination)
         alpha_dep_calcs = [trial_calc]
 
         # Update the bands' self-Hartree and energies (assuming spin-symmetry)
@@ -515,11 +532,9 @@ class DeltaSCFIterationWorkflow(Workflow):
                 and self.ml.estimator != 'mean':
             if self._precomputed_descriptors is None:
                 if self.ml.descriptor == 'orbital_density':
-                    from koopmans.workflows import \
-                        PowerSpectrumDecompositionWorkflow
                     psfit_workflow = PowerSpectrumDecompositionWorkflow.fromparent(
                         self, calc_that_produced_orbital_densities=trial_calc)
-                    psfit_workflow.run()
+                    yield from self.yield_from_subworkflows(psfit_workflow)
 
                     descriptors = psfit_workflow.outputs.descriptors
             else:
@@ -528,6 +543,7 @@ class DeltaSCFIterationWorkflow(Workflow):
                 band.power_spectrum = power_spectrum
 
         # Loop over removing/adding an electron from/to each orbital
+        assert self.bands is not None
         for band in self.bands:
             # For a KI calculation with only filled bands, we don't have any further calculations to
             # do, so in this case don't print any headings
@@ -567,7 +583,7 @@ class DeltaSCFIterationWorkflow(Workflow):
                 dummy_outdir = self._dummy_outdirs.get((band.index, band.spin), None)
                 subwf = OrbitalDeltaSCFWorkflow.fromparent(
                     self, band=band, trial_calc=trial_calc, dummy_outdir=dummy_outdir, i_sc=self._i_sc, alpha_indep_calcs=self._alpha_indep_calcs)
-                subwf.run()
+                yield from self.yield_from_subworkflows(subwf)
                 alpha = subwf.outputs.alpha
                 error = subwf.outputs.error
                 self._dummy_outdirs[(band.index, band.spin)] = subwf.outputs.dummy_outdir
@@ -636,7 +652,7 @@ class OrbitalDeltaSCFWorkflow(Workflow):
         if self.parameters.spin_polarized:
             self.name += ' Spin ' + str(self.band.spin + 1)
 
-    def _run(self):
+    def _steps_generator(self):
 
         alpha_dep_calcs = [self._trial_calc]
 
@@ -740,7 +756,7 @@ class OrbitalDeltaSCFWorkflow(Workflow):
             # Run kcp.x
             if calc.parameters.nelup < calc.parameters.neldw:
                 subwf = KoopmansCPWithSpinSwapWorkflow.fromparent(self, calc=calc)
-                subwf.run()
+                yield from self.yield_from_subworkflows(subwf)
                 if 'dummy' in calc_type:
                     dummy_outdir = subwf.outputs.outdir
             else:
@@ -1145,22 +1161,19 @@ class InitializationWorkflow(Workflow):
     output_model = KoopmansDSCFOutputs  # type: ignore
     outputs: KoopmansDSCFOutputs
 
-    def _run(self) -> None:
-        # Import these here so that if these have been monkey-patched, we get the monkey-patched version
-        from koopmans import workflows
-
+    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
         wannier_hamiltonian_files: Dict[Tuple[str, str | None], FilePointer] | None = None
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
                 (all(self.atoms.pbc) and self.parameters.init_orbitals == 'kohn-sham'):
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x (pw.x only for Kohn-Sham states)
-            wannier_workflow = workflows.WannierizeWorkflow.fromparent(self)
+            wannier_workflow = WannierizeWorkflow.fromparent(self)
             if wannier_workflow.parameters.calculate_bands:
                 wannier_workflow.parameters.calculate_bands = \
                     not self.calculator_parameters['ui'].do_smooth_interpolation
 
             # Perform the wannierization workflow
-            wannier_workflow.run()
+            yield from self.yield_from_subworkflows(wannier_workflow)
 
             # Store the Hamitonian files
             hr_file_keys: List[Tuple[str, str | None]]
@@ -1179,13 +1192,13 @@ class InitializationWorkflow(Workflow):
             # Convert the files over from w90 format to kcp format
             nscf_calc = wannier_workflow.steps[1]
             nscf_outdir = FilePointer(nscf_calc, nscf_calc.parameters.outdir)
-            wannier90_calculations = [s[-1] for s in wannier_workflow.steps[2:2 + len(self.projections)]]
-            wannier90_pp_calculations = [s[0] for s in wannier_workflow.steps[2:2 + len(self.projections)]]
-            fold_workflow = workflows.FoldToSupercellWorkflow.fromparent(self, nscf_outdir=nscf_outdir,
-                                                                         hr_files=wannier_workflow.outputs.hr_files,
-                                                                         wannier90_calculations=wannier90_calculations,
-                                                                         wannier90_pp_calculations=wannier90_pp_calculations)
-            fold_workflow.run()
+            wannier90_calculations = wannier_workflow.steps[-len(self.projections):]
+            wannier90_pp_calculations = wannier_workflow.steps[-3*len(self.projections):-2*len(self.projections)]
+            fold_workflow = FoldToSupercellWorkflow.fromparent(self, nscf_outdir=nscf_outdir,
+                                                               hr_files=wannier_workflow.outputs.hr_files,
+                                                               wannier90_calculations=wannier90_calculations,
+                                                               wannier90_pp_calculations=wannier90_pp_calculations)
+            yield from self.yield_from_subworkflows(fold_workflow)
 
             # Convert self.atoms to the supercell
             self.primitive_to_supercell()
@@ -1193,7 +1206,7 @@ class InitializationWorkflow(Workflow):
             # We need a dummy calc before the real dft_init in order
             # to copy the previously calculated Wannier functions
             dummy_calc = internal_new_kcp_calculator(self, 'dft_dummy')
-            self.run_calculator(dummy_calc)
+            yield from self.yield_steps(dummy_calc)
 
             # DFT restarting from Wannier functions (after copying the Wannier functions)
             calc = internal_new_kcp_calculator(self, 'dft_init', restart_mode='restart',
@@ -1202,7 +1215,7 @@ class InitializationWorkflow(Workflow):
             for filename, filepointer in fold_workflow.outputs.kcp_files.items():
                 self.link(filepointer.parent, filepointer.name, calc,
                           calc.read_directory / 'K00001' / filename, symlink=True)
-            self.run_calculator(calc)
+            yield from self.yield_steps(calc)
 
             # Check the consistency between the PW and CP band gaps
             pw_calc = [c for c in self.calculations if isinstance(
@@ -1220,7 +1233,8 @@ class InitializationWorkflow(Workflow):
 
         elif self.parameters.functional in ['ki', 'pkipz']:
             calc_dft = internal_new_kcp_calculator(self, 'dft_init')
-            self.run_calculator(calc_dft, enforce_spin_symmetry=self.parameters.fix_spin_contamination)
+            raise NotImplementedError('Need to support spin symmetry')
+            # yield from self.yield_steps(calc_dft, enforce_spin_symmetry=self.parameters.fix_spin_contamination)
 
             if self.parameters.init_orbitals == 'kohn-sham':
                 calc = calc_dft
@@ -1242,14 +1256,15 @@ class InitializationWorkflow(Workflow):
                     ndr_dir = calc.read_directory / 'K00001'
                     self.link(calc_dft, ndw_dir / 'evc1.dat', calc, ndr_dir / 'evc01.dat', symlink=True, overwrite=True)
                     self.link(calc_dft, ndw_dir / 'evc2.dat', calc, ndr_dir / 'evc02.dat', symlink=True, overwrite=True)
-                    self.run_calculator(calc)
+                    yield from self.yield_steps(calc)
             else:
                 raise ValueError('Should not arrive here')
 
         elif self.parameters.functional == 'kipz':
             # DFT from scratch
             calc_dft = internal_new_kcp_calculator(self, 'dft_init')
-            self.run_calculator(calc_dft, enforce_spin_symmetry=self.parameters.fix_spin_contamination)
+            raise NotImplementedError('Need to support spin symmetry')
+            # yield from self.yield_steps(calc_dft, enforce_spin_symmetry=self.parameters.fix_spin_contamination)
 
             if self.parameters.init_orbitals == 'kohn-sham':
                 # Initialize the density with DFT and use the KS eigenfunctions as guesses for the variational orbitals
@@ -1260,7 +1275,7 @@ class InitializationWorkflow(Workflow):
                 # PZ from DFT (generating PZ density and PZ orbitals)
                 calc = internal_new_kcp_calculator(self, 'pz_init')
                 self.link(calc_dft, calc_dft.write_directory, calc, calc.read_directory, recursive_symlink=True)
-                self.run_calculator(calc)
+                yield from self.yield_steps(calc)
             else:
                 raise ValueError('Should not arrive here')
 
@@ -1295,6 +1310,8 @@ class InitializationWorkflow(Workflow):
 
         self.outputs = self.output_model(variational_orbital_files=variational_orbitals, final_calc=calc,
                                          wannier_hamiltonian_files=wannier_hamiltonian_files)
+
+        yield tuple()
 
         return
 

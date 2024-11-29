@@ -15,13 +15,14 @@ import shutil
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import (Any, Callable, Dict, Generic, List, Optional, Type,
-                    TypeVar, Union, cast)
+from typing import (Any, Callable, Dict, Generator, Generic, List, Optional,
+                    Type, TypeVar, Union, cast)
 
 import numpy as np
 
 from koopmans import cell, utils
 from koopmans.outputs import OutputModel
+from koopmans.step import Step
 
 from ._workflow import Workflow
 
@@ -265,11 +266,7 @@ class ConvergenceWorkflow(Workflow):
                       variables=dct.pop('variables'))
         return super(ConvergenceWorkflow, cls).fromdict(dct, **kwargs)
 
-    def _run(self) -> None:
-
-        # Deferred import to allow for monkeypatching
-        from koopmans import workflows
-
+    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
         # Set the initial value for each of the convergence variables
         for c in self.variables:
             if c.initial_value is None:
@@ -311,6 +308,8 @@ class ConvergenceWorkflow(Workflow):
         while True:
 
             # Loop over all possible permutations of convergence variables
+            subwfs = []
+            indices_to_run = []
             for indices in itertools.product(*[range(len(x)) for x in self.variables]):
                 # If we already have results for this permutation, don't recalculate it
                 if not np.isnan(results[tuple(indices)]):
@@ -351,9 +350,14 @@ class ConvergenceWorkflow(Workflow):
 
                 # Perform calculation
                 subwf.name += label
-                subwf.run()
 
-                # Store the result
+                subwfs.append(subwf)
+                indices_to_run.append(indices)
+
+            yield from self.yield_from_subworkflows(subwfs)
+
+            # Store the result
+            for indices, subwf in zip(indices_to_run, subwfs):
                 results[indices] = self.observable(subwf)
 
             # Check convergence
@@ -391,6 +395,8 @@ class ConvergenceWorkflow(Workflow):
                            + ', '.join([f'{p.name} = {p.converged_value}' for p in self.variables]))
 
                 self.outputs = self.output_model(converged_values={v.name: v.converged_value for v in self.variables})
+
+                yield tuple()
 
                 return
             else:
@@ -430,8 +436,6 @@ class ConvergenceWorkflow(Workflow):
                 new_results[:] = np.nan
                 new_results[tuple(new_array_slice)] = results
                 results = new_results
-
-        return
 
 
 def ConvergenceWorkflowFactory(subworkflow: Workflow, observable: Union[str, Callable[[Workflow], float]], threshold: float,

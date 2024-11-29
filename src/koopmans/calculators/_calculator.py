@@ -130,6 +130,15 @@ class CalculatorExt(utils.HasDirectory):
             if value is not None:
                 self._parameters.update(**value)
 
+    def run(self):
+        # Alias for self.calculate so that calculators follow the Step protocol
+        self.calculate()
+
+    @property
+    def name(self) -> str:
+        # Alias for self.prefix so that calculators follow the Step protocol
+        return self.prefix
+
     def calculate(self):
         """Generic function for running a calculator"""
 
@@ -357,9 +366,9 @@ class CalculatorABC(ABC, Generic[TCalc]):
         # Read qe output file
         for filename in [f for f in sanitized_filenames if f.suffix == cls.ext_out]:
             calc.prefix = filename.stem
+            calc.directory = filename.parent
             try:
-                with utils.chdir(filename.parent):
-                    calc.read_results()
+                calc.read_results()
             except Exception:
                 # Calculation could not be read; must have been incomplete
                 pass
@@ -369,7 +378,7 @@ class CalculatorABC(ABC, Generic[TCalc]):
         if calc.parent is None:
             base_directory = sanitized_filenames[0].parents[1]
         else:
-            base_directory = calc.parent.base_directory / calc.parent.directory
+            base_directory = calc.parent.base_directory
         calc.directory = Path(os.path.relpath(sanitized_filenames[0].parent, base_directory))
         calc.prefix = sanitized_filenames[0].stem
 

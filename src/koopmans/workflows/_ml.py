@@ -3,7 +3,7 @@ Written by Yannick Schubert Jul 2022
 """
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Generator, List, Tuple
 
 import numpy as np
 from sklearn.metrics import mean_absolute_error as mae
@@ -15,6 +15,7 @@ from koopmans.outputs import OutputModel
 from koopmans.processes.power_spectrum import (
     ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
 from koopmans.settings import KoopmansCPSettingsDict
+from koopmans.step import Step
 
 from ._workflow import Workflow
 
@@ -27,8 +28,12 @@ class SelfHartreeWorkflow(Workflow):
 
     output_model = SelfHartreeOutput  # type: ignore
 
-    def _run(self):
+    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
+        assert self.bands
+
         self.outputs = self.output_model(descriptors=[b.self_hartree for b in self.bands.to_solve])
+
+        yield tuple()
 
 
 class PowerSpectrumDecompositionOutput(OutputModel):
@@ -49,7 +54,7 @@ class PowerSpectrumDecompositionWorkflow(Workflow):
         # the KI-calculation at the beginning of the alpha calculations is a valid option
         self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
 
-    def _run(self):
+    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
         """
         Runs the PowerSpectrumDecomposition workflow.
 
@@ -65,6 +70,7 @@ class PowerSpectrumDecompositionWorkflow(Workflow):
                              'should not have been called')
 
         # Specify for which bands we want to compute the decomposition
+        assert self.bands
         self.num_bands_occ = [len([band for band in self.bands if (band.filled and band.spin == spin)])
                               for spin in [0, 1]]
         self.num_bands_to_extract = [len([band for band in self.bands.to_solve if band.filled == filled])
@@ -77,6 +83,10 @@ class PowerSpectrumDecompositionWorkflow(Workflow):
 
         assert self.ml.descriptor == 'orbital_density'
         self.extract_input_vector_from_orbital_densities()
+
+        yield tuple()
+
+        return
 
     def extract_input_vector_from_orbital_densities(self):
         """
@@ -105,7 +115,7 @@ class PowerSpectrumDecompositionWorkflow(Workflow):
                                                                   cell=self.atoms.cell,
                                                                   total_density_xml=bin2xml_workflow.outputs.total_density,
                                                                   orbital_densities_xml=bin2xml_workflow.outputs.orbital_densities)
-        self.run_process(decomposition_process)
+        yield from self.yield_steps(decomposition_process)
 
         orb_coeffs = decomposition_process.outputs.orbital_coefficients
         tot_coeffs = decomposition_process.outputs.total_coefficients
@@ -118,7 +128,7 @@ class PowerSpectrumDecompositionWorkflow(Workflow):
                 total_coefficients=tot_coeff,
             )
             power_spectrum_process.name += '_orbital_' + str(i + 1)
-            self.run_process(power_spectrum_process)
+            yield from self.yield_steps(power_spectrum_process)
             descriptors.append(power_spectrum_process.outputs.power_spectrum)
 
         self.outputs = self.output_model(descriptors=descriptors)
@@ -146,7 +156,7 @@ class ConvertOrbitalFilesToXMLWorkflow(Workflow):
         super().__init__(*args, **kwargs)
         self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
 
-    def _run(self):
+    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
         """
         Converts the binary files produced by a previous calculation to python-readable xml files.
         """
@@ -157,10 +167,11 @@ class ConvertOrbitalFilesToXMLWorkflow(Workflow):
         binary = FilePointer(self.calc_that_produced_orbital_densities,
                              self.calc_that_produced_orbital_densities.write_directory / 'charge-density.dat')
         bin2xml_total_density = Bin2XMLProcess(name='bin2xml_total_density', binary=binary)
-        self.run_process(bin2xml_total_density)
+        yield from self.yield_steps(bin2xml_total_density)
 
         # Convert orbital densities to XML
         orbital_densities: List[FilePointer] = []
+        assert self.bands
         for band in self.bands.to_solve:
             if band.filled:
                 occ_id = 'occ'
@@ -171,7 +182,7 @@ class ConvertOrbitalFilesToXMLWorkflow(Workflow):
 
             bin2xml_orbital_density = Bin2XMLProcess(
                 name=f'bin2xml_{occ_id}_spin_{band.spin}_orb_{band.index}_density', binary=binary)
-            self.run_process(bin2xml_orbital_density)
+            yield from self.yield_steps(bin2xml_orbital_density)
             orbital_densities.append(bin2xml_orbital_density.outputs.xml)
 
         self.outputs = self.output_model(total_density=bin2xml_total_density.outputs.xml,

@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, Union
 
 import numpy as np
 

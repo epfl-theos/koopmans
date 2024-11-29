@@ -39,7 +39,7 @@ OutputModel = TypeVar('OutputModel', bound=IOModel)
 
 class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
 
-    __slots__ = ['inputs', '_outputs', 'name', 'directory', 'uuid', '_base_directory']
+    __slots__ = utils.HasDirectory.__slots__ + ['inputs', '_outputs', 'name', 'uuid']
 
     def __init__(self, name: str | None = None, **kwargs):
         self.inputs: InputModel = self.input_model(**kwargs)

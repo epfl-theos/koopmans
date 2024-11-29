@@ -1,6 +1,5 @@
 'Workflows for use with koopmans'
 
-from ._anion_dscf import DeltaSCFWorkflow
 from ._convergence import (ConvergenceVariable, ConvergenceVariableFactory,
                            ConvergenceWorkflow, ConvergenceWorkflowFactory,
                            ObservableFactory, get_calculator_parameter,

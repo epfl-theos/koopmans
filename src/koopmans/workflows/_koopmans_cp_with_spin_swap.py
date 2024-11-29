@@ -1,9 +1,12 @@
 """A workflow for managing kcp.x calculations that would want more spin-down electrons than spin-up"""
 
+from typing import Generator
+
 from koopmans.calculators import KoopmansCPCalculator
 from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
 from koopmans.processes.koopmans_cp import SwapSpinFilesProcess
+from koopmans.step import Step
 
 from ._workflow import Workflow
 
@@ -24,16 +27,18 @@ class KoopmansCPWithSpinSwapWorkflow(Workflow):
         super().__init__(*args, **kwargs)
         self._calc = calc
 
-    def _run(self):
+    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
         assert self._calc.parameters.nspin == 2
         assert self._calc.parameters.nelup < self._calc.parameters.neldw
 
         # Run the calculation (self._calc.swap_spin_files() will take care of swapping the input parameters,
         # the linked files, and the python output data)
-        self.run_calculator(self._calc)
+        yield from self.yield_steps(self._calc)
 
         # Swap the spin-up and spin-down output files using a process
         process = SwapSpinFilesProcess(read_directory=FilePointer(self._calc, self._calc.write_directory))
-        self.run_process(process)
+        yield from self.yield_steps(process)
 
         self.outputs = self.output_model(outdir=FilePointer(process, process.outputs.write_directory))
+
+        yield tuple()

@@ -191,49 +191,18 @@ class HasDirectory:
     # have been transformed to have pydantic inputs and outputs then those classes will be able to inherit directly
     # from Process
 
-    __slots__ = ['_parent', '_directory', '_base_directory']
+    __slots__ = ['parent', '_directory', '_base_directory']
 
-    def __init__(self, parent=None, directory=None):
-        self._parent: Optional[HasDirectory] = None
-        self._directory: Optional[Path] = None
+    def __init__(self, parent=None, directory=None, base_directory=None):
         self._base_directory: Optional[Path] = None
+        self._directory: Optional[Path] = None
+        self.parent: Optional[HasDirectory] = parent
 
-        self.parent = parent
-
-        if self.parent is None:
-            if directory is not None:
-                raise ValueError('If `parent` is not provided, `directory` should also not be provided')
-            self.base_directory = Path()
-            self.directory = Path()
+        if self.parent:
+            self.base_directory = self.parent.base_directory
         else:
-            if directory is not None:
-                self.directory = directory
-
-    @property
-    def parent(self):
-        return self._parent
-
-    @parent.setter
-    def parent(self, value):
-        assert isinstance(value, HasDirectory) or value is None
-
-        # Check that value != self
-        if self == value:
-            raise ValueError(f'{self.__class__.__name__}.parent cannot be set to self')
-
-        # Check that self is not one of value's ancestors
-        if value is not None:
-            for ancestor in value.ancestors():
-                if self == ancestor:
-                    raise ValueError(f'{self.__class__.__name__}.parent cannot be set to an ancestor')
-
-        self._parent = value
-
-    def ancestors(self):
-        obj = self
-        while obj.parent is not None:
-            yield obj.parent
-            obj = obj.parent
+            self.base_directory = base_directory
+        self.directory = directory
 
     @property
     def directory(self) -> Path:
@@ -242,9 +211,9 @@ class HasDirectory:
         return self._directory
 
     @directory.setter
-    def directory(self, value: Path | str):
+    def directory(self, value: Path | str | None):
         if value is None:
-            raise ValueError('')
+            return
 
         # Sanitize input
         if isinstance(value, str):
@@ -253,42 +222,31 @@ class HasDirectory:
         # Sanity checks
         if value.is_absolute():
             raise ValueError(
-                f'{self.__class__.__name__} directory must be relative to the {self.__class__.__name__},base directory')
-        if len(value.parents) > 1:
-            raise ValueError(f'{self.__class__.__name__}.directory should not be a nested directory')
+                f'{self.__class__.__name__} directory must be a relative path (relative to {self.__class__.__name__},base directory)')
 
         self._directory = value
 
     @property
     def base_directory(self) -> Path:
-        if self.parent is not None:
-            return self.parent.base_directory
-        else:
-            if self._base_directory is None:
-                raise ValueError(f'{self.__class__.__name__}.base_directory has not been set')
-            return self._base_directory
+        if self._base_directory is None:
+            raise ValueError(f'{self.__class__.__name__}.base_directory has not been set')
+        return self._base_directory
 
     @base_directory.setter
-    def base_directory(self, value: Path):
-        if self.parent is not None:
-            raise ValueError(f'{self.__class__.__name__}.base_directory should not be set for processes with parents')
+    def base_directory(self, value: Path | str | None):
+        if value is None:
+            return
+
+        if isinstance(value, str):
+            value = Path(value)
+
         self._base_directory = value.resolve()
 
     @property
     def absolute_directory(self) -> Path:
-        # Recurse through the parents, if they exist, concatenating their respective directories
-        path = Path(self.directory)
-        obj = self
-        while obj.parent is not None:
-            obj = obj.parent
-            path = obj.directory / path
+        return self.base_directory / self.directory
 
-        # `path` is relative to self.base_directory
-        abs_dir = self.base_directory / path
-        assert abs_dir.is_absolute()
-        return abs_dir
-
-    def directory_has_been_set(self):
+    def directory_has_been_set(self) -> bool:
         return self._directory is not None
 
 

@@ -11,10 +11,11 @@ Written by Edward Linscott Oct 2020
 import copy
 import shutil
 from pathlib import Path
-from typing import TypeVar
+from typing import Generator, List, TypeVar
 
 from koopmans import calculators, pseudopotentials, utils
 from koopmans.outputs import OutputModel
+from koopmans.step import Step
 
 from ._workflow import Workflow
 
@@ -35,9 +36,10 @@ class DFTCPWorkflow(DFTWorkflow):
     output_model = DFTCPOutput  # type: ignore
     outputs: DFTCPOutput
 
-    def _run(self):
+    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
 
         calc = self.new_calculator('kcp')
+        assert isinstance(calc, calculators.KoopmansCPCalculator)
 
         calc.prefix = 'dft'
         calc.parameters.ndr = 50
@@ -55,9 +57,9 @@ class DFTCPWorkflow(DFTWorkflow):
             if calc.parameters.empty_states_maxstep is None:
                 calc.parameters.empty_states_maxstep = 300
 
-        self.run_calculator(calc, enforce_spin_symmetry=self.parameters.fix_spin_contamination)
+        yield from self.yield_steps(calc)
 
-        return calc
+        return
 
 
 class DFTPWOutput(OutputModel):
@@ -69,7 +71,7 @@ class DFTPWWorkflow(DFTWorkflow):
     output_model = DFTPWOutput  # type: ignore
     outputs: DFTPWOutput
 
-    def _run(self):
+    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
 
         # Create the calculator
         calc = self.new_calculator('pw')
@@ -80,8 +82,8 @@ class DFTPWWorkflow(DFTWorkflow):
         calc.parameters.ndw = 51
         calc.parameters.restart_mode = 'from_scratch'
 
-        # Run the calculator
-        self.run_calculator(calc)
+        # Yield the calculator
+        yield from self.yield_steps(calc)
 
         return
 
@@ -95,17 +97,17 @@ class DFTPhWorkflow(Workflow):
     output_model = DFTPhOutput
     outputs: DFTPhOutput
 
-    def _run(self):
+    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
 
         self.print('Calculate the dielectric tensor', style='heading')
 
         calc_scf = self.new_calculator('pw', nbnd=None)
         calc_scf.prefix = 'scf'
-        self.run_calculator(calc_scf)
+        yield from self.yield_steps(calc_scf)
         calc_ph = self.new_calculator('ph', epsil=True, fildyn=f'{self.name}.dynG')
         calc_ph.prefix = 'eps'
         self.link(calc_scf, calc_scf.parameters.outdir, calc_ph, calc_ph.parameters.outdir, symlink=True)
-        self.run_calculator(calc_ph)
+        yield from self.yield_steps(calc_ph)
 
 
 class DFTBandsOutput(OutputModel):
@@ -117,14 +119,14 @@ class DFTBandsWorkflow(DFTWorkflow):
     output_model = DFTBandsOutput
     outputs: DFTBandsOutput
 
-    def _run(self):
+    def _steps_generator(self):
 
         self.print('DFT bandstructure workflow', style='heading')
 
         # First, a scf calculation
         calc_scf = self.new_calculator('pw', nbnd=None)
         calc_scf.prefix = 'scf'
-        self.run_calculator(calc_scf)
+        yield from self.yield_steps(calc_scf)
 
         # Second, a bands calculation
         if self.parameters.calculate_bands in (True, None):
@@ -133,7 +135,7 @@ class DFTBandsWorkflow(DFTWorkflow):
             calc_bands = self.new_calculator('pw', calculation='nscf')
         calc_bands.prefix = 'bands'
         self.link(calc_scf, calc_scf.parameters.outdir, calc_bands, calc_bands.parameters.outdir, symlink=True)
-        self.run_calculator(calc_bands)
+        yield from self.yield_steps(calc_bands)
 
         # Prepare the band structure for plotting
         if self.parameters.calculate_bands in (True, None):
@@ -145,7 +147,7 @@ class DFTBandsWorkflow(DFTWorkflow):
         if all([int(p['header'].get('number_of_wfc', 0)) > 0 for p in pseudos]):
             calc_dos = self.new_calculator('projwfc')
             self.link(calc_bands, calc_bands.parameters.outdir, calc_dos, calc_dos.parameters.outdir, symlink=True)
-            self.run_calculator(calc_dos)
+            yield from self.yield_steps(calc_dos)
 
             # Prepare the DOS for plotting
             dos = copy.deepcopy(calc_dos.results['dos'])

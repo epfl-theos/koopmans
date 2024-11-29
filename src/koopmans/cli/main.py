@@ -7,6 +7,7 @@ import textwrap
 import traceback
 
 import koopmans.mpl_config
+from koopmans.engines import LocalhostEngine
 from koopmans.io import read
 from koopmans.utils import print_alert
 
@@ -20,6 +21,8 @@ def _custom_exception_hook(exception_type, exception_value, traceback):
 
 
 def main():
+    from koopmans import __version__
+
     # Construct parser
     parser = argparse.ArgumentParser(
         description='Perform Koopmans functional calculations',
@@ -28,6 +31,10 @@ def main():
     parser.add_argument('json', metavar='system.json', type=str,
                         help='a single JSON file containing the workflow and code settings')
     parser.add_argument('-t', '--traceback', action='store_true', help='enable traceback')
+    parser.add_argument('--engine', choices=['localhost', 'aiida'], default='localhost',
+                        help="Specify the execution engine: 'local' or 'aiida' (default: 'local')")
+    parser.add_argument('--version', action='version', version=__version__,
+                        help="Show the program's version number and exit")
 
     # Parse arguments
     args = parser.parse_args()
@@ -40,5 +47,11 @@ def main():
         sys.tracebacklimit = 0
         sys.excepthook = _custom_exception_hook
 
+    # Create the engine
+    if args.engine == 'localhost':
+        engine = LocalhostEngine(from_scratch=workflow.parameters.from_scratch)
+    else:
+        raise NotImplementedError(f'{args.engine} is not yet implemented')
+
     # Run workflow
-    workflow.run()
+    engine.run(workflow)

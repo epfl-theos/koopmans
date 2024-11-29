@@ -13,7 +13,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
         settings = [
             Setting('task',
                     'Task to perform',
-                    str, 'singlepoint', ('singlepoint', 'convergence', 'wannierize', 'environ_dscf', 'ui',
+                    str, 'singlepoint', ('singlepoint', 'convergence', 'wannierize', 'ui',
                                          'dft_bands', 'dft_eps', 'trajectory')),
             Setting('functional',
                     'orbital-density-dependent-functional/density-functional to use',

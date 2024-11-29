@@ -157,7 +157,7 @@ class KoopmansDFPTWorkflow(Workflow):
 
         self._scf_kgrid = scf_kgrid
 
-    def _run(self):
+    def _steps_generator(self):
         '''
         This function runs the workflow from start to finish
         '''
@@ -176,8 +176,7 @@ class KoopmansDFPTWorkflow(Workflow):
             coarse_wf.parameters.dfpt_coarse_grid = None
             coarse_wf.kpoints.grid = self.parameters.dfpt_coarse_grid
             coarse_wf._perform_ham_calc = False
-            coarse_wf.run(subdirectory='coarse_grid')
-            self.print('Regular grid calculations', style='heading')
+            yield from self.yield_from_subworkflows(coarse_wf, subdirectory='coarse_grid')
 
         wannier_files_to_link_by_spin = []
         dft_ham_files = {}
@@ -188,7 +187,7 @@ class KoopmansDFPTWorkflow(Workflow):
                     self.calculator_parameters[key].write_u_matrices = True
                     self.calculator_parameters[key].write_xyz = True
             wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True, scf_kgrid=self._scf_kgrid)
-            wf_workflow.run(subdirectory='wannier')
+            yield from self.yield_from_subworkflows(wf_workflow, subdirectory='wannier')
 
             # Store the NSCF calculation because it uses nosym, so we can use its outdir for subsequent calculations
             init_pw = [c for c in self.calculations if isinstance(
@@ -212,6 +211,10 @@ class KoopmansDFPTWorkflow(Workflow):
 
                     dft_ham_files[(filling, suffix[1:] if suffix else None)] = wf_workflow.outputs.hr_files[key]
 
+                # Empty blocks might also have a disentanglement file than we need to copy
+                if wf_workflow.outputs.u_dis_files[key] is not None:
+                    wannier_files_to_link_by_spin[-1]['wannier90_emp_u_dis.mat'] = wf_workflow.outputs.u_dis_files[key]
+
         else:
             # Run PW
             self.print('Initialization of density and variational orbitals', style='heading')
@@ -224,29 +227,37 @@ class KoopmansDFPTWorkflow(Workflow):
             pw_params.nspin = 2
 
             # Run the subworkflow
-            pw_workflow.run()
+            yield from self.yield_from_subworkflows(pw_workflow)
 
             init_pw = pw_workflow.calculations[0]
 
         spin_components = [1, 2] if self.parameters.spin_polarized else [1]
 
+        # Convert from wannier to KC
+        wann2kc_calcs = []
         for spin_component, wannier_files_to_link in zip(spin_components, wannier_files_to_link_by_spin):
             spin_suffix = f'_spin_{spin_component}' if self.parameters.spin_polarized else ''
 
-            # Convert from wannier to KC
             wann2kc_calc = self.new_calculator('kcw_wannier', spin_component=spin_component)
             self.link(init_pw, init_pw.parameters.outdir, wann2kc_calc, wann2kc_calc.parameters.outdir)
+
             for dst, f in wannier_files_to_link.items():
                 self.link(f.parent, f.name, wann2kc_calc, dst, symlink=True)
-            wann2kc_calc.prefix += spin_suffix
-            self.run_calculator(wann2kc_calc)
 
-            # Calculate screening parameters
+            wann2kc_calc.prefix += spin_suffix
+            wann2kc_calcs.append(wann2kc_calc)
+        yield from self.yield_steps(wann2kc_calcs)
+
+        # Calculate screening parameters
+        screen_wfs = []
+        for spin_component, wannier_files_to_link, wann2kc_calc in zip(spin_components, wannier_files_to_link_by_spin, wann2kc_calcs):
+            spin_suffix = f'_spin_{spin_component}' if self.parameters.spin_polarized else ''
             if self.parameters.calculate_alpha:
                 if self.parameters.dfpt_coarse_grid is None:
                     screen_wf = ComputeScreeningViaDFPTWorkflow.fromparent(
                         self, wannier_files_to_link=wannier_files_to_link, spin_component=spin_component)
-                    screen_wf.run(subdirectory='screening' + spin_suffix)
+                    screen_wf.name += spin_suffix
+                    screen_wfs.append(screen_wf)
                 else:
                     # Load the alphas
                     if self.parameters.alpha_from_file:
@@ -254,7 +265,12 @@ class KoopmansDFPTWorkflow(Workflow):
                     else:
                         self.bands.alphas = self.parameters.alpha_guess
 
-            # Calculate the Hamiltonian
+        yield from self.yield_from_subworkflows(screen_wfs)
+
+        # Calculate the Hamiltonian
+        kc_ham_calcs = []
+        for spin_component, wannier_files_to_link, wann2kc_calc in zip(spin_components, wannier_files_to_link_by_spin, wann2kc_calcs):
+            spin_suffix = f'_spin_{spin_component}' if self.parameters.spin_polarized else ''
             if self._perform_ham_calc:
                 kc_ham_calc = self.new_calculator('kcw_ham', kpts=self.kpoints.path, spin_component=spin_component)
                 self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.save'),
@@ -266,25 +282,38 @@ class KoopmansDFPTWorkflow(Workflow):
                 for dst, f in wannier_files_to_link.items():
                     self.link(f.parent, f.name, kc_ham_calc, dst, symlink=True)
                 kc_ham_calc.prefix += spin_suffix
-                self.run_calculator(kc_ham_calc)
+                kc_ham_calcs.append(kc_ham_calc)
+        yield from self.yield_steps(kc_ham_calcs)
 
-                # Postprocessing
-                if all(self.atoms.pbc) and self.projections and self.kpoints.path is not None \
-                        and self.calculator_parameters['ui'].do_smooth_interpolation:
+        # Postprocessing
+        if self._perform_ham_calc:
+            if all(self.atoms.pbc) and self.projections and self.kpoints.path is not None \
+                    and self.calculator_parameters['ui'].do_smooth_interpolation:
 
-                    # Assemble the Hamiltonian files required by the UI workflow
+                # Assemble the Hamiltonian files required by the UI workflow
+                if self.parameters.spin_polarized:
+                    koopmans_ham_files = {("occ", "up"): FilePointer(kc_ham_calc, f'{kc_ham_calcs[0].parameters.prefix}.kcw_hr_occ.dat'),
+                                          ("emp", "up"): FilePointer(kc_ham_calc, f'{kc_ham_calcs[0].parameters.prefix}.kcw_hr_emp.dat'),
+                                          ("occ", "down"): FilePointer(kc_ham_calc, f'{kc_ham_calcs[1].parameters.prefix}.kcw_hr_occ.dat'),
+                                          ("emp", "down"): FilePointer(kc_ham_calc, f'{kc_ham_calcs[1].parameters.prefix}.kcw_hr_emp.dat')}
+                else:
                     koopmans_ham_files = {("occ", None): FilePointer(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_occ.dat'),
                                           ("emp", None): FilePointer(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_emp.dat')}
-                    if not dft_ham_files:
-                        raise ValueError(
-                            'The DFT Hamiltonian files have not been generated but are required for the UI workflow')
-                    ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(
-                        self, dft_ham_files=dft_ham_files, koopmans_ham_files=koopmans_ham_files)
-                    ui_workflow.run(subdirectory='postproc' + spin_suffix)
+                if not dft_ham_files:
+                    raise ValueError(
+                        'The DFT Hamiltonian files have not been generated but are required for the UI workflow')
+                ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(
+                    self, dft_ham_files=dft_ham_files, koopmans_ham_files=koopmans_ham_files)
+
+                yield from self.yield_from_subworkflows(ui_workflow)
 
         # Plotting
         if self._perform_ham_calc:
             self.plot_bandstructure()
+
+        yield []
+
+        return
 
     def plot_bandstructure(self):
         if not all(self.atoms.pbc):
@@ -324,7 +353,7 @@ class ComputeScreeningViaDFPTWorkflow(Workflow):
         self._wannier_files_to_link = wannier_files_to_link
         self._spin_component = spin_component
 
-    def _run(self):
+    def _steps_generator(self):
         # Group the bands by spread
         self.bands.assign_groups(sort_by='spread', allow_reassignment=True)
 
@@ -335,30 +364,36 @@ class ComputeScreeningViaDFPTWorkflow(Workflow):
             kc_screen_calc = self.new_calculator('kcw_screen', self._spin_component)
 
             # 2) Run the calculator
-            self.run_calculator(kc_screen_calc)
+            yield from self.yield_steps(kc_screen_calc)
 
             # 3) Store the computed screening parameters
             self.bands.alphas = kc_screen_calc.results['alphas']
         else:
             # If there is orbital grouping, do the orbitals one-by-one
+            assert self.bands is not None
+            bands_to_solve = [b for b in self.bands.to_solve if b.spin == self._spin_component - 1]
 
-            kc_screen_calcs = []
             # 1) Create the calculators
-            for band in self.bands.to_solve:
+            kc_screen_calcs = []
+            for band in bands_to_solve:
                 kc_screen_calc = self.new_calculator('kcw_screen', i_orb=band.index,
                                                      spin_component=self._spin_component)
                 kc_screen_calc.prefix += f'_orbital_{band.index}_spin_{self._spin_component}'
                 kc_screen_calcs.append(kc_screen_calc)
 
             # 2) Run the calculators (possibly in parallel)
-            self.run_calculators(kc_screen_calcs)
+            yield from self.yield_steps(kc_screen_calcs)
 
             # 3) Store the computed screening parameters (accounting for band groupings)
-            for band, kc_screen_calc in zip(self.bands.to_solve, kc_screen_calcs):
+            for band, kc_screen_calc in zip(bands_to_solve, kc_screen_calcs):
                 for b in self.bands:
                     if b.group == band.group:
                         [[alpha]] = kc_screen_calc.results['alphas']
                         b.alpha = alpha
+
+        yield []
+
+        return
 
     def new_calculator(self, calc_type: str, *args, **kwargs):
         assert calc_type == 'kcw_screen', 'Only the "kcw_screen" calculator is supported in DFPTScreeningWorkflow'

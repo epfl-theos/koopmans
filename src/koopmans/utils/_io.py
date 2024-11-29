@@ -12,7 +12,7 @@ import sys
 import textwrap
 from datetime import datetime
 from pathlib import Path
-from typing import IO, Any, Dict, List, Tuple, Union
+from typing import IO, Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -172,12 +172,33 @@ def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
     return
 
 
+print_indent = 0
 print_call_end = '\n'
 previous_indent = 0
 
 
-def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n',
-                   flush: bool = False, initial_indent: str | None = None, subsequent_indent: str | None = None, wrap=True):
+def indented_print(text: str = '', indent: Optional[int] = None, style='body', parse_asterisks=True, flush=True, wrap=True, **kwargs: Any):
+    if sys.stdout.isatty():
+        if style == 'heading' and '**' not in text:
+            text = f'**{text}**'
+        if parse_asterisks:
+            while '**' in text:
+                text = text.replace('**', '\033[1m', 1).replace('**', '\033[0m', 1)
+            while '*' in text:
+                text = text.replace('*', '\033[3m', 1).replace('*', '\033[0m', 1)
+    global print_indent
+    indent = print_indent if indent is None else indent
+    if style == 'body':
+        _indented_print(text, indent=indent, flush=flush, wrap=wrap, **kwargs)
+    elif style == 'heading':
+        assert kwargs.get('end', '\n') == '\n'
+        _indented_print(text, indent=indent, flush=flush, wrap=wrap, **kwargs)
+    else:
+        raise ValueError(f'Invalid choice `{style}` for style; must be `heading`/`body`')
+
+
+def _indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n',
+                    flush: bool = False, initial_indent: str | None = None, subsequent_indent: str | None = None, wrap=True):
     global print_call_end
     global previous_indent
     if indent < 0:

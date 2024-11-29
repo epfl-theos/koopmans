@@ -6,7 +6,7 @@ A workflow for serially running the Koopmans DSCF workflow on multiple atomic co
 
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Generator, List, Optional
 
 import numpy as np
 from ase import Atoms, io
@@ -14,6 +14,7 @@ from sklearn.metrics import mean_absolute_error, r2_score
 
 from koopmans import calculators, utils
 from koopmans.outputs import OutputModel
+from koopmans.step import Step
 
 from ._koopmans_dscf import KoopmansDSCFOutputs
 from ._workflow import Workflow
@@ -32,7 +33,7 @@ class TrajectoryWorkflow(Workflow):
         super().__init__(*args, **kwargs)
         self.parameters.task = 'trajectory'
 
-    def _run(self):
+    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
         """
         Starts the KoopmansDSCF Workflow for each snapshot indicated in indices
         """
@@ -40,8 +41,7 @@ class TrajectoryWorkflow(Workflow):
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
         from koopmans.workflows import KoopmansDSCFWorkflow
 
-        outputs = []
-
+        workflows = []
         for i, snapshot in enumerate(self.snapshots):
             # Get the atomic positions for the current snapshot
             self.atoms.set_positions(snapshot.positions)
@@ -54,11 +54,14 @@ class TrajectoryWorkflow(Workflow):
             # Initialize and run the DSCF workflow
             workflow = KoopmansDSCFWorkflow.fromparent(self)
             workflow.name += f' Snapshot {i+1} of {len(self.snapshots)}'
-            self.bands = workflow.bands  # reset the bands to the initial guesses
-            workflow.run()
+            workflows.append(workflow)
 
-            # Reset the from_scratch parameter to its original value
-            self.parameters.from_scratch = from_scratch
+            raise NotImplementedError('Need to make sure that the bands are not copied across snapshots')
 
-            outputs.append(workflow.outputs)
-        self.outputs = self.output_model(snapshot_outputs=outputs)
+        yield from self.yield_from_subworkflows(workflows)
+
+        self.outputs = self.output_model(snapshot_outputs=[w.outputs for w in workflows])
+
+        yield tuple()
+
+        return

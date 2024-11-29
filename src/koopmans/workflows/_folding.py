@@ -9,7 +9,7 @@ Written by Edward Linscott Feb 2021
 
 import os
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Generator, List, Tuple
 
 import numpy as np
 
@@ -18,6 +18,7 @@ from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
 from koopmans.processes.merge_evc import MergeEVCProcess
 from koopmans.projections import ProjectionBlock
+from koopmans.step import Step
 
 from ._workflow import Workflow
 
@@ -40,7 +41,7 @@ class FoldToSupercellWorkflow(Workflow):
         self._wannier90_calculations = wannier90_calculations
         self._wannier90_pp_calculations = wannier90_pp_calculations
 
-    def _run(self):
+    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
         '''
 
         Wrapper for folding Wannier or Kohn-Sham functions from the primitive cell
@@ -51,6 +52,7 @@ class FoldToSupercellWorkflow(Workflow):
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             # Loop over the various subblocks that we have wannierized separately
             converted_files = {}
+            w2k_calcs = []
             for w90_calc, w90_pp_calc, block in zip(self._wannier90_calculations, self._wannier90_pp_calculations, self.projections):
                 # Create the calculator
                 calc_w2k = self.new_calculator('wann2kcp', spin_component=block.spin, wan_mode='wannier2kcp')
@@ -72,15 +74,20 @@ class FoldToSupercellWorkflow(Workflow):
                 self.link(w90_calc, w90_calc.prefix + '.chk', calc_w2k,
                           calc_w2k.parameters.seedname + '.chk', symlink=True)
 
-                # Run the calculator
-                self.run_calculator(calc_w2k)
+                w2k_calcs.append(calc_w2k)
+
+            # Run the calculators (possibly in parallel)
+            yield from self.yield_steps(w2k_calcs)
+
+            for block, calc_w2k in zip(self.projections, w2k_calcs):
 
                 if self.parameters.spin_polarized:
-                    converted_files[block.name] = [FilePointer(calc_w2k, "evcw.dat")]
+                    converted_files[block.name] = [FilePointer(calc_w2k, Path("evcw.dat"))]
                 else:
-                    converted_files[block.name] = [FilePointer(
-                        calc_w2k, "evcw1.dat"), FilePointer(calc_w2k, "evcw2.dat")]
+                    converted_files[block.name] = [FilePointer(calc_w2k, Path("evcw1.dat")),
+                                                   FilePointer(calc_w2k, Path("evcw2.dat"))]
 
+            spins: list[str | None]
             if self.parameters.spin_polarized:
                 spins = ['up', 'down']
             else:
@@ -110,7 +117,7 @@ class FoldToSupercellWorkflow(Workflow):
                         if subset[0].spin:
                             tidy_label += f'_spin_{subset[0].spin}'
                         merge_proc.name = 'merging_wavefunctions_for_' + tidy_label
-                        self.run_process(merge_proc)
+                        yield from self.yield_steps(merge_proc)
 
                         dest_file = _construct_dest_filename(evc_fname, subset[0], label)
                         merged_files[dest_file] = merge_proc.outputs.merged_file
@@ -121,16 +128,19 @@ class FoldToSupercellWorkflow(Workflow):
             calc_w2k.prefix = 'ks2kcp'
 
             # Run the calculator
-            self.run_calculator(calc_w2k)
+            yield from self.yield_steps(calc_w2k)
 
             raise NotImplementedError("Need to populate converted and merged file dictionaries")
 
         self.outputs = self.output_model(kcp_files=merged_files)
 
+        yield tuple()
+
         return
 
 
-def _construct_dest_filename(fname: str, proj: ProjectionBlock, label: str) -> str:
+def _construct_dest_filename(fname: str | Path, proj: ProjectionBlock, label: str) -> str:
+    fname = str(fname)
     if fname[4] in ['1', '2']:
         spin = int(fname[4])
     elif proj.spin == 'up':
