@@ -310,7 +310,10 @@ class WannierizeWorkflow(Workflow):
 
             # Prepare the band structures for plotting
             ax = None
-            labels = ['explicit'] + [f'interpolation ({c.absolute_directory.parent.name})' for c in selected_calcs]
+            labels = ['explicit']
+            for c in selected_calcs:
+                assert c.directory is not None
+                labels.append(f'interpolation ({c.directory.parent.name})')
             labels = [l.split("-", 2)[-1].replace("block-", "block ").replace("spin-", "spin ").replace("-", ", ")
                       for l in labels]
             color_cycle = plt.rcParams['axes.prop_cycle']()

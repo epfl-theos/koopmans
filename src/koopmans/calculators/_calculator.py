@@ -231,6 +231,7 @@ class CalculatorExt(utils.HasDirectory):
 
     def read_input(self, input_file: Optional[Path] = None):
         # Auto-generate the appropriate input file name if required
+        assert self.directory is not None
         if input_file is None:
             input_file = self.directory / (self.prefix + self.ext_in)
         elif not input_file.suffix:
@@ -320,8 +321,9 @@ class CalculatorABC(ABC, Generic[TCalc]):
     def read_results(self) -> None:
         ...
 
-    @abstractproperty
-    def directory(self) -> Path:
+    @property
+    @abstractmethod
+    def directory(self) -> Path | None:
         ...
 
     @directory.setter

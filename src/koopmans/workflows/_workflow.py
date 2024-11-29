@@ -820,6 +820,7 @@ class Workflow(utils.HasDirectory, ABC):
                 raise ValueError(
                     f'`{step.name}.directory` should not be set manually, but it was set to `{step.directory}`')
 
+            assert self.directory is not None
             step.directory = self.directory / f'{self.step_counter:02d}-{step.name}'
 
         yield steps
@@ -1519,73 +1520,3 @@ def sanitize_calculator_parameters(dct_in: Union[Dict[str, Dict], Dict[str, sett
                 f'Unrecognized calculator_parameters entry `{k}`: valid options are `'
                 + '`/`'.join(settings_classes.keys()) + '`')
     return dct_out
-
-
-# def spin_symmetrize(master_calc: calculators.Calc) -> Generator[Step, None, None]:
-#     ''' Run a calculator.
-#
-#     If enforce_spin_symmetry is True, the calculation will be run with spin symmetry enforced.
-#     Ultimately this wraps self.run_calculators
-#
-#     :param master_calc: the calculator to run
-#     :param enforce_spin_symmetry: whether to enforce spin symmetry
-#     '''
-#
-#     if not isinstance(master_calc, calculators.CalculatorCanEnforceSpinSym):
-#         raise NotImplementedError(f'`{master_calc.__class__.__name__}` cannot enforce spin symmetry')
-#
-#     # nspin=1
-#     calc_nspin1 = master_calc.nspin1_calculator()
-#
-#     if not master_calc.from_scratch:
-#         # Locate the preceeding nspin=2 calculation from which the calculation is configured to read
-#         # (and from which we will fetch the nspin=2 wavefunctions)
-#         ndr_directory = str(master_calc.read_directory)
-#         if ndr_directory not in master_calc.linked_files.keys():
-#             raise ValueError('This calculator needs to be linked to a previous `nspin=2` calculation before '
-#                              '`run_calculator` is called')
-#         prev_calc_nspin2 = master_calc.linked_files[ndr_directory][0]
-#         if not isinstance(prev_calc_nspin2, calculators.KoopmansCPCalculator):
-#             raise ValueError(
-#                 'Unexpected calculator type linked during the procedure for fixing spin contamination')
-#
-#         # Wipe the linked files (except for globally-linked files)
-#         master_calc.linked_files = {k: v for k, v in master_calc.linked_files.items() if v[0] is None}
-#         calc_nspin1.linked_files = {k: v for k, v in calc_nspin1.linked_files.items() if v[0] is None}
-#
-#         # nspin=1 dummy
-#         calc_nspin1_dummy = master_calc.nspin1_dummy_calculator()
-#         calc_nspin1_dummy.skip_qc = True
-#         yield calc_nspin1_dummy
-#         calc_nspin1.link_file(calc_nspin1_dummy, calc_nspin1_dummy.parameters.outdir,
-#                               calc_nspin1.parameters.outdir)
-#
-#         # Copy over nspin=2 wavefunction to nspin=1 tmp directory
-#         process2to1 = ConvertFilesFromSpin2To1(name=None,
-#                                                **prev_calc_nspin2.files_to_convert_with_spin2_to_spin1)
-#         yield process2to1
-#         for f in process2to1.outputs.generated_files:
-#             dst_dir = calc_nspin1.parameters.outdir / \
-#                 f'{calc_nspin1.parameters.prefix}_{calc_nspin1.parameters.ndr}.save/K00001'
-#             calc_nspin1.link_file(process2to1, f, dst_dir / f.name, symlink=True, overwrite=True)
-#
-#     yield calc_nspin1
-#
-#     # nspin=2 from scratch (dummy run for creating files of appropriate size)
-#     calc_nspin2_dummy = master_calc.nspin2_dummy_calculator()
-#     calc_nspin2_dummy.skip_qc = True
-#     yield calc_nspin2_dummy
-#     master_calc.link_file(calc_nspin2_dummy, calc_nspin2_dummy.parameters.outdir,
-#                           master_calc.parameters.outdir)
-#
-#     # Copy over nspin=1 wavefunction to nspin=2 tmp directory
-#     process1to2 = ConvertFilesFromSpin1To2(**calc_nspin1.files_to_convert_with_spin1_to_spin2)
-#     yield process1to2
-#
-#     # nspin=2, reading in the spin-symmetric nspin=1 wavefunction
-#     master_calc.prepare_to_read_nspin1()
-#     for f in process1to2.outputs.generated_files:
-#         dst_dir = master_calc.parameters.outdir / \
-#             f'{master_calc.parameters.prefix}_{master_calc.parameters.ndr}.save/K00001'
-#         master_calc.link_file(process1to2, f, dst_dir / f.name, symlink=True, overwrite=True)
-#     yield master_calc

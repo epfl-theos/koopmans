@@ -198,16 +198,12 @@ class HasDirectory:
         self._directory: Optional[Path] = None
         self.parent: Optional[HasDirectory] = parent
 
-        if self.parent:
-            self.base_directory = self.parent.base_directory
-        else:
+        if not self.parent:
             self.base_directory = base_directory
         self.directory = directory
 
     @property
-    def directory(self) -> Path:
-        if self._directory is None:
-            raise ValueError(f'{self.__class__.__name__}.directory has not been set')
+    def directory(self) -> Path | None:
         return self._directory
 
     @directory.setter
@@ -227,23 +223,26 @@ class HasDirectory:
         self._directory = value
 
     @property
-    def base_directory(self) -> Path:
-        if self._base_directory is None:
-            raise ValueError(f'{self.__class__.__name__}.base_directory has not been set')
-        return self._base_directory
+    def base_directory(self) -> Path | None:
+        if self.parent:
+            return self.parent.base_directory
+        else:
+            return self._base_directory
 
     @base_directory.setter
     def base_directory(self, value: Path | str | None):
-        if value is None:
-            return
-
+        if self.parent is not None:
+            raise ValueError('Do not directly set `base_directory` for objects with a parent')
         if isinstance(value, str):
             value = Path(value)
-
-        self._base_directory = value.resolve()
+        self._base_directory = None if value is None else value.resolve()
 
     @property
-    def absolute_directory(self) -> Path:
+    def absolute_directory(self) -> Path | None:
+        if self.directory is None:
+            return None
+        if self.base_directory is None:
+            return None
         return self.base_directory / self.directory
 
     def directory_has_been_set(self) -> bool:

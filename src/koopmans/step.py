@@ -13,7 +13,7 @@ class Step(Protocol):
     name: str
 
     @property
-    def directory(self) -> Path:
+    def directory(self) -> Path | None:
         ...
 
     @directory.setter
@@ -27,5 +27,9 @@ class Step(Protocol):
         ...
 
     @property
-    def absolute_directory(self) -> Path:
+    def absolute_directory(self) -> Path | None:
+        ...
+
+    @property
+    def base_directory(self) -> Path | None:
         ...

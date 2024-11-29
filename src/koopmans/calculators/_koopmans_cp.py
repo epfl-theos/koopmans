@@ -479,6 +479,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         if not self.parameters.do_orbdep or not self.parameters.odd_nkscalfact:
             return [[]]
 
+        assert self.directory is not None
         flat_alphas = utils.read_alpha_file(self.directory)
 
         assert isinstance(self.parameters, settings.KoopmansCPSettingsDict)

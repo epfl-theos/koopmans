@@ -37,7 +37,7 @@ class Engine(ABC):
             self._step_message(step, '🖥️ ', 'running...', end='\r', flush=True)
 
     def _step_skipped_message(self, step):
-        self._step_message(step, '⏭️', 'already complete  ')
+        self._step_message(step, '⏭️ ', 'already complete  ')
 
     def run(self, workflow: Workflow):
         # Print the header
@@ -94,6 +94,10 @@ class Engine(ABC):
         :return: Whether the step should be run
         """
 
+        # Check that the step directory has been set
+        if step.directory is None:
+            raise ValueError(f'{step.__class__.__name__} directory must be set before running')
+
         # Check that another step hasn't already been run in step.directory
         if any([s.absolute_directory == step.absolute_directory for s in self.steps]):
             raise ValueError(
@@ -101,7 +105,6 @@ class Engine(ABC):
 
         # If an output file already exists, check if the run completed successfully
         if not self.from_scratch:
-
             to_run = True
             if isinstance(step, ImplementedCalc):
                 calc_file = step.directory / step.prefix
