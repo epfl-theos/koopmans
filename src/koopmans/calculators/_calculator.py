@@ -231,8 +231,8 @@ class CalculatorExt(utils.HasDirectory):
 
     def read_input(self, input_file: Optional[Path] = None):
         # Auto-generate the appropriate input file name if required
-        assert self.directory is not None
         if input_file is None:
+            assert self.directory is not None
             input_file = self.directory / (self.prefix + self.ext_in)
         elif not input_file.suffix:
             # Add extension if necessary

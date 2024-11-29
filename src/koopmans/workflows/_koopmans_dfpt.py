@@ -258,12 +258,12 @@ class KoopmansDFPTWorkflow(Workflow):
                         self, wannier_files_to_link=wannier_files_to_link, spin_component=spin_component)
                     screen_wf.name += spin_suffix
                     screen_wfs.append(screen_wf)
+            else:
+                # Load the alphas
+                if self.parameters.alpha_from_file:
+                    self.bands.alphas = [utils.read_alpha_file(Path())]
                 else:
-                    # Load the alphas
-                    if self.parameters.alpha_from_file:
-                        self.bands.alphas = [utils.read_alpha_file(Path())]
-                    else:
-                        self.bands.alphas = self.parameters.alpha_guess
+                    self.bands.alphas = self.parameters.alpha_guess
 
         yield from self.yield_from_subworkflows(screen_wfs)
 
@@ -361,7 +361,7 @@ class ComputeScreeningViaDFPTWorkflow(Workflow):
             # If there is no orbital grouping, do all orbitals in one calculation
 
             # 1) Create the calculator
-            kc_screen_calc = self.new_calculator('kcw_screen', self._spin_component)
+            kc_screen_calc = self.new_calculator('kcw_screen', spin_component=self._spin_component)
 
             # 2) Run the calculator
             yield from self.yield_steps(kc_screen_calc)
