@@ -83,8 +83,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         eigenvals = self.eigenvalues_from_results()
 
         # Fetch the total number of electrons in the system
-        nelec = nelec_from_pseudos(self.atoms, self.parameters.pseudopotentials,
-                                   self.directory / self.parameters.pseudo_dir) + self.parameters.get('tot_charge', 0)
+        nelec = self.results['nelec']
 
         # Determine the number of occupied bands in each spin channel
         if self.parameters.nspin == 1:

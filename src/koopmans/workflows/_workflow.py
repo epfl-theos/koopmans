@@ -43,6 +43,7 @@ from ase.spacegroup import symmetrize
 from ase.spectrum.band_structure import BandStructure
 from ase.spectrum.doscollection import GridDOSCollection
 from ase.spectrum.dosdata import GridDOSData
+from upf_tools import UPFDict
 
 from koopmans import calculators, outputs, settings, utils
 from koopmans.bands import Bands
@@ -55,8 +56,7 @@ from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
 from koopmans.projections import ProjectionBlocks
 from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
                                        pseudo_database,
-                                       pseudos_library_directory,
-                                       valence_from_pseudo)
+                                       pseudos_library_directory)
 from koopmans.references import bib_data
 from koopmans.step import Step
 
@@ -103,7 +103,7 @@ class Workflow(utils.HasDirectory, ABC):
     calculator_parameters: Dict[str, settings.SettingsDict]
     name: str
     kpoints: Kpoints
-    pseudopotentials: Dict[str, str]
+    pseudopotentials: Dict[str, UPFDict]
     pseudo_dir: Path
     projections: ProjectionBlocks
     ml_model: Optional[AbstractMLModel]
@@ -117,7 +117,7 @@ class Workflow(utils.HasDirectory, ABC):
                                                 'steps', 'plotting', 'ml', '_bands', 'step_counter']
 
     def __init__(self, atoms: Atoms,
-                 pseudopotentials: Dict[str, str] = {},
+                 pseudopotentials: Dict[str, UPFDict | str] = {},
                  kpoints: Optional[Kpoints] = None,
                  projections: Optional[ProjectionBlocks] = None,
                  name: Optional[str] = None,
@@ -219,8 +219,20 @@ class Workflow(utils.HasDirectory, ABC):
         self.kpoints = kpoints
 
         # Pseudopotentials and pseudo_dir
+        if self.parameters.pseudo_directory is None:
+            if self.parameters.pseudo_library:
+                pseudo_dir = pseudos_library_directory(self.parameters.pseudo_library, self.parameters.base_functional)
+            elif 'ESPRESSO_PSEUDO' in os.environ:
+                pseudo_dir = Path(os.environ['ESPRESSO_PSEUDO'])
+            else:
+                pseudo_dir = Path.cwd()
+            self.parameters.pseudo_directory = os.path.relpath(pseudo_dir.resolve(), self.base_directory)
+        elif self.parameters.pseudo_directory.is_absolute():
+            self.parameters.pseudo_directory = os.path.relpath(self.parameters.pseudo_directory, self.base_directory)
+
         if pseudopotentials:
-            self.pseudopotentials = pseudopotentials
+            self.pseudopotentials = {k: UPFDict.from_upf(
+                self.parameters.pseudo_directory / v) if isinstance(v, str) else v for k, v in pseudopotentials.items()}
         else:
             if self.parameters.pseudo_library is None:
                 utils.warn(
@@ -240,36 +252,12 @@ class Workflow(utils.HasDirectory, ABC):
                                      f'{pseudo.name} is {pseudo.kind}')
                 if tag > 0:
                     symbol += str(tag)
-                self.pseudopotentials[symbol] = pseudo.name
+                self.pseudopotentials[symbol] = UPFDict.from_upf(pseudo.path / pseudo.name)
 
         # Make sure calculator_parameters isn't missing any entries, and every entry corresponds to
         # settings.SettingsDict objects
         calculator_parameters = sanitize_calculator_parameters(calculator_parameters) if calculator_parameters \
             is not None else generate_default_calculator_parameters()
-
-        # Work out the pseudopotential directory. If using a pseudo_library this is straightforward, if not...
-        #  1. try to locating the directory as currently specified by the calculator
-        #  2. if that fails, check if $ESPRESSO_PSEUDO is set
-        #  3. if that fails, raise an error
-        if self.parameters.pseudo_directory is None:
-            if self.parameters.pseudo_library:
-                pseudo_dir = pseudos_library_directory(self.parameters.pseudo_library, self.parameters.base_functional)
-                for params in calculator_parameters.values():
-                    if params.get('pseudo_dir', pseudo_dir).resolve() != pseudo_dir:
-                        raise ValueError(
-                            '`pseudo_dir` and `pseudo_library` are conflicting; please do not provide `pseudo_dir`')
-            elif 'pseudo_dir' in calculator_parameters['kcp'] or 'pseudo_dir' in calculator_parameters['pw']:
-                pseudo_dir = calculator_parameters['kcp'].get(
-                    'pseudo_dir', calculator_parameters['pw'].get('pseudo_dir'))
-                assert isinstance(pseudo_dir, Path)
-            elif 'ESPRESSO_PSEUDO' in os.environ:
-                pseudo_dir = Path(os.environ['ESPRESSO_PSEUDO'])
-            else:
-                pseudo_dir = Path.cwd()
-
-            self.parameters.pseudo_directory = os.path.relpath(pseudo_dir.resolve(), self.base_directory)
-        elif self.parameters.pseudo_directory.is_absolute():
-            self.parameters.pseudo_directory = os.path.relpath(self.parameters.pseudo_directory, self.base_directory)
 
         # For any kwargs...
         for key, value in kwargs.items():
@@ -288,8 +276,7 @@ class Workflow(utils.HasDirectory, ABC):
         if self.parameters.task != 'ui' and autogenerate_settings:
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
-            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials,
-                                       self.base_directory / self.parameters.pseudo_directory)
+            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials)
             tot_charge = calculator_parameters['pw'].get(
                 'tot_charge', calculator_parameters['kcp'].get('tot_charge', 0))
             nelec -= tot_charge
@@ -311,7 +298,7 @@ class Workflow(utils.HasDirectory, ABC):
                     if abs(mag) < 1.0:
                         # If |mag| < 1, QE interprets this as site magnetization *per valence electron*, whereas ASE
                         # expects simply the site magnetization
-                        valence = valence_from_pseudo(p, self.base_directory / self.parameters.pseudo_directory)
+                        valence = p['header']['z_valence']
                         starting_magmoms[l] = mag * valence
                     else:
                         # If |mag| >= 1, QE interprets this as site magnetization
@@ -620,9 +607,9 @@ class Workflow(utils.HasDirectory, ABC):
                                      f'(`{self.base_directory / self.parameters.pseudo_directory}`) does not exist')
         if self.parameters.task != 'ui':
             for pseudo in self.pseudopotentials.values():
-                if not (self.base_directory / self.parameters.pseudo_directory / pseudo).exists():
-                    raise FileNotFoundError(f'`{self.base_directory / self.parameters.pseudo_directory / pseudo}` '
-                                            'does not exist. Please double-check your pseudopotential settings')
+                if not (pseudo.filename).exists():
+                    raise FileNotFoundError(
+                        f'`{pseudo.filename}` does not exist. Please double-check your pseudopotential settings')
 
         # Make sanity checks for the ML model
         if self.ml.predict or self.ml.train or self.ml.test:
@@ -752,6 +739,8 @@ class Workflow(utils.HasDirectory, ABC):
                         val = self.kpoints.offset
                 elif kw == 'gamma_only':
                     val = self.kpoints.gamma_only
+                elif kw == 'pseudopotentials':
+                    val = {k: v.filename.name for k, v in self.pseudopotentials.items()}
                 else:
                     val = getattr(self, kw)
                 all_kwargs[kw] = val
@@ -762,8 +751,7 @@ class Workflow(utils.HasDirectory, ABC):
         # Link the pseudopotentials if relevant
         if calculator_parameters.is_valid('pseudo_dir'):
             for pseudo in self.pseudopotentials.values():
-                self.link(None, self.base_directory / self.parameters.pseudo_directory /
-                          pseudo, calc, Path('pseudopotentials') / pseudo)
+                self.link(None, pseudo.filename, calc, Path('pseudopotentials') / pseudo.filename.name)
             calc.parameters.pseudo_dir = 'pseudopotentials'
 
         return calc
@@ -1409,8 +1397,7 @@ class Workflow(utils.HasDirectory, ABC):
 
     def number_of_electrons(self, spin: Optional[str] = None) -> int:
         # Return the number of electrons in a particular spin channel
-        nelec_tot = nelec_from_pseudos(self.atoms, self.pseudopotentials,
-                                       self.base_directory / self.parameters.pseudo_directory)
+        nelec_tot = nelec_from_pseudos(self.atoms, self.pseudopotentials)
         pw_params = self.calculator_parameters['pw']
         if self.parameters.spin_polarized:
             nelec = nelec_tot - pw_params.get('tot_charge', 0)

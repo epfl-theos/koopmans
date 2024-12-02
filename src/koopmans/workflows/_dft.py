@@ -142,9 +142,7 @@ class DFTBandsWorkflow(DFTWorkflow):
             bs = calc_bands.results['band structure']
 
         # Third, a PDOS calculation
-        pseudos = [pseudopotentials.read_pseudo_file(calc_scf.directory / calc_scf.parameters.pseudo_dir / p) for p in
-                   self.pseudopotentials.values()]
-        if all([int(p['header'].get('number_of_wfc', 0)) > 0 for p in pseudos]):
+        if all([p['header'].get('number_of_wfc', 0) for p in self.pseudopotentials.values()]):
             calc_dos = self.new_calculator('projwfc')
             self.link(calc_bands, calc_bands.parameters.outdir, calc_dos, calc_dos.parameters.outdir, symlink=True)
             yield from self.yield_steps(calc_dos)

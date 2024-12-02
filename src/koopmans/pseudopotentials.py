@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ase import Atoms
-from upf_to_json import upf_to_json
+from upf_tools import UPFDict
 
 
 @dataclass
@@ -96,7 +96,7 @@ def fetch_pseudo(**kwargs: Any) -> Pseudopotential:
         return matches[0]
 
 
-def read_pseudo_file(filename: Path) -> Dict[str, Any]:
+def read_pseudo_file(filename: Path) -> UPFDict:
     '''
 
     Reads in settings from a .upf file
@@ -106,40 +106,17 @@ def read_pseudo_file(filename: Path) -> Dict[str, Any]:
     if not filename.exists():
         raise FileNotFoundError(f'Could not find the pseudopotential file `{filename}`')
 
-    with open(filename, 'r') as f:
-        upf_str = f.read()
-    upf = upf_to_json(upf_str, filename.name)
+    upf = UPFDict.from_upf(filename)
 
-    if upf is None:
-        raise ValueError(f'Failed to parse the pseudopotential file `{filename}`')
-
-    return upf['pseudo_potential']
+    return upf
 
 
-def valence_from_pseudo(filename: str, pseudo_dir: Optional[Path] = None) -> int:
-    '''
-    Determines the valence of a pseudopotential
-    '''
-
-    # Works out the pseudo directory (pseudo_dir is given precedence over $ESPRESSO_PSEUDO)
-    if pseudo_dir is None:
-        if 'ESPRESSO_PSEUDO' in os.environ:
-            pseudo_dir = Path(os.environ['ESPRESSO_PSEUDO'])
-        else:
-            pseudo_dir = Path.cwd()
-    elif isinstance(pseudo_dir, str):
-        pseudo_dir = Path(pseudo_dir)
-
-    return int(read_pseudo_file(pseudo_dir / filename)['header']['z_valence'])
-
-
-def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
-                       pseudo_dir: Optional[Path] = None) -> int:
+def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, UPFDict]) -> int:
     '''
     Determines the number of electrons in the system using information from pseudopotential files
     '''
 
-    valences_dct = {key: valence_from_pseudo(value, pseudo_dir) for key, value in pseudopotentials.items()}
+    valences_dct = {key: int(value['header']['z_valence']) for key, value in pseudopotentials.items()}
 
     if len(set(atoms.get_tags())) > 1:
         labels = [s + str(t) if t > 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
@@ -150,8 +127,7 @@ def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
     return sum(valences)
 
 
-def expected_subshells(atoms: Atoms, pseudopotentials: Dict[str, str],
-                       pseudo_dir: Optional[Path] = None) -> Dict[str, List[str]]:
+def expected_subshells(atoms: Atoms, pseudopotentials: Dict[str, UPFDict]) -> Dict[str, List[str]]:
     """
     Determine which subshells will make up the valences of a set of pseudopotentials.
 
@@ -171,12 +147,11 @@ def expected_subshells(atoms: Atoms, pseudopotentials: Dict[str, str],
         label = atom.symbol + str(atom.tag) if atom.tag > 0 else atom.symbol
         if label in expected_orbitals:
             continue
-        pseudo_file = pseudopotentials[label]
-        z_core = atom.number - valence_from_pseudo(pseudo_file, pseudo_dir)
+        z_core = atom.number - int(pseudopotentials[label]['header']['z_valence'])
         if z_core in z_core_to_first_orbital:
             first_orbital = z_core_to_first_orbital[z_core]
         else:
-            raise ValueError(f'Failed to identify the subshells of the valence of `{pseudo_file}`')
+            raise ValueError(f'Failed to identify the subshells of the valence of `{pseudopotentials[label].filename}`')
         all_orbitals = list(z_core_to_first_orbital.values()) + ['5d', '6p', '6d']
         expected_orbitals[label] = sorted(all_orbitals[all_orbitals.index(first_orbital):])
     return expected_orbitals

@@ -103,8 +103,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         # Add nelec, nelup, neldw if they are missing
         if 'nelec' not in self.parameters and 'pseudopotentials' in self.parameters:
-            self.parameters.nelec = pseudopotentials.nelec_from_pseudos(
-                self.atoms, self.parameters.pseudopotentials, self.parameters.pseudo_dir)
+            self.parameters.nelec = pseudopotentials.nelec_from_pseudos(self.atoms, self.parameters.pseudopotentials)
         if 'nelec' in self.parameters:
             if 'nelup' not in self.parameters:
                 self.parameters.nelup = self.parameters.nelec // 2

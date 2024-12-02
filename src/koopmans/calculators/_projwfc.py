@@ -67,10 +67,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         Generates a list of orbitals (e.g. 1s, 2s, 2p, ...) expected for each element in the system, based on the
         corresponding pseudopotential.
         """
-        # A projwfc does not naturally have access to the pseudopotentials via the standard pseudo_directory.
-        # Instead, they can be found in the TMP directory
-        pseudo_dir = self.directory / self.parameters.outdir / (self.parameters.prefix + '.save')
-        return pseudopotentials.expected_subshells(self.atoms, self.pseudopotentials, pseudo_dir)
+        return pseudopotentials.expected_subshells(self.atoms, self.pseudopotentials)
 
     def generate_dos(self) -> GridDOSCollection:
         """
