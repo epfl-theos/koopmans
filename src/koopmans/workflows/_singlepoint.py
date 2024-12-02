@@ -43,7 +43,7 @@ class SinglepointWorkflow(Workflow):
 
     Running a Koopmans calculation on ozone
 
-        >>> from ase.build import molecule
+        >>> from ase_koopmans.build import molecule
         >>> from koopmans.workflows import SinglepointWorkflow
         >>> ozone = molecule('O3', vacuum=5.0, pbc=False)
         >>> wf = SinglepointWorkflow(ozone, ecutwfc = 20.0)
@@ -51,7 +51,7 @@ class SinglepointWorkflow(Workflow):
 
     Running a Koopmans calculation on GaAs
 
-        >>> from ase.build import bulk
+        >>> from ase_koopmans.build import bulk
         >>> from koopmans.projections import ProjectionBlocks
         >>> from koopmans.kpoints import Kpoints
         >>> from koopmans.workflows import SinglepointWorkflow

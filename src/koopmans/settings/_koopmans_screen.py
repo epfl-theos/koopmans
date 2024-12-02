@@ -1,6 +1,6 @@
 from typing import Any
 
-from ase.io.espresso import kcs_keys
+from ase_koopmans.io.espresso import kcs_keys
 
 from ._utils import SettingsDict, kcw_defaults
 

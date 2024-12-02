@@ -10,8 +10,8 @@ for use as the Atoms object associated with a UI calculator
 from typing import Optional
 
 import numpy as np
-from ase import Atoms
-from ase.cell import Cell
+from ase_koopmans import Atoms
+from ase_koopmans.cell import Cell
 
 from koopmans import utils
 

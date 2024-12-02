@@ -15,9 +15,9 @@ from pathlib import Path
 from typing import (Any, Callable, Dict, Generator, List, Optional, Tuple,
                     TypeVar)
 
-from ase import Atoms
-from ase.spectrum.band_structure import BandStructure
-from ase.spectrum.doscollection import GridDOSCollection
+from ase_koopmans import Atoms
+from ase_koopmans.spectrum.band_structure import BandStructure
+from ase_koopmans.spectrum.doscollection import GridDOSCollection
 
 # isort: off
 import koopmans.mpl_config

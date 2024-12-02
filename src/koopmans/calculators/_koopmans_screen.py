@@ -9,8 +9,8 @@ Written by Edward Linscott Feb 2021
 import os
 
 import numpy as np
-from ase import Atoms
-from ase.calculators.espresso import KoopmansScreen
+from ase_koopmans import Atoms
+from ase_koopmans.calculators.espresso import KoopmansScreen
 
 from koopmans import settings, utils
 from koopmans.commands import ParallelCommandWithPostfix

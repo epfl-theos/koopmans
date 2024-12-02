@@ -4,8 +4,8 @@ from typing import Callable, Dict, List, Tuple
 from xml.etree import ElementTree as ET
 
 import numpy as np
-from ase import Atoms, units
-from ase.cell import Cell
+from ase_koopmans import Atoms, units
+from ase_koopmans.cell import Cell
 from numpy.linalg import norm
 
 from koopmans.bands import Band

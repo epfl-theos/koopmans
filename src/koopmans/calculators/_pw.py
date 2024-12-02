@@ -9,9 +9,9 @@ Written by Edward Linscott Sep 2020
 import os
 
 import numpy as np
-from ase import Atoms
-from ase.calculators.espresso import Espresso
-from ase.dft.kpoints import BandPath
+from ase_koopmans import Atoms
+from ase_koopmans.calculators.espresso import Espresso
+from ase_koopmans.dft.kpoints import BandPath
 
 from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.commands import Command, ParallelCommandWithPostfix

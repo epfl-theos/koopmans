@@ -1,7 +1,7 @@
 from typing import Any
 
-from ase.dft.kpoints import BandPath
-from ase.io.espresso import kch_keys
+from ase_koopmans.dft.kpoints import BandPath
+from ase_koopmans.io.espresso import kch_keys
 
 from ._utils import SettingsDict, kcw_defaults
 

@@ -16,9 +16,9 @@ from typing import IO, Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
-from ase.atoms import Atoms
-from ase.io.espresso import label_to_symbol, label_to_tag
-from ase.units import Bohr
+from ase_koopmans.atoms import Atoms
+from ase_koopmans.io.espresso import label_to_symbol, label_to_tag
+from ase_koopmans.units import Bohr
 
 from koopmans.cell import (cell_follows_qe_conventions, cell_to_parameters,
                            parameters_to_cell)

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional
 
 import numpy as np
-from ase import Atoms, io
+from ase_koopmans import Atoms, io
 from sklearn.metrics import mean_absolute_error, r2_score
 
 from koopmans import calculators, utils

@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
-from ase import Atoms
+from ase_koopmans import Atoms
 
 
 def write_xsf(filename: Path, atoms: Atoms, arrays: List[np.ndarray], nr_xml: Tuple[int, int, int]):

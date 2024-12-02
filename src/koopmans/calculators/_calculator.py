@@ -28,12 +28,12 @@ from typing import (TYPE_CHECKING, Any, Dict, Generic, List, Optional, Tuple,
                     Type, TypeVar, Union)
 from uuid import UUID, uuid4
 
-import ase.io as ase_io
+import ase_koopmans.io as ase_io
 import numpy as np
-from ase import Atoms
-from ase.calculators.calculator import CalculationFailed, Calculator
-from ase.dft.kpoints import BandPath
-from ase.spectrum.band_structure import BandStructure
+from ase_koopmans import Atoms
+from ase_koopmans.calculators.calculator import CalculationFailed, Calculator
+from ase_koopmans.dft.kpoints import BandPath
+from ase_koopmans.spectrum.band_structure import BandStructure
 from numpy import typing as npt
 
 from koopmans import settings, utils

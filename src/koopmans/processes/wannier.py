@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Callable, List, Tuple
 
 import numpy as np
-from ase import Atoms
+from ase_koopmans import Atoms
 
 from koopmans import calculators, utils
 from koopmans.files import FilePointer

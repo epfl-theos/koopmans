@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, Generator, List, Mapping, Optional, Tuple
 
 import numpy as np
-from ase.dft import DOS
+from ase_koopmans.dft import DOS
 
 from koopmans import calculators, utils
 from koopmans.bands import Band, Bands

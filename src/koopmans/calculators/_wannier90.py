@@ -8,8 +8,8 @@ Written by Edward Linscott Sep 2020
 
 import os
 
-from ase import Atoms
-from ase.calculators.wannier90 import Wannier90
+from ase_koopmans import Atoms
+from ase_koopmans.calculators.wannier90 import Wannier90
 
 from koopmans.commands import Command
 from koopmans.settings import Wannier90SettingsDict

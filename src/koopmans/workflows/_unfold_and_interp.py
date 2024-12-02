@@ -12,8 +12,8 @@ Integrated within koopmans by Edward Linscott Jan 2021
 from typing import Dict, Generator, List, Optional, Tuple
 
 import numpy as np
-from ase.dft.dos import DOS
-from ase.spectrum.band_structure import BandStructure
+from ase_koopmans.dft.dos import DOS
+from ase_koopmans.spectrum.band_structure import BandStructure
 
 from koopmans import calculators, outputs, utils
 from koopmans.files import FilePointer

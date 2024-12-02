@@ -1,9 +1,10 @@
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from ase import Atoms
-from ase.io.wannier90 import (list_to_formatted_str, num_wann_from_projections,
-                              proj_string_to_dict)
+from ase_koopmans import Atoms
+from ase_koopmans.io.wannier90 import (list_to_formatted_str,
+                                       num_wann_from_projections,
+                                       proj_string_to_dict)
 
 from koopmans import calculators
 

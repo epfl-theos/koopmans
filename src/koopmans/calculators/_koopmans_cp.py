@@ -17,9 +17,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
-from ase import Atoms
-from ase.calculators.espresso import Espresso_kcp
-from ase.io.espresso import cell_to_ibrav
+from ase_koopmans import Atoms
+from ase_koopmans.calculators.espresso import Espresso_kcp
+from ase_koopmans.io.espresso import cell_to_ibrav
 from pandas.core.series import Series
 from scipy.linalg import block_diag
 

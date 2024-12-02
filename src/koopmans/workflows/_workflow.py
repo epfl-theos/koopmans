@@ -31,18 +31,19 @@ import koopmans.mpl_config
 import matplotlib.pyplot as plt
 # isort: on
 
-from ase import Atoms
-from ase.build.supercells import make_supercell
-from ase.calculators.calculator import CalculationFailed
-from ase.dft.dos import DOS
-from ase.dft.kpoints import BandPath
-from ase.io import read as ase_read
-from ase.io import write as ase_write
-from ase.io.espresso import contruct_kcp_namelist as construct_namelist
-from ase.spacegroup import symmetrize
-from ase.spectrum.band_structure import BandStructure
-from ase.spectrum.doscollection import GridDOSCollection
-from ase.spectrum.dosdata import GridDOSData
+from ase_koopmans import Atoms
+from ase_koopmans.build.supercells import make_supercell
+from ase_koopmans.calculators.calculator import CalculationFailed
+from ase_koopmans.dft.dos import DOS
+from ase_koopmans.dft.kpoints import BandPath
+from ase_koopmans.io import read as ase_read
+from ase_koopmans.io import write as ase_write
+from ase_koopmans.io.espresso import \
+    contruct_kcp_namelist as construct_namelist
+from ase_koopmans.spacegroup import symmetrize
+from ase_koopmans.spectrum.band_structure import BandStructure
+from ase_koopmans.spectrum.doscollection import GridDOSCollection
+from ase_koopmans.spectrum.dosdata import GridDOSData
 from upf_tools import UPFDict
 
 from koopmans import calculators, outputs, settings, utils

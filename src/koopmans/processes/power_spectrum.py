@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
-from ase.cell import Cell
+from ase_koopmans.cell import Cell
 from pydantic import ConfigDict
 
 from koopmans import ml, utils

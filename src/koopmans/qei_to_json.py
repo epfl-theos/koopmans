@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any, Dict, Union
 
-from ase.dft.kpoints import BandPath
+from ase_koopmans.dft.kpoints import BandPath
 
 from koopmans.io import read, write
 from koopmans.kpoints import Kpoints

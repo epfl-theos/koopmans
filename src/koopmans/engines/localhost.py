@@ -2,7 +2,7 @@ import os
 import sys
 from typing import List
 
-from ase.calculators.calculator import CalculationFailed
+from ase_koopmans.calculators.calculator import CalculationFailed
 
 from koopmans import utils
 from koopmans.calculators import (Calc, PhCalculator, ProjwfcCalculator,

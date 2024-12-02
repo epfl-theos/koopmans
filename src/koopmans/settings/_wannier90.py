@@ -1,9 +1,10 @@
 from typing import Any
 
 import numpy as np
-from ase.dft.kpoints import BandPath, monkhorst_pack
-from ase.io.wannier90 import (construct_kpoint_path, formatted_str_to_list,
-                              proj_string_to_dict)
+from ase_koopmans.dft.kpoints import BandPath, monkhorst_pack
+from ase_koopmans.io.wannier90 import (construct_kpoint_path,
+                                       formatted_str_to_list,
+                                       proj_string_to_dict)
 
 from ._utils import SettingsDict
 

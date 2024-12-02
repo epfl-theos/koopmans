@@ -11,10 +11,10 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np
-from ase import Atoms
-from ase.calculators.espresso import Projwfc
-from ase.spectrum.doscollection import GridDOSCollection
-from ase.spectrum.dosdata import GridDOSData
+from ase_koopmans import Atoms
+from ase_koopmans.calculators.espresso import Projwfc
+from ase_koopmans.spectrum.doscollection import GridDOSCollection
+from ase_koopmans.spectrum.dosdata import GridDOSData
 
 from koopmans import pseudopotentials
 from koopmans.commands import Command, ParallelCommand

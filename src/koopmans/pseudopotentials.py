@@ -16,7 +16,7 @@ from itertools import chain
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from ase import Atoms
+from ase_koopmans import Atoms
 from upf_tools import UPFDict
 
 

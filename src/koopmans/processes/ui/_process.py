@@ -13,11 +13,11 @@ from time import time
 from typing import List, Optional, Tuple, Type, Union
 
 import numpy as np
-from ase import Atoms
-from ase.calculators.calculator import Calculator
-from ase.dft.dos import DOS
-from ase.geometry.cell import crystal_structure_from_cell
-from ase.spectrum.band_structure import BandStructure
+from ase_koopmans import Atoms
+from ase_koopmans.calculators.calculator import Calculator
+from ase_koopmans.dft.dos import DOS
+from ase_koopmans.geometry.cell import crystal_structure_from_cell
+from ase_koopmans.spectrum.band_structure import BandStructure
 from numpy.typing import ArrayLike, NDArray
 from pydantic import ConfigDict, Field
 

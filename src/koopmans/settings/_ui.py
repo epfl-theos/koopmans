@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, List
 
 import numpy as np
-from ase.dft.kpoints import BandPath
+from ase_koopmans.dft.kpoints import BandPath
 
 from ._utils import Setting, SettingsDictWithChecks
 
