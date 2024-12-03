@@ -18,6 +18,7 @@ from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
                                   Wann2KCCalculator, Wannier90Calculator)
 from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
+from koopmans.status import Status
 
 from ._dft import DFTPWWorkflow
 from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
@@ -98,8 +99,7 @@ class KoopmansDFPTWorkflow(Workflow):
 
         # Initialize the bands
         if self.parameters.spin_polarized:
-            nelec = pseudopotentials.nelec_from_pseudos(
-                self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
+            nelec = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials)
             tot_mag = self.calculator_parameters['pw'].tot_magnetization
             nocc_up = (nelec + tot_mag) // 2
             nocc_dw = (nelec - tot_mag) // 2
@@ -127,8 +127,7 @@ class KoopmansDFPTWorkflow(Workflow):
                                spin_polarized=self.parameters.spin_polarized,
                                filling=filling, groups=self.parameters.orbital_groups, tolerances=tols)
         else:
-            nocc = pseudopotentials.nelec_from_pseudos(
-                self.atoms, self.pseudopotentials, self.parameters.pseudo_directory) // 2
+            nocc = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials) // 2
             if all(self.atoms.pbc):
                 exclude_bands = self.calculator_parameters['w90'].get(
                     'exclude_bands', [])
@@ -157,7 +156,7 @@ class KoopmansDFPTWorkflow(Workflow):
 
         self._scf_kgrid = scf_kgrid
 
-    def _steps_generator(self):
+    def _run(self):
         '''
         This function runs the workflow from start to finish
         '''
@@ -176,7 +175,9 @@ class KoopmansDFPTWorkflow(Workflow):
             coarse_wf.parameters.dfpt_coarse_grid = None
             coarse_wf.kpoints.grid = self.parameters.dfpt_coarse_grid
             coarse_wf._perform_ham_calc = False
-            yield from self.yield_from_subworkflows(coarse_wf, subdirectory='coarse_grid')
+            coarse_wf.run()
+            if coarse_wf.status != Status.COMPLETED:
+                return
 
         wannier_files_to_link_by_spin = []
         dft_ham_files = {}
@@ -187,7 +188,9 @@ class KoopmansDFPTWorkflow(Workflow):
                     self.calculator_parameters[key].write_u_matrices = True
                     self.calculator_parameters[key].write_xyz = True
             wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True, scf_kgrid=self._scf_kgrid)
-            yield from self.yield_from_subworkflows(wf_workflow, subdirectory='wannier')
+            wf_workflow.run()
+            if wf_workflow.status != Status.COMPLETED:
+                return
 
             # Store the NSCF calculation because it uses nosym, so we can use its outdir for subsequent calculations
             init_pw = [c for c in self.calculations if isinstance(
@@ -227,7 +230,9 @@ class KoopmansDFPTWorkflow(Workflow):
             pw_params.nspin = 2
 
             # Run the subworkflow
-            yield from self.yield_from_subworkflows(pw_workflow)
+            pw_workflow.run()
+            if pw_workflow.status != Status.COMPLETED:
+                return
 
             init_pw = pw_workflow.calculations[0]
 
@@ -246,7 +251,9 @@ class KoopmansDFPTWorkflow(Workflow):
 
             wann2kc_calc.prefix += spin_suffix
             wann2kc_calcs.append(wann2kc_calc)
-        yield from self.yield_steps(wann2kc_calcs)
+        status = self.run_steps(wann2kc_calcs)
+        if status != Status.COMPLETED:
+            return
 
         # Calculate screening parameters
         screen_wfs = []
@@ -265,7 +272,9 @@ class KoopmansDFPTWorkflow(Workflow):
                 else:
                     self.bands.alphas = self.parameters.alpha_guess
 
-        yield from self.yield_from_subworkflows(screen_wfs)
+        while any([wf.status != Status.COMPLETED for wf in screen_wfs]):
+            for wf in screen_wfs:
+                wf.run()
 
         # Calculate the Hamiltonian
         kc_ham_calcs = []
@@ -283,7 +292,10 @@ class KoopmansDFPTWorkflow(Workflow):
                     self.link(f.parent, f.name, kc_ham_calc, dst, symlink=True)
                 kc_ham_calc.prefix += spin_suffix
                 kc_ham_calcs.append(kc_ham_calc)
-        yield from self.yield_steps(kc_ham_calcs)
+        
+        status = self.run_steps(kc_ham_calcs)
+        if status != Status.COMPLETED:
+            return
 
         # Postprocessing
         if self._perform_ham_calc:
@@ -305,14 +317,15 @@ class KoopmansDFPTWorkflow(Workflow):
                 ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(
                     self, dft_ham_files=dft_ham_files, koopmans_ham_files=koopmans_ham_files)
 
-                yield from self.yield_from_subworkflows(ui_workflow)
+                ui_workflow.run()
+                if ui_workflow.status != Status.COMPLETED:
+                    return
 
         # Plotting
         if self._perform_ham_calc:
             self.plot_bandstructure()
 
-        yield []
-
+        self.status = Status.COMPLETED
         return
 
     def plot_bandstructure(self):
@@ -353,7 +366,7 @@ class ComputeScreeningViaDFPTWorkflow(Workflow):
         self._wannier_files_to_link = wannier_files_to_link
         self._spin_component = spin_component
 
-    def _steps_generator(self):
+    def _run(self):
         # Group the bands by spread
         self.bands.assign_groups(sort_by='spread', allow_reassignment=True)
 
@@ -364,7 +377,9 @@ class ComputeScreeningViaDFPTWorkflow(Workflow):
             kc_screen_calc = self.new_calculator('kcw_screen', spin_component=self._spin_component)
 
             # 2) Run the calculator
-            yield from self.yield_steps(kc_screen_calc)
+            status = self.run_steps(kc_screen_calc)
+            if status != Status.COMPLETED:
+                return
 
             # 3) Store the computed screening parameters
             self.bands.alphas = kc_screen_calc.results['alphas']
@@ -382,7 +397,9 @@ class ComputeScreeningViaDFPTWorkflow(Workflow):
                 kc_screen_calcs.append(kc_screen_calc)
 
             # 2) Run the calculators (possibly in parallel)
-            yield from self.yield_steps(kc_screen_calcs)
+            status = self.run_steps(kc_screen_calcs)
+            if status != Status.COMPLETED:
+                return
 
             # 3) Store the computed screening parameters (accounting for band groupings)
             for band, kc_screen_calc in zip(bands_to_solve, kc_screen_calcs):
@@ -391,7 +408,7 @@ class ComputeScreeningViaDFPTWorkflow(Workflow):
                         [[alpha]] = kc_screen_calc.results['alphas']
                         b.alpha = alpha
 
-        yield []
+        self.status = Status.COMPLETED
 
         return
 

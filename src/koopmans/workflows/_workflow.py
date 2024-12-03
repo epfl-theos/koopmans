@@ -119,8 +119,9 @@ class Workflow(utils.HasDirectory, ABC):
 
     __slots__ = utils.HasDirectory.__slots__ + ['atoms', 'parameters', 'calculator_parameters', 'name', 'kpoints',
                                                 'pseudopotentials', 'projections', 'ml_model', 'snapshots',
-                                                'version', '_step_counter', 'calculations', 'processes',
-                                                'steps', 'plotting', 'ml', '_bands', 'step_counter']
+                                                'version', 'calculations', 'processes',
+                                                'steps', 'plotting', 'ml', '_bands', 'step_counter', 'print_indent',
+                                                'status', 'engine']
 
     def __init__(self, atoms: Atoms,
                  pseudopotentials: Dict[str, UPFDict | str] = {},
@@ -380,9 +381,6 @@ class Workflow(utils.HasDirectory, ABC):
             utils.warn(f'You are using version {__version__} of `koopmans`, but this workflow was generated with '
                        f'version {self.version}. Proceed with caution.')
 
-        # Initialize the step counter
-        self._step_counter = 0
-
     def __eq__(self, other: Any):
         if self.__class__ != other.__class__:
             return False
@@ -423,7 +421,7 @@ class Workflow(utils.HasDirectory, ABC):
             assert abs_pseudo_dir.is_dir()
             self.parameters.pseudo_directory = os.path.relpath(abs_pseudo_dir, self.base_directory)
 
-    def run(self):
+    def run(self, subdirectory: Optional[str] = None):
         '''
         Run the workflow
         '''
@@ -440,29 +438,27 @@ class Workflow(utils.HasDirectory, ABC):
                 self._remove_tmpdirs()
             self._run_sanity_checks()
 
+        attempts = 0
         while self.status != Status.COMPLETED:
-            self.run_next_steps()
+            if self.parent:
+                with self._parent_context(subdirectory):
+                    self._run()
+            else:
+                if subdirectory:
+                    self.base_directory = Path(subdirectory).resolve()
+                    with utils.chdir(subdirectory):
+                        self._run()
+                else:
+                    self.base_directory = Path.cwd().resolve()
+                    self._run()
+
+            attempts += 1
+            if attempts == 1000:
+                self.status = Status.FAILED
+                raise ValueError('Workflow failed to complete after 1000 attempts')
 
         if not self.parent and self.status == Status.COMPLETED:
             self._teardown()
-
-    def run_next_steps(self, subdirectory: Optional[str] = None, from_scratch: Optional[bool] = None, print_heading=True):
-
-        if from_scratch is not None:
-            raise ValueError('from_scratch is deprecated')
-
-        if self.parent:
-            with self._parent_context(subdirectory):
-                self._run()
-        else:
-            if subdirectory:
-                self.base_directory = Path(subdirectory).resolve()
-                with utils.chdir(subdirectory):
-                    self._run()
-            else:
-                self.base_directory = Path.cwd().resolve()
-                self._run()
-        return
 
     @abstractmethod
     def _run(self) -> None:
@@ -493,12 +489,13 @@ class Workflow(utils.HasDirectory, ABC):
         kwargs.update(**dict(atoms=copy.deepcopy(other_wf.atoms),
                              parameters=parameters,
                              calculator_parameters=copy.deepcopy(other_wf.calculator_parameters),
-                             pseudopotentials=copy.deepcopy(other_wf.pseudopotentials),
+                             pseudopotentials=copy.copy(other_wf.pseudopotentials),
                              kpoints=copy.deepcopy(other_wf.kpoints),
                              projections=other_wf.projections,
                              plotting=copy.deepcopy(other_wf.plotting),
                              ml=copy.deepcopy(other_wf.ml),
-                             ml_model=other_wf.ml_model),
+                             ml_model=other_wf.ml_model,
+                             engine=other_wf.engine,),
                       )
 
         return cls(**kwargs)
@@ -837,7 +834,9 @@ class Workflow(utils.HasDirectory, ABC):
             if status == Status.NOT_STARTED:
                 # Run the step
                 self.engine.run(step)
-            elif status == Status.COMPLETED:
+        
+        for step in steps:
+            if self.engine.get_status(step) == Status.COMPLETED:
                 # Load the results of the step
                 self.engine.load_results(step)
 
@@ -893,23 +892,24 @@ class Workflow(utils.HasDirectory, ABC):
 
         # Prepend the step counter to the subdirectory name
         subdirectory_str = self.name.replace(' ', '-').lower() if subdirectory is None else subdirectory
-        self.parent._step_counter += 1
-        subdirectory_path = Path(f'{self.parent._step_counter:02}-{subdirectory_str}')
+        self.parent.step_counter += 1
+        subdirectory_path = Path(f'{self.parent.step_counter:02}-{subdirectory_str}')
         assert self.parent.directory is not None
         self.directory = self.parent.directory / subdirectory_path
         try:
             # Run the workflow
             yield
         finally:
+            # Updating the lists of calculations, processes, and steps
+            self.parent.calculations += self.calculations[n_calculations:]
+            self.parent.processes += self.processes[n_processes:]
+            self.parent.steps += self.steps[n_steps:]
+
             if self.status == Status.COMPLETED:
                 if self.bands is not None and self.parent.bands is None:
                     # Copy the entire bands object
                     self.parent.bands = self.bands
 
-                # Updating the lists of calculations, processes, and steps
-                self.parent.calculations += self.calculations[n_calculations:]
-                self.parent.processes += self.processes[n_processes:]
-                self.parent.steps += self.steps[n_steps:]
 
     def link(self, src_calc: utils.HasDirectory | None, src_path: Path | str, dest_calc: calculators.Calc,
              dest_path: Path | str, symlink=False, recursive_symlink=False, overwrite=False) -> None:

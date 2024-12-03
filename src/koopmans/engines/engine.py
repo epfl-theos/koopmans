@@ -18,7 +18,7 @@ class Engine(ABC):
         utils.indented_print(text, **kwargs, wrap=False)
 
     def _step_message(self, step, symbol, suffix, **kwargs):
-        self.print(f'- {symbol} `{step.directory}` {suffix}', **kwargs)
+        self.print(f'- {symbol} `{step.uid}` {suffix}', **kwargs)
 
     def _step_completed_message(self, step):
         self._step_message(step, '✅', 'completed  ')

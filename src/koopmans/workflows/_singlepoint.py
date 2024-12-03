@@ -19,6 +19,7 @@ from koopmans.calculators import ProjwfcCalculator
 from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
 from koopmans.step import Step
+from koopmans.status import Status
 
 from ._dft import DFTCPWorkflow, DFTPhWorkflow
 from ._koopmans_dfpt import KoopmansDFPTWorkflow
@@ -72,17 +73,21 @@ class SinglepointWorkflow(Workflow):
 
     output_model = SinglepointOutputs  # type: ignore
 
-    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
+    def _run(self) -> None:
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
         if self.parameters.eps_inf == 'auto':
             eps_workflow = DFTPhWorkflow.fromparent(self)
-            yield from self.yield_from_subworkflows(eps_workflow)
+            eps_workflow.run()
+            if eps_workflow.status != Status.COMPLETED:
+                return
             self.parameters.eps_inf = np.trace(eps_workflow.calculations[-1].results['dielectric tensor']) / 3
 
         if self.parameters.method == 'dfpt':
             workflow = KoopmansDFPTWorkflow.fromparent(self)
-            yield from self.yield_from_subworkflows(workflow)
+            workflow.run()
+            if workflow.status != Status.COMPLETED:
+                return
 
         elif self.parameters.functional == 'all':
             # if 'all', create subdirectories and run
@@ -115,10 +120,12 @@ class SinglepointWorkflow(Workflow):
                 else:
                     variational_orbital_files = None
                     previous_cp_calc = None
+                    smooth_dft_ham_files = None
 
                 kc_workflow = KoopmansDSCFWorkflow.fromparent(self, functional=functional,
                                                               initial_variational_orbital_files=variational_orbital_files,
                                                               redo_smooth_dft=redo_smooth_dft,
+                                                              smooth_dft_ham_files=smooth_dft_ham_files,
                                                               previous_cp_calc=previous_cp_calc,
                                                               calculate_alpha=calculate_alpha)
                 kc_workflow.name += ' ' + functional.upper().replace("PKIPZ", "pKIPZ")
@@ -132,13 +139,23 @@ class SinglepointWorkflow(Workflow):
                     kc_workflow.primitive_to_supercell()
 
                 # Run the workflow
-                yield from self.yield_from_subworkflows(kc_workflow, subdirectory=Path(functional))
+                kc_workflow.run()
+                if kc_workflow.status != Status.COMPLETED:
+                    return
 
         else:
             # self.functional != all and self.method != 'dfpt'
             if self.parameters.functional in ['ki', 'pkipz', 'kipz']:
                 dscf_workflow = KoopmansDSCFWorkflow.fromparent(self)
-                yield from self.yield_from_subworkflows(dscf_workflow)
+                dscf_workflow.run()
+                if dscf_workflow.status != Status.COMPLETED:
+                    return
             else:
                 dft_workflow = DFTCPWorkflow.fromparent(self)
-                yield from self.yield_from_subworkflows(dft_workflow)
+                dft_workflow.run()
+                if dft_workflow.status != Status.COMPLETED:
+                    return
+        
+        self.status = Status.COMPLETED
+
+        return

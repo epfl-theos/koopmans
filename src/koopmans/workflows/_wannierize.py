@@ -36,6 +36,7 @@ from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         merge_wannier_u_file_contents)
 from koopmans.pseudopotentials import nelec_from_pseudos, read_pseudo_file
 from koopmans.step import Step
+from koopmans.status import Status
 
 from ._workflow import Workflow
 
@@ -131,7 +132,7 @@ class WannierizeWorkflow(Workflow):
         # This workflow only makes sense for DFT, not an ODD
         self.parameters.functional = 'dft'
 
-    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
+    def _run(self) -> None:
         '''
 
         Wrapper for the calculation of (maximally localized) Wannier functions
@@ -146,12 +147,16 @@ class WannierizeWorkflow(Workflow):
         calc_scf.prefix = 'scf'
         if self._scf_kgrid:
             calc_scf.parameters.kpts = self._scf_kgrid
-        yield from self.yield_steps(calc_scf)
+        status = self.run_steps(calc_scf)
+        if status != Status.COMPLETED:
+            return
 
         calc_nscf = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True)
         calc_nscf.prefix = 'nscf'
         self.link(calc_scf, calc_scf.parameters.outdir, calc_nscf, calc_nscf.parameters.outdir)
-        yield from self.yield_steps(calc_nscf)
+        status = self.run_steps(calc_nscf)
+        if status != Status.COMPLETED:
+            return
 
         u_matrices_files = {}
         hr_files = {}
@@ -169,7 +174,10 @@ class WannierizeWorkflow(Workflow):
                     f'Wannierize {block.name.replace("_", " ").replace("block", "Block")}'
                 block_subworkflows.append(wannierize_block_subworkflow)
 
-            yield from self.yield_from_subworkflows(block_subworkflows)
+            for wf in block_subworkflows:
+                wf.run()
+            if any([wf.status != Status.COMPLETED for wf in block_subworkflows]):
+                return
 
             for block, subwf in zip(self.projections, block_subworkflows):
                 assert isinstance(subwf, WannierizeBlockWorkflow)
@@ -205,7 +213,9 @@ class WannierizeWorkflow(Workflow):
                                                                 for calc in src_calcs],
                                                      dst_file=prefix + f'{emp_label}_hr.dat')
                         merge_hr_proc.name = f'merge_{label}_wannier_hamiltonian'
-                        yield from self.yield_steps(merge_hr_proc)
+                        status = self.run_steps(merge_hr_proc)
+                        if status != Status.COMPLETED:
+                            return
                         hr_files[label] = FilePointer(merge_hr_proc, merge_hr_proc.outputs.dst_file)
 
                         if self.parameters.method == 'dfpt' and self.parent is not None:
@@ -215,7 +225,9 @@ class WannierizeWorkflow(Workflow):
                                                                    for calc in src_calcs],
                                                         dst_file=prefix + f'{emp_label}_u.mat')
                             merge_u_proc.name = f'merge_{label}_wannier_u'
-                            yield from self.yield_steps(merge_u_proc)
+                            status = self.run_steps(merge_u_proc)
+                            if status != Status.COMPLETED:
+                                return
                             u_matrices_files[label] = FilePointer(merge_u_proc, merge_u_proc.outputs.dst_file)
 
                             # Merging the wannier centers files
@@ -225,7 +237,9 @@ class WannierizeWorkflow(Workflow):
                                            for calc in src_calcs],
                                 dst_file=prefix + f'{emp_label}_centres.xyz')
                             merge_centers_proc.name = f'merge_{label}_wannier_centers'
-                            yield from self.yield_steps(merge_centers_proc)
+                            status = self.run_steps(merge_centers_proc)
+                            if status != Status.COMPLETED:
+                                return
                             centers_files[label] = FilePointer(merge_centers_proc, merge_centers_proc.outputs.dst_file)
 
                 # For the last block (per spin channel), extend the U_dis matrix file if necessary
@@ -261,7 +275,9 @@ class WannierizeWorkflow(Workflow):
                                                                   calc_with_u_dis.prefix + '_u_dis.mat'),
                                                         dst_file=calc_with_u_dis.prefix + f'{filling_label}_u_dis.mat')
                             extend_proc.name = f'extend_{label}_wannier_u_dis'
-                            yield from self.yield_steps(extend_proc)
+                            status = self.run_steps(extend_proc)
+                            if status != Status.COMPLETED:
+                                return
                             u_dis_file = FilePointer(extend_proc, extend_proc.outputs.dst_file)
                     u_dis_files[label] = u_dis_file
 
@@ -278,19 +294,21 @@ class WannierizeWorkflow(Workflow):
             self.link(calc_nscf, (calc_nscf.parameters.outdir / calc_nscf.parameters.prefix).with_suffix('.save'),
                       calc_pw_bands,
                       (calc_pw_bands.parameters.outdir / calc_pw_bands.parameters.prefix).with_suffix('.save'))
-            yield from self.yield_steps(calc_pw_bands)
+            status = self.run_steps(calc_pw_bands)
+            if status != Status.COMPLETED:
+                return
 
             # Calculate a projected DOS
-            pseudos = [read_pseudo_file(calc_pw_bands.directory / calc_pw_bands.parameters.pseudo_dir / p) for p in
-                       self.pseudopotentials.values()]
-            if all([p['header']['number_of_wfc'] > 0 for p in pseudos]):
+            if all([p['header']['number_of_wfc'] > 0 for p in self.pseudopotentials.values()]):
                 calc_dos = self.new_calculator('projwfc', filpdos=self.name)
                 calc_dos.pseudopotentials = self.pseudopotentials
                 calc_dos.spin_polarized = self.parameters.spin_polarized
                 calc_dos.pseudo_dir = calc_pw_bands.parameters.pseudo_dir
                 calc_dos.parameters.prefix = calc_pw_bands.parameters.prefix
                 self.link(calc_pw_bands, calc_pw_bands.parameters.outdir, calc_dos, calc_dos.parameters.outdir)
-                yield from self.yield_steps(calc_dos)
+                status = self.run_steps(calc_dos)
+                if status != Status.COMPLETED:
+                    return
 
                 # Prepare the DOS for plotting
                 dos = copy.deepcopy(calc_dos.results['dos'])
@@ -353,7 +371,7 @@ class WannierizeWorkflow(Workflow):
         self.outputs = self.output_model(band_structures=bs_list, dos=dos, u_matrices_files=u_matrices_files,
                                          hr_files=hr_files, centers_files=centers_files, u_dis_files=u_dis_files)
 
-        yield tuple()
+        self.status = Status.COMPLETED
 
         return
 
@@ -382,7 +400,7 @@ class WannierizeBlockWorkflow(Workflow):
         self.block = block
         super().__init__(*args, **kwargs)
 
-    def _steps_generator(self):
+    def _run(self) -> None:
         n_occ_bands = self.number_of_electrons(self.block.spin)
         if not self.block.spin:
             n_occ_bands /= 2
@@ -408,7 +426,9 @@ class WannierizeBlockWorkflow(Workflow):
         calc_w90_pp = self.new_calculator(calc_type, init_orbitals=init_orbs, **self.block.w90_kwargs)
         calc_w90_pp.prefix = 'wannier90_preproc'
         calc_w90_pp.command.flags = '-pp'
-        yield from self.yield_steps(calc_w90_pp)
+        status = self.run_steps(calc_w90_pp)
+        if status != Status.COMPLETED:
+            return
 
         # 2) standard pw2wannier90 calculation
         calc_p2w = self.new_calculator('pw2wannier', spin_component=self.block.spin)
@@ -417,7 +437,9 @@ class WannierizeBlockWorkflow(Workflow):
             c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
         self.link(calc_nscf, calc_nscf.parameters.outdir, calc_p2w, calc_p2w.parameters.outdir, symlink=True)
         self.link(calc_w90_pp, calc_w90_pp.prefix + '.nnkp', calc_p2w, calc_p2w.parameters.seedname + '.nnkp')
-        yield from self.yield_steps(calc_p2w)
+        status = self.run_steps(calc_p2w)
+        if status != Status.COMPLETED:
+            return
 
         # 3) Wannier90 calculation
         calc_w90 = self.new_calculator(calc_type, init_orbitals=init_orbs,
@@ -425,7 +447,9 @@ class WannierizeBlockWorkflow(Workflow):
         calc_w90.prefix = 'wannier90'
         for ext in ['.eig', '.amn', '.mmn']:
             self.link(calc_p2w, calc_p2w.parameters.seedname + ext, calc_w90, calc_w90.prefix + ext, symlink=True)
-        yield from self.yield_steps(calc_w90)
+        status = self.run_steps(calc_w90)
+        if status != Status.COMPLETED:
+            return
         self.block.w90_calc = calc_w90
 
         if self.bands is not None:
@@ -457,7 +481,7 @@ class WannierizeBlockWorkflow(Workflow):
                                    '_centres.xyz') if calc_w90.parameters.write_xyz else None
         self.outputs = self.output_model(hr_file=hr_file, u_matrices_file=u_file, centers_file=centers_file)
 
-        yield []
+        self.status = Status.COMPLETED
 
         return
 

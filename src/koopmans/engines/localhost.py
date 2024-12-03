@@ -5,8 +5,9 @@ from typing import List
 from ase_koopmans.calculators.calculator import CalculationFailed
 
 from koopmans import utils
-from koopmans.calculators import (Calc, PhCalculator, ProjwfcCalculator,
+from koopmans.calculators import (Calc, ImplementedCalc, PhCalculator, ProjwfcCalculator,
                                   ReturnsBandStructure)
+from koopmans.processes import Process
 from koopmans.status import Status
 from koopmans.step import Step
 
@@ -37,10 +38,39 @@ class LocalhostEngine(Engine):
         return load_old_calculator(calc)
 
     def _load_results(self, step: Step):
-        raise NotImplementedError()
+       # For the local calculation, step.run() also loads the results of the calculator
+       pass
 
     def get_status(self, step: Step) -> Status:
-        return self.statuses.get(step.uid, Status.NOT_STARTED)
+        if not self.from_scratch:
+            to_run = True
+            if isinstance(step, ImplementedCalc):
+                calc_file = step.directory / step.prefix
+ 
+                if calc_file.with_suffix(step.ext_out).is_file():
+                    loaded_step = self.load_old_calculator(step)
+ 
+                    if loaded_step.is_complete():
+                        to_run = False
+            elif isinstance(step, Process):
+                if step.is_complete():
+                    to_run = False
+                    step.load_outputs()
+            else:
+                raise ValueError(f'Unknown step type: {type(step)}')
+ 
+            if to_run:
+                # This and subsequent calculations should be performed from scratch
+                self.from_scratch = True
+            else:
+                if step.uid not in self.statuses:
+                    self._step_skipped_message(step)
+                self.statuses[step.uid] = Status.COMPLETED
+
+        if step.uid not in self.statuses:
+            return Status.NOT_STARTED
+    
+        return self.statuses[step.uid]
 
 
 def load_old_calculator(calc):
