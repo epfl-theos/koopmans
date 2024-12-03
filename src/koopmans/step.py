@@ -11,6 +11,7 @@ class Step(Protocol):
     # Ultimately to be merged with Process once that has a more general definition
     parent: HasDirectory | None
     name: str
+    uid: str
 
     @property
     def directory(self) -> Path | None:

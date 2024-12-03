@@ -15,6 +15,7 @@ from typing import Generator, List, TypeVar
 
 from koopmans import calculators, pseudopotentials, utils
 from koopmans.outputs import OutputModel
+from koopmans.status import Status
 from koopmans.step import Step
 
 from ._workflow import Workflow
@@ -36,7 +37,7 @@ class DFTCPWorkflow(DFTWorkflow):
     output_model = DFTCPOutput  # type: ignore
     outputs: DFTCPOutput
 
-    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
+    def _run(self) -> None:
 
         calc = self.new_calculator('kcp')
         assert isinstance(calc, calculators.KoopmansCPCalculator)
@@ -57,7 +58,9 @@ class DFTCPWorkflow(DFTWorkflow):
             if calc.parameters.empty_states_maxstep is None:
                 calc.parameters.empty_states_maxstep = 300
 
-        yield from self.yield_steps(calc)
+        status = self.run_steps(calc)
+        if status == Status.COMPLETED:
+            self.status = Status.COMPLETED
 
         return
 
@@ -71,7 +74,7 @@ class DFTPWWorkflow(DFTWorkflow):
     output_model = DFTPWOutput  # type: ignore
     outputs: DFTPWOutput
 
-    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
+    def _run(self) -> None:
 
         # Create the calculator
         calc = self.new_calculator('pw')
@@ -82,8 +85,9 @@ class DFTPWWorkflow(DFTWorkflow):
         calc.parameters.ndw = 51
         calc.parameters.restart_mode = 'from_scratch'
 
-        # Yield the calculator
-        yield from self.yield_steps(calc)
+        status = self.run_steps(calc)
+        if status == Status.COMPLETED:
+            self.status = Status.COMPLETED
 
         return
 
@@ -97,17 +101,25 @@ class DFTPhWorkflow(Workflow):
     output_model = DFTPhOutput
     outputs: DFTPhOutput
 
-    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
+    def _run(self) -> None:
 
         self.print('Calculate the dielectric tensor', style='heading')
 
         calc_scf = self.new_calculator('pw', nbnd=None)
         calc_scf.prefix = 'scf'
-        yield from self.yield_steps(calc_scf)
+        status = self.run_steps(calc_scf)
+        if status != Status.COMPLETED:
+            return
+
         calc_ph = self.new_calculator('ph', epsil=True, fildyn=f'{self.name}.dynG')
         calc_ph.prefix = 'eps'
         self.link(calc_scf, calc_scf.parameters.outdir, calc_ph, calc_ph.parameters.outdir, symlink=True)
-        yield from self.yield_steps(calc_ph)
+        status = self.run_steps(calc_ph)
+
+        if status == Status.COMPLETED:
+            self.status = Status.COMPLETED
+
+        return
 
 
 class DFTBandsOutput(OutputModel):
@@ -119,14 +131,16 @@ class DFTBandsWorkflow(DFTWorkflow):
     output_model = DFTBandsOutput
     outputs: DFTBandsOutput
 
-    def _steps_generator(self):
+    def _run(self) -> None:
 
         self.print('DFT bandstructure workflow', style='heading')
 
         # First, a scf calculation
         calc_scf = self.new_calculator('pw', nbnd=None)
         calc_scf.prefix = 'scf'
-        yield from self.yield_steps(calc_scf)
+        status = self.run_steps(calc_scf)
+        if status != Status.COMPLETED:
+            return
 
         # Second, a bands calculation
         if self.parameters.calculate_bands in (True, None):
@@ -135,7 +149,9 @@ class DFTBandsWorkflow(DFTWorkflow):
             calc_bands = self.new_calculator('pw', calculation='nscf')
         calc_bands.prefix = 'bands'
         self.link(calc_scf, calc_scf.parameters.outdir, calc_bands, calc_bands.parameters.outdir, symlink=True)
-        yield from self.yield_steps(calc_bands)
+        status = self.run_steps(calc_bands)
+        if status != Status.COMPLETED:
+            return
 
         # Prepare the band structure for plotting
         if self.parameters.calculate_bands in (True, None):
@@ -145,7 +161,9 @@ class DFTBandsWorkflow(DFTWorkflow):
         if all([p['header'].get('number_of_wfc', 0) for p in self.pseudopotentials.values()]):
             calc_dos = self.new_calculator('projwfc')
             self.link(calc_bands, calc_bands.parameters.outdir, calc_dos, calc_dos.parameters.outdir, symlink=True)
-            yield from self.yield_steps(calc_dos)
+            status = self.run_steps(calc_dos)
+            if status != Status.COMPLETED:
+                return
 
             # Prepare the DOS for plotting
             dos = copy.deepcopy(calc_dos.results['dos'])
@@ -164,6 +182,8 @@ class DFTBandsWorkflow(DFTWorkflow):
             workflow_name = self.__class__.__name__.lower()
             filename = f'{self.name}_{workflow_name}_dos'
             dos.plot(filename=filename)
+
+        self.status = Status.COMPLETED
 
     def new_calculator(self,
                        calc_type: str,

@@ -7,6 +7,7 @@ from ase_koopmans.calculators.calculator import CalculationFailed
 from koopmans import utils
 from koopmans.calculators import (Calc, PhCalculator, ProjwfcCalculator,
                                   ReturnsBandStructure)
+from koopmans.status import Status
 from koopmans.step import Step
 
 from .engine import Engine
@@ -14,25 +15,32 @@ from .engine import Engine
 
 class LocalhostEngine(Engine):
     # Engine for running a workflow locally
-    def _run_steps(self, steps: tuple[Step, ...]) -> None:
-        for step in steps:
-            self._step_running_message(step)
+    def _run(self, step: Step):
+        self._step_running_message(step)
 
-            try:
-                step.run()
-            except CalculationFailed:
-                self._step_failed_message(step)
-                raise
+        try:
+            step.run()
+        except CalculationFailed:
+            self.statuses[step.uid] = Status.FAILED
+            self._step_failed_message(step)
+            raise
 
-            self._step_completed_message(step)
+        self.statuses[step.uid] = Status.COMPLETED
+        self._step_completed_message(step)
 
-            # If we reached here, all future steps should be performed from scratch
-            self.from_scratch = True
+        # If we reached here, all future steps should be performed from scratch
+        self.from_scratch = True
 
         return
 
     def load_old_calculator(self, calc: Calc):
         return load_old_calculator(calc)
+
+    def _load_results(self, step: Step):
+        raise NotImplementedError()
+
+    def get_status(self, step: Step) -> Status:
+        return self.statuses.get(step.uid, Status.NOT_STARTED)
 
 
 def load_old_calculator(calc):

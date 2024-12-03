@@ -8,7 +8,8 @@ import traceback
 
 import koopmans.mpl_config
 from koopmans.engines import LocalhostEngine
-from koopmans.io import read
+from koopmans.io import read, write
+from koopmans.status import Status
 from koopmans.utils import print_alert
 
 
@@ -42,16 +43,25 @@ def main():
     # Reading in JSON file
     workflow = read(args.json)
 
-    # Set traceback behavior
-    if not args.traceback:
-        sys.tracebacklimit = 0
-        sys.excepthook = _custom_exception_hook
-
     # Create the engine
     if args.engine == 'localhost':
         engine = LocalhostEngine(from_scratch=workflow.parameters.from_scratch)
     else:
         raise NotImplementedError(f'{args.engine} is not yet implemented')
+    workflow.engine = engine
+
+    # Set traceback behavior
+    if not args.traceback:
+        sys.tracebacklimit = 0
+        sys.excepthook = _custom_exception_hook
 
     # Run workflow
-    engine.run(workflow)
+    workflow.run()
+
+    # Save workflow to file
+    write(workflow, workflow.name + '.pkl')
+
+    # Save the ML model to a separate file
+    if workflow.ml.train:
+        assert workflow.ml_model is not None
+        write(workflow.ml_model, workflow.name + '_ml_model.pkl')

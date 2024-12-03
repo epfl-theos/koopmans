@@ -49,6 +49,7 @@ from upf_tools import UPFDict
 from koopmans import calculators, outputs, settings, utils
 from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
+from koopmans.engines import Engine, LocalhostEngine
 from koopmans.kpoints import Kpoints
 from koopmans.ml import AbstractMLModel, MLModel, OccEmpMLModels
 from koopmans.processes import Process
@@ -59,6 +60,7 @@ from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
                                        pseudo_database,
                                        pseudos_library_directory)
 from koopmans.references import bib_data
+from koopmans.status import Status
 from koopmans.step import Step
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
@@ -110,7 +112,10 @@ class Workflow(utils.HasDirectory, ABC):
     ml_model: Optional[AbstractMLModel]
     snapshots: List[Atoms]
     version: str
-    _step_counter: int
+    step_counter: int
+    print_indent: int
+    status: Status
+    engine: Engine
 
     __slots__ = utils.HasDirectory.__slots__ + ['atoms', 'parameters', 'calculator_parameters', 'name', 'kpoints',
                                                 'pseudopotentials', 'projections', 'ml_model', 'snapshots',
@@ -132,9 +137,13 @@ class Workflow(utils.HasDirectory, ABC):
                  autogenerate_settings: bool = True,
                  version: Optional[str] = None,
                  parent: Optional[Workflow] = None,
+                 engine: Engine = LocalhostEngine(),
                  **kwargs: Dict[str, Any]):
 
         self.step_counter = 0
+        self.print_indent = 0
+        self.engine = engine
+        self.status = Status.NOT_STARTED
 
         # Initialize the HasDirectory information (parent, base_directory, directory)
         base_directory = None if parent else Path.cwd()
@@ -414,13 +423,14 @@ class Workflow(utils.HasDirectory, ABC):
             assert abs_pseudo_dir.is_dir()
             self.parameters.pseudo_directory = os.path.relpath(abs_pseudo_dir, self.base_directory)
 
-    def steps_generator(self, subdirectory: Optional[str] = None, from_scratch: Optional[bool] = None, print_heading=True) -> Generator[tuple[Step, ...], None, None]:
+    def run(self):
         '''
         Run the workflow
         '''
 
-        if from_scratch is not None:
-            raise ValueError('from_scratch is deprecated')
+        if self.status == Status.NOT_STARTED:
+            self.print_preamble()
+            self.status = Status.RUNNING
 
         if not self.parent:
             bf = '**' if sys.stdout.isatty() else ''
@@ -430,34 +440,38 @@ class Workflow(utils.HasDirectory, ABC):
                 self._remove_tmpdirs()
             self._run_sanity_checks()
 
+        while self.status != Status.COMPLETED:
+            self.run_next_steps()
+
+        if not self.parent and self.status == Status.COMPLETED:
+            self._teardown()
+
+    def run_next_steps(self, subdirectory: Optional[str] = None, from_scratch: Optional[bool] = None, print_heading=True):
+
+        if from_scratch is not None:
+            raise ValueError('from_scratch is deprecated')
+
         if self.parent:
-            yield from self._steps_generator()
+            with self._parent_context(subdirectory):
+                self._run()
         else:
             if subdirectory:
                 self.base_directory = Path(subdirectory).resolve()
                 with utils.chdir(subdirectory):
-                    yield from self._steps_generator()
+                    self._run()
             else:
                 self.base_directory = Path.cwd().resolve()
-                yield from self._steps_generator()
-
-        if not self.parent:
-            self._teardown()
+                self._run()
+        return
 
     @abstractmethod
-    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
+    def _run(self) -> None:
         ...
 
     @property
     @abstractmethod
     def output_model(self) -> Type[outputs.OutputModel]:
         ...
-
-    def get_step_by_uuid(self, uuid: str):
-        for step in self.steps:
-            if step.uuid == uuid:
-                return step
-        raise ValueError(f'No step with UUID {uuid} found in workflow')
 
     @classmethod
     def from_other(cls: Type[W], other_wf: Workflow, **kwargs: Any) -> W:
@@ -790,9 +804,16 @@ class Workflow(utils.HasDirectory, ABC):
 
         self.atoms = self.atoms[mask]
 
-    def yield_steps(self, steps: Step | Sequence[Step]) -> Generator[tuple[Step, ...], None, None]:
-        """
-        `yield steps` wrapped by the setting of step.parent and the storing of step in self.steps/calculations/processes
+    def run_steps(self, steps: Step | Sequence[Step]) -> Status:
+        """Run a sequence of steps in the workflow
+
+        Run either a step or sequence (i.e. list) of steps. If a list is provided, the steps must be able to be run
+        in parallel.
+
+        :param steps: The step or steps to run
+        :type steps: Step | Sequence[Step]
+        :return: The status of this set of steps
+        :rtype: Status
         """
         # Convert steps to an immutable, covariant tuple
         if isinstance(steps, Step):
@@ -812,78 +833,83 @@ class Workflow(utils.HasDirectory, ABC):
             assert self.directory is not None
             step.directory = self.directory / f'{self.step_counter:02d}-{step.name}'
 
-        yield steps
+            status = self.engine.get_status(step)
+            if status == Status.NOT_STARTED:
+                # Run the step
+                self.engine.run(step)
+            elif status == Status.COMPLETED:
+                # Load the results of the step
+                self.engine.load_results(step)
 
+                # Store the results of the step
+                for step in steps:
+                    if step not in self.steps:
+                        self.steps.append(step)
+                    if isinstance(step, calculators.ImplementedCalc) and step not in self.calculations:
+                        self.calculations.append(step)
+                        # Ensure we inherit any modifications made to the atoms object
+                        if step.atoms != self.atoms:
+                            self.atoms = step.atoms
+                    elif isinstance(step, Process) and step not in self.processes:
+                        self.processes.append(step)
+
+        # If any of the steps are running, return RUNNING
         for step in steps:
-            self.steps.append(step)
-            if isinstance(step, calculators.ImplementedCalc):
-                self.calculations.append(step)
-                # Ensure we inherit any modifications made to the atoms object
-                if step.atoms != self.atoms:
-                    self.atoms = step.atoms
-            elif isinstance(step, Process):
-                self.processes.append(step)
+            if self.engine.get_status(step) == Status.RUNNING:
+                return Status.RUNNING
+        # Otherwise, return COMPLETED
+        return Status.COMPLETED
 
-    def yield_from_subworkflows(self, subworkflows: Workflow | Sequence[Workflow],
-                                subdirectory: Optional[Path] = None, **kwargs) -> Generator[tuple[Step, ...], None, None]:
-        # Convert subworkflows to an immutable, covariant tuple
-        if isinstance(subworkflows, Workflow):
-            subworkflows = (subworkflows,)
-        else:
-            subworkflows = tuple(subworkflows)
+    @contextmanager
+    def _parent_context(self, subdirectory: Optional[str] = None,
+                        from_scratch: Optional[bool] = None) -> Generator[None, None, None]:
+        '''
+        Context for calling self._run(), within which self inherits relevant information from self.parent, runs, and
+        then passes back relevant information to self.parent
+        '''
 
-        assert self.directory is not None
+        assert isinstance(self.parent, Workflow)
 
-        for subwf in subworkflows:
-            assert subwf.parent == self
+        # Increase the indent level
+        self.print_indent = self.parent.print_indent + 2
 
-            # Ensure altering self.calculator_parameters won't affect self.parent.calculator_parameters
-            if subwf.calculator_parameters is self.calculator_parameters:
-                subwf.calculator_parameters = copy.deepcopy(self.calculator_parameters)
+        # Ensure altering self.calculator_parameters won't affect self.parent.calculator_parameters
+        if self.calculator_parameters is self.parent.calculator_parameters:
+            self.calculator_parameters = copy.deepcopy(self.parent.calculator_parameters)
 
-            # Copy the lists of calculations, processes, and steps
-            subwf.calculations = [c for c in self.calculations]
-            subwf.processes = [p for p in self.processes]
-            subwf.steps = [s for s in self.steps]
+        # Copy the lists of calculations, processes, and steps
+        self.calculations = [c for c in self.parent.calculations]
+        self.processes = [p for p in self.parent.processes]
+        self.steps = [s for s in self.parent.steps]
 
-            # Store the current length of the lists so we can tell how many calculations are new
-            n_steps = len(self.steps)
-            n_calculations = len(self.calculations)
-            n_processes = len(self.processes)
+        # Store the current length of the lists so we can tell how many calculations are new
+        n_steps = len(self.steps)
+        n_calculations = len(self.calculations)
+        n_processes = len(self.processes)
 
-            # Link the bands
-            if self.bands is not None:
-                subwf.bands = self.bands
+        # Link the bands
+        if self.parent.bands is not None:
+            self.bands = self.parent.bands
 
-            # Set the subworkflow's directory, prepending the step counter to the subdirectory name
-            subdirectory_str = subwf.name.replace(' ', '-').lower() if subdirectory is None else subdirectory
-            self.step_counter += 1
-            subdirectory_path = Path(f'{self.step_counter:02}-{subdirectory_str}')
-            subwf.directory = self.directory / subdirectory_path
+        # Prepend the step counter to the subdirectory name
+        subdirectory_str = self.name.replace(' ', '-').lower() if subdirectory is None else subdirectory
+        self.parent._step_counter += 1
+        subdirectory_path = Path(f'{self.parent._step_counter:02}-{subdirectory_str}')
+        assert self.parent.directory is not None
+        self.directory = self.parent.directory / subdirectory_path
+        try:
+            # Run the workflow
+            yield
+        finally:
+            if self.status == Status.COMPLETED:
+                if self.bands is not None and self.parent.bands is None:
+                    # Copy the entire bands object
+                    self.parent.bands = self.bands
 
-        # Yield the calculations of the subworkflows
-        if 'print_heading' not in kwargs:
-            kwargs['print_heading'] = len(subworkflows) == 1
-        for all_steps in zip(*[w.steps_generator(**kwargs) for w in subworkflows]):
-            yield tuple([step for steps in all_steps for step in steps])
-
-        for subwf in subworkflows:
-            if subwf.bands is not None and self.bands is None:
-                if len(subworkflows) > 1:
-                    raise ValueError('Copying over an entire bands object when multiple subworkflows are being run in '
-                                     'parallel is probably unintended and will likely lead to bugs. To fix, initialize '
-                                     'the bands object of the parent workflow first.')
-                # Copy the entire bands object
-                self.bands = subwf.bands
-
-            # Updating the lists of calculations, processes, and steps
-            self.calculations += subwf.calculations[n_calculations:]
-            self.processes += subwf.processes[n_processes:]
-            self.steps += subwf.steps[n_steps:]
-
-        yield tuple()
-
-        return
+                # Updating the lists of calculations, processes, and steps
+                self.parent.calculations += self.calculations[n_calculations:]
+                self.parent.processes += self.processes[n_processes:]
+                self.parent.steps += self.steps[n_steps:]
 
     def link(self, src_calc: utils.HasDirectory | None, src_path: Path | str, dest_calc: calculators.Calc,
              dest_path: Path | str, symlink=False, recursive_symlink=False, overwrite=False) -> None:
@@ -1145,6 +1171,14 @@ class Workflow(utils.HasDirectory, ABC):
             'note', f'Please cite the papers listed in `{self.name}.bib` in work involving this calculation')
         relevant_references.to_file(self.name + '.bib')
 
+    def print_preamble(self):
+        if self.parent:
+            return
+
+        self.print(header())
+
+        self.print_bib()
+
     def toinputjson(self) -> Dict[str, Dict[str, Any]]:
 
         bigdct: Dict[str, Dict[str, Any]] = {}
@@ -1392,6 +1426,8 @@ class Workflow(utils.HasDirectory, ABC):
         Performs final tasks before the workflow completes
         '''
 
+        assert self.status == Status.COMPLETED
+
         # Removing tmpdirs
         if not self.parameters.keep_tmpdirs:
             self._remove_tmpdirs()
@@ -1508,3 +1544,25 @@ def sanitize_calculator_parameters(dct_in: Union[Dict[str, Dict], Dict[str, sett
                 f'Unrecognized calculator_parameters entry `{k}`: valid options are `'
                 + '`/`'.join(settings_classes.keys()) + '`')
     return dct_out
+
+
+def header():
+    from koopmans import __version__
+
+    bf = '**' if sys.stdout.isatty() else ''
+
+    header = ["",
+              bf + "koopmans" + bf,
+              bf + "========" + bf,
+              "",
+              "*Koopmans spectral functional calculations with `Quantum ESPRESSO`*",
+              "",
+              f"📦 **Version:** {__version__}  ",
+              "🧑 **Authors:** Edward Linscott, Nicola Colonna, Riccardo De Gennaro, Ngoc Linh Nguyen, Giovanni "
+              "Borghi, Andrea Ferretti, Ismaila Dabo, and Nicola Marzari  ",
+              "📚 **Documentation:** https://koopmans-functionals.org  ",
+              "❓ **Support:** https://groups.google.com/g/koopmans-users  ",
+              "🐛 **Report a bug:** https://github.com/epfl-theos/koopmans/issues/new"
+              ]
+
+    return '\n'.join(header)

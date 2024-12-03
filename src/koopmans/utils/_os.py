@@ -206,6 +206,10 @@ class HasDirectory:
     def directory(self) -> Path | None:
         return self._directory
 
+    @property
+    def uid(self) -> str:
+        return str(self.directory)
+
     @directory.setter
     def directory(self, value: Path | str | None):
         if value is None:
