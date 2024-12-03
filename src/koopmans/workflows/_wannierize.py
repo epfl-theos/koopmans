@@ -35,8 +35,8 @@ from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         merge_wannier_hr_file_contents,
                                         merge_wannier_u_file_contents)
 from koopmans.pseudopotentials import nelec_from_pseudos, read_pseudo_file
-from koopmans.step import Step
 from koopmans.status import Status
+from koopmans.step import Step
 
 from ._workflow import Workflow
 

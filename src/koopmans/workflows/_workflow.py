@@ -440,6 +440,8 @@ class Workflow(utils.HasDirectory, ABC):
 
         attempts = 0
         while self.status != Status.COMPLETED:
+            # Reset the step counter each time we reattempt the workflow
+            self.step_counter = 0
             if self.parent:
                 with self._parent_context(subdirectory):
                     self._run()
@@ -834,7 +836,7 @@ class Workflow(utils.HasDirectory, ABC):
             if status == Status.NOT_STARTED:
                 # Run the step
                 self.engine.run(step)
-        
+
         for step in steps:
             if self.engine.get_status(step) == Status.COMPLETED:
                 # Load the results of the step
@@ -909,7 +911,10 @@ class Workflow(utils.HasDirectory, ABC):
                 if self.bands is not None and self.parent.bands is None:
                     # Copy the entire bands object
                     self.parent.bands = self.bands
-
+            else:
+                # We will be returning to this workflow again, so we need to reset the step counter to what
+                # it was before
+                self.parent.step_counter -= 1
 
     def link(self, src_calc: utils.HasDirectory | None, src_path: Path | str, dest_calc: calculators.Calc,
              dest_path: Path | str, symlink=False, recursive_symlink=False, overwrite=False) -> None:

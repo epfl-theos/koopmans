@@ -8,7 +8,7 @@ Written by Edward Linscott Feb 2021
 
 import shutil
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -35,7 +35,7 @@ class KoopmansDFPTWorkflow(Workflow):
     output_model = KoopmansDFPTOutputs  # type: ignore
     outputs: KoopmansDFPTOutputs
 
-    def __init__(self, scf_kgrid=None, *args, **kwargs):
+    def __init__(self, scf_kgrid: Optional[List[int]] = None, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         # Check the consistency of keywords
@@ -98,6 +98,7 @@ class KoopmansDFPTWorkflow(Workflow):
                                 f'`assume_isolated = {params.assume_isolated}` is incompatible with `mt_correction = True`')
 
         # Initialize the bands
+        tols: Dict[str, float] = {}
         if self.parameters.spin_polarized:
             nelec = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials)
             tot_mag = self.calculator_parameters['pw'].tot_magnetization
@@ -118,7 +119,6 @@ class KoopmansDFPTWorkflow(Workflow):
             if self.parameters.orbital_groups is None:
                 self.parameters.orbital_groups = [
                     list(range(nocc_up + nemp_up)), list(range(nocc_dw + nemp_dw))]
-            tols: Dict[str, float] = {}
             for key in ['self_hartree', 'spread']:
                 val = self.parameters.get(f'orbital_groups_{key}_tol', None)
                 if val is not None:
@@ -139,7 +139,6 @@ class KoopmansDFPTWorkflow(Workflow):
             filling = [[True] * nocc + [False] * nemp]
             if self.parameters.orbital_groups is None:
                 self.parameters.orbital_groups = [list(range(nocc + nemp))]
-            tols: Dict[str, float] = {}
             for key in ['self_hartree', 'spread']:
                 val = self.parameters.get(f'orbital_groups_{key}_tol', None)
                 if val is not None:
@@ -272,9 +271,11 @@ class KoopmansDFPTWorkflow(Workflow):
                 else:
                     self.bands.alphas = self.parameters.alpha_guess
 
-        while any([wf.status != Status.COMPLETED for wf in screen_wfs]):
-            for wf in screen_wfs:
-                wf.run()
+        for wf in screen_wfs:
+            wf.run()
+
+        if any([wf.status != Status.COMPLETED for wf in screen_wfs]):
+            return
 
         # Calculate the Hamiltonian
         kc_ham_calcs = []
@@ -292,7 +293,7 @@ class KoopmansDFPTWorkflow(Workflow):
                     self.link(f.parent, f.name, kc_ham_calc, dst, symlink=True)
                 kc_ham_calc.prefix += spin_suffix
                 kc_ham_calcs.append(kc_ham_calc)
-        
+
         status = self.run_steps(kc_ham_calcs)
         if status != Status.COMPLETED:
             return

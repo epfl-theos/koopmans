@@ -18,8 +18,8 @@ from koopmans import utils
 from koopmans.calculators import ProjwfcCalculator
 from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
-from koopmans.step import Step
 from koopmans.status import Status
+from koopmans.step import Step
 
 from ._dft import DFTCPWorkflow, DFTPhWorkflow
 from ._koopmans_dfpt import KoopmansDFPTWorkflow
@@ -155,7 +155,7 @@ class SinglepointWorkflow(Workflow):
                 dft_workflow.run()
                 if dft_workflow.status != Status.COMPLETED:
                     return
-        
+
         self.status = Status.COMPLETED
 
         return

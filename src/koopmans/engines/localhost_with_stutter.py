@@ -42,7 +42,6 @@ class LocalhostEngine(Engine):
         pass
 
     def get_status(self, step: Step) -> Status:
-
         if not self.from_scratch:
             to_run = True
             if isinstance(step, ImplementedCalc):

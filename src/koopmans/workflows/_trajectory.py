@@ -14,6 +14,7 @@ from sklearn.metrics import mean_absolute_error, r2_score
 
 from koopmans import calculators, utils
 from koopmans.outputs import OutputModel
+from koopmans.status import Status
 from koopmans.step import Step
 
 from ._koopmans_dscf import KoopmansDSCFOutputs
@@ -33,7 +34,7 @@ class TrajectoryWorkflow(Workflow):
         super().__init__(*args, **kwargs)
         self.parameters.task = 'trajectory'
 
-    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
+    def _run(self) -> None:
         """
         Starts the KoopmansDSCF Workflow for each snapshot indicated in indices
         """
@@ -58,10 +59,13 @@ class TrajectoryWorkflow(Workflow):
 
             raise NotImplementedError('Need to make sure that the bands are not copied across snapshots')
 
-        yield from self.yield_from_subworkflows(workflows)
+        for w in workflows:
+            w.run()
+
+        if not all([w.status == Status.COMPLETED for w in workflows]):
+            return
 
         self.outputs = self.output_model(snapshot_outputs=[w.outputs for w in workflows])
-
-        yield tuple()
+        self.status = Status.COMPLETED
 
         return
