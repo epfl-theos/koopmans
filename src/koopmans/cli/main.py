@@ -68,7 +68,7 @@ def main():
         sys.excepthook = _custom_exception_hook
 
     # Run workflow
-    workflow.run()
+    workflow.run_while()
 
     # Save workflow to file
     write(workflow, workflow.name + '.pkl')

@@ -18,22 +18,34 @@ class Engine(ABC):
     def print(self, text: str, **kwargs):
         utils.indented_print(text, **kwargs, wrap=False)
 
-    def _step_message(self, step, symbol, suffix, **kwargs):
-        self.print(f'- {symbol} `{step.uid}` {suffix}', **kwargs)
+    def _step_message(self, uid, symbol, suffix, **kwargs):
+        self.print(f'- {symbol} `{uid}` {suffix}', **kwargs)
 
     def _step_completed_message(self, step):
-        self._step_message(step, '✅', 'completed  ')
+        self._step_completed_message_by_uid(step.uid)
 
     def _step_failed_message(self, step):
-        self._step_message(step, '❌', 'failed     ')
+        self._step_failed_message_by_uid(step.uid)
 
     def _step_running_message(self, step):
-        if sys.stdout.isatty():
-            self._step_message(step, '🖥️ ', 'running...', end='\r', flush=True)
+        self._step_running_message_by_uid(step.uid)
 
     def _step_skipped_message(self, step):
-        self._step_message(step, '⏭️ ', 'already complete  ')
+        self._step_skipped_message_by_uid(step.uid)
 
+    def _step_completed_message_by_uid(self, uid):
+        self._step_message(uid, '✅', 'completed  ')
+
+    def _step_failed_message_by_uid(self, uid):
+        self._step_message(uid, '❌', 'failed     ')
+
+    def _step_running_message_by_uid(self, uid):
+        if sys.stdout.isatty():
+            self._step_message(uid, '🖥️ ', 'running...', end='\r', flush=True)
+
+    def _step_skipped_message_by_uid(self, uid):
+        self._step_message(uid, '⏭️ ', 'already complete  ')
+        
     @abstractmethod
     def run(self, step: Step) -> None:
         ...

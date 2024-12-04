@@ -84,10 +84,10 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
 
         # Fetch the total number of electrons in the system
         nelec = self.results['nelec']
-
+        
         # Determine the number of occupied bands in each spin channel
         if self.parameters.nspin == 1:
-            n_occs = [nelec // 2]
+            n_occs = [int(nelec // 2)]
         else:
             mag = self.parameters.get('tot_magnetization', nelec % 2)
             n_occs = [int(nelec / 2 + mag / 2), int(nelec / 2 - mag / 2)]

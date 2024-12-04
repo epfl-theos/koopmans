@@ -421,15 +421,13 @@ class Workflow(utils.HasDirectory, ABC):
             assert abs_pseudo_dir.is_dir()
             self.parameters.pseudo_directory = os.path.relpath(abs_pseudo_dir, self.base_directory)
 
-    def run(self, subdirectory: Optional[str] = None):
+    def run_while(self,):
         '''
         Run the workflow
         '''
-
-        if self.status == Status.NOT_STARTED:
-            self.print_preamble()
-            self.status = Status.RUNNING
-
+        self.print_preamble()
+        attempts = 0
+        
         if not self.parent:
             bf = '**' if sys.stdout.isatty() else ''
             self.print(bf + self.name + bf)
@@ -437,22 +435,10 @@ class Workflow(utils.HasDirectory, ABC):
             if self.parameters.from_scratch:
                 self._remove_tmpdirs()
             self._run_sanity_checks()
-
-        attempts = 0
+        
         while self.status != Status.COMPLETED:
             # Reset the step counter each time we reattempt the workflow
-            self.step_counter = 0
-            if self.parent:
-                with self._parent_context(subdirectory):
-                    self._run()
-            else:
-                if subdirectory:
-                    self.base_directory = Path(subdirectory).resolve()
-                    with utils.chdir(subdirectory):
-                        self._run()
-                else:
-                    self.base_directory = Path.cwd().resolve()
-                    self._run()
+            self.run()
 
             attempts += 1
             if attempts == 1000:
@@ -463,6 +449,35 @@ class Workflow(utils.HasDirectory, ABC):
 
         if not self.parent and self.status == Status.COMPLETED:
             self._teardown()
+            
+        self.status = Status.COMPLETED
+        return 
+    
+    def run(self, subdirectory: Optional[str] = None):
+        '''
+        Run the workflow
+        '''
+
+        self.step_counter = 0
+
+        if self.status == Status.NOT_STARTED:
+            self.status = Status.RUNNING
+
+
+        
+        if self.parent:
+            with self._parent_context(subdirectory):
+                self._run()
+        else:
+            if subdirectory:
+                self.base_directory = Path(subdirectory).resolve()
+                with utils.chdir(subdirectory):
+                    self._run()
+            else:
+                self.base_directory = Path.cwd().resolve()
+                self._run()
+
+        self.engine.update_statuses()
 
     @abstractmethod
     def _run(self) -> None:
@@ -837,6 +852,7 @@ class Workflow(utils.HasDirectory, ABC):
             status = self.engine.get_status(step)
             if status == Status.NOT_STARTED:
                 # Run the step
+                print(f'Running {step.uid}')
                 self.engine.run(step)
 
         for step in steps:
@@ -913,10 +929,7 @@ class Workflow(utils.HasDirectory, ABC):
                 if self.bands is not None and self.parent.bands is None:
                     # Copy the entire bands object
                     self.parent.bands = self.bands
-            else:
-                # We will be returning to this workflow again, so we need to reset the step counter to what
-                # it was before
-                self.parent.step_counter -= 1
+
 
     def link(self, src_calc: utils.HasDirectory | None, src_path: Path | str, dest_calc: calculators.Calc,
              dest_path: Path | str, symlink=False, recursive_symlink=False, overwrite=False) -> None:

@@ -173,7 +173,7 @@ class WannierizeWorkflow(Workflow):
                 wannierize_block_subworkflow.name = \
                     f'Wannierize {block.name.replace("_", " ").replace("block", "Block")}'
                 block_subworkflows.append(wannierize_block_subworkflow)
-
+                            
             for wf in block_subworkflows:
                 wf.run()
             if any([wf.status != Status.COMPLETED for wf in block_subworkflows]):
