@@ -123,7 +123,9 @@ class Workflow(utils.HasDirectory, ABC):
                                                 'steps', 'plotting', 'ml', '_bands', 'step_counter', 'print_indent',
                                                 'status', 'engine']
 
-    def __init__(self, atoms: Atoms,
+    def __init__(self, 
+                 atoms: Atoms,
+                 engine: Engine,
                  pseudopotentials: Dict[str, UPFDict | str] = {},
                  kpoints: Optional[Kpoints] = None,
                  projections: Optional[ProjectionBlocks] = None,
@@ -138,7 +140,6 @@ class Workflow(utils.HasDirectory, ABC):
                  autogenerate_settings: bool = True,
                  version: Optional[str] = None,
                  parent: Optional[Workflow] = None,
-                 engine: Engine = LocalhostEngine(),
                  **kwargs: Dict[str, Any]):
 
         self.step_counter = 0
@@ -636,11 +637,6 @@ class Workflow(utils.HasDirectory, ABC):
         if not os.path.isdir(self.base_directory / self.parameters.pseudo_directory):
             raise NotADirectoryError('The pseudopotential directory you provided '
                                      f'(`{self.base_directory / self.parameters.pseudo_directory}`) does not exist')
-        if self.parameters.task != 'ui':
-            for pseudo in self.pseudopotentials.values():
-                if not (pseudo.filename).exists():
-                    raise FileNotFoundError(
-                        f'`{pseudo.filename}` does not exist. Please double-check your pseudopotential settings')
 
         # Make sanity checks for the ML model
         if self.ml.predict or self.ml.train or self.ml.test:

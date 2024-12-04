@@ -42,9 +42,6 @@ def main():
     # Parse arguments
     args = parser.parse_args()
 
-    # Reading in JSON file
-    workflow = read(args.json)
-
     # Create the engine
     if args.engine == 'localhost':
         engine = LocalhostEngine(from_scratch=workflow.parameters.from_scratch)
@@ -60,7 +57,8 @@ def main():
     else:
         raise NotImplementedError(f"Unknown engine '{args.engine}'")
     
-    workflow.engine = engine
+    # Reading in JSON file
+    workflow = read(args.json, engine=engine)
 
     # Set traceback behavior
     if not args.traceback:
