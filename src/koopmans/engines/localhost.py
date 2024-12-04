@@ -16,7 +16,7 @@ from .engine import Engine
 
 class LocalhostEngine(Engine):
     # Engine for running a workflow locally
-    def _run(self, step: Step):
+    def run(self, step: Step):
         self._step_running_message(step)
 
         try:
@@ -37,7 +37,7 @@ class LocalhostEngine(Engine):
     def load_old_calculator(self, calc: Calc):
         return load_old_calculator(calc)
 
-    def _load_results(self, step: Step):
+    def load_results(self, step: Step):
         # For the local calculation, step.run() also loads the results of the calculator
         pass
 
@@ -73,7 +73,12 @@ class LocalhostEngine(Engine):
 
         return self.statuses[step.uid]
 
-
+    def set_status(self, step: Step, status: Status):
+        self.statuses[step.uid] = status
+    
+    def update_statuses(self) -> None:
+        pass
+    
 def load_old_calculator(calc):
     # This is a separate function so that it can be imported by other engines
     loaded_calc = calc.__class__.fromfile(calc.directory / calc.prefix)

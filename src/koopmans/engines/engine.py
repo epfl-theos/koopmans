@@ -9,8 +9,7 @@ from koopmans.step import Step
 
 class Engine(ABC):
 
-    def __init__(self, from_scratch: bool = True, npool: Optional[int] = None, statuses: dict[str, Status] = {}):
-        self.statuses = statuses
+    def __init__(self, from_scratch: bool = True, npool: Optional[int] = None):
         self.from_scratch = from_scratch
         self.npool = npool
 
@@ -33,27 +32,26 @@ class Engine(ABC):
     def _step_skipped_message(self, step):
         self._step_message(step, '⏭️ ', 'already complete  ')
 
-    def run(self, step: Step) -> None:
-        self.statuses[step.uid] = Status.RUNNING
-        self._run(step)
-
     @abstractmethod
-    def _run(self, step: Step) -> None:
+    def run(self, step: Step) -> None:
         ...
 
     @abstractmethod
     def get_status(self, step: Step) -> Status:
         ...
-
-    def load_results(self, step: Step) -> None:
-        if not self.get_status(step) == Status.COMPLETED:
-            raise ValueError(f'Cannot load results for step {step.uid} as it has not completed')
-
-        self._load_results(step)
-
+    
     @abstractmethod
-    def _load_results(self, step: Step) -> None:
+    def set_status(self, step: Step, status: Status):
         ...
+        
+    @abstractmethod
+    def update_statuses(self) -> None:
+        ...
+        
+    @abstractmethod
+    def load_results(self, step: Step) -> None:
+        ...
+
 
 #
 #        # Print the header

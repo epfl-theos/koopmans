@@ -459,6 +459,8 @@ class Workflow(utils.HasDirectory, ABC):
                 self.status = Status.FAILED
                 raise ValueError('Workflow failed to complete after 1000 attempts')
 
+            self.engine.update_statuses()
+        
         if not self.parent and self.status == Status.COMPLETED:
             self._teardown()
 

@@ -34,6 +34,8 @@ def main():
     parser.add_argument('-t', '--traceback', action='store_true', help='enable traceback')
     parser.add_argument('--engine', choices=['localhost', 'aiida'], default='localhost',
                         help="Specify the execution engine: 'local' or 'aiida' (default: 'local')")
+    parser.add_argument('--engine_config', type=str, default='engine.json',
+                        help='Specify the engine configuration file (default: engine.json)')
     parser.add_argument('--version', action='version', version=__version__,
                         help="Show the program's version number and exit")
 
@@ -46,8 +48,18 @@ def main():
     # Create the engine
     if args.engine == 'localhost':
         engine = LocalhostEngine(from_scratch=workflow.parameters.from_scratch)
+    elif args.engine == 'aiida':
+        from aiida_koopmans.engine.aiida import AiiDAEngine
+        if args.engine_config is not None:
+            import json
+            with open(args.engine_config, 'r') as f:
+                engine_config = json.load(f)
+        else:
+            engine_config = None
+        engine = AiiDAEngine(configuration=engine_config)
     else:
-        raise NotImplementedError(f'{args.engine} is not yet implemented')
+        raise NotImplementedError(f"Unknown engine '{args.engine}'")
+    
     workflow.engine = engine
 
     # Set traceback behavior
