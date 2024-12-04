@@ -38,51 +38,33 @@ pseudos_directory = Path(__file__).parent / 'pseudopotentials'
 # A database containing all the available pseudopotentials
 pseudo_database: List[Pseudopotential] = []
 for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rglob('*.upf')):
-    name = pseudo_file.name
-    splitname = re.split(r'\.|_|-', name)[0]
+    pseudo_file = pseudo_file.relative_to(pseudos_directory)
+    library = str(pseudo_file.parent)
+    version, functional, protocol = pseudo_file.parts[1:4]
+    splitname = re.split(r'\.|_|-', pseudo_file.name)[0]
     element = splitname[0].upper() + splitname[1:].lower()
-    library = pseudo_file.parents[1].name
-    functional = pseudo_file.parent.name
     citations: List[str] = []
 
-    kwargs = {}
-    if library.startswith('sssp'):
-        [json_name] = list(pseudo_file.parent.glob('*.json'))
-        metadata = json.load(open(json_name, 'r'))[element]
-        original_library = metadata['pseudopotential'].replace('SG15', 'sg15').replace('Dojo', 'pseudo_dojo')
-        if original_library.startswith('sg15') or original_library.startswith('pseudo_dojo'):
-            kind = 'norm-conserving'
-        elif original_library.startswith('GBRV') or original_library in ['031US', '100US', 'THEOS']:
-            kind = 'ultrasoft'
-        elif 'PAW' in original_library or original_library == 'Wentzcovitch':
-            kind = 'projector-augmented wave'
-        else:
-            raise ValueError(f'Unrecognized library `{original_library}`')
-        citations += ['Lejaeghere2016', 'Prandini2018']
-        for key in ['cutoff_wfc', 'cutoff_rho']:
-            kwargs[key] = metadata[key]
+    if library.startswith('SG15') or library.startswith('PseudoDojo'):
+        kind = 'norm-conserving'
     else:
-        original_library = library
-        if original_library.startswith('sg15') or original_library.startswith('pseudo_dojo'):
-            kind = 'norm-conserving'
-        else:
-            kind = 'unknown'
+        kind = 'unknown'
 
-    if original_library.startswith('sg15'):
+    if library.startswith('SG15'):
         citations.append('Hamann2013')
         citations.append('Schlipf2015')
-        if 'relativistic' in original_library:
+        if 'FR' in library:
             citations.append('Scherpelz2016')
-    elif original_library.startswith('pseudo_dojo'):
+    elif library.startswith('PseudoDojo'):
         citations.append('Hamann2013')
         citations.append('vanSetten2018')
 
-    pseudo_database.append(Pseudopotential(name, element, pseudo_file.parent,
-                                           functional, library, kind, citations, **kwargs))
+    pseudo_database.append(Pseudopotential(pseudo_file.name, element, pseudo_file.parent,
+                                           functional.lower(), library, kind, citations))
 
 
-def pseudos_library_directory(pseudo_library: str, base_functional: str) -> Path:
-    return pseudos_directory / pseudo_library / base_functional
+def pseudos_library_directory(pseudo_library: str) -> Path:
+    return pseudos_directory / pseudo_library
 
 
 def fetch_pseudo(**kwargs: Any) -> Pseudopotential:

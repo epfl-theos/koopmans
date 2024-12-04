@@ -3,11 +3,14 @@ import sys
 from typing import List
 
 from ase_koopmans.calculators.calculator import CalculationFailed
+from upf_tools import UPFDict
 
 from koopmans import utils
 from koopmans.calculators import (Calc, ImplementedCalc, PhCalculator,
                                   ProjwfcCalculator, ReturnsBandStructure)
 from koopmans.processes import Process
+from koopmans.pseudopotentials import (fetch_pseudo, pseudos_library_directory,
+                                       read_pseudo_file)
 from koopmans.status import Status
 from koopmans.step import Step
 
@@ -16,17 +19,21 @@ from .engine import Engine
 
 class LocalhostEngine(Engine):
     # Engine for running a workflow locally
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.statuses = {}
+
     def run(self, step: Step):
         self._step_running_message(step)
 
         try:
             step.run()
         except CalculationFailed:
-            self.statuses[step.uid] = Status.FAILED
+            self.set_status(step, Status.FAILED)
             self._step_failed_message(step)
             raise
 
-        self.statuses[step.uid] = Status.COMPLETED
+        self.set_status(step, Status.COMPLETED)
         self._step_completed_message(step)
 
         # If we reached here, all future steps should be performed from scratch
@@ -66,7 +73,7 @@ class LocalhostEngine(Engine):
             else:
                 if step.uid not in self.statuses:
                     self._step_skipped_message(step)
-                self.statuses[step.uid] = Status.COMPLETED
+                self.set_status(step, Status.COMPLETED)
 
         if step.uid not in self.statuses:
             return Status.NOT_STARTED
@@ -75,10 +82,16 @@ class LocalhostEngine(Engine):
 
     def set_status(self, step: Step, status: Status):
         self.statuses[step.uid] = status
-    
+
     def update_statuses(self) -> None:
         pass
-    
+
+    def get_pseudopotential(self, library: str, element: str) -> UPFDict:
+        pseudo = fetch_pseudo(library=library, element=element)
+        pseudo_path = pseudos_library_directory(pseudo.library) / pseudo.name
+        return read_pseudo_file(pseudo_path)
+
+
 def load_old_calculator(calc):
     # This is a separate function so that it can be imported by other engines
     loaded_calc = calc.__class__.fromfile(calc.directory / calc.prefix)

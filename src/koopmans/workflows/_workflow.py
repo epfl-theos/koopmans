@@ -232,7 +232,7 @@ class Workflow(utils.HasDirectory, ABC):
         # Pseudopotentials and pseudo_dir
         if self.parameters.pseudo_directory is None:
             if self.parameters.pseudo_library:
-                pseudo_dir = pseudos_library_directory(self.parameters.pseudo_library, self.parameters.base_functional)
+                pseudo_dir = pseudos_library_directory(self.parameters.pseudo_library)
             elif 'ESPRESSO_PSEUDO' in os.environ:
                 pseudo_dir = Path(os.environ['ESPRESSO_PSEUDO'])
             else:
@@ -246,24 +246,24 @@ class Workflow(utils.HasDirectory, ABC):
                 self.parameters.pseudo_directory / v) if isinstance(v, str) else v for k, v in pseudopotentials.items()}
         else:
             if self.parameters.pseudo_library is None:
+                if self.parameters.base_functional != 'pbe':
+                    raise ValueError(
+                        'No pseudopotential library was provided; either provide a pseudopotential library or switch to using PBE`')
+                self.parameters.pseudo_library = f'SG15/1.2/PBE/SR/'
                 utils.warn(
                     'Neither a pseudopotential library nor a list of pseudopotentials was provided; defaulting to '
-                    '`sg15_v1.2`')
-                self.parameters.pseudo_library = 'sg15_v1.2'
+                    + self.parameters.pseudo_library)
             self.pseudopotentials = {}
-            for symbol, tag in set([(a.symbol, a.tag) for a in self.atoms]):
-                pseudo = fetch_pseudo(element=symbol, functional=self.parameters.base_functional,
-                                      library=self.parameters.pseudo_library)
-                if pseudo.kind == 'unknown':
-                    utils.warn(f'You are using an unrecognized pseudopotential `{pseudo.name}`. Please note that '
-                               'the current implementation of Koopmans functionals only supports norm-conserving '
-                               'pseudopotentials.')
-                elif pseudo.kind != 'norm-conserving':
+            for element, tag in set([(a.symbol, a.tag) for a in self.atoms]):
+                pseudo = self.engine.get_pseudopotential(library=self.parameters.pseudo_library, element=element)
+
+                pseudo_type = pseudo['header']['pseudo_type']
+                if pseudo_type != 'NC':
                     raise ValueError('Koopmans functionals only currently support norm-conserving pseudopotentials; '
-                                     f'{pseudo.name} is {pseudo.kind}')
-                if tag > 0:
-                    symbol += str(tag)
-                self.pseudopotentials[symbol] = UPFDict.from_upf(pseudo.path / pseudo.name)
+                                     f'{pseudo.filename} is {pseudo_type}')
+
+                symbol = element + str(tag) if tag > 0 else element
+                self.pseudopotentials[symbol] = pseudo
 
         # Make sure calculator_parameters isn't missing any entries, and every entry corresponds to
         # settings.SettingsDict objects
@@ -460,7 +460,7 @@ class Workflow(utils.HasDirectory, ABC):
                 raise ValueError('Workflow failed to complete after 1000 attempts')
 
             self.engine.update_statuses()
-        
+
         if not self.parent and self.status == Status.COMPLETED:
             self._teardown()
 

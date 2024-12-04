@@ -2,6 +2,8 @@ import sys
 from abc import ABC, abstractmethod
 from typing import Optional
 
+from upf_tools import UPFDict
+
 from koopmans import utils
 from koopmans.status import Status
 from koopmans.step import Step
@@ -39,17 +41,21 @@ class Engine(ABC):
     @abstractmethod
     def get_status(self, step: Step) -> Status:
         ...
-    
+
     @abstractmethod
     def set_status(self, step: Step, status: Status):
         ...
-        
+
     @abstractmethod
     def update_statuses(self) -> None:
         ...
-        
+
     @abstractmethod
     def load_results(self, step: Step) -> None:
+        ...
+
+    @abstractmethod
+    def get_pseudopotential(self, library: str, element: str) -> UPFDict:
         ...
 
 
