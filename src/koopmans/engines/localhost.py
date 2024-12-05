@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import List
+from typing import Generator, List
 
 from ase_koopmans.calculators.calculator import CalculationFailed
 from upf_tools import UPFDict
@@ -8,6 +8,7 @@ from upf_tools import UPFDict
 from koopmans import utils
 from koopmans.calculators import (Calc, ImplementedCalc, PhCalculator,
                                   ProjwfcCalculator, ReturnsBandStructure)
+from koopmans.files import FilePointer
 from koopmans.processes import Process
 from koopmans.pseudopotentials import (fetch_pseudo, pseudos_library_directory,
                                        read_pseudo_file)
@@ -90,6 +91,20 @@ class LocalhostEngine(Engine):
         pseudo = fetch_pseudo(library=library, element=element)
         pseudo_path = pseudos_library_directory(pseudo.library) / pseudo.name
         return read_pseudo_file(pseudo_path)
+
+    def read(self, file: FilePointer, binary=False) -> str | bytes:
+        return utils.get_content(*file)
+
+    def write(self, content: str | bytes, file: FilePointer) -> None:
+        if isinstance(content, bytes):
+            utils.write_binary_content(file.aspath(absolute=False), content)
+        else:
+            utils.write_content(file.aspath(absolute=False), content)
+
+    def glob(self, pattern: FilePointer, recursive=False) -> Generator[FilePointer, None, None]:
+        raise NotImplementedError()
+        # Need to use FilePointer.glob() and FilePointer.rglob() but first splitting pattern into
+        # its parent and the pattern itself
 
 
 def load_old_calculator(calc):

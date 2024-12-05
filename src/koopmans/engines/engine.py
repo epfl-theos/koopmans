@@ -1,10 +1,11 @@
 import sys
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Generator, Optional
 
 from upf_tools import UPFDict
 
 from koopmans import utils
+from koopmans.files import FilePointer
 from koopmans.status import Status
 from koopmans.step import Step
 
@@ -45,7 +46,7 @@ class Engine(ABC):
 
     def _step_skipped_message_by_uid(self, uid):
         self._step_message(uid, '⏭️ ', 'already complete  ')
-        
+
     @abstractmethod
     def run(self, step: Step) -> None:
         ...
@@ -70,6 +71,17 @@ class Engine(ABC):
     def get_pseudopotential(self, library: str, element: str) -> UPFDict:
         ...
 
+    @abstractmethod
+    def read(self, file: FilePointer, binary: bool) -> str | bytes:
+        ...
+
+    @abstractmethod
+    def write(self, content: str | bytes, file: FilePointer):
+        ...
+
+    @abstractmethod
+    def glob(self, directory: FilePointer, pattern: str, recursive: bool = False) -> Generator[FilePointer, None, None]:
+        ...
 
 #
 #        # Print the header

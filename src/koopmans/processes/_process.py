@@ -39,7 +39,7 @@ OutputModel = TypeVar('OutputModel', bound=IOModel)
 
 class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
 
-    __slots__ = utils.HasDirectory.__slots__ + ['inputs', '_outputs', 'name', 'uuid']
+    __slots__ = utils.HasDirectory.__slots__ + ['inputs', '_outputs', 'name']
 
     def __init__(self, name: str | None = None, **kwargs):
         self.inputs: InputModel = self.input_model(**kwargs)
@@ -50,18 +50,14 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
             self.name = re.sub(r'([A-Z])([A-Z][a-z])', r'\1_\2', name_with_split_acronyms).lower()
         else:
             self.name = name
-        self.uuid = str(uuid4())
 
         # Initialize the directory information
         super().__init__()
 
     def run(self):
-        assert self.directory is not None, 'Process directory must be set before running'
-        with utils.chdir(self.directory):
-            self.dump_inputs()
-            self._run()
-            assert self.outputs is not None, 'Process outputs must be set when running'
-            self.dump_outputs()
+        self._pre_run()
+        self._run()
+        self._post_run()
 
     @property
     @abstractmethod
@@ -83,9 +79,19 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
     def outputs(self, value: OutputModel):
         self._outputs = value
 
+    def _pre_run(self):
+        assert self.directory is not None, 'Process directory must be set before running'
+        self.dump_inputs()
+        if self.engine is None:
+            raise ValueError('Process engine must be set before running')
+
     @abstractmethod
     def _run(self):
         ...
+
+    def _post_run(self):
+        assert self.outputs is not None, 'Process outputs must be set when running'
+        self.dump_outputs()
 
     def __repr__(self):
         out = f'{self.__class__.__name__}(inputs={self.inputs.__dict__}'

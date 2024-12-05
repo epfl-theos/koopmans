@@ -12,7 +12,8 @@ import shutil
 import subprocess
 from glob import glob
 from pathlib import Path
-from typing import List, Optional, Protocol, Union, runtime_checkable
+from typing import (TYPE_CHECKING, List, Optional, Protocol, Union,
+                    runtime_checkable)
 
 
 def system_call(command: str, check_ierr: bool = True):
@@ -191,12 +192,13 @@ class HasDirectory:
     # have been transformed to have pydantic inputs and outputs then those classes will be able to inherit directly
     # from Process
 
-    __slots__ = ['parent', '_directory', '_base_directory']
+    __slots__ = ['parent', '_directory', '_base_directory', 'engine']
 
-    def __init__(self, parent=None, directory=None, base_directory=None):
+    def __init__(self, parent=None, directory=None, base_directory=None, engine=None):
         self._base_directory: Optional[Path] = None
         self._directory: Optional[Path] = None
         self.parent: Optional[HasDirectory] = parent
+        self.engine: Optional['Engine'] = engine
 
         if not self.parent:
             self.base_directory = base_directory
@@ -270,7 +272,7 @@ def write_binary_content(dst_file: Path | str, merged_filecontents: bytes):
         f.write(merged_filecontents)
 
 
-def get_content(source: HasDirectory | None, relpath: Path | str) -> List[str]:
+def get_content(source: HasDirectory | None, relpath: Path | str) -> str:
     if isinstance(relpath, str):
         relpath = Path(relpath)
 
@@ -280,16 +282,16 @@ def get_content(source: HasDirectory | None, relpath: Path | str) -> List[str]:
         full_path = source.absolute_directory / relpath
 
     with open(full_path, "r") as f:
-        flines = [l.strip('\n') for l in f.readlines()]
+        flines = f.read()
     return flines
 
 
-def write_content(dst_file: Path | str, merged_filecontents: List[str]):
+def write_content(dst_file: Path | str, merged_filecontents: str):
     if isinstance(dst_file, str):
         dst_file = Path(dst_file)
     dst_file.parent.mkdir(parents=True, exist_ok=True)
     with open(dst_file, "w") as f:
-        f.write('\n'.join(merged_filecontents))
+        f.write(merged_filecontents)
 
 
 def remove(path: Union[Path, str]):

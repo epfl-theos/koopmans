@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Protocol, runtime_checkable
+from typing import Optional, Protocol, runtime_checkable
 
 from koopmans.utils import HasDirectory
 
@@ -12,6 +12,7 @@ class Step(Protocol):
     parent: HasDirectory | None
     name: str
     uid: str
+    engine: Optional['koopmans.engine.Engine']
 
     @property
     def directory(self) -> Path | None:
@@ -22,6 +23,15 @@ class Step(Protocol):
         ...
 
     def run(self) -> None:
+        ...
+
+    def _pre_run(self) -> None:
+        ...
+
+    def _run(self) -> None:
+        ...
+
+    def _post_run(self) -> None:
         ...
 
     def directory_has_been_set(self) -> bool:

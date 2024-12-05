@@ -79,10 +79,9 @@ class CalculatorExt(utils.HasDirectory):
     ext_in: str = ''
     ext_out: str = ''
     parent: Workflow | None
-    uuid: str
 
-    def __init__(self, parent=None, skip_qc: bool = False, **kwargs: Any):
-        super().__init__(parent=parent)
+    def __init__(self, parent=None, engine=None, skip_qc: bool = False, **kwargs: Any):
+        super().__init__(parent=parent, engine=engine)
 
         # Remove arguments that should not be treated as QE keywords
         kwargs.pop('directory', None)
@@ -96,9 +95,6 @@ class CalculatorExt(utils.HasDirectory):
 
         # Prepare a dictionary to store a record of linked files
         self.linked_files: Dict[str, Tuple[utils.HasDirectory | None, Path, bool, bool, bool]] = {}
-
-        # Generate a unique identifier for this calculation
-        self.uuid = str(uuid4())
 
     def __repr__(self):
         entries = []
@@ -133,6 +129,18 @@ class CalculatorExt(utils.HasDirectory):
     def run(self):
         # Alias for self.calculate so that calculators follow the Step protocol
         self.calculate()
+
+    def _pre_run(self):
+        # Alias for self._pre_calculate so that calculators follow the Step protocol
+        self._pre_calculate()
+
+    def _run(self):
+        # Alias for self._calculate so that calculators follow the Step protocol
+        self._calculate()
+
+    def _post_run(self):
+        # Alias for self._post_calculate so that calculators follow the Step protocol
+        self._post_calculate()
 
     @property
     def name(self) -> str:

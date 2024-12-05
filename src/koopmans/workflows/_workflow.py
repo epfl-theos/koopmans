@@ -123,7 +123,7 @@ class Workflow(utils.HasDirectory, ABC):
                                                 'steps', 'plotting', 'ml', '_bands', 'step_counter', 'print_indent',
                                                 'status', 'engine']
 
-    def __init__(self, 
+    def __init__(self,
                  atoms: Atoms,
                  engine: Engine,
                  pseudopotentials: Dict[str, UPFDict | str] = {},
@@ -144,13 +144,12 @@ class Workflow(utils.HasDirectory, ABC):
 
         self.step_counter = 0
         self.print_indent = 0
-        self.engine = engine
         self.status = Status.NOT_STARTED
 
         # Initialize the HasDirectory information (parent, base_directory, directory)
         base_directory = None if parent else Path.cwd()
         directory = None if parent else Path()
-        super().__init__(parent=parent, base_directory=base_directory, directory=directory)
+        super().__init__(parent=parent, base_directory=base_directory, directory=directory, engine=engine)
 
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
@@ -428,7 +427,7 @@ class Workflow(utils.HasDirectory, ABC):
         '''
         self.print_preamble()
         attempts = 0
-        
+
         if not self.parent:
             bf = '**' if sys.stdout.isatty() else ''
             self.print(bf + self.name + bf)
@@ -436,7 +435,7 @@ class Workflow(utils.HasDirectory, ABC):
             if self.parameters.from_scratch:
                 self._remove_tmpdirs()
             self._run_sanity_checks()
-        
+
         while self.status != Status.COMPLETED:
             # Reset the step counter each time we reattempt the workflow
             self.run()
@@ -450,10 +449,10 @@ class Workflow(utils.HasDirectory, ABC):
 
         if not self.parent and self.status == Status.COMPLETED:
             self._teardown()
-            
+
         self.status = Status.COMPLETED
-        return 
-    
+        return
+
     def run(self, subdirectory: Optional[str] = None):
         '''
         Run the workflow
@@ -464,8 +463,6 @@ class Workflow(utils.HasDirectory, ABC):
         if self.status == Status.NOT_STARTED:
             self.status = Status.RUNNING
 
-
-        
         if self.parent:
             with self._parent_context(subdirectory):
                 self._run()
@@ -848,7 +845,7 @@ class Workflow(utils.HasDirectory, ABC):
             status = self.engine.get_status(step)
             if status == Status.NOT_STARTED:
                 # Run the step
-                print(f'Running {step.uid}')
+                step.engine = self.engine
                 self.engine.run(step)
 
         for step in steps:
@@ -925,7 +922,6 @@ class Workflow(utils.HasDirectory, ABC):
                 if self.bands is not None and self.parent.bands is None:
                     # Copy the entire bands object
                     self.parent.bands = self.bands
-
 
     def link(self, src_calc: utils.HasDirectory | None, src_path: Path | str, dest_calc: calculators.Calc,
              dest_path: Path | str, symlink=False, recursive_symlink=False, overwrite=False) -> None:

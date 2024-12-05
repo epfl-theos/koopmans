@@ -44,7 +44,7 @@ def main():
 
     # Create the engine
     if args.engine == 'localhost':
-        engine = LocalhostEngine(from_scratch=workflow.parameters.from_scratch)
+        engine = LocalhostEngine()
     elif args.engine == 'aiida':
         from aiida_koopmans.engine.aiida import AiiDAEngine
         if args.engine_config is not None:
@@ -56,9 +56,10 @@ def main():
         engine = AiiDAEngine(configuration=engine_config)
     else:
         raise NotImplementedError(f"Unknown engine '{args.engine}'")
-    
+
     # Reading in JSON file
     workflow = read(args.json, engine=engine)
+    engine.from_scratch = workflow.parameters.from_scratch
 
     # Set traceback behavior
     if not args.traceback:

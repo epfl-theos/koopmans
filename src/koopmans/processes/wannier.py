@@ -134,11 +134,11 @@ class MergeProcess(Process):
         if len(self.inputs.src_files) == 0:
             raise ValueError('No input files provided to merge.')
 
-        filecontents = [utils.get_content(calc, relpath) for calc, relpath in self.inputs.src_files]
+        filecontents = [self.engine.read(f).split('\n') for f in self.inputs.src_files]
 
         merged_filecontents = self.merge_function(filecontents)
 
-        utils.write_content(self.inputs.dst_file, merged_filecontents)
+        self.engine.write(self.inputs.dst_file, '\n'.join(merged_filecontents))
 
         self.outputs = self.output_model(dst_file=self.inputs.dst_file)
 
