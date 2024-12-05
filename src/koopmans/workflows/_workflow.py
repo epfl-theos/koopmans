@@ -832,6 +832,7 @@ class Workflow(utils.HasDirectory, ABC):
 
         for step in steps:
             step.parent = self
+            step.engine = self.engine
             self.step_counter += 1
 
             # Check that calc.directory was not set
@@ -845,7 +846,6 @@ class Workflow(utils.HasDirectory, ABC):
             status = self.engine.get_status(step)
             if status == Status.NOT_STARTED:
                 # Run the step
-                step.engine = self.engine
                 self.engine.run(step)
 
         for step in steps:

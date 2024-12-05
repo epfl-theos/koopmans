@@ -101,10 +101,13 @@ class LocalhostEngine(Engine):
         else:
             utils.write_content(file.aspath(), content)
 
-    def glob(self, pattern: FilePointer, recursive=False) -> Generator[FilePointer, None, None]:
-        raise NotImplementedError()
-        # Need to use FilePointer.glob() and FilePointer.rglob() but first splitting pattern into
-        # its parent and the pattern itself
+    def glob(self, directory: FilePointer, pattern: str, recursive: bool = False) -> Generator[FilePointer, None, None]:
+        if recursive:
+            generator = directory.aspath().rglob(pattern)
+        else:
+            generator = directory.aspath().glob(pattern)
+        for path in generator:
+            yield FilePointer(parent=directory.parent, name=path.relative_to(directory.parent.directory))
 
 
 def load_old_calculator(calc):
