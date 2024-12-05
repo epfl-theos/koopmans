@@ -76,7 +76,7 @@ class Engine(ABC):
         ...
 
     @abstractmethod
-    def write(self, content: str | bytes, file: FilePointer):
+    def write(self, content: str | bytes, file: FilePointer) -> None:
         ...
 
     @abstractmethod

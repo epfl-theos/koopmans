@@ -13,6 +13,7 @@ import numpy as np
 from pydantic import BaseModel
 
 from koopmans import utils
+from koopmans.files import FilePointer
 
 if TYPE_CHECKING:
     from koopmans.workflows import Workflow
@@ -99,19 +100,17 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
             out += f', outputs={self.outputs.__dict__}'
         return out + ')'
 
-    def dump_inputs(self, directory: Path | None = None):
+    def dump_inputs(self):
+        assert self.directory is not None
+        assert self.engine is not None
         dst = Path(f'{self.name}_inputs.pkl')
-        if directory is not None:
-            dst = directory / dst
-        with open(dst, 'wb') as f:
-            dill.dump(self.inputs, f)
+        self.engine.write(dill.dumps(self.inputs), FilePointer(self, dst))
 
-    def dump_outputs(self, directory: Path | None = None):
+    def dump_outputs(self):
+        assert self.directory is not None
+        assert self.engine is not None
         dst = Path(f'{self.name}_outputs.pkl')
-        if directory is not None:
-            dst = directory / dst
-        with open(dst, 'wb') as f:
-            dill.dump(self.outputs, f)
+        self.engine.write(dill.dumps(self.outputs), FilePointer(self, dst))
 
     def load_outputs(self):
         if self.directory is None:

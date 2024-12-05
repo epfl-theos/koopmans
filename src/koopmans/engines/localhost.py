@@ -97,9 +97,9 @@ class LocalhostEngine(Engine):
 
     def write(self, content: str | bytes, file: FilePointer) -> None:
         if isinstance(content, bytes):
-            utils.write_binary_content(file.aspath(absolute=False), content)
+            utils.write_binary_content(file.aspath(), content)
         else:
-            utils.write_content(file.aspath(absolute=False), content)
+            utils.write_content(file.aspath(), content)
 
     def glob(self, pattern: FilePointer, recursive=False) -> Generator[FilePointer, None, None]:
         raise NotImplementedError()

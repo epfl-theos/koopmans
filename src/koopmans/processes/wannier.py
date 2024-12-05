@@ -138,7 +138,7 @@ class MergeProcess(Process):
 
         merged_filecontents = self.merge_function(filecontents)
 
-        self.engine.write(self.inputs.dst_file, '\n'.join(merged_filecontents))
+        self.engine.write('\n'.join(merged_filecontents), FilePointer(self, self.inputs.dst_file))
 
         self.outputs = self.output_model(dst_file=self.inputs.dst_file)
 

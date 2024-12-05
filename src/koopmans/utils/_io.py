@@ -299,7 +299,7 @@ def parse_wannier_hr_file_contents(lines: List[str]) -> Tuple[np.ndarray, np.nda
     # Read in the hamiltonian and the unique r-vectors
     hr: List[complex] = []
     rvect: List[List[int]] = []
-    for i, line in enumerate(lines[lines_to_skip:]):
+    for i, line in enumerate(lines[lines_to_skip:-1]):
         hr.append(float(line.split()[5]) + 1j * float(line.split()[6]))
         if not single_R and i % num_wann**2 == 0:
             rvect.append([int(x) for x in line.split()[0:3]])
@@ -355,7 +355,7 @@ def parse_wannier_centers_file_contents(lines: List[str]) -> Tuple[List[List[flo
     centers = []
     symbols = []
     positions = []
-    for line in lines[2:]:
+    for line in lines[2:-1]:
         if line.startswith('X    '):
             centers.append([float(x) for x in line.split()[1:]])
         else:

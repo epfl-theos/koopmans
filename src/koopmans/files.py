@@ -21,15 +21,10 @@ class FilePointer(NamedTuple):
     name: Path
 
     def __repr__(self):
-        assert self.parent.absolute_directory is not None
-        return f'FilePointer({self.parent.absolute_directory}/{self.name})'
+        return f'FilePointer({self.aspath()})'
 
-    def aspath(self, absolute: bool = True) -> Path:
-        if absolute:
-            assert self.parent.absolute_directory is not None
-            return self.parent.absolute_directory / self.name
-        else:
-            return self.name
+    def aspath(self) -> Path:
+        return self.parent.directory / self.name
 
     def copy(self, dst: Path, binary=False):
         if binary:
