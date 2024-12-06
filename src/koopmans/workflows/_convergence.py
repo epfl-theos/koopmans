@@ -22,6 +22,7 @@ import numpy as np
 
 from koopmans import cell, utils
 from koopmans.outputs import OutputModel
+from koopmans.status import Status
 from koopmans.step import Step
 
 from ._workflow import Workflow
@@ -266,7 +267,7 @@ class ConvergenceWorkflow(Workflow):
                       variables=dct.pop('variables'))
         return super(ConvergenceWorkflow, cls).fromdict(dct, **kwargs)
 
-    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
+    def _run(self) -> None:
         # Set the initial value for each of the convergence variables
         for c in self.variables:
             if c.initial_value is None:
@@ -354,7 +355,11 @@ class ConvergenceWorkflow(Workflow):
                 subwfs.append(subwf)
                 indices_to_run.append(indices)
 
-            yield from self.yield_from_subworkflows(subwfs)
+            for w in subwfs:
+                w.run()
+
+            if not all([w.status != Status.COMPLETED for w in subwfs]):
+                return
 
             # Store the result
             for indices, subwf in zip(indices_to_run, subwfs):
@@ -396,7 +401,7 @@ class ConvergenceWorkflow(Workflow):
 
                 self.outputs = self.output_model(converged_values={v.name: v.converged_value for v in self.variables})
 
-                yield tuple()
+                self.status = Status.COMPLETED
 
                 return
             else:

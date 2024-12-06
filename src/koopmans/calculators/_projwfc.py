@@ -104,7 +104,9 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         """
 
         # Read the file contents
-        flines = self.engine.read(filename).split('\n')
+        content = self.engine.read(filename)
+        assert isinstance(content, str)
+        flines = content.split('\n')
 
         # Parse important information from the filename
         [_, index, symbol, _, _, subshell, _] = re.split(r"#|\(|\)", filename.name.name)

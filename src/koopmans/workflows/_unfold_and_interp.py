@@ -18,6 +18,7 @@ from ase_koopmans.spectrum.band_structure import BandStructure
 from koopmans import calculators, outputs, utils
 from koopmans.files import FilePointer
 from koopmans.processes.ui import UnfoldAndInterpolateProcess, generate_dos
+from koopmans.status import Status
 from koopmans.step import Step
 
 from ._wannierize import WannierizeWorkflow
@@ -45,7 +46,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         self._koopmans_ham_files = koopmans_ham_files
         self._smooth_dft_ham_files = smooth_dft_ham_files
 
-    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
+    def _run(self) -> None:
         '''
 
         Wrapper for the whole unfolding and interpolation workflow, consisting of:
@@ -71,7 +72,9 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             wannier_workflow.kpoints.grid = [x * y for x, y in zip(self.kpoints.grid,
                                              self.calculator_parameters['ui'].smooth_int_factor)]
 
-            yield from self.yield_from_subworkflows(wannier_workflow)
+            wannier_workflow.run()
+            if wannier_workflow.status != Status.COMPLETED:
+                return
 
             # Save the smooth DFT Hamiltonian files
             self._smooth_dft_ham_files = wannier_workflow.outputs.hr_files
@@ -122,7 +125,9 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                 processes.append(process)
 
         # Run the processes
-        yield from self.yield_steps(processes)
+        status = self.run_steps(processes)
+        if status != Status.COMPLETED:
+            return
 
         # Merge the bands
         if self.parameters.spin_polarized:
@@ -167,6 +172,8 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         # Store the results
         self.outputs = self.output_model(band_structure=merged_bs, dos=merged_dos,
                                          smooth_dft_ham_files=self._smooth_dft_ham_files)
+
+        self.status = Status.COMPLETED
 
         return
 

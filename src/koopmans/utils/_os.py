@@ -15,6 +15,9 @@ from pathlib import Path
 from typing import (TYPE_CHECKING, List, Optional, Protocol, Union,
                     runtime_checkable)
 
+if TYPE_CHECKING:
+    from koopmans.engines import Engine
+
 
 def system_call(command: str, check_ierr: bool = True):
     '''
@@ -192,13 +195,13 @@ class HasDirectory:
     # have been transformed to have pydantic inputs and outputs then those classes will be able to inherit directly
     # from Process
 
-    __slots__ = ['parent', '_directory', '_base_directory', 'engine']
+    __slots__ = ['parent', '_directory', '_base_directory', '_engine']
 
     def __init__(self, parent=None, directory=None, base_directory=None, engine=None):
         self._base_directory: Optional[Path] = None
         self._directory: Optional[Path] = None
         self.parent: Optional[HasDirectory] = parent
-        self.engine: Optional['Engine'] = engine
+        self.engine = engine
 
         if not self.parent:
             self.base_directory = base_directory
@@ -207,10 +210,6 @@ class HasDirectory:
     @property
     def directory(self) -> Path | None:
         return self._directory
-
-    @property
-    def uid(self) -> str:
-        return str(self.directory)
 
     @directory.setter
     def directory(self, value: Path | str | None):
@@ -227,6 +226,10 @@ class HasDirectory:
                 f'{self.__class__.__name__} directory must be a relative path (relative to {self.__class__.__name__},base directory)')
 
         self._directory = value
+
+    @property
+    def uid(self) -> str:
+        return str(self.directory)
 
     @property
     def base_directory(self) -> Path | None:
@@ -253,6 +256,16 @@ class HasDirectory:
 
     def directory_has_been_set(self) -> bool:
         return self._directory is not None
+
+    @property
+    def engine(self) -> Engine:
+        if self._engine is None:
+            raise ValueError('Engine has not been set')
+        return self._engine
+
+    @engine.setter
+    def engine(self, value: Optional[Engine]):
+        self._engine = value
 
 
 def get_binary_content(source: HasDirectory, relpath: Path | str) -> bytes:

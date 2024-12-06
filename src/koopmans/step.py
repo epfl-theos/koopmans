@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Optional, Protocol, runtime_checkable
 
 from koopmans.utils import HasDirectory
+
+if TYPE_CHECKING:
+    from koopmans.engines import Engine
 
 
 @runtime_checkable
@@ -11,8 +14,18 @@ class Step(Protocol):
     # Ultimately to be merged with Process once that has a more general definition
     parent: HasDirectory | None
     name: str
-    uid: str
-    engine: Optional['koopmans.engine.Engine']
+
+    @property
+    def uid(self) -> str:
+        ...
+
+    @property
+    def engine(self) -> Engine:
+        ...
+
+    @engine.setter
+    def engine(self, value: Engine | None) -> None:
+        ...
 
     @property
     def directory(self) -> Path | None:

@@ -18,6 +18,7 @@ from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
 from koopmans.processes.merge_evc import MergeEVCProcess
 from koopmans.projections import ProjectionBlock
+from koopmans.status import Status
 from koopmans.step import Step
 
 from ._workflow import Workflow
@@ -41,7 +42,7 @@ class FoldToSupercellWorkflow(Workflow):
         self._wannier90_calculations = wannier90_calculations
         self._wannier90_pp_calculations = wannier90_pp_calculations
 
-    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
+    def _steps_generator(self) -> None:
         '''
 
         Wrapper for folding Wannier or Kohn-Sham functions from the primitive cell
@@ -77,7 +78,9 @@ class FoldToSupercellWorkflow(Workflow):
                 w2k_calcs.append(calc_w2k)
 
             # Run the calculators (possibly in parallel)
-            yield from self.yield_steps(w2k_calcs)
+            status = self.run_steps(w2k_calcs)
+            if status != Status.COMPLETED:
+                return
 
             for block, calc_w2k in zip(self.projections, w2k_calcs):
 
@@ -117,7 +120,9 @@ class FoldToSupercellWorkflow(Workflow):
                         if subset[0].spin:
                             tidy_label += f'_spin_{subset[0].spin}'
                         merge_proc.name = 'merging_wavefunctions_for_' + tidy_label
-                        yield from self.yield_steps(merge_proc)
+                        status = self.run_steps(merge_proc)
+                        if status != Status.COMPLETED:
+                            return
 
                         dest_file = _construct_dest_filename(evc_fname, subset[0], label)
                         merged_files[dest_file] = merge_proc.outputs.merged_file
@@ -128,13 +133,15 @@ class FoldToSupercellWorkflow(Workflow):
             calc_w2k.prefix = 'ks2kcp'
 
             # Run the calculator
-            yield from self.yield_steps(calc_w2k)
+            status = self.run_steps(calc_w2k)
+            if status != Status.COMPLETED:
+                return
 
             raise NotImplementedError("Need to populate converted and merged file dictionaries")
 
         self.outputs = self.output_model(kcp_files=merged_files)
 
-        yield tuple()
+        self.status = Status.COMPLETED
 
         return
 

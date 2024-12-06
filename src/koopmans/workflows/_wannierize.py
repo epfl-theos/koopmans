@@ -173,7 +173,7 @@ class WannierizeWorkflow(Workflow):
                 wannierize_block_subworkflow.name = \
                     f'Wannierize {block.name.replace("_", " ").replace("block", "Block")}'
                 block_subworkflows.append(wannierize_block_subworkflow)
-                            
+
             for wf in block_subworkflows:
                 wf.run()
             if any([wf.status != Status.COMPLETED for wf in block_subworkflows]):
@@ -403,8 +403,9 @@ class WannierizeBlockWorkflow(Workflow):
     def _run(self) -> None:
         n_occ_bands = self.number_of_electrons(self.block.spin)
         if not self.block.spin:
-            n_occ_bands /= 2
+            n_occ_bands //= 2
 
+        assert self.block.include_bands is not None
         if max(self.block.include_bands) <= n_occ_bands:
             # Block consists purely of occupied bands
             init_orbs = self.parameters.init_orbitals
@@ -423,7 +424,8 @@ class WannierizeBlockWorkflow(Workflow):
             calc_type += f'_{self.block.spin}'
 
         # 1) pre-processing Wannier90 calculation
-        calc_w90_pp = self.new_calculator(calc_type, init_orbitals=init_orbs, **self.block.w90_kwargs)
+        calc_w90_pp: calculators.Wannier90Calculator = self.new_calculator(
+            calc_type, init_orbitals=init_orbs, **self.block.w90_kwargs)
         calc_w90_pp.prefix = 'wannier90_preproc'
         calc_w90_pp.command.flags = '-pp'
         status = self.run_steps(calc_w90_pp)
@@ -431,7 +433,7 @@ class WannierizeBlockWorkflow(Workflow):
             return
 
         # 2) standard pw2wannier90 calculation
-        calc_p2w = self.new_calculator('pw2wannier', spin_component=self.block.spin)
+        calc_p2w: calculators.PW2WannierCalculator = self.new_calculator('pw2wannier', spin_component=self.block.spin)
         calc_p2w.prefix = 'pw2wannier90'
         calc_nscf = [c for c in self.calculations if isinstance(
             c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
@@ -442,8 +444,8 @@ class WannierizeBlockWorkflow(Workflow):
             return
 
         # 3) Wannier90 calculation
-        calc_w90 = self.new_calculator(calc_type, init_orbitals=init_orbs,
-                                       bands_plot=self.parameters.calculate_bands, **self.block.w90_kwargs)
+        calc_w90: calculators.Wannier90Calculator = self.new_calculator(calc_type, init_orbitals=init_orbs,
+                                                                        bands_plot=self.parameters.calculate_bands, **self.block.w90_kwargs)
         calc_w90.prefix = 'wannier90'
         for ext in ['.eig', '.amn', '.mmn']:
             self.link(calc_p2w, calc_p2w.parameters.seedname + ext, calc_w90, calc_w90.prefix + ext, symlink=True)
@@ -475,10 +477,11 @@ class WannierizeBlockWorkflow(Workflow):
                     match.center = center
                     match.spread = spread
 
-        hr_file = FilePointer(calc_w90, calc_w90.prefix + '_hr.dat') if calc_w90.parameters.write_hr else None
-        u_file = FilePointer(calc_w90, calc_w90.prefix + '_u.mat') if calc_w90.parameters.write_u_matrices else None
-        centers_file = FilePointer(calc_w90, calc_w90.prefix +
-                                   '_centres.xyz') if calc_w90.parameters.write_xyz else None
+        hr_file = FilePointer(calc_w90, Path(calc_w90.prefix + '_hr.dat')) if calc_w90.parameters.write_hr else None
+        u_file = FilePointer(calc_w90, Path(calc_w90.prefix + '_u.mat')
+                             ) if calc_w90.parameters.write_u_matrices else None
+        centers_file = FilePointer(calc_w90, Path(calc_w90.prefix + '_centres.xyz')
+                                   ) if calc_w90.parameters.write_xyz else None
         self.outputs = self.output_model(hr_file=hr_file, u_matrices_file=u_file, centers_file=centers_file)
 
         self.status = Status.COMPLETED

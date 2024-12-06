@@ -27,12 +27,12 @@ class ConvertFilesFromSpin2To1(Process):
     def _run(self):
 
         for spin_2_file, spin_1_file in zip(self.inputs.spin_2_files, self.inputs.spin_1_files):
-            contents = utils.get_binary_content(*spin_2_file)
+            contents = self.engine.read(spin_2_file)
 
             contents = contents.replace(b'nk="2"', b'nk="1"')
             contents = contents.replace(b'nspin="2"', b'nspin="1"')
 
-            utils.write_binary_content(spin_1_file, contents)
+            self.engine.write(contents, FilePointer(self, spin_1_file))
 
         self.outputs = self.output_model(generated_files=self.inputs.spin_1_files)
 
@@ -62,7 +62,7 @@ class ConvertFilesFromSpin1To2(Process):
                 raise ValueError(
                     f'{self.__class__.__name__} is attempting to write to a file outside of its working directory; this is not allowed')
 
-            contents = utils.get_binary_content(*spin_1_file)
+            contents = self.engine.read(spin_1_file, binary=True)
 
             contents = contents.replace(b'nk="1"', b'nk="2"')
             contents = contents.replace(b'nspin="1"', b'nspin="2"')
@@ -72,7 +72,7 @@ class ConvertFilesFromSpin1To2(Process):
             contents = contents.replace(b'ik="1"', b'ik="2"')
             contents = contents.replace(b'ispin="1"', b'ispin="2"')
 
-            utils.write_binary_content(spin_2_down_file, contents)
+            self.engine.write(contents, FilePointer(self, spin_2_down_file))
 
         self.outputs = self.output_model(generated_files=self.inputs.spin_2_up_files + self.inputs.spin_2_down_files)
 

@@ -15,6 +15,7 @@ from koopmans.outputs import OutputModel
 from koopmans.processes.power_spectrum import (
     ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
 from koopmans.settings import KoopmansCPSettingsDict
+from koopmans.status import Status
 from koopmans.step import Step
 
 from ._workflow import Workflow
@@ -28,12 +29,11 @@ class SelfHartreeWorkflow(Workflow):
 
     output_model = SelfHartreeOutput  # type: ignore
 
-    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
+    def _run(self) -> None:
         assert self.bands
-
         self.outputs = self.output_model(descriptors=[b.self_hartree for b in self.bands.to_solve])
-
-        yield tuple()
+        self.status = Status.COMPLETED
+        return
 
 
 class PowerSpectrumDecompositionOutput(OutputModel):
@@ -54,7 +54,7 @@ class PowerSpectrumDecompositionWorkflow(Workflow):
         # the KI-calculation at the beginning of the alpha calculations is a valid option
         self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
 
-    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
+    def _run(self) -> None:
         """
         Runs the PowerSpectrumDecomposition workflow.
 
@@ -84,7 +84,7 @@ class PowerSpectrumDecompositionWorkflow(Workflow):
         assert self.ml.descriptor == 'orbital_density'
         self.extract_input_vector_from_orbital_densities()
 
-        yield tuple()
+        self.status = Status.COMPLETED
 
         return
 
@@ -115,7 +115,9 @@ class PowerSpectrumDecompositionWorkflow(Workflow):
                                                                   cell=self.atoms.cell,
                                                                   total_density_xml=bin2xml_workflow.outputs.total_density,
                                                                   orbital_densities_xml=bin2xml_workflow.outputs.orbital_densities)
-        yield from self.yield_steps(decomposition_process)
+        status = self.run_steps(decomposition_process)
+        if status != Status.COMPLETED:
+            return
 
         orb_coeffs = decomposition_process.outputs.orbital_coefficients
         tot_coeffs = decomposition_process.outputs.total_coefficients
@@ -128,7 +130,9 @@ class PowerSpectrumDecompositionWorkflow(Workflow):
                 total_coefficients=tot_coeff,
             )
             power_spectrum_process.name += '_orbital_' + str(i + 1)
-            yield from self.yield_steps(power_spectrum_process)
+            status = self.run_steps(power_spectrum_process)
+            if status != Status.COMPLETED:
+                return
             descriptors.append(power_spectrum_process.outputs.power_spectrum)
 
         self.outputs = self.output_model(descriptors=descriptors)
@@ -156,7 +160,7 @@ class ConvertOrbitalFilesToXMLWorkflow(Workflow):
         super().__init__(*args, **kwargs)
         self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
 
-    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
+    def _run(self) -> None:
         """
         Converts the binary files produced by a previous calculation to python-readable xml files.
         """
@@ -167,7 +171,9 @@ class ConvertOrbitalFilesToXMLWorkflow(Workflow):
         binary = FilePointer(self.calc_that_produced_orbital_densities,
                              self.calc_that_produced_orbital_densities.write_directory / 'charge-density.dat')
         bin2xml_total_density = Bin2XMLProcess(name='bin2xml_total_density', binary=binary)
-        yield from self.yield_steps(bin2xml_total_density)
+        status = self.run_steps(bin2xml_total_density)
+        if status != Status.COMPLETED:
+            return
 
         # Convert orbital densities to XML
         orbital_densities: List[FilePointer] = []
@@ -182,8 +188,12 @@ class ConvertOrbitalFilesToXMLWorkflow(Workflow):
 
             bin2xml_orbital_density = Bin2XMLProcess(
                 name=f'bin2xml_{occ_id}_spin_{band.spin}_orb_{band.index}_density', binary=binary)
-            yield from self.yield_steps(bin2xml_orbital_density)
+            status = self.run_steps(bin2xml_orbital_density)
+            if status != Status.COMPLETED:
+                return
             orbital_densities.append(bin2xml_orbital_density.outputs.xml)
 
         self.outputs = self.output_model(total_density=bin2xml_total_density.outputs.xml,
                                          orbital_densities=orbital_densities)
+
+        self.status = Status.COMPLETED

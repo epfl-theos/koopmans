@@ -72,7 +72,7 @@ class Engine(ABC):
         ...
 
     @abstractmethod
-    def read(self, file: FilePointer, binary: bool) -> str | bytes:
+    def read(self, file: FilePointer, binary: bool = False) -> str | bytes:
         ...
 
     @abstractmethod

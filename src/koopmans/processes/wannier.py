@@ -11,7 +11,7 @@ from koopmans.files import FilePointer
 from ._process import IOModel, Process
 
 
-def merge_wannier_hr_file_contents(filecontents: List[List[str]]) -> List[str]:
+def merge_wannier_hr_file_contents(filecontents: List[str]) -> str:
     # Reading in each hr file in turn
     hr_list = []
     weights_out = None
@@ -51,7 +51,7 @@ def merge_wannier_hr_file_contents(filecontents: List[List[str]]) -> List[str]:
     return utils.generate_wannier_hr_file_contents(hr_out, rvect_out.tolist(), weights_out)
 
 
-def merge_wannier_u_file_contents(filecontents: List[List[str]]) -> List[str]:
+def merge_wannier_u_file_contents(filecontents: List[str]) -> str:
     u_list = []
     kpts_master = None
     for filecontent in filecontents:
@@ -84,7 +84,7 @@ def merge_wannier_u_file_contents(filecontents: List[List[str]]) -> List[str]:
     return utils.generate_wannier_u_file_contents(u_merged, kpts)
 
 
-def merge_wannier_centers_file_contents(filecontents: List[List[str]], atoms: Atoms) -> List[str]:
+def merge_wannier_centers_file_contents(filecontents: list[str], atoms: Atoms) -> str:
     centers_list = []
     for filecontent in filecontents:
         centers, _ = utils.parse_wannier_centers_file_contents(filecontent)
@@ -95,7 +95,7 @@ def merge_wannier_centers_file_contents(filecontents: List[List[str]], atoms: At
     return utils.generate_wannier_centers_file_contents(centers_list, atoms)
 
 
-def extend_wannier_u_dis_file_content(filecontent: List[str], nbnd: int, nwann: int) -> List[str]:
+def extend_wannier_u_dis_file_content(filecontent: str, nbnd: int, nwann: int) -> str:
     # Parse the file content
     udis_mat, kpts, _ = utils.parse_wannier_u_file_contents(filecontent)
 
@@ -126,7 +126,7 @@ class MergeProcess(Process):
     input_model = MergeInputModel
     output_model = MergeOutputModel
 
-    def __init__(self, merge_function: Callable[[List[List[str]]], List[str]], **kwargs):
+    def __init__(self, merge_function: Callable[[List[str]], str], **kwargs):
         self.merge_function = merge_function
         super().__init__(**kwargs)
 
@@ -134,11 +134,11 @@ class MergeProcess(Process):
         if len(self.inputs.src_files) == 0:
             raise ValueError('No input files provided to merge.')
 
-        filecontents = [self.engine.read(f).split('\n') for f in self.inputs.src_files]
+        filecontents = [self.engine.read(f) for f in self.inputs.src_files]
 
         merged_filecontents = self.merge_function(filecontents)
 
-        self.engine.write('\n'.join(merged_filecontents), FilePointer(self, self.inputs.dst_file))
+        self.engine.write(merged_filecontents, FilePointer(self, self.inputs.dst_file))
 
         self.outputs = self.output_model(dst_file=self.inputs.dst_file)
 
@@ -159,16 +159,16 @@ class ExtendProcess(Process):
     input_model = ExtendInputModel
     output_model = ExtendOutputModel
 
-    def __init__(self, extend_function: Callable[[List[str]], List[str]], **kwargs):
+    def __init__(self, extend_function: Callable[[str], str], **kwargs):
         self.extend_function = extend_function
         super().__init__(**kwargs)
 
     def _run(self):
 
-        filecontent = utils.get_content(*self.inputs.src_file)
+        filecontent = self.engine.read(self.inputs.src_file)
 
         extended_filecontent = self.extend_function(filecontent)
 
-        utils.write_content(self.inputs.dst_file, extended_filecontent)
+        self.engine.write(extended_filecontent, self.inputs.dst_file)
 
         self.outputs = self.output_model(dst_file=self.inputs.dst_file)

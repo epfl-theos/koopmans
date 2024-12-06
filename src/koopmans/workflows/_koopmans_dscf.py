@@ -248,7 +248,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         return alphas
 
-    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
+    def _steps_generator(self) -> None:
         '''
         This function runs a KI/pKIPZ/KIPZ workflow from start to finish
         '''
@@ -256,7 +256,9 @@ class KoopmansDSCFWorkflow(Workflow):
         init_wf: Optional[InitializationWorkflow] = None
         if self._initial_variational_orbital_files is None:
             init_wf = InitializationWorkflow.fromparent(self)
-            yield from self.yield_from_subworkflows(init_wf)
+            init_wf.run()
+            if init_wf.status != Status.COMPLETED:
+                return
             self._initial_variational_orbital_files = init_wf.outputs.variational_orbital_files
             initial_cp_calculation = init_wf.outputs.final_calc
         else:
@@ -269,7 +271,9 @@ class KoopmansDSCFWorkflow(Workflow):
             screening_wf = CalculateScreeningViaDSCF.fromparent(self, initial_variational_orbital_files=self._initial_variational_orbital_files,
                                                                 initial_cp_calculation=initial_cp_calculation,
                                                                 precomputed_descriptors=self._precomputed_descriptors)
-            yield from self.yield_from_subworkflows(screening_wf)
+            screening_wf.run()
+            if screening_wf.status != Status.COMPLETED:
+                return
 
             # Store the files which will be needed for the final calculation
             n_electron_restart_dir = screening_wf.outputs.n_electron_restart_dir
@@ -308,6 +312,7 @@ class KoopmansDSCFWorkflow(Workflow):
                 else:
                     final_calc_types = ['pkipz']
             else:
+                assert isinstance(self.parameters.functional, str)
                 final_calc_types = [self.parameters.functional]
 
             for final_calc_type in final_calc_types:
@@ -330,7 +335,9 @@ class KoopmansDSCFWorkflow(Workflow):
                     calc.prefix += '_ml'
 
                 self.link(*n_electron_restart_dir, calc, calc.read_directory, recursive_symlink=True)
-                yield from self.yield_steps(calc)
+                status = self.run_steps(calc)
+                if status != Status.COMPLETED:
+                    return
 
         final_calc = calc
         variational_orbital_files = {f: FilePointer(final_calc, final_calc.read_directory / 'K00001' / f)
@@ -358,17 +365,19 @@ class KoopmansDSCFWorkflow(Workflow):
                     koopmans_ham_files=koopmans_ham_files,
                     dft_ham_files=dft_ham_files,
                     smooth_dft_ham_files=self._smooth_dft_ham_files)
-                yield from self.yield_from_subworkflows(ui_workflow)
+                ui_workflow.run()
+                if ui_workflow.status != Status.COMPLETED:
+                    return
                 smooth_dft_ham_files = ui_workflow.outputs.smooth_dft_ham_files
             else:
                 # Generate the DOS only
                 dos = DOS(self.calculations[-1], width=self.plotting.degauss, npts=self.plotting.nstep + 1)
                 self.calculations[-1].results['dos'] = dos
 
-        yield tuple()
-
         self.outputs = self.output_model(variational_orbital_files=variational_orbital_files, final_calc=final_calc,
                                          smooth_dft_ham_files=smooth_dft_ham_files)
+
+        self.status = Status.COMPLETED
 
         return
 
@@ -402,7 +411,7 @@ class CalculateScreeningViaDSCF(Workflow):
         self._initial_cp_calculation = initial_cp_calculation
         self._precomputed_descriptors = precomputed_descriptors
 
-    def _steps_generator(self) -> Generator[tuple[Step, ...], None, None]:
+    def _run(self) -> None:
         converged = False
         i_sc = 0
 
@@ -412,6 +421,7 @@ class CalculateScreeningViaDSCF(Workflow):
         n_electron_calc = self._initial_cp_calculation
         dummy_outdirs: Dict[Tuple[int, int], FilePointer | None] = {}
 
+        assert isinstance(self.parameters.alpha_numsteps, int)
         while not converged and i_sc < self.parameters.alpha_numsteps:
             i_sc += 1
 
@@ -427,7 +437,9 @@ class CalculateScreeningViaDSCF(Workflow):
                 # For the first iteration, the spin contamination has already been addressed during the initialization
                 iteration_wf.parameters.fix_spin_contamination = False
 
-            yield from self.yield_from_subworkflows(iteration_wf)
+            iteration_wf.run()
+            if iteration_wf.status != Status.COMPLETED:
+                return
 
             converged = iteration_wf.outputs.converged or self.ml.predict
 
@@ -455,7 +467,7 @@ class CalculateScreeningViaDSCF(Workflow):
         self.outputs = CalculateScreeningViaDSCFOutput(
             n_electron_restart_dir=iteration_wf.outputs.n_electron_restart_dir)
 
-        yield tuple()
+        self.status = Status.COMPLETED
 
         return
 
@@ -668,6 +680,8 @@ class OrbitalDeltaSCFWorkflow(Workflow):
 
     def _run(self) -> None:
 
+        assert self.bands is not None
+
         alpha_dep_calcs = [self._trial_calc]
 
         # Don't repeat if this particular alpha_i was converged
@@ -776,7 +790,7 @@ class OrbitalDeltaSCFWorkflow(Workflow):
                 if 'dummy' in calc_type:
                     dummy_outdir = subwf.outputs.outdir
             else:
-                self.run_calculator(calc)
+                self.run_steps(calc)
                 if 'dummy' in calc_type:
                     dummy_outdir = FilePointer(calc, calc.parameters.outdir)
 

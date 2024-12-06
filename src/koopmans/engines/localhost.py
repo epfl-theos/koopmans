@@ -54,6 +54,7 @@ class LocalhostEngine(Engine):
         if not self.from_scratch:
             to_run = True
             if isinstance(step, ImplementedCalc):
+                assert step.directory is not None
                 calc_file = step.directory / step.prefix
 
                 if calc_file.with_suffix(step.ext_out).is_file():
@@ -96,12 +97,14 @@ class LocalhostEngine(Engine):
         return utils.get_content(*file)
 
     def write(self, content: str | bytes, file: FilePointer) -> None:
-        if isinstance(content, bytes):
-            utils.write_binary_content(file.aspath(), content)
-        else:
+        if isinstance(content, str):
             utils.write_content(file.aspath(), content)
+        elif isinstance(content, bytes):
+            utils.write_binary_content(file.aspath(), content)
 
     def glob(self, directory: FilePointer, pattern: str, recursive: bool = False) -> Generator[FilePointer, None, None]:
+        assert directory.parent is not None
+        assert directory.parent.directory is not None
         if recursive:
             generator = directory.aspath().rglob(pattern)
         else:

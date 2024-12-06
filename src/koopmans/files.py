@@ -24,6 +24,8 @@ class FilePointer(NamedTuple):
         return f'FilePointer({self.aspath()})'
 
     def aspath(self) -> Path:
+        assert self.parent is not None
+        assert self.parent.directory is not None
         return self.parent.directory / self.name
 
     def copy(self, dst: Path, binary=False):

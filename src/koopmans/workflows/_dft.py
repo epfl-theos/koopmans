@@ -136,7 +136,7 @@ class DFTBandsWorkflow(DFTWorkflow):
         self.print('DFT bandstructure workflow', style='heading')
 
         # First, a scf calculation
-        calc_scf = self.new_calculator('pw', nbnd=None)
+        calc_scf: calculators.PWCalculator = self.new_calculator('pw', nbnd=None)
         calc_scf.prefix = 'scf'
         status = self.run_steps(calc_scf)
         if status != Status.COMPLETED:
@@ -144,10 +144,13 @@ class DFTBandsWorkflow(DFTWorkflow):
 
         # Second, a bands calculation
         if self.parameters.calculate_bands in (True, None):
-            calc_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpoints.path)
+            calc_bands: calculators.PWCalculator = self.new_calculator(
+                'pw', calculation='bands', kpts=self.kpoints.path)
         else:
             calc_bands = self.new_calculator('pw', calculation='nscf')
         calc_bands.prefix = 'bands'
+        assert isinstance(calc_scf.parameters.outdir, Path)
+        assert isinstance(calc_bands.parameters.outdir, Path)
         self.link(calc_scf, calc_scf.parameters.outdir, calc_bands, calc_bands.parameters.outdir, symlink=True)
         status = self.run_steps(calc_bands)
         if status != Status.COMPLETED:
@@ -159,7 +162,8 @@ class DFTBandsWorkflow(DFTWorkflow):
 
         # Third, a PDOS calculation
         if all([p['header'].get('number_of_wfc', 0) for p in self.pseudopotentials.values()]):
-            calc_dos = self.new_calculator('projwfc')
+            calc_dos: calculators.ProjwfcCalculator = self.new_calculator('projwfc')
+            assert isinstance(calc_dos.parameters.outdir, Path)
             self.link(calc_bands, calc_bands.parameters.outdir, calc_dos, calc_dos.parameters.outdir, symlink=True)
             status = self.run_steps(calc_dos)
             if status != Status.COMPLETED:

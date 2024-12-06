@@ -242,7 +242,7 @@ def print_alert(kind, message, header=None, indent=-1, **kwargs):
         indented_print(message, indent=indent)
 
 
-def generate_wannier_hr_file_contents(ham: np.ndarray, rvect: List[List[int]], weights: List[int]) -> List[str]:
+def generate_wannier_hr_file_contents(ham: np.ndarray, rvect: List[List[int]], weights: List[int]) -> str:
 
     nrpts = len(rvect)
     num_wann = np.size(ham, -1)
@@ -262,10 +262,10 @@ def generate_wannier_hr_file_contents(ham: np.ndarray, rvect: List[List[int]], w
         flines += [f'{r[0]:5d}{r[1]:5d}{r[2]:5d}{j+1:5d}{i+1:5d}{val.real:12.6f}{val.imag:12.6f}' for i,
                    row in enumerate(ham_block) for j, val in enumerate(row)]
 
-    return flines
+    return "\n".join(flines)
 
 
-def parse_wannier_hr_file_contents(lines: List[str]) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
+def parse_wannier_hr_file_contents(content: str) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
     """ Parse the contents of a Hamiltonian file
 
     Returns a tuple containing...
@@ -275,6 +275,7 @@ def parse_wannier_hr_file_contents(lines: List[str]) -> Tuple[np.ndarray, np.nda
         - the number of wannier functions
     """
 
+    lines = content.split('\n')
     if 'written on' in lines[0].lower():
         pass
     elif 'xml version' in lines[0]:
@@ -315,11 +316,12 @@ def parse_wannier_hr_file_contents(lines: List[str]) -> Tuple[np.ndarray, np.nda
 
 
 def read_wannier_hr_file(src_calc_path: Tuple[HasDirectory, Path]) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
-    lines = get_content(*src_calc_path)
-    return parse_wannier_hr_file_contents(lines)
+    content = get_content(*src_calc_path)
+    return parse_wannier_hr_file_contents(content)
 
 
-def parse_wannier_u_file_contents(lines: List[str]) -> Tuple[npt.NDArray[np.complex128], npt.NDArray[np.float64], int]:
+def parse_wannier_u_file_contents(content: str) -> Tuple[npt.NDArray[np.complex128], npt.NDArray[np.float64], int]:
+    lines = content.split('\n')
 
     nk, m, n = [int(x) for x in lines[1].split()]
 
@@ -337,7 +339,7 @@ def parse_wannier_u_file_contents(lines: List[str]) -> Tuple[npt.NDArray[np.comp
     return umat, kpts, nk
 
 
-def generate_wannier_u_file_contents(umat: npt.NDArray[np.complex128], kpts: npt.NDArray[np.float64]) -> List[str]:
+def generate_wannier_u_file_contents(umat: npt.NDArray[np.complex128], kpts: npt.NDArray[np.float64]) -> str:
 
     flines = [f' Written on {datetime.now().isoformat(timespec="seconds")}']
     flines.append(''.join([f'{x:12d}' for x in umat.shape]))
@@ -347,14 +349,14 @@ def generate_wannier_u_file_contents(umat: npt.NDArray[np.complex128], kpts: npt
         flines.append(''.join([f'{k:15.10f}' for k in kpt]))
         flines += [f'{c.real:15.10f}{c.imag:15.10f}' for c in umatk.flatten()]
 
-    return flines
+    return "\n".join(flines)
 
 
-def parse_wannier_centers_file_contents(lines: List[str]) -> Tuple[List[List[float]], Atoms]:
-
+def parse_wannier_centers_file_contents(content: str) -> Tuple[List[List[float]], Atoms]:
     centers = []
     symbols = []
     positions = []
+    lines = content.split('\n')
     for line in lines[2:-1]:
         if line.startswith('X    '):
             centers.append([float(x) for x in line.split()[1:]])
@@ -364,7 +366,7 @@ def parse_wannier_centers_file_contents(lines: List[str]) -> Tuple[List[List[flo
     return centers, Atoms(symbols=symbols, positions=positions, pbc=True)
 
 
-def generate_wannier_centers_file_contents(centers: List[List[float]], atoms: Atoms) -> List[str]:
+def generate_wannier_centers_file_contents(centers: List[List[float]], atoms: Atoms) -> str:
     length = len(centers) + len(atoms)
 
     # Add the header
@@ -379,4 +381,4 @@ def generate_wannier_centers_file_contents(centers: List[List[float]], atoms: At
     for atom in atoms:
         flines.append(f'{atom.symbol: <5}' + ''.join([f'{x:16.8f}' for x in atom.position]))
 
-    return flines
+    return "\n".join(flines)
