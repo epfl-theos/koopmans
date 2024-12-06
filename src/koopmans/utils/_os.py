@@ -6,6 +6,8 @@ Written by Edward Linscott May 2020
 
 '''
 
+from __future__ import annotations
+
 import contextlib
 import os
 import shutil
@@ -195,13 +197,13 @@ class HasDirectory:
     # have been transformed to have pydantic inputs and outputs then those classes will be able to inherit directly
     # from Process
 
-    __slots__ = ['parent', '_directory', '_base_directory', '_engine']
+    __slots__ = ['parent', '_directory', '_base_directory', 'engine']
 
     def __init__(self, parent=None, directory=None, base_directory=None, engine=None):
         self._base_directory: Optional[Path] = None
         self._directory: Optional[Path] = None
         self.parent: Optional[HasDirectory] = parent
-        self.engine = engine
+        self.engine: Optional[Engine] = engine
 
         if not self.parent:
             self.base_directory = base_directory
@@ -256,16 +258,6 @@ class HasDirectory:
 
     def directory_has_been_set(self) -> bool:
         return self._directory is not None
-
-    @property
-    def engine(self) -> Engine:
-        if self._engine is None:
-            raise ValueError('Engine has not been set')
-        return self._engine
-
-    @engine.setter
-    def engine(self, value: Optional[Engine]):
-        self._engine = value
 
 
 def get_binary_content(source: HasDirectory, relpath: Path | str) -> bytes:

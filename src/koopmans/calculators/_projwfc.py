@@ -77,6 +77,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         dos_list = []
         for atom in self.atoms:
             assert self.directory is not None
+            assert self.engine is not None
             filenames = self.engine.glob(directory=FilePointer(self, Path()),
                                          pattern=self.parameters.filpdos + f'.pdos_atm#{atom.index+1}(*',
                                          recursive=False)
@@ -104,6 +105,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         """
 
         # Read the file contents
+        assert self.engine is not None
         content = self.engine.read(filename)
         assert isinstance(content, str)
         flines = content.split('\n')

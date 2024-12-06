@@ -14,17 +14,10 @@ class Step(Protocol):
     # Ultimately to be merged with Process once that has a more general definition
     parent: HasDirectory | None
     name: str
+    engine: Engine | None
 
     @property
     def uid(self) -> str:
-        ...
-
-    @property
-    def engine(self) -> Engine:
-        ...
-
-    @engine.setter
-    def engine(self, value: Engine | None) -> None:
         ...
 
     @property
