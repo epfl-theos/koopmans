@@ -115,8 +115,8 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
     def load_outputs(self):
         if self.directory is None:
             raise ValueError('Process directory must be set before attempting to load outputs')
-        with open(self.directory / f'{self.name}_outputs.pkl', 'rb') as f:
-            self.outputs = dill.load(f)
+        content = self.engine.read(FilePointer(self, f'{self.name}_outputs.pkl'), binary=True)
+        self.outputs = dill.loads(content)
 
     def is_complete(self):
         if self.directory is None:
