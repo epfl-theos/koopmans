@@ -6,13 +6,13 @@ Written by Edward Linscott Jan 2020
 Moved into utils Sep 2021
 
 """
-
+from __future__ import annotations
 import json
 import sys
 import textwrap
 from datetime import datetime
 from pathlib import Path
-from typing import IO, Any, Dict, List, Optional, Tuple, Union
+from typing import IO, Any, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
@@ -22,6 +22,10 @@ from ase_koopmans.units import Bohr
 
 from koopmans.cell import (cell_follows_qe_conventions, cell_to_parameters,
                            parameters_to_cell)
+
+if TYPE_CHECKING: 
+    from koopmans.step import Step
+    from koopmans.files import FilePointer
 
 from ._os import HasDirectory, get_content
 
@@ -90,15 +94,14 @@ def construct_atomic_species_block(atoms: Atoms) -> Dict[str, Any]:
     return {'species': species}
 
 
-def write_alpha_file(directory: Path, alphas: List[float], filling: List[bool]):
+def write_alpha_file(write_function, parent: Step, alphas: List[float], filling: List[bool]):
     a_filled = [a for a, f in zip(alphas, filling) if f]
     a_empty = [a for a, f in zip(alphas, filling) if not f]
     for alphas, suffix in zip([a_filled, a_empty], ['', '_empty']):
-        with open(directory / f'file_alpharef{suffix}.txt', 'w') as fd:
-            fd.write('{}\n'.format(len(alphas)))
-            fd.writelines(['{} {} 1.0\n'.format(i + 1, a)
-                           for i, a in enumerate(alphas)])
-
+        dst_file = FilePointer(parent, f'file_alpharef{suffix}.txt')
+        content = f'{len(alphas)}\n'
+        content += ''.join([f'{i + 1} {a} 1.0\n' for i, a in enumerate(alphas)])
+        write_function(content, dst_file)
 
 def read_alpha_file(directory: Path) -> List[float]:
     alphas: List[float] = []

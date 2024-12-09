@@ -42,7 +42,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
         # self.alphas is a list of alpha values indexed by band index. Meanwhile, kcw.x takes a
         # single file for the alphas (rather than splitting between filled/empty)
         fake_filling = [True for _ in self.alphas]
-        utils.write_alpha_file(self.directory, self.alphas, fake_filling)
+        utils.write_alpha_file(self.engine.write, self.directory, self.alphas, fake_filling)
 
     def _pre_calculate(self):
         super()._pre_calculate()
