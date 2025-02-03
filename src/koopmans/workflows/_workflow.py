@@ -872,6 +872,12 @@ class Workflow(utils.HasDirectory, ABC):
         # Otherwise, return COMPLETED
         return Status.COMPLETED
 
+    def steps_are_running(self) -> bool:
+        for step in self.steps:
+            if self.engine.get_status(step) == Status.RUNNING:
+                return True
+        return False
+
     @contextmanager
     def _parent_context(self, subdirectory: Optional[str] = None,
                         from_scratch: Optional[bool] = None) -> Generator[None, None, None]:

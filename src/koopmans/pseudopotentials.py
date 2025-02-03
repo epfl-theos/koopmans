@@ -71,7 +71,8 @@ def fetch_pseudo(**kwargs: Any) -> Pseudopotential:
     matches = [psp for psp in pseudo_database if all([getattr(psp, k) == v for k, v in kwargs.items()])]
     request_str = ', '.join([f'{k} = {v}' for k, v in kwargs.items()])
     if len(matches) == 0:
-        raise ValueError(f'Could not find a pseudopotential in the database matching `{request_str}`')
+        raise ValueError(
+            f'Could not find a pseudopotential in the database matching `{request_str}`. Run `koopmans --pseudos` to list the available pseudopotential families')
     elif len(matches) > 1:
         raise ValueError(f'Found multiple pseudopotentials in the database matching `{request_str}`')
     else:

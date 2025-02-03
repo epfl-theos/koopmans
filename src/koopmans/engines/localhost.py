@@ -10,7 +10,8 @@ from koopmans.calculators import (Calc, ImplementedCalc, PhCalculator,
                                   ProjwfcCalculator, ReturnsBandStructure)
 from koopmans.files import FilePointer
 from koopmans.processes import Process
-from koopmans.pseudopotentials import (fetch_pseudo, pseudos_library_directory,
+from koopmans.pseudopotentials import (fetch_pseudo, pseudo_database,
+                                       pseudos_library_directory,
                                        read_pseudo_file)
 from koopmans.status import Status
 from koopmans.step import Step
@@ -94,7 +95,10 @@ class LocalhostEngine(Engine):
         return read_pseudo_file(pseudo_path)
 
     def read(self, file: FilePointer, binary=False) -> str | bytes:
-        return utils.get_content(*file)
+        if binary:
+            return utils.get_binary_content(*file)
+        else:
+            return utils.get_content(*file)
 
     def write(self, content: str | bytes, file: FilePointer) -> None:
         if isinstance(content, str):
@@ -111,6 +115,9 @@ class LocalhostEngine(Engine):
             generator = directory.aspath().glob(pattern)
         for path in generator:
             yield FilePointer(parent=directory.parent, name=path.relative_to(directory.parent.directory))
+
+    def available_pseudo_families(self) -> set[str]:
+        return set([p.library for p in pseudo_database])
 
 
 def load_old_calculator(calc):

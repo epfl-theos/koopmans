@@ -234,6 +234,7 @@ class KoopmansDFPTWorkflow(Workflow):
                 return
 
             init_pw = pw_workflow.calculations[0]
+            wannier_files_to_link_by_spin = [{}, {}] if self.parameters.spin_polarized else [{}]
 
         spin_components = [1, 2] if self.parameters.spin_polarized else [1]
 

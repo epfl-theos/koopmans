@@ -248,7 +248,7 @@ class KoopmansDSCFWorkflow(Workflow):
 
         return alphas
 
-    def _steps_generator(self) -> None:
+    def _run(self) -> None:
         '''
         This function runs a KI/pKIPZ/KIPZ workflow from start to finish
         '''
@@ -530,10 +530,9 @@ class DeltaSCFIterationWorkflow(Workflow):
 
         # Run the calculation
         if self.parameters.fix_spin_contamination:
-            for c in spin_symmetrize(trial_calc):
-                status = self.run_steps(c)
-                if status != Status.COMPLETED:
-                    return
+            status = spin_symmetrize(self, trial_calc)
+            if status != Status.COMPLETED:
+                return
         else:
             status = self.run_steps(trial_calc)
             if status != Status.COMPLETED:
@@ -632,8 +631,11 @@ class DeltaSCFIterationWorkflow(Workflow):
                     assert self.ml_model is not None
                     self.ml_model.train()
 
-        print_alpha_history(self)
+        if not self.steps_are_running():
+            # We only want to print the history if we are not waiting for the results of a calculation
+            print_alpha_history(self)
 
+        assert isinstance(self.ml.predict, bool)
         converged = self.ml.predict or all([abs(b.error) < 1e-3 for b in self.bands])
 
         if self.ml.train:
@@ -647,6 +649,8 @@ class DeltaSCFIterationWorkflow(Workflow):
         n_electron_restart_dir = FilePointer(trial_calc, trial_calc.write_directory)
         self.outputs = DeltaSCFIterationOutputs(
             converged=converged, n_electron_restart_dir=n_electron_restart_dir, dummy_outdirs=self._dummy_outdirs)
+
+        self.status = Status.COMPLETED
 
 
 class OrbitalDeltaSCFOutputs(OutputModel):
@@ -1274,10 +1278,9 @@ class InitializationWorkflow(Workflow):
         elif self.parameters.functional in ['ki', 'pkipz']:
             calc_dft = internal_new_kcp_calculator(self, 'dft_init')
             if self.parameters.fix_spin_contamination:
-                for c in spin_symmetrize(calc_dft):
-                    status = self.run_steps(c)
-                    if status != Status.COMPLETED:
-                        return
+                status = spin_symmetrize(self, calc_dft)
+                if status != Status.COMPLETED:
+                    return
             else:
                 status = self.run_steps(calc_dft)
                 if status != Status.COMPLETED:
@@ -1313,10 +1316,9 @@ class InitializationWorkflow(Workflow):
             # DFT from scratch
             calc_dft = internal_new_kcp_calculator(self, 'dft_init')
             if self.parameters.fix_spin_contamination:
-                for c in spin_symmetrize(calc_dft):
-                    status = self.run_steps(c)
-                    if status != Status.COMPLETED:
-                        return
+                status = spin_symmetrize(self, calc_dft)
+                if status != Status.COMPLETED:
+                    return
             else:
                 status = self.run_steps(calc_dft)
                 if status != Status.COMPLETED:
@@ -1408,7 +1410,7 @@ def print_alpha_history(wf: Workflow):
     wf.print('')
 
 
-def spin_symmetrize(master_calc: calculators.Calc) -> Generator[Step, None, None]:
+def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
     """
     Generate a series of calculators that will be equivalent to the original master_calc
     but switching back and forth between nspin=1 and nspin=2 calculations to fix spin contamination
@@ -1439,31 +1441,42 @@ def spin_symmetrize(master_calc: calculators.Calc) -> Generator[Step, None, None
         # nspin=1 dummy
         calc_nspin1_dummy = master_calc.nspin1_dummy_calculator()
         calc_nspin1_dummy.skip_qc = True
-        yield calc_nspin1_dummy
+        status = wf.run_steps(calc_nspin1_dummy)
+        if status != Status.COMPLETED:
+            return status
+
         calc_nspin1.link_file(calc_nspin1_dummy, calc_nspin1_dummy.parameters.outdir,
                               calc_nspin1.parameters.outdir)
 
         # Copy over nspin=2 wavefunction to nspin=1 tmp directory
         process2to1 = ConvertFilesFromSpin2To1(name=None,
                                                **prev_calc_nspin2.files_to_convert_with_spin2_to_spin1)
-        yield process2to1
+        status = wf.run_steps(process2to1)
+        if status != Status.COMPLETED:
+            return status
         for f in process2to1.outputs.generated_files:
             dst_dir = calc_nspin1.parameters.outdir / \
                 f'{calc_nspin1.parameters.prefix}_{calc_nspin1.parameters.ndr}.save/K00001'
             calc_nspin1.link_file(process2to1, f, dst_dir / f.name, symlink=True, overwrite=True)
 
-    yield calc_nspin1
+    status = wf.run_steps(calc_nspin1)
+    if status != Status.COMPLETED:
+        return status
 
     # nspin=2 from scratch (dummy run for creating files of appropriate size)
     calc_nspin2_dummy = master_calc.nspin2_dummy_calculator()
     calc_nspin2_dummy.skip_qc = True
-    yield calc_nspin2_dummy
+    status = wf.run_steps(calc_nspin2_dummy)
+    if status != Status.COMPLETED:
+        return status
     master_calc.link_file(calc_nspin2_dummy, calc_nspin2_dummy.parameters.outdir,
                           master_calc.parameters.outdir)
 
     # Copy over nspin=1 wavefunction to nspin=2 tmp directory
     process1to2 = ConvertFilesFromSpin1To2(**calc_nspin1.files_to_convert_with_spin1_to_spin2)
-    yield process1to2
+    status = wf.run_steps(process1to2)
+    if status != Status.COMPLETED:
+        return status
 
     # nspin=2, reading in the spin-symmetric nspin=1 wavefunction
     master_calc.prepare_to_read_nspin1()
@@ -1471,4 +1484,6 @@ def spin_symmetrize(master_calc: calculators.Calc) -> Generator[Step, None, None
         dst_dir = master_calc.parameters.outdir / \
             f'{master_calc.parameters.prefix}_{master_calc.parameters.ndr}.save/K00001'
         master_calc.link_file(process1to2, f, dst_dir / f.name, symlink=True, overwrite=True)
-    yield master_calc
+    status = wf.run_steps(master_calc)
+    print(status)
+    return status

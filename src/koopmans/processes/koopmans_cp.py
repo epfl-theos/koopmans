@@ -67,7 +67,7 @@ class ConvertFilesFromSpin1To2(Process):
             contents = contents.replace(b'nk="1"', b'nk="2"')
             contents = contents.replace(b'nspin="1"', b'nspin="2"')
 
-            utils.write_binary_content(spin_2_up_file, contents)
+            self.engine.write(contents, FilePointer(self, spin_2_up_file))
 
             contents = contents.replace(b'ik="1"', b'ik="2"')
             contents = contents.replace(b'ispin="1"', b'ispin="2"')

@@ -83,6 +83,10 @@ class Engine(ABC):
     def glob(self, directory: FilePointer, pattern: str, recursive: bool = False) -> Generator[FilePointer, None, None]:
         ...
 
+    @abstractmethod
+    def available_pseudo_families(self) -> set[str]:
+        ...
+
 #
 #        # Print the header
 #        self.print(header())
