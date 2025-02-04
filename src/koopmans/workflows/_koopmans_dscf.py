@@ -20,6 +20,7 @@ from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
+from koopmans.projections import BlockID
 from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.status import Status
 from koopmans.step import Step
@@ -38,8 +39,8 @@ class KoopmansDSCFOutputs(OutputModel):
     '''
     variational_orbital_files: Dict[str, FilePointer]
     final_calc: calculators.KoopmansCPCalculator
-    wannier_hamiltonian_files: Dict[Tuple[str, str | None], FilePointer] | None = None
-    smooth_dft_ham_files: Dict[Tuple[str], FilePointer] | None = None
+    wannier_hamiltonian_files: Dict[BlockID, FilePointer] | None = None
+    smooth_dft_ham_files: Dict[BlockID, FilePointer] | None = None
 
     class Config:
         arbitrary_types_allowed = True
@@ -53,7 +54,7 @@ class KoopmansDSCFWorkflow(Workflow):
     def __init__(self, *args,
                  initial_variational_orbital_files: Dict[str, FilePointer] | None = None,
                  previous_cp_calc: calculators.KoopmansCPCalculator | None = None,
-                 smooth_dft_ham_files: Dict[Tuple[str, str | None], FilePointer] | None = None,
+                 smooth_dft_ham_files: Dict[BlockID, FilePointer] | None = None,
                  precomputed_descriptors: List[FilePointer] | None = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
@@ -344,20 +345,20 @@ class KoopmansDSCFWorkflow(Workflow):
                                      for f in ['evc01.dat', 'evc02.dat', 'evc0_empty1.dat', 'evc0_empty2.dat']}
 
         # Postprocessing
-        smooth_dft_ham_files = None
+        smooth_dft_ham_files: Dict[BlockID, FilePointer] | None = None
         if all(self.atoms.pbc):
             if self.parameters.calculate_bands in [None, True] and self.projections and self.kpoints.path is not None:
                 # Calculate interpolated band structure and DOS with UI
                 final_koopmans_calc = self.calculations[-1]
-                koopmans_ham_files: Dict[Tuple[str, str | None], FilePointer]
+                koopmans_ham_files: Dict[BlockID, FilePointer]
                 if self.parameters.spin_polarized:
-                    koopmans_ham_files = {('occ', "up"): FilePointer(final_koopmans_calc, Path('ham_occ_1.dat')),
-                                          ('emp', "up"): FilePointer(final_koopmans_calc, Path('ham_emp_1.dat')),
-                                          ('occ', "down"): FilePointer(final_koopmans_calc, Path('ham_occ_2.dat')),
-                                          ('emp', "down"): FilePointer(final_koopmans_calc, Path('ham_emp_2.dat'))}
+                    koopmans_ham_files = {BlockID(filled=True, spin="up"): FilePointer(final_koopmans_calc, Path('ham_occ_1.dat')),
+                                          BlockID(filled=False, spin="up"): FilePointer(final_koopmans_calc, Path('ham_emp_1.dat')),
+                                          BlockID(filled=True, spin="down"): FilePointer(final_koopmans_calc, Path('ham_occ_2.dat')),
+                                          BlockID(filled=False, spin="down"): FilePointer(final_koopmans_calc, Path('ham_emp_2.dat'))}
                 else:
-                    koopmans_ham_files = {('occ', None): FilePointer(final_koopmans_calc, Path('ham_occ_1.dat')),
-                                          ('emp', None): FilePointer(final_koopmans_calc, Path('ham_emp_1.dat'))}
+                    koopmans_ham_files = {BlockID(filled=True): FilePointer(final_koopmans_calc, Path('ham_occ_1.dat')),
+                                          BlockID(filled=False): FilePointer(final_koopmans_calc, Path('ham_emp_1.dat'))}
                 assert init_wf is not None
                 dft_ham_files = init_wf.outputs.wannier_hamiltonian_files
                 ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(
@@ -1198,7 +1199,7 @@ class InitializationWorkflow(Workflow):
     outputs: KoopmansDSCFOutputs
 
     def _run(self) -> None:
-        wannier_hamiltonian_files: Dict[Tuple[str, str | None], FilePointer] | None = None
+        wannier_hamiltonian_files: Dict[BlockID, FilePointer] | None = None
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
                 (all(self.atoms.pbc) and self.parameters.init_orbitals == 'kohn-sham'):
@@ -1214,24 +1215,26 @@ class InitializationWorkflow(Workflow):
                 return
 
             # Store the Hamitonian files
-            hr_file_keys: List[Tuple[str, str | None]]
+            hr_file_keys: List[BlockID]
             if self.parameters.spin_polarized:
-                hr_file_keys = [('occ', 'up'), ('emp', 'up'), ('occ', 'down'), ('emp', 'down')]
+                hr_file_ids = [BlockID(filled=True, spin='up'),
+                               BlockID(filled=False, spin='up'),
+                               BlockID(filled=True, spin='down'),
+                               BlockID(filled=False, spin='down')]
             else:
-                hr_file_keys = [('occ', None), ('emp', None)]
+                hr_file_ids = [BlockID(filled=True), BlockID(filled=False)]
 
             wannier_hamiltonian_files = {}
-            for key in hr_file_keys:
-                key_str = '_'.join([k for k in key if k is not None])
-                hr_file = wannier_workflow.outputs.hr_files[key_str]
+            for b_id in hr_file_ids:
+                hr_file = wannier_workflow.outputs.hr_files[b_id]
                 assert hr_file is not None
-                wannier_hamiltonian_files[key] = hr_file
+                wannier_hamiltonian_files[b_id] = hr_file
 
             # Convert the files over from w90 format to kcp format
             nscf_calc = wannier_workflow.steps[1]
             nscf_outdir = FilePointer(nscf_calc, nscf_calc.parameters.outdir)
-            wannier90_calculations = wannier_workflow.steps[-len(self.projections):]
-            wannier90_pp_calculations = wannier_workflow.steps[-3*len(self.projections):-2*len(self.projections)]
+            wannier90_calculations = wannier_workflow.steps[-3*len(self.projections) + 2::3]
+            wannier90_pp_calculations = wannier_workflow.steps[-3*len(self.projections)::3]
             fold_workflow = FoldToSupercellWorkflow.fromparent(self, nscf_outdir=nscf_outdir,
                                                                hr_files=wannier_workflow.outputs.hr_files,
                                                                wannier90_calculations=wannier90_calculations,
@@ -1485,5 +1488,4 @@ def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
             f'{master_calc.parameters.prefix}_{master_calc.parameters.ndr}.save/K00001'
         master_calc.link_file(process1to2, f, dst_dir / f.name, symlink=True, overwrite=True)
     status = wf.run_steps(master_calc)
-    print(status)
     return status

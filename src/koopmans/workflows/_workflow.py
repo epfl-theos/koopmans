@@ -62,6 +62,7 @@ from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
 from koopmans.references import bib_data
 from koopmans.status import Status
 from koopmans.step import Step
+from koopmans.utils import SpinType
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 W = TypeVar('W', bound='Workflow')
@@ -171,7 +172,7 @@ class Workflow(utils.HasDirectory, ABC):
 
         if projections is None:
             proj_list: List[List[Any]]
-            spins: List[Optional[str]]
+            spins: List[SpinType]
             if self.parameters.spin_polarized:
                 proj_list = [[], []]
                 spins = ['up', 'down']
@@ -1089,7 +1090,7 @@ class Workflow(utils.HasDirectory, ABC):
         # a corresponding block in the json file
         calculator_parameters = {}
         w90_block_projs: List = []
-        w90_block_spins: List[Union[str, None]] = []
+        w90_block_spins: List[SpinType] = []
         for block, settings_class in settings_classes.items():
             # Read the block and add the resulting calculator to the calcs_dct
             dct = calcdict.pop(block, {})

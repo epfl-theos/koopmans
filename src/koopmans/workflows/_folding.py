@@ -17,7 +17,7 @@ from koopmans import calculators, utils
 from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
 from koopmans.processes.merge_evc import MergeEVCProcess
-from koopmans.projections import ProjectionBlock
+from koopmans.projections import BlockID, ProjectionBlock
 from koopmans.status import Status
 from koopmans.step import Step
 
@@ -42,7 +42,7 @@ class FoldToSupercellWorkflow(Workflow):
         self._wannier90_calculations = wannier90_calculations
         self._wannier90_pp_calculations = wannier90_pp_calculations
 
-    def _steps_generator(self) -> None:
+    def _run(self) -> None:
         '''
 
         Wrapper for folding Wannier or Kohn-Sham functions from the primitive cell
@@ -68,7 +68,7 @@ class FoldToSupercellWorkflow(Workflow):
                     pass
 
                 # Link the input files
-                self.link(*self._hr_files[block.name], calc_w2k, self._hr_files[block.name].name, symlink=True)
+                self.link(*self._hr_files[block.id], calc_w2k, self._hr_files[block.id].name, symlink=True)
                 self.link(*self._nscf_outdir, calc_w2k, calc_w2k.parameters.outdir, recursive_symlink=True)
                 self.link(w90_pp_calc, w90_pp_calc.prefix + '.nnkp', calc_w2k,
                           calc_w2k.parameters.seedname + '.nnkp', symlink=True)
@@ -85,23 +85,17 @@ class FoldToSupercellWorkflow(Workflow):
             for block, calc_w2k in zip(self.projections, w2k_calcs):
 
                 if self.parameters.spin_polarized:
-                    converted_files[block.name] = [FilePointer(calc_w2k, Path("evcw.dat"))]
+                    converted_files[block.id] = [FilePointer(calc_w2k, Path("evcw.dat"))]
                 else:
-                    converted_files[block.name] = [FilePointer(calc_w2k, Path("evcw1.dat")),
-                                                   FilePointer(calc_w2k, Path("evcw2.dat"))]
-
-            spins: list[str | None]
-            if self.parameters.spin_polarized:
-                spins = ['up', 'down']
-            else:
-                spins = [None, None]
+                    converted_files[block.id] = [FilePointer(calc_w2k, Path("evcw1.dat")),
+                                                 FilePointer(calc_w2k, Path("evcw2.dat"))]
 
             # Merging evcw files
             merged_files = {}
-            for label, subset in self.projections.to_merge.items():
+            for merged_id, subset in self.projections.to_merge.items():
                 if len(subset) == 1:
-                    for f in converted_files[subset[0].name]:
-                        dest_file = _construct_dest_filename(f.name, subset[0], label)
+                    for f in converted_files[subset[0].id]:
+                        dest_file = _construct_dest_filename(f.name, merged_id)
                         merged_files[dest_file] = f
                 else:
                     if self.parameters.spin_polarized:
@@ -113,18 +107,18 @@ class FoldToSupercellWorkflow(Workflow):
                         src_files = [f for s in subset for f in converted_files[s.name] if f.name == evc_fname]
                         merge_proc = MergeEVCProcess(kgrid=self.kpoints.grid,
                                                      src_files=src_files, dest_filename=evc_fname)
-                        if 'occ' in label:
+                        if merged_id.filled:
                             tidy_label = 'occupied'
                         else:
                             tidy_label = 'empty'
-                        if subset[0].spin:
+                        if merged_id.spin != None:
                             tidy_label += f'_spin_{subset[0].spin}'
                         merge_proc.name = 'merging_wavefunctions_for_' + tidy_label
                         status = self.run_steps(merge_proc)
                         if status != Status.COMPLETED:
                             return
 
-                        dest_file = _construct_dest_filename(evc_fname, subset[0], label)
+                        dest_file = _construct_dest_filename(evc_fname, merged_id)
                         merged_files[dest_file] = merge_proc.outputs.merged_file
 
         else:
@@ -146,20 +140,17 @@ class FoldToSupercellWorkflow(Workflow):
         return
 
 
-def _construct_dest_filename(fname: str | Path, proj: ProjectionBlock, label: str) -> str:
+def _construct_dest_filename(fname: str | Path, merged_id: BlockID) -> str:
     fname = str(fname)
     if fname[4] in ['1', '2']:
         spin = int(fname[4])
-    elif proj.spin == 'up':
+    elif merged_id.spin == 'up':
         spin = 1
-    elif proj.spin == 'down':
+    elif merged_id.spin == 'down':
         spin = 2
     else:
         raise ValueError('Should not arrive here')
-    if label.startswith('occ'):
-        dest_file = f'evc_occupied{spin}.dat'
-    elif label.startswith('emp'):
-        dest_file = f'evc0_empty{spin}.dat'
+    if merged_id.filled:
+        return f'evc_occupied{spin}.dat'
     else:
-        raise ValueError('Should not arrive here')
-    return dest_file
+        return f'evc0_empty{spin}.dat'

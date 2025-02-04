@@ -15,6 +15,7 @@ from ase_koopmans import Atoms
 from ase_koopmans.calculators.espresso import Projwfc
 from ase_koopmans.spectrum.doscollection import GridDOSCollection
 from ase_koopmans.spectrum.dosdata import GridDOSData
+from upf_tools import UPFDict
 
 from koopmans import pseudopotentials
 from koopmans.commands import Command, ParallelCommand
@@ -47,7 +48,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
 
         # These must be provided post-initialization (because we want to be allowed to initialize the calculator)
         # without providing these arguments
-        self.pseudopotentials: Optional[Dict[str, str]] = None
+        self.pseudopotentials: Optional[Dict[str, UPFDict]] = None
         self.pseudo_dir: Optional[Path] = None
         self.spin_polarized: Optional[bool] = None
 

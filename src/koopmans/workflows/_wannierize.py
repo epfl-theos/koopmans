@@ -34,9 +34,11 @@ from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         merge_wannier_centers_file_contents,
                                         merge_wannier_hr_file_contents,
                                         merge_wannier_u_file_contents)
+from koopmans.projections import BlockID
 from koopmans.pseudopotentials import nelec_from_pseudos, read_pseudo_file
 from koopmans.status import Status
 from koopmans.step import Step
+from koopmans.utils import SpinType
 
 from ._workflow import Workflow
 
@@ -46,10 +48,10 @@ CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 class WannierizeOutput(OutputModel):
     band_structures: List[BandStructure]
     dos: Optional[GridDOSCollection] = None
-    u_matrices_files: Dict[str, FilePointer | None]
-    hr_files: Dict[str, FilePointer | None]
-    centers_files: Dict[str, FilePointer | None]
-    u_dis_files: Dict[str, FilePointer | None]
+    u_matrices_files: Dict[BlockID, FilePointer | None]
+    hr_files: Dict[BlockID, FilePointer]
+    centers_files: Dict[BlockID, FilePointer | None]
+    u_dis_files: Dict[BlockID, FilePointer | None]
 
     class Config:
         arbitrary_types_allowed = True
@@ -68,10 +70,7 @@ class WannierizeWorkflow(Workflow):
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
 
-            if self.parameters.spin_polarized:
-                spins = ['up', 'down']
-            else:
-                spins = [None]
+            spins: List[SpinType] = ["up", "down"] if self.parameters.spin_polarized else [None]
 
             for spin in spins:
                 # Work out where we have breaks between blocks of projections, and check that this is commensurate
@@ -159,7 +158,7 @@ class WannierizeWorkflow(Workflow):
             return
 
         u_matrices_files = {}
-        hr_files = {}
+        hr_files: Dict[BlockID, FilePointer] = {}
         centers_files = {}
         u_dis_files = {}
 
@@ -183,28 +182,29 @@ class WannierizeWorkflow(Workflow):
                 assert isinstance(subwf, WannierizeBlockWorkflow)
 
                 # Store the results
-                hr_files[block.name] = subwf.outputs.hr_file
-                centers_files[block.name] = subwf.outputs.centers_file
-                u_matrices_files[block.name] = subwf.outputs.u_matrices_file
+                assert subwf.outputs.hr_file is not None
+                hr_files[block.id] = subwf.outputs.hr_file
+                centers_files[block.id] = subwf.outputs.centers_file
+                u_matrices_files[block.id] = subwf.outputs.u_matrices_file
 
             # Merging Hamiltonian files, U matrix files, centers files if necessary
             if self.parent is not None:
 
-                for label, block in self.projections.to_merge.items():
+                for block_id, block in self.projections.to_merge.items():
                     if len(block) == 1:
                         # If there is only one block, we don't need to merge anything
                         calc = block[0].w90_calc
                         if calc.parameters.write_hr:
-                            hr_files[label] = FilePointer(calc, calc.prefix + '_hr.dat')
+                            hr_files[block_id] = FilePointer(calc, calc.prefix + '_hr.dat')
                         if calc.parameters.write_u_matrices:
-                            u_matrices_files[label] = FilePointer(calc, calc.prefix + '_u.mat')
+                            u_matrices_files[block_id] = FilePointer(calc, calc.prefix + '_u.mat')
                         if calc.parameters.write_xyz:
-                            centers_files[label] = FilePointer(calc, calc.prefix + '_centres.xyz')
+                            centers_files[block_id] = FilePointer(calc, calc.prefix + '_centres.xyz')
                     else:
                         # Fetching the list of calculations for this block
                         src_calcs: List[calculators.Wannier90Calculator] = [
                             b.w90_calc for b in block if b.w90_calc is not None]
-                        emp_label = '_emp' if label == 'emp' else ''
+                        emp_label = '' if block_id.filled else '_emp'
                         prefix = src_calcs[-1].prefix
 
                         # Merging the wannier_hr (Hamiltonian) files
@@ -212,11 +212,11 @@ class WannierizeWorkflow(Workflow):
                                                      src_files=[(calc, Path(calc.prefix + '_hr.dat'))
                                                                 for calc in src_calcs],
                                                      dst_file=prefix + f'{emp_label}_hr.dat')
-                        merge_hr_proc.name = f'merge_{label}_wannier_hamiltonian'
+                        merge_hr_proc.name = f'merge_{block_id.label}_wannier_hamiltonian'
                         status = self.run_steps(merge_hr_proc)
                         if status != Status.COMPLETED:
                             return
-                        hr_files[label] = FilePointer(merge_hr_proc, merge_hr_proc.outputs.dst_file)
+                        hr_files[block_id] = FilePointer(merge_hr_proc, merge_hr_proc.outputs.dst_file)
 
                         if self.parameters.method == 'dfpt' and self.parent is not None:
                             # Merging the U (rotation matrix) files
@@ -224,11 +224,11 @@ class WannierizeWorkflow(Workflow):
                                                         src_files=[(calc, Path(calc.prefix + '_u.mat'))
                                                                    for calc in src_calcs],
                                                         dst_file=prefix + f'{emp_label}_u.mat')
-                            merge_u_proc.name = f'merge_{label}_wannier_u'
+                            merge_u_proc.name = f'merge_{block_id.label}_wannier_u'
                             status = self.run_steps(merge_u_proc)
                             if status != Status.COMPLETED:
                                 return
-                            u_matrices_files[label] = FilePointer(merge_u_proc, merge_u_proc.outputs.dst_file)
+                            u_matrices_files[block_id] = FilePointer(merge_u_proc, merge_u_proc.outputs.dst_file)
 
                             # Merging the wannier centers files
                             merge_centers_proc = MergeProcess(
@@ -236,18 +236,19 @@ class WannierizeWorkflow(Workflow):
                                 src_files=[(calc, Path(calc.prefix + '_centres.xyz'))
                                            for calc in src_calcs],
                                 dst_file=prefix + f'{emp_label}_centres.xyz')
-                            merge_centers_proc.name = f'merge_{label}_wannier_centers'
+                            merge_centers_proc.name = f'merge_{block_id.label}_wannier_centers'
                             status = self.run_steps(merge_centers_proc)
                             if status != Status.COMPLETED:
                                 return
-                            centers_files[label] = FilePointer(merge_centers_proc, merge_centers_proc.outputs.dst_file)
+                            centers_files[block_id] = FilePointer(
+                                merge_centers_proc, merge_centers_proc.outputs.dst_file)
 
                 # For the last block (per spin channel), extend the U_dis matrix file if necessary
-                spins: list[str | None] = ['up', 'down'] if self.parameters.spin_polarized else [None]
+                spins: List[SpinType] = ['up', 'down'] if self.parameters.spin_polarized else [None]
                 final_label_blocks = [
-                    [(label, block) for label, block in self.projections.to_merge.items() if block[0].spin == s][-1] for s in spins]
+                    [(block_id, block) for block_id, block in self.projections.to_merge.items() if block_id.spin == s][-1] for s in spins]
 
-                for label, block in final_label_blocks:
+                for block_id, block in final_label_blocks:
                     u_dis_file = None
                     num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
                     num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
@@ -257,7 +258,7 @@ class WannierizeWorkflow(Workflow):
                             u_dis_file = FilePointer(calc_with_u_dis, calc_with_u_dis.prefix + '_u_dis.mat')
                         else:
                             # First, calculate how many empty bands we have
-                            spin = block[0].spin
+                            spin = block_id.spin
                             if spin:
                                 nbnd_occ = self.number_of_electrons(spin)
                             else:
@@ -268,18 +269,18 @@ class WannierizeWorkflow(Workflow):
                             nwann_tot = sum([p.num_wann for p in block])
 
                             # Finally, construct and run a Process to perform the file manipulation
-                            filling_label = '_emp' if label == 'emp' else ''
+                            filling_label = '' if block_id.filled else '_emp'
                             extend_function = partial(extend_wannier_u_dis_file_content, nbnd=nbnd_tot, nwann=nwann_tot)
                             extend_proc = ExtendProcess(extend_function=extend_function,
                                                         src_file=(calc_with_u_dis,
                                                                   calc_with_u_dis.prefix + '_u_dis.mat'),
                                                         dst_file=calc_with_u_dis.prefix + f'{filling_label}_u_dis.mat')
-                            extend_proc.name = f'extend_{label}_wannier_u_dis'
+                            extend_proc.name = f'extend_{block_id.label}_wannier_u_dis'
                             status = self.run_steps(extend_proc)
                             if status != Status.COMPLETED:
                                 return
                             u_dis_file = FilePointer(extend_proc, extend_proc.outputs.dst_file)
-                    u_dis_files[label] = u_dis_file
+                    u_dis_files[block_id] = u_dis_file
 
         dos = None
         bs_list = []

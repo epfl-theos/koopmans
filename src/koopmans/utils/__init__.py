@@ -23,6 +23,7 @@ from ._os import (HasDirectory, chdir, copy, find_executable,
                   get_binary_content, get_content, remove, set_env, symlink,
                   symlink_tree, system_call, write_binary_content,
                   write_content)
+from ._spin import SpinOptions, SpinType
 from ._units import units
 from ._warnings import CalculatorNotConvergedWarning, warn
 from ._xml import read_xml_array, read_xml_nr

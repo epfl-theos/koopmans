@@ -9,7 +9,7 @@ Originally written by Riccardo De Gennaro as the standalone 'unfolding and inter
 Integrated within koopmans by Edward Linscott Jan 2021
 """
 
-from typing import Dict, Generator, List, Optional, Tuple
+from typing import Dict, Generator, List, Literal, Optional, Tuple
 
 import numpy as np
 from ase_koopmans.dft.dos import DOS
@@ -18,6 +18,7 @@ from ase_koopmans.spectrum.band_structure import BandStructure
 from koopmans import calculators, outputs, utils
 from koopmans.files import FilePointer
 from koopmans.processes.ui import UnfoldAndInterpolateProcess, generate_dos
+from koopmans.projections import BlockID
 from koopmans.status import Status
 from koopmans.step import Step
 
@@ -28,7 +29,7 @@ from ._workflow import Workflow
 class UnfoldAndInterpolateOutput(outputs.OutputModel):
     band_structure: BandStructure
     dos: Optional[DOS]
-    smooth_dft_ham_files: Optional[Dict[Tuple[str], FilePointer]]
+    smooth_dft_ham_files: Optional[Dict[BlockID, FilePointer]]
 
     class Config:
         arbitrary_types_allowed = True
@@ -38,9 +39,9 @@ class UnfoldAndInterpolateWorkflow(Workflow):
 
     output_model = UnfoldAndInterpolateOutput  # type: ignore
 
-    def __init__(self, *args, koopmans_ham_files: Dict[Tuple[str, str | None], FilePointer],
-                 dft_ham_files: Dict[Tuple[str, str | None], FilePointer],
-                 smooth_dft_ham_files: Dict[str, FilePointer | None] | None = None, **kwargs) -> None:
+    def __init__(self, *args, koopmans_ham_files: Dict[BlockID, FilePointer],
+                 dft_ham_files: Dict[BlockID, FilePointer],
+                 smooth_dft_ham_files: Dict[BlockID, FilePointer] | None = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._dft_ham_files = dft_ham_files
         self._koopmans_ham_files = koopmans_ham_files
@@ -80,7 +81,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             self._smooth_dft_ham_files = wannier_workflow.outputs.hr_files
 
         process: UnfoldAndInterpolateProcess
-        spins: List[Optional[str]]
+        spins: List[Literal[None, "up", "down", "spinor"]]
         if self.parameters.spin_polarized:
             spins = ['up', 'down']
         else:
@@ -95,10 +96,8 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             spreads = np.array([spread for c, p in zip(w90_calcs, self.projections)
                                for spread in c.results['spreads'] if p.spin == spin])
 
-            for filled, filling in zip([True, False], ['occ', 'emp']):
-                presets = filling
-                if spin:
-                    presets += '_' + spin
+            for filled in [True, False]:
+                block_id = BlockID(filled=filled, spin=spin)
 
                 # Extract the centers and spreads that have this particular filling
                 if self.parameters.method == 'dscf':
@@ -115,11 +114,11 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                 # Add the smooth DFT Hamiltonian file if relevant
                 if self.calculator_parameters['ui'].do_smooth_interpolation:
                     assert self._smooth_dft_ham_files is not None
-                    dft_smooth_ham_file = self._smooth_dft_ham_files[presets]
+                    dft_smooth_ham_file = self._smooth_dft_ham_files[block_id]
                 else:
                     dft_smooth_ham_file = None
 
-                process = self.new_ui_process(presets, centers=centers[mask], spreads=spreads[mask].tolist(),
+                process = self.new_ui_process(block_id, centers=centers[mask], spreads=spreads[mask].tolist(),
                                               dft_smooth_ham_file=dft_smooth_ham_file)
 
                 processes.append(process)
@@ -177,21 +176,9 @@ class UnfoldAndInterpolateWorkflow(Workflow):
 
         return
 
-    def new_ui_process(self, presets: str, **kwargs) -> UnfoldAndInterpolateProcess:
-        valid_presets = ['occ', 'occ_up', 'occ_down', 'emp', 'emp_up', 'emp_down']
-        assert presets in valid_presets, \
-            'In UnfoldAndInterpolateWorkflow.new_ui_process() presets must be ' \
-            + '/'.join([f'"{s}"' for s in valid_presets]) + \
-            f', but you have tried to set it equal to {presets}'
-
-        preset_tuple: Tuple[str, str | None]
-        if '_' in presets:
-            preset_tuple = tuple(presets.split('_'))  # type: ignore
-        else:
-            preset_tuple = (presets, None)
-
-        kwargs['kc_ham_file'] = self._koopmans_ham_files[preset_tuple]
-        kwargs['dft_ham_file'] = self._dft_ham_files[preset_tuple]
+    def new_ui_process(self, block_id: BlockID, **kwargs) -> UnfoldAndInterpolateProcess:
+        kwargs['kc_ham_file'] = self._koopmans_ham_files[block_id]
+        kwargs['dft_ham_file'] = self._dft_ham_files[block_id]
 
         parameters = self.calculator_parameters['ui']
         parameters.kgrid = self.kpoints.grid
@@ -202,6 +189,6 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                                               plotting_parameters=self.plotting,
                                               **kwargs)
 
-        process.name += f'_{presets}'
+        process.name += f'_{block_id.label}'
 
         return process

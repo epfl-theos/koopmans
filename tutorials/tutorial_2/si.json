@@ -1,14 +1,13 @@
 {
     "workflow": {
-        "task": "wannierize",
+        "task": "singlepoint",
         "functional": "ki",
-        "base_functional": "lda",
         "method": "dscf",
         "mp_correction": false,
         "init_orbitals": "mlwfs",
         "alpha_guess": 0.077,
         "orbital_groups": [0, 0, 0, 0, 1, 1, 1, 1],
-        "pseudo_library": "pseudo_dojo_standard",
+        "pseudo_library": "PseudoDojo/0.4/LDA/SR/standard/upf",
         "from_scratch": true
     },
     "atoms": {
