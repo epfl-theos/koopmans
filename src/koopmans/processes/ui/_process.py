@@ -78,6 +78,8 @@ class UnfoldAndInterpolateProcess(Process):
     output_model = UnfoldAndInterpolateOutputs
 
     def __init__(self, atoms: Atoms, centers, parameters, **kwargs):
+        # Avoid the original parameters object from being modified
+        parameters = copy.deepcopy(parameters)
 
         # Update the parameters field based on the centers and spreads objects
         num_wann = len(centers)
@@ -86,7 +88,7 @@ class UnfoldAndInterpolateProcess(Process):
             parameters.num_wann = num_wann // np.prod(parameters.kgrid)
         else:
             parameters.num_wann = num_wann
-            parameters.num_wann_sc = num_wann * np.prod(parameters.kgrid)
+            parameters.num_wann_sc = num_wann * int(np.prod(parameters.kgrid))
 
         # Convert atoms from an Atoms to a UIAtoms object
         ui_atoms = UIAtoms.fromatoms(atoms, supercell_matrix=np.diag(parameters.kgrid))
@@ -215,7 +217,7 @@ class UnfoldAndInterpolateProcess(Process):
         """
 
         try:
-            with open('wf_phases.dat', 'r') as ifile:
+            with open(f'{self.directory}/wf_phases.dat', 'r') as ifile:
                 lines = ifile.readlines()
             self._phases = [float(l.split()[0]) + float(l.split()[1]) * 1j for l in lines]
         except FileNotFoundError:
@@ -224,29 +226,23 @@ class UnfoldAndInterpolateProcess(Process):
             self._phases = []
         return
 
-    def write_results(self, directory: Optional[Path] = None) -> None:
+    def write_results(self) -> None:
         """
         write_results calls write_bands and write_dos if the DOS was calculated
         """
-        if directory is None:
-            directory = Path()
-
-        self.write_bands(directory)
+        self.write_bands()
 
         if self.inputs.parameters.do_dos:
-            self.write_dos(directory)
+            self.write_dos()
 
         return
 
-    def write_bands(self, directory=None) -> None:
+    def write_bands(self) -> None:
         """
         write_bands prints the interpolated bands, in the QE format, in a file called
                     'bands_interpolated.dat'.
                     (see PP/src/bands.f90 around line 574 for the linearized path)
         """
-
-        if directory is None:
-            directory = Path()
 
         kvec = []
         for kpt in self.inputs.parameters.kpath.kpts:
@@ -271,7 +267,7 @@ class UnfoldAndInterpolateProcess(Process):
             if bs.shape[0] == 2:
                 fname += f'_spin_{label}'
 
-            with open(f'{directory}/{fname}.dat', 'w') as ofile:
+            with open(f'{self.directory}/{fname}.dat', 'w') as ofile:
                 ofile.write('# Written at ' + datetime.now().isoformat(timespec='seconds'))
 
                 for energies in energies_spin.transpose():
@@ -282,15 +278,12 @@ class UnfoldAndInterpolateProcess(Process):
 
         return
 
-    def write_dos(self, directory=None) -> None:
+    def write_dos(self) -> None:
         """
         write_dos prints the DOS in a file called 'dos_interpolated.dat', in a format (E , DOS(E))
 
         """
-        if directory is None:
-            directory = self.directory
-
-        with open(f'{directory}/dos_interpolated.dat', 'w') as ofile:
+        with open(f'{self.directory}/dos_interpolated.dat', 'w') as ofile:
             ofile.write('# Written at ' + datetime.now().isoformat(timespec='seconds'))
             dos = self.outputs.dos
             for e, d in zip(dos.get_energies(), dos.get_dos()):
@@ -305,7 +298,7 @@ class UnfoldAndInterpolateProcess(Process):
         never actually used in a standard calculation, but it is useful for debugging
         """
 
-        with open(f'{self.name}.json', 'w') as fd:
+        with open(f'{self.directory}/{self.name}.json', 'w') as fd:
             settings = copy.deepcopy(self.inputs.parameters.data)
 
             # Remove the kpoints information from the settings dict

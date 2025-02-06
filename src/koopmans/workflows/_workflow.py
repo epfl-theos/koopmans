@@ -1425,7 +1425,7 @@ class Workflow(utils.HasDirectory, ABC):
         workflow_name = workflow_name.replace('workflow', '').replace(' ', '_')
         filename = filename if filename is not None else f'{workflow_name}_bandstructure'
         legends = [ax.get_legend() for ax in axes if ax.get_legend() is not None]
-        utils.savefig(fname=filename + '.png', bbox_extra_artists=legends, bbox_inches='tight')
+        utils.savefig(fname=f'{self.directory}/{filename}.png', bbox_extra_artists=legends, bbox_inches='tight')
 
         # Close the figure
         plt.close()

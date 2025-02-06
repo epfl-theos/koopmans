@@ -18,6 +18,7 @@ from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
                                   Wann2KCCalculator, Wannier90Calculator)
 from koopmans.files import FilePointer
 from koopmans.outputs import OutputModel
+from koopmans.projections import BlockID
 from koopmans.status import Status
 
 from ._dft import DFTPWWorkflow
@@ -196,26 +197,26 @@ class KoopmansDFPTWorkflow(Workflow):
                 c, PWCalculator) and c.parameters.calculation == 'nscf'][-1]
 
             # Populate a list of files to link to subsequent calculations
-            suffixes = ['_up', '_down'] if self.parameters.spin_polarized else ['']
-            for suffix in suffixes:
+            spins = ['up', 'down'] if self.parameters.spin_polarized else [None]
+            for spin in spins:
                 wannier_files_to_link_by_spin.append({})
-                for filling in ['occ', 'emp']:
-                    key = filling + suffix
-                    for f in [wf_workflow.outputs.u_matrices_files[key],
-                              wf_workflow.outputs.hr_files[key],
-                              wf_workflow.outputs.centers_files[key]]:
+                for filled in [True, False]:
+                    block_id = BlockID(filled=filled, spin=spin)
+                    for f in [wf_workflow.outputs.u_matrices_files[block_id],
+                              wf_workflow.outputs.hr_files[block_id],
+                              wf_workflow.outputs.centers_files[block_id]]:
                         assert f is not None
 
-                        if filling == 'occ':
+                        if filled:
                             wannier_files_to_link_by_spin[-1][f.name] = f
                         else:
                             wannier_files_to_link_by_spin[-1]['wannier90_emp' + str(f.name)[9:]] = f
 
-                    dft_ham_files[(filling, suffix[1:] if suffix else None)] = wf_workflow.outputs.hr_files[key]
+                    dft_ham_files[block_id] = wf_workflow.outputs.hr_files[block_id]
 
                 # Empty blocks might also have a disentanglement file than we need to copy
-                if wf_workflow.outputs.u_dis_files[key] is not None:
-                    wannier_files_to_link_by_spin[-1]['wannier90_emp_u_dis.mat'] = wf_workflow.outputs.u_dis_files[key]
+                if wf_workflow.outputs.u_dis_files[block_id] is not None:
+                    wannier_files_to_link_by_spin[-1]['wannier90_emp_u_dis.mat'] = wf_workflow.outputs.u_dis_files[block_id]
 
         else:
             # Run PW

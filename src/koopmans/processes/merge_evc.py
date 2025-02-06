@@ -35,10 +35,7 @@ class MergeEVCProcess(CommandLineTool):
     def command(self):
         return ' '.join([f'merge_evc.x -nr {np.prod(self.inputs.kgrid)}']
                         + [f'-i {f.aspath()}' for f in self.inputs.src_files]
-                        + [f'-o {self.inputs.dest_filename}'])
+                        + [f'-o {self.directory / self.inputs.dest_filename}'])
 
-    def _pre_run(self):
-        pass
-
-    def _post_run(self):
+    def _set_outputs(self):
         self.outputs = MergeEVCOutputs(merged_file=FilePointer(self, self.inputs.dest_filename))

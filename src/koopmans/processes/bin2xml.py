@@ -29,6 +29,7 @@ class Bin2XMLProcess(CommandLineTool):
     output_model = Bin2XMLOutput
 
     def _pre_run(self):
+        super()._pre_run()
         if not (self.inputs.binary.parent.absolute_directory / self.inputs.binary.name).exists():
             raise FileNotFoundError(f'`{self.inputs.binary}` does not exist')
 
@@ -42,6 +43,6 @@ class Bin2XMLProcess(CommandLineTool):
     def command(self):
         return Command(executable='bin2xml.x', suffix=f'input.dat output.xml')
 
-    def _post_run(self):
-        xml_filepointer = FilePointer(self, "output.xml")
+    def _set_outputs(self):
+        xml_filepointer = FilePointer(self, Path("output.xml"))
         self.outputs = self.output_model(xml=xml_filepointer)

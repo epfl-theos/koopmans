@@ -104,7 +104,7 @@ class FoldToSupercellWorkflow(Workflow):
                         evc_fnames = ['evcw1.dat', 'evcw2.dat']
 
                     for evc_fname in evc_fnames:
-                        src_files = [f for s in subset for f in converted_files[s.name] if f.name == evc_fname]
+                        src_files = [f for s in subset for f in converted_files[s.id] if str(f.name) == evc_fname]
                         merge_proc = MergeEVCProcess(kgrid=self.kpoints.grid,
                                                      src_files=src_files, dest_filename=evc_fname)
                         if merged_id.filled:
@@ -113,7 +113,7 @@ class FoldToSupercellWorkflow(Workflow):
                             tidy_label = 'empty'
                         if merged_id.spin != None:
                             tidy_label += f'_spin_{subset[0].spin}'
-                        merge_proc.name = 'merging_wavefunctions_for_' + tidy_label
+                        merge_proc.name = 'merge_wavefunctions_for_' + tidy_label
                         status = self.run_steps(merge_proc)
                         if status != Status.COMPLETED:
                             return

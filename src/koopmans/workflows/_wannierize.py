@@ -52,6 +52,8 @@ class WannierizeOutput(OutputModel):
     hr_files: Dict[BlockID, FilePointer]
     centers_files: Dict[BlockID, FilePointer | None]
     u_dis_files: Dict[BlockID, FilePointer | None]
+    preprocessing_calculations: List[calculators.Wannier90Calculator]
+    wannier90_calculations: List[calculators.Wannier90Calculator]
 
     class Config:
         arbitrary_types_allowed = True
@@ -161,6 +163,8 @@ class WannierizeWorkflow(Workflow):
         hr_files: Dict[BlockID, FilePointer] = {}
         centers_files = {}
         u_dis_files = {}
+        wannier90_calculations = []
+        preprocessing_calculations = []
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
@@ -170,7 +174,7 @@ class WannierizeWorkflow(Workflow):
                 wannierize_block_subworkflow = WannierizeBlockWorkflow.fromparent(
                     self, force_nspin2=self._force_nspin2, block=block)
                 wannierize_block_subworkflow.name = \
-                    f'Wannierize {block.name.replace("_", " ").replace("block", "Block")}'
+                    f'Wannierize {block.id.label.replace("_", " ").replace("block", "Block")}'
                 block_subworkflows.append(wannierize_block_subworkflow)
 
             for wf in block_subworkflows:
@@ -186,6 +190,8 @@ class WannierizeWorkflow(Workflow):
                 hr_files[block.id] = subwf.outputs.hr_file
                 centers_files[block.id] = subwf.outputs.centers_file
                 u_matrices_files[block.id] = subwf.outputs.u_matrices_file
+                wannier90_calculations.append(subwf.outputs.wannier90_calculation)
+                preprocessing_calculations.append(subwf.outputs.preprocessing_calculation)
 
             # Merging Hamiltonian files, U matrix files, centers files if necessary
             if self.parent is not None:
@@ -370,7 +376,9 @@ class WannierizeWorkflow(Workflow):
 
         # Store the results
         self.outputs = self.output_model(band_structures=bs_list, dos=dos, u_matrices_files=u_matrices_files,
-                                         hr_files=hr_files, centers_files=centers_files, u_dis_files=u_dis_files)
+                                         hr_files=hr_files, centers_files=centers_files, u_dis_files=u_dis_files,
+                                         preprocessing_calculations=preprocessing_calculations,
+                                         wannier90_calculations=wannier90_calculations)
 
         self.status = Status.COMPLETED
 
@@ -387,6 +395,8 @@ class WannierizeBlockOutput(OutputModel):
     hr_file: FilePointer | None = None
     centers_file: FilePointer | None = None
     u_matrices_file: FilePointer | None = None
+    wannier90_calculation: calculators.Wannier90Calculator
+    preprocessing_calculation: calculators.Wannier90Calculator
 
     class Config:
         arbitrary_types_allowed = True
@@ -483,7 +493,8 @@ class WannierizeBlockWorkflow(Workflow):
                              ) if calc_w90.parameters.write_u_matrices else None
         centers_file = FilePointer(calc_w90, Path(calc_w90.prefix + '_centres.xyz')
                                    ) if calc_w90.parameters.write_xyz else None
-        self.outputs = self.output_model(hr_file=hr_file, u_matrices_file=u_file, centers_file=centers_file)
+        self.outputs = self.output_model(hr_file=hr_file, u_matrices_file=u_file, centers_file=centers_file,
+                                         preprocessing_calculation=calc_w90_pp, wannier90_calculation=calc_w90)
 
         self.status = Status.COMPLETED
 

@@ -15,11 +15,8 @@ class CommandLineTool(Process):
         ...
 
     @abstractmethod
-    def _pre_run(self):
-        ...
-
-    @abstractmethod
-    def _post_run(self):
+    def _set_outputs(self):
+        # This method should be used to set self.outputs
         ...
 
     def _run(self):
@@ -27,4 +24,5 @@ class CommandLineTool(Process):
         ierr = subprocess.call(str(self.command), shell=True)
         if ierr > 0:
             raise OSError(f'`{self.command}` exited with exit code {ierr}')
+        self._set_outputs()
         self._post_run()

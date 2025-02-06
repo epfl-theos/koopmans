@@ -307,7 +307,6 @@ class ConvergenceWorkflow(Workflow):
                 self.parameters.orbital_groups)
 
         while True:
-
             # Loop over all possible permutations of convergence variables
             subwfs = []
             indices_to_run = []
@@ -358,7 +357,7 @@ class ConvergenceWorkflow(Workflow):
             for w in subwfs:
                 w.run()
 
-            if not all([w.status != Status.COMPLETED for w in subwfs]):
+            if any([w.status != Status.COMPLETED for w in subwfs]):
                 return
 
             # Store the result

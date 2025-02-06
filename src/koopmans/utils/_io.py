@@ -7,12 +7,13 @@ Moved into utils Sep 2021
 
 """
 from __future__ import annotations
+
 import json
 import sys
 import textwrap
 from datetime import datetime
 from pathlib import Path
-from typing import IO, Any, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
+from typing import IO, TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -23,9 +24,8 @@ from ase_koopmans.units import Bohr
 from koopmans.cell import (cell_follows_qe_conventions, cell_to_parameters,
                            parameters_to_cell)
 
-if TYPE_CHECKING: 
+if TYPE_CHECKING:
     from koopmans.step import Step
-    from koopmans.files import FilePointer
 
 from ._os import HasDirectory, get_content
 
@@ -95,13 +95,17 @@ def construct_atomic_species_block(atoms: Atoms) -> Dict[str, Any]:
 
 
 def write_alpha_file(write_function, parent: Step, alphas: List[float], filling: List[bool]):
+    from koopmans.files import FilePointer
+
     a_filled = [a for a, f in zip(alphas, filling) if f]
     a_empty = [a for a, f in zip(alphas, filling) if not f]
     for alphas, suffix in zip([a_filled, a_empty], ['', '_empty']):
-        dst_file = FilePointer(parent, f'file_alpharef{suffix}.txt')
+        assert isinstance(parent, HasDirectory)
+        dst_file = FilePointer(parent, Path(f'file_alpharef{suffix}.txt'))
         content = f'{len(alphas)}\n'
         content += ''.join([f'{i + 1} {a} 1.0\n' for i, a in enumerate(alphas)])
         write_function(content, dst_file)
+
 
 def read_alpha_file(directory: Path) -> List[float]:
     alphas: List[float] = []

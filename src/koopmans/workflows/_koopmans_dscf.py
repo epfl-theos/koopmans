@@ -1233,12 +1233,10 @@ class InitializationWorkflow(Workflow):
             # Convert the files over from w90 format to kcp format
             nscf_calc = wannier_workflow.steps[1]
             nscf_outdir = FilePointer(nscf_calc, nscf_calc.parameters.outdir)
-            wannier90_calculations = wannier_workflow.steps[-3*len(self.projections) + 2::3]
-            wannier90_pp_calculations = wannier_workflow.steps[-3*len(self.projections)::3]
             fold_workflow = FoldToSupercellWorkflow.fromparent(self, nscf_outdir=nscf_outdir,
                                                                hr_files=wannier_workflow.outputs.hr_files,
-                                                               wannier90_calculations=wannier90_calculations,
-                                                               wannier90_pp_calculations=wannier90_pp_calculations)
+                                                               wannier90_calculations=wannier_workflow.outputs.wannier90_calculations,
+                                                               wannier90_pp_calculations=wannier_workflow.outputs.preprocessing_calculations)
             fold_workflow.run()
             if fold_workflow.status != Status.COMPLETED:
                 return

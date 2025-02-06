@@ -30,7 +30,9 @@ class BlockID(BaseModel):
     def set_label_from_filled(cls, data: Any):
         if isinstance(data, dict):
             if data.get('filled', None) is not None and data.get('label', None) is None:
-                data['label'] = 'occ' if data['filled'] else 'emp'
+                spin = data.get('spin', None)
+                spin_label = '_spin_' + spin if spin is not None else ''
+                data['label'] = 'occ' + spin_label if data['filled'] else 'emp' + spin_label
         return data
 
     def filling(self):
@@ -215,7 +217,8 @@ class ProjectionBlocks(object):
                     b.exclude_bands = list_to_formatted_str(to_exclude)
 
                 # Construct the ID
-                b.id = BlockID(label=f'block_{iblock + 1}', spin=spin)
+                spin_str = f'_spin_{spin}' if spin is not None else ''
+                b.id = BlockID(label=f'block_{iblock + 1}{spin_str}', spin=spin)
 
         return self._blocks
 
