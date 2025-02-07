@@ -217,7 +217,7 @@ class UnfoldAndInterpolateProcess(Process):
         """
 
         try:
-            with open(f'{self.directory}/wf_phases.dat', 'r') as ifile:
+            with open(f'wf_phases.dat', 'r') as ifile:
                 lines = ifile.readlines()
             self._phases = [float(l.split()[0]) + float(l.split()[1]) * 1j for l in lines]
         except FileNotFoundError:
@@ -267,7 +267,7 @@ class UnfoldAndInterpolateProcess(Process):
             if bs.shape[0] == 2:
                 fname += f'_spin_{label}'
 
-            with open(f'{self.directory}/{fname}.dat', 'w') as ofile:
+            with open(f'{fname}.dat', 'w') as ofile:
                 ofile.write('# Written at ' + datetime.now().isoformat(timespec='seconds'))
 
                 for energies in energies_spin.transpose():
@@ -283,7 +283,7 @@ class UnfoldAndInterpolateProcess(Process):
         write_dos prints the DOS in a file called 'dos_interpolated.dat', in a format (E , DOS(E))
 
         """
-        with open(f'{self.directory}/dos_interpolated.dat', 'w') as ofile:
+        with open(f'dos_interpolated.dat', 'w') as ofile:
             ofile.write('# Written at ' + datetime.now().isoformat(timespec='seconds'))
             dos = self.outputs.dos
             for e, d in zip(dos.get_energies(), dos.get_dos()):
@@ -298,7 +298,7 @@ class UnfoldAndInterpolateProcess(Process):
         never actually used in a standard calculation, but it is useful for debugging
         """
 
-        with open(f'{self.directory}/{self.name}.json', 'w') as fd:
+        with open(f'{self.name}.json', 'w') as fd:
             settings = copy.deepcopy(self.inputs.parameters.data)
 
             # Remove the kpoints information from the settings dict

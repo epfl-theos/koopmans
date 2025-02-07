@@ -20,9 +20,9 @@ class CommandLineTool(Process):
         ...
 
     def _run(self):
-        self._pre_run()
-        ierr = subprocess.call(str(self.command), shell=True)
-        if ierr > 0:
-            raise OSError(f'`{self.command}` exited with exit code {ierr}')
+        with self.engine.chdir(self.directory):
+            # Run the command within self.directory
+            ierr = subprocess.call(str(self.command), shell=True)
+            if ierr > 0:
+                raise OSError(f'`{self.command}` exited with exit code {ierr}')
         self._set_outputs()
-        self._post_run()

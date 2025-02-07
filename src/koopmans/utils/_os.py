@@ -129,8 +129,7 @@ def copy(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool = False):
             shutil.copytree(src, dest)
 
 
-@contextlib.contextmanager
-def chdir(path: Union[Path, str]):
+def chdir_logic(path: Union[Path, str]):
     # Allows for the context "with chdir(path)". All code within this
     # context will be executed in the directory "path"
 
@@ -150,6 +149,11 @@ def chdir(path: Union[Path, str]):
     finally:
         # Return to the original directory
         os.chdir(this_dir)
+
+
+@contextlib.contextmanager
+def chdir(path: Union[Path, str]):
+    return chdir_logic(path)
 
 
 @contextlib.contextmanager

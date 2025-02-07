@@ -1,5 +1,7 @@
+import contextlib
 import os
 import sys
+from pathlib import Path
 from typing import Generator, List
 
 from ase_koopmans.calculators.calculator import CalculationFailed
@@ -27,6 +29,10 @@ class LocalhostEngine(Engine):
 
     def run(self, step: Step):
         self._step_running_message(step)
+
+        assert step.directory is not None
+        if step.directory.exists():
+            self.rmdir(step.directory)
 
         try:
             step.run()
@@ -105,6 +111,16 @@ class LocalhostEngine(Engine):
             utils.write_content(file.aspath(), content)
         elif isinstance(content, bytes):
             utils.write_binary_content(file.aspath(), content)
+
+    def link(self, source: FilePointer, destination: FilePointer) -> None:
+        utils.symlink(source.aspath(), destination.aspath())
+
+    @contextlib.contextmanager
+    def chdir(self, directory: Path):
+        return utils.chdir_logic(directory)
+
+    def rmdir(self, directory: Path) -> None:
+        utils.remove(directory)
 
     def glob(self, directory: FilePointer, pattern: str, recursive: bool = False) -> Generator[FilePointer, None, None]:
         assert directory.parent is not None

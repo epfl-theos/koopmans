@@ -57,8 +57,6 @@ class TrajectoryWorkflow(Workflow):
             workflow.name += f' Snapshot {i+1} of {len(self.snapshots)}'
             workflows.append(workflow)
 
-            raise NotImplementedError('Need to make sure that the bands are not copied across snapshots')
-
         for w in workflows:
             w.run()
 

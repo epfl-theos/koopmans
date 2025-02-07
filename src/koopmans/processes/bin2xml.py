@@ -37,7 +37,7 @@ class Bin2XMLProcess(CommandLineTool):
         binary_file_contents = utils.get_binary_content(*self.inputs.binary)
 
         # Write the file to disk
-        utils.write_binary_content(Path("input.dat"), binary_file_contents)
+        utils.write_binary_content("input.dat", binary_file_contents)
 
     @property
     def command(self):

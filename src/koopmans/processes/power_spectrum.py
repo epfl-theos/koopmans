@@ -55,12 +55,13 @@ class ExtractCoefficientsFromXMLProcess(Process):
 
         # Save the parameters to file
         suffix = '_'.join(str(x) for x in [self.inputs.n_max, self.inputs.l_max, self.inputs.r_min, self.inputs.r_max])
-        alpha_file = Path(f'alphas_{suffix}.npy')
-        beta_file = Path(f'betas_{suffix}.npy')
+        assert self.directory is not None
+        alpha_file = f'alphas_{suffix}.npy'
+        beta_file = f'betas_{suffix}.npy'
         alpha_filepointer = FilePointer(self, alpha_file)
         beta_filepointer = FilePointer(self, beta_file)
-        utils.write_binary_content(alpha_file, alphas.tobytes())
-        utils.write_binary_content(beta_file, betas.tobytes())
+        utils.write_binary_content(self.directory / alpha_file, alphas.tobytes())
+        utils.write_binary_content(self.directory / beta_file, betas.tobytes())
 
         # Compute the decomposition
         orbital_files, total_files = ml.compute_decomposition(
@@ -143,5 +144,5 @@ class ComputePowerSpectrumProcess(Process):
         power_mat = compute_power_mat(coeff_matrix, self.inputs.n_max, self.inputs.l_max)
 
         # Write the power spectrum to file
-        utils.write_binary_content('power_spectrum.npy', power_mat.tobytes())
+        utils.write_binary_content(f'power_spectrum.npy', power_mat.tobytes())
         self.outputs = self.output_model(power_spectrum=FilePointer(self, 'power_spectrum.npy'))

@@ -1,5 +1,6 @@
 import sys
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Generator, Optional
 
 from upf_tools import UPFDict
@@ -77,6 +78,15 @@ class Engine(ABC):
 
     @abstractmethod
     def write(self, content: str | bytes, file: FilePointer) -> None:
+        ...
+
+    @abstractmethod
+    def link(self, source: FilePointer, destination: FilePointer) -> None:
+        ...
+
+    @abstractmethod
+    def chdir(self, directory: Path):
+        # A context manager that changes the working directory (and returns to the original directory when done)
         ...
 
     @abstractmethod

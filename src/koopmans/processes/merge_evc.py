@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 
 import numpy as np
@@ -33,9 +34,17 @@ class MergeEVCProcess(CommandLineTool):
 
     @property
     def command(self):
+        input_files = [f'input_{i}.dat' for i in range(len(self.inputs.src_files))]
         return ' '.join([f'merge_evc.x -nr {np.prod(self.inputs.kgrid)}']
-                        + [f'-i {f.aspath()}' for f in self.inputs.src_files]
-                        + [f'-o {self.directory / self.inputs.dest_filename}'])
+                        + [f'-i {f}' for f in input_files]
+                        + [f'-o {self.inputs.dest_filename}'])
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Add src_files to those that we need to link
+        for i, src_file in enumerate(self.inputs.src_files):
+            self.linked_files[f'input_{i}.dat'] = src_file
 
     def _set_outputs(self):
         self.outputs = MergeEVCOutputs(merged_file=FilePointer(self, self.inputs.dest_filename))

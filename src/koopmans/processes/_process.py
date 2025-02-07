@@ -40,7 +40,7 @@ OutputModel = TypeVar('OutputModel', bound=IOModel)
 
 class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
 
-    __slots__ = utils.HasDirectory.__slots__ + ['inputs', '_outputs', 'name']
+    __slots__ = utils.HasDirectory.__slots__ + ['inputs', '_outputs', 'name', 'linked_files']
 
     def __init__(self, name: str | None = None, **kwargs):
         self.inputs: InputModel = self.input_model(**kwargs)
@@ -54,6 +54,8 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
 
         # Initialize the directory information
         super().__init__()
+
+        self.linked_files: Dict[str, FilePointer] = {}
 
     def run(self):
         self._pre_run()
@@ -85,6 +87,10 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
         self.dump_inputs()
         if self.engine is None:
             raise ValueError('Process engine must be set before running')
+
+        # Link the files in self.linked_files
+        for dest, src in self.linked_files.items():
+            self.engine.link(src, FilePointer(self, Path(dest)))
 
     @abstractmethod
     def _run(self):
