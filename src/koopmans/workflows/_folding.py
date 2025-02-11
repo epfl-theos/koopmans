@@ -14,7 +14,7 @@ from typing import Dict, Generator, List, Tuple
 import numpy as np
 
 from koopmans import calculators, utils
-from koopmans.files import FilePointer
+from koopmans.files import File
 from koopmans.outputs import OutputModel
 from koopmans.processes.merge_evc import MergeEVCProcess
 from koopmans.projections import BlockID, ProjectionBlock
@@ -25,7 +25,7 @@ from ._workflow import Workflow
 
 
 class FoldToSupercellOutputs(OutputModel):
-    kcp_files: Dict[str, FilePointer]
+    kcp_files: Dict[str, File]
 
     class Config:
         arbitrary_types_allowed = True
@@ -35,7 +35,7 @@ class FoldToSupercellWorkflow(Workflow):
 
     output_model = FoldToSupercellOutputs  # type: ignore
 
-    def __init__(self, nscf_outdir: FilePointer, hr_files: Dict[str, FilePointer], wannier90_calculations, wannier90_pp_calculations, **kwargs):
+    def __init__(self, nscf_outdir: File, hr_files: Dict[str, File], wannier90_calculations, wannier90_pp_calculations, **kwargs):
         super().__init__(**kwargs)
         self._nscf_outdir = nscf_outdir
         self._hr_files = hr_files
@@ -68,12 +68,12 @@ class FoldToSupercellWorkflow(Workflow):
                     pass
 
                 # Link the input files
-                self.link(*self._hr_files[block.id], calc_w2k, self._hr_files[block.id].name, symlink=True)
-                self.link(*self._nscf_outdir, calc_w2k, calc_w2k.parameters.outdir, recursive_symlink=True)
-                self.link(w90_pp_calc, w90_pp_calc.prefix + '.nnkp', calc_w2k,
-                          calc_w2k.parameters.seedname + '.nnkp', symlink=True)
-                self.link(w90_calc, w90_calc.prefix + '.chk', calc_w2k,
-                          calc_w2k.parameters.seedname + '.chk', symlink=True)
+                calc_w2k.link(self._hr_files[block.id], symlink=True)
+                calc_w2k.link(self._nscf_outdir, calc_w2k.parameters.outdir, recursive_symlink=True)
+                calc_w2k.link(File(w90_pp_calc, w90_pp_calc.prefix + '.nnkp'),
+                              calc_w2k.parameters.seedname + '.nnkp', symlink=True)
+                calc_w2k.link(File(w90_calc, w90_calc.prefix + '.chk'),
+                              calc_w2k.parameters.seedname + '.chk', symlink=True)
 
                 w2k_calcs.append(calc_w2k)
 
@@ -85,10 +85,10 @@ class FoldToSupercellWorkflow(Workflow):
             for block, calc_w2k in zip(self.projections, w2k_calcs):
 
                 if self.parameters.spin_polarized:
-                    converted_files[block.id] = [FilePointer(calc_w2k, Path("evcw.dat"))]
+                    converted_files[block.id] = [File(calc_w2k, Path("evcw.dat"))]
                 else:
-                    converted_files[block.id] = [FilePointer(calc_w2k, Path("evcw1.dat")),
-                                                 FilePointer(calc_w2k, Path("evcw2.dat"))]
+                    converted_files[block.id] = [File(calc_w2k, Path("evcw1.dat")),
+                                                 File(calc_w2k, Path("evcw2.dat"))]
 
             # Merging evcw files
             merged_files = {}

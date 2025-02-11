@@ -1,14 +1,13 @@
-import os
 from pathlib import Path
-from typing import Any, NamedTuple, Union
+from typing import Any, Union
 
 import numpy as np
 
 from koopmans.utils import (HasDirectory, get_binary_content, get_content,
-                            warn, write_binary_content, write_content)
+                            write_binary_content, write_content)
 
 
-class FilePointer(NamedTuple):
+class File:
     """ An abstract way of representing a file
 
     Because a file may not exist locally (specifically, when koopmans is run with AiiDA), we need a way of
@@ -17,18 +16,23 @@ class FilePointer(NamedTuple):
     to koopmans/AiiDA) and a name (which is the path of the file relative to the parent's directory).
 
     """
-    parent: HasDirectory
-    name: Path
+
+    def __init__(self, parent: HasDirectory | None, name: Union[str, Path]):
+        self.parent = parent
+        self.name = Path(name)
 
     def __repr__(self):
-        return f'FilePointer({self.aspath()})'
+        return f'File({self.aspath()})'
 
     def aspath(self) -> Path:
-        assert self.parent is not None
-        assert self.parent.directory is not None
-        return self.parent.directory / self.name
+        if self.parent is None:
+            return self.name
+        else:
+            assert self.parent.directory is not None
+            return self.parent.directory / self.name
 
     def copy(self, dst: Path, binary=False):
+        assert self.parent is not None
         if binary:
             binary_content = get_binary_content(self.parent, self.name)
             write_binary_content(dst, binary_content)
@@ -40,6 +44,7 @@ class FilePointer(NamedTuple):
         return self.aspath().exists()
 
     def read(self, binary: bool = False, numpy: bool = False) -> Any:
+        assert self.parent is not None
         if binary:
             binary_content = get_binary_content(self.parent, self.name)
             if numpy:
@@ -55,34 +60,42 @@ class FilePointer(NamedTuple):
 
     def rglob(self, pattern: str):
         for f in self.aspath().rglob(pattern):
+            assert self.parent is not None
             assert self.parent.absolute_directory is not None
-            yield FilePointer(parent=self.parent, name=f.relative_to(self.parent.absolute_directory))
+            yield File(parent=self.parent, name=f.relative_to(self.parent.absolute_directory))
 
     def is_dir(self):
         return self.aspath().is_dir()
 
     def __eq__(self, other):
-        if not isinstance(other, FilePointer):
+        if not isinstance(other, File):
             return False
         # Note that we only check the parent's directory, not the parent details
         return self.parent.absolute_directory == other.parent.absolute_directory and self.name == other.name
 
     def __reduce__(self):
         # We don't want to store the entire parent object in the database; we only need the directory information
-        dummy_parent = ParentPlaceholder.fromobj(self.parent)
-        return (FilePointer, (dummy_parent, self.name))
+        if self.parent is None:
+            dummy_parent = None
+        else:
+            dummy_parent = ParentPlaceholder.fromobj(self.parent)
+        return (File, (dummy_parent, self.name))
 
     def __gt__(self, other):
-        if not isinstance(other, FilePointer):
-            raise TypeError(f'Cannot compare FilePointer with {type(other)}')
+        if not isinstance(other, File):
+            raise TypeError(f'Cannot compare File with {type(other)}')
         return self.aspath() > other.aspath()
 
     def __lt__(self, other):
         return not self > other
 
+    def __truediv__(self, other):
+        assert isinstance(other, Path) or isinstance(other, str)
+        return File(self.parent, self.name / other)
+
 
 class ParentPlaceholder(HasDirectory):
-    # Placeholder parent for FilePointers that don't have a Workflow/Process/Calculator as a parent
+    # Placeholder parent for Files that don't have a Workflow/Process/Calculator as a parent
     def __init__(self, parent, directory, base_directory=None):
         super().__init__(parent)
         self.directory = directory
@@ -121,7 +134,7 @@ class ParentPlaceholder(HasDirectory):
         return cls(None, Path(), path)
 
 
-def AbsoluteFilePointer(path: Path | str) -> FilePointer:
+def AbsoluteFile(path: Path | str) -> File:
     path = path if isinstance(path, Path) else Path(path)
     parent = ParentPlaceholder.frompath(path.parent)
-    return FilePointer(parent=parent, name=Path(path.name))
+    return File(parent=parent, name=Path(path.name))

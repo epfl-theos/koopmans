@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Generator, List, TypeVar
 
 from koopmans import calculators, pseudopotentials, utils
+from koopmans.files import File
 from koopmans.outputs import OutputModel
 from koopmans.status import Status
 from koopmans.step import Step
@@ -113,7 +114,7 @@ class DFTPhWorkflow(Workflow):
 
         calc_ph = self.new_calculator('ph', epsil=True, fildyn=f'{self.name}.dynG')
         calc_ph.prefix = 'eps'
-        self.link(calc_scf, calc_scf.parameters.outdir, calc_ph, calc_ph.parameters.outdir, symlink=True)
+        calc_ph.link(File(calc_scf, calc_scf.parameters.outdir), calc_ph.parameters.outdir, symlink=True)
         status = self.run_steps(calc_ph)
 
         if status == Status.COMPLETED:
@@ -151,7 +152,7 @@ class DFTBandsWorkflow(DFTWorkflow):
         calc_bands.prefix = 'bands'
         assert isinstance(calc_scf.parameters.outdir, Path)
         assert isinstance(calc_bands.parameters.outdir, Path)
-        self.link(calc_scf, calc_scf.parameters.outdir, calc_bands, calc_bands.parameters.outdir, symlink=True)
+        calc_bands.link(File(calc_scf, calc_scf.parameters.outdir), calc_bands.parameters.outdir, symlink=True)
         status = self.run_steps(calc_bands)
         if status != Status.COMPLETED:
             return
@@ -164,7 +165,7 @@ class DFTBandsWorkflow(DFTWorkflow):
         if all([p['header'].get('number_of_wfc', 0) for p in self.pseudopotentials.values()]):
             calc_dos: calculators.ProjwfcCalculator = self.new_calculator('projwfc')
             assert isinstance(calc_dos.parameters.outdir, Path)
-            self.link(calc_bands, calc_bands.parameters.outdir, calc_dos, calc_dos.parameters.outdir, symlink=True)
+            calc_dos.link(File(calc_bands, calc_bands.parameters.outdir), calc_dos.parameters.outdir, symlink=True)
             status = self.run_steps(calc_dos)
             if status != Status.COMPLETED:
                 return

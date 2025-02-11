@@ -10,7 +10,7 @@ from upf_tools import UPFDict
 from koopmans import utils
 from koopmans.calculators import (Calc, ImplementedCalc, PhCalculator,
                                   ProjwfcCalculator, ReturnsBandStructure)
-from koopmans.files import FilePointer
+from koopmans.files import File
 from koopmans.processes import Process
 from koopmans.pseudopotentials import (fetch_pseudo, pseudo_database,
                                        pseudos_library_directory,
@@ -100,19 +100,20 @@ class LocalhostEngine(Engine):
         pseudo_path = pseudos_library_directory(pseudo.library) / pseudo.name
         return read_pseudo_file(pseudo_path)
 
-    def read(self, file: FilePointer, binary=False) -> str | bytes:
+    def read(self, file: File, binary=False) -> str | bytes:
+        assert file.parent is not None
         if binary:
-            return utils.get_binary_content(*file)
+            return utils.get_binary_content(file.parent, file.name)
         else:
-            return utils.get_content(*file)
+            return utils.get_content(file.parent, file.name)
 
-    def write(self, content: str | bytes, file: FilePointer) -> None:
+    def write(self, content: str | bytes, file: File) -> None:
         if isinstance(content, str):
             utils.write_content(file.aspath(), content)
         elif isinstance(content, bytes):
             utils.write_binary_content(file.aspath(), content)
 
-    def link(self, source: FilePointer, destination: FilePointer) -> None:
+    def link(self, source: File, destination: File) -> None:
         utils.symlink(source.aspath(), destination.aspath())
 
     @contextlib.contextmanager
@@ -122,7 +123,7 @@ class LocalhostEngine(Engine):
     def rmdir(self, directory: Path) -> None:
         utils.remove(directory)
 
-    def glob(self, directory: FilePointer, pattern: str, recursive: bool = False) -> Generator[FilePointer, None, None]:
+    def glob(self, directory: File, pattern: str, recursive: bool = False) -> Generator[File, None, None]:
         assert directory.parent is not None
         assert directory.parent.directory is not None
         if recursive:
@@ -130,7 +131,7 @@ class LocalhostEngine(Engine):
         else:
             generator = directory.aspath().glob(pattern)
         for path in generator:
-            yield FilePointer(parent=directory.parent, name=path.relative_to(directory.parent.directory))
+            yield File(parent=directory.parent, name=path.relative_to(directory.parent.directory))
 
     def available_pseudo_families(self) -> set[str]:
         return set([p.library for p in pseudo_database])

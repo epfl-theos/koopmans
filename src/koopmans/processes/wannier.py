@@ -6,7 +6,7 @@ import numpy as np
 from ase_koopmans import Atoms
 
 from koopmans import calculators, utils
-from koopmans.files import FilePointer
+from koopmans.files import File
 
 from ._process import IOModel, Process
 
@@ -111,7 +111,7 @@ def extend_wannier_u_dis_file_content(filecontent: str, nbnd: int, nwann: int) -
 
 
 class MergeInputModel(IOModel):
-    src_files: List[FilePointer]
+    src_files: List[File]
     dst_file: Path
 
     class Config:
@@ -138,13 +138,13 @@ class MergeProcess(Process):
 
         merged_filecontents = self.merge_function(filecontents)
 
-        self.engine.write(merged_filecontents, FilePointer(self, self.inputs.dst_file))
+        self.engine.write(merged_filecontents, File(self, self.inputs.dst_file))
 
         self.outputs = self.output_model(dst_file=self.inputs.dst_file)
 
 
 class ExtendInputModel(IOModel):
-    src_file: FilePointer
+    src_file: File
     dst_file: Path
 
     class Config:

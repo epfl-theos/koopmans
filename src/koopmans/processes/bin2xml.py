@@ -3,21 +3,21 @@ from typing import List
 
 from koopmans import utils
 from koopmans.commands import Command
-from koopmans.files import FilePointer
+from koopmans.files import File
 
 from ._commandlinetool import CommandLineTool
 from ._process import IOModel
 
 
 class Bin2XMLInput(IOModel):
-    binary: FilePointer
+    binary: File
 
     class Config:
         arbitrary_types_allowed = True
 
 
 class Bin2XMLOutput(IOModel):
-    xml: FilePointer
+    xml: File
 
     class Config:
         arbitrary_types_allowed = True
@@ -33,16 +33,13 @@ class Bin2XMLProcess(CommandLineTool):
         if not (self.inputs.binary.parent.absolute_directory / self.inputs.binary.name).exists():
             raise FileNotFoundError(f'`{self.inputs.binary}` does not exist')
 
-        # Load the file
-        binary_file_contents = utils.get_binary_content(*self.inputs.binary)
-
-        # Write the file to disk
-        utils.write_binary_content("input.dat", binary_file_contents)
+        # Link the input binary file to the directory of this process as input.dat
+        self.engine.link(self.inputs.binary, File(self, Path("input.dat")))
 
     @property
     def command(self):
         return Command(executable='bin2xml.x', suffix=f'input.dat output.xml')
 
     def _set_outputs(self):
-        xml_filepointer = FilePointer(self, Path("output.xml"))
+        xml_filepointer = File(self, Path("output.xml"))
         self.outputs = self.output_model(xml=xml_filepointer)

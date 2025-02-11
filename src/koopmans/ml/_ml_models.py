@@ -171,7 +171,8 @@ class AbstractMLModel(ABC):
 
 def power_spectrum_from_band(band: Band) -> np.ndarray:
     assert band.power_spectrum is not None
-    return np.frombuffer(get_binary_content(*band.power_spectrum))
+    assert band.power_spectrum.parent is not None
+    return np.frombuffer(get_binary_content(band.power_spectrum.parent, band.power_spectrum.name))
 
 
 def self_hartree_from_band(band: Band) -> np.ndarray:

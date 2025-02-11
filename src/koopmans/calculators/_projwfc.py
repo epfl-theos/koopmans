@@ -19,7 +19,7 @@ from upf_tools import UPFDict
 
 from koopmans import pseudopotentials
 from koopmans.commands import Command, ParallelCommand
-from koopmans.files import FilePointer
+from koopmans.files import File
 from koopmans.settings import ProjwfcSettingsDict
 
 from ._calculator import CalculatorABC, CalculatorExt
@@ -79,7 +79,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         for atom in self.atoms:
             assert self.directory is not None
             assert self.engine is not None
-            filenames = self.engine.glob(directory=FilePointer(self, Path()),
+            filenames = self.engine.glob(directory=File(self, Path()),
                                          pattern=self.parameters.filpdos + f'.pdos_atm#{atom.index+1}(*',
                                          recursive=False)
             # The filename does not encode the principal quantum number n. In order to recover this number, we compare
@@ -100,7 +100,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         #  add pDOS to self.results
         self.results['dos'] = GridDOSCollection(dos_list)
 
-    def read_pdos(self, filename: FilePointer, expected_subshell: str) -> List[GridDOSData]:
+    def read_pdos(self, filename: File, expected_subshell: str) -> List[GridDOSData]:
         """
         Function for reading a pDOS file
         """

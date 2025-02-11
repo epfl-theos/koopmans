@@ -37,7 +37,7 @@ from ase_koopmans.spectrum.band_structure import BandStructure
 from numpy import typing as npt
 
 from koopmans import settings, utils
-from koopmans.files import FilePointer
+from koopmans.files import File
 
 if TYPE_CHECKING:
     from koopmans.workflows import Workflow
@@ -94,7 +94,7 @@ class CalculatorExt(utils.HasDirectory):
         self.skip_qc = skip_qc
 
         # Prepare a dictionary to store a record of linked files
-        self.linked_files: Dict[str, Tuple[utils.HasDirectory | None, Path, bool, bool, bool]] = {}
+        self.linked_files: Dict[str, Tuple[File, bool, bool, bool]] = {}
 
     def __repr__(self):
         entries = []
@@ -177,7 +177,11 @@ class CalculatorExt(utils.HasDirectory):
 
         This function is called in _pre_calculate() i.e. immediately before a calculation is run.
         """
-        for dest_filename, (src_calc, src_filename, symlink, recursive_symlink, overwrite) in self.linked_files.items():
+        for dest_filename, (src_filepointer, symlink, recursive_symlink, overwrite) in self.linked_files.items():
+            # Get the source calculator and the filename from the File object
+            src_calc = src_filepointer.parent
+            src_filename = src_filepointer.name
+
             # Convert to absolute paths
             if src_calc is None:
                 src_filename = src_filename.resolve()
@@ -296,15 +300,16 @@ class CalculatorExt(utils.HasDirectory):
             setattr(calc, k.lstrip('_'), v)
         return calc
 
-    def link_file(self, src_calc: utils.HasDirectory | None, src_filename: Path, dest_filename: Path,
-                  symlink: bool = False, recursive_symlink: bool = False, overwrite: bool = False):
-        if src_filename.is_absolute() and src_calc is not None:
-            raise ValueError(f'`src_filename` in `{self.__class__.__name__}.link_file()` must be a relative path if a '
-                             f'`src_calc` is provided')
-        if dest_filename.is_absolute():
-            raise ValueError(f'`dest_filename` in `{self.__class__.__name__}.link_file()` must be a relative path')
-
-        self.linked_files[str(dest_filename)] = (src_calc, src_filename, symlink, recursive_symlink, overwrite)
+    def link(self, src: File, dest_filename: File | Path | str | None = None,
+             symlink: bool = False, recursive_symlink: bool = False, overwrite: bool = False):
+        if dest_filename is None:
+            dest_filename = src.name
+        if isinstance(dest_filename, File):
+            if dest_filename.parent != self:
+                raise ValueError(
+                    'When linking to a calculator, destination `File` objects must have that calculator as their `parent`')
+            dest_filename = dest_filename.name
+        self.linked_files[str(dest_filename)] = (src, symlink, recursive_symlink, overwrite)
 
 
 class CalculatorABC(ABC, Generic[TCalc]):
@@ -445,12 +450,12 @@ class CalculatorCanEnforceSpinSym(ABC):
 
     @property
     @abstractmethod
-    def files_to_convert_with_spin2_to_spin1(self) -> Dict[str, List[FilePointer] | List[Path]]:
+    def files_to_convert_with_spin2_to_spin1(self) -> Dict[str, List[File] | List[Path]]:
         ...
 
     @property
     @abstractmethod
-    def files_to_convert_with_spin1_to_spin2(self) -> Dict[str, List[FilePointer] | List[Path]]:
+    def files_to_convert_with_spin1_to_spin2(self) -> Dict[str, List[File] | List[Path]]:
         ...
 
     @abstractmethod

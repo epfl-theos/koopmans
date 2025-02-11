@@ -26,7 +26,7 @@ from scipy.linalg import block_diag
 from koopmans import bands, pseudopotentials, settings, utils
 from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.commands import ParallelCommand
-from koopmans.files import FilePointer
+from koopmans.files import File
 
 from ._calculator import (CalculatorABC, CalculatorCanEnforceSpinSym,
                           CalculatorExt)
@@ -196,7 +196,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             parent, name, sym, rsym, force = self.linked_files[key]
             if parent is None:
                 continue
-            dst_filepointer = FilePointer(parent, name)
+            dst_filepointer = File(parent, name)
             if dst_filepointer.is_dir():
                 self.linked_files.pop(key)
                 for filepointer in dst_filepointer.rglob('*'):
@@ -225,23 +225,6 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         for key in ['eigenvalues', 'lambda']:
             if key in self.results:
                 self.results[key] = self.results[key][::-1]
-
-        # # Input and output files
-        # for subdirectory in [self.read_directory, self.write_directory]:
-        #     utils.warn('Here we manually are moving files; this will need to be refactored for compatibility with AiiDA')
-        #     outdir = self.directory / subdirectory / 'K00001'
-
-        #     for fpath_1 in outdir.glob('*1.*'):
-        #         # Swap the two files around
-        #         fpath_tmp = fpath_1.parent / fpath_1.name.replace('1', 'tmp')
-        #         fpath_2 = fpath_1.parent / fpath_1.name.replace('1', '2')
-
-        #         if not fpath_2.exists():
-        #             raise FileNotFoundError(f'`{fpath_2}` does not exist')
-
-        #         fpath_1.replace(fpath_tmp)
-        #         fpath_2.replace(fpath_1)
-        #         fpath_tmp.replace(fpath_2)
 
     def _autogenerate_nr(self):
         '''
@@ -577,7 +560,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return self.parameters.restart_mode == 'from_scratch'
 
     @property
-    def files_to_convert_with_spin2_to_spin1(self) -> Dict[str, List[FilePointer] | List[Path]]:
+    def files_to_convert_with_spin2_to_spin1(self) -> Dict[str, List[File] | List[Path]]:
         nspin_2_files = []
         nspin_1_files = []
         for f in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
@@ -587,7 +570,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             else:
                 prefix, suffix = f.split('.')
 
-            nspin_2_file = FilePointer(self, self.read_directory / 'K00001' / f'{prefix}1.{suffix}')
+            nspin_2_file = self.read_directory / 'K00001' / f'{prefix}1.{suffix}'
             if nspin_2_file.exists():
                 nspin_2_files.append(nspin_2_file)
                 nspin_1_files.append(Path(f))
@@ -597,7 +580,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
     @property
     def files_to_convert_with_spin1_to_spin2(self):
 
-        nspin_1_filepointers = []
+        nspin_1_files = []
         nspin_2up_files = []
         nspin_2dw_files = []
 
@@ -609,29 +592,29 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             else:
                 prefix, suffix = nspin_1_file.split('.')
 
-            nspin_1_filepointer = FilePointer(self, self.read_directory / 'K00001' / nspin_1_file)
-            if nspin_1_filepointer.exists():
-                nspin_1_filepointers.append(nspin_1_filepointer)
+            nspin_1_file = self.read_directory / 'K00001' / nspin_1_file
+            if nspin_1_file.exists():
+                nspin_1_files.append(nspin_1_file)
                 nspin_2up_files.append(f'{prefix}1.{suffix}')
                 nspin_2dw_files.append(f'{prefix}2.{suffix}')
 
-        return {'spin_1_files': nspin_1_filepointers,
+        return {'spin_1_files': nspin_1_files,
                 'spin_2_up_files': nspin_2up_files,
                 'spin_2_down_files': nspin_2dw_files}
 
     @property
-    def read_directory(self) -> Path:
+    def read_directory(self) -> File:
         assert isinstance(self.parameters.outdir, Path)
         assert self.parameters.ndr is not None
         assert self.parameters.prefix is not None
-        return self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndr}.save'
+        return File(self, self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndr}.save')
 
     @property
-    def write_directory(self):
+    def write_directory(self) -> File:
         assert isinstance(self.parameters.outdir, Path)
         assert self.parameters.ndw is not None
         assert self.parameters.prefix is not None
-        return self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndw}.save'
+        return File(self, self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndw}.save')
 
 
 def convert_flat_alphas_for_kcp(flat_alphas: List[float],

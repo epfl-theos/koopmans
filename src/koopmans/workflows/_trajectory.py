@@ -17,7 +17,7 @@ from koopmans.outputs import OutputModel
 from koopmans.status import Status
 from koopmans.step import Step
 
-from ._koopmans_dscf import KoopmansDSCFOutputs
+from ._koopmans_dscf import KoopmansDSCFOutputs, KoopmansDSCFWorkflow
 from ._workflow import Workflow
 
 
@@ -40,7 +40,6 @@ class TrajectoryWorkflow(Workflow):
         """
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
-        from koopmans.workflows import KoopmansDSCFWorkflow
 
         workflows = []
         for i, snapshot in enumerate(self.snapshots):
@@ -58,7 +57,7 @@ class TrajectoryWorkflow(Workflow):
             workflows.append(workflow)
 
         for w in workflows:
-            w.run()
+            w.run(copy_outputs_to_parent=False)
 
         if not all([w.status == Status.COMPLETED for w in workflows]):
             return

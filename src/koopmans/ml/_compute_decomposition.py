@@ -9,9 +9,7 @@ from ase_koopmans.cell import Cell
 from numpy.linalg import norm
 
 from koopmans.bands import Band
-from koopmans.files import FilePointer
-from koopmans.utils import (get_binary_content, get_content,
-                            write_binary_content)
+from koopmans.files import File
 
 from ._basis_functions import g as g_basis
 from ._basis_functions import \
@@ -143,9 +141,11 @@ def get_coefficients(rho: np.ndarray, rho_total: np.ndarray, r_cartesian: np.nda
     return coefficients, coefficients_total
 
 
-def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_cut: float, total_density_xml: FilePointer,
-                          orbital_densities_xml: Dict[str, FilePointer],
-                          bands: List[Band], cell: Cell, wannier_centers: np.ndarray, alpha_file: FilePointer, beta_file: FilePointer) -> Tuple[List[str], List[str]]:
+def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_cut: float,
+                          total_density_xml: File, orbital_densities_xml: List[File],
+                          bands: List[Band], cell: Cell, wannier_centers: np.ndarray, alpha_file: File,
+                          beta_file: File, read_content: Callable[[File], str],
+                          read_binary_content: Callable[[File], bytes]) -> Tuple[Dict[str, bytes], Dict[str, bytes]]:
     """
     Computes the expansion coefficients of the total and orbital densities.
     """
@@ -154,7 +154,7 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
     norm_const = 1/(units.Bohr)**3
 
     # Load the grid dimensions nr_xml from charge-density-file
-    raw_filecontents = get_content(*total_density_xml)
+    raw_filecontents = read_content(total_density_xml)
     xml_root = ET.fromstringlist(raw_filecontents)
     xml_charge_density = xml_root.find('CHARGE-DENSITY')
     assert xml_charge_density is not None
@@ -187,8 +187,8 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
     r_spherical = cart2sph_array(r_cartesian)
 
     # Define our radial basis functions, which are partially parameterized by precomputed vectors
-    alphas = np.frombuffer(get_binary_content(*alpha_file)).reshape((n_max, l_max+1))
-    betas = np.frombuffer(get_binary_content(*beta_file)).reshape((n_max, n_max, l_max+1))
+    alphas = np.frombuffer(read_binary_content(alpha_file)).reshape((n_max, l_max+1))
+    betas = np.frombuffer(read_binary_content(beta_file)).reshape((n_max, n_max, l_max+1))
     radial_basis_functions: RadialBasisFunctions = partial(g_basis, betas=betas, alphas=alphas)
 
     # Compute R_nl Y_lm for each point on the integration domain
@@ -196,15 +196,15 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
         radial_basis_functions, real_spherical_harmonics_basis_functions, r_cartesian, r_spherical, n_max, l_max)
 
     # load the total charge density
-    raw_filecontents = get_content(*total_density_xml)
+    raw_filecontents = read_content(total_density_xml)
     xml_root = ET.fromstringlist(raw_filecontents)
     assert xml_root is not None
     xml_charge_density = xml_root.find('CHARGE-DENSITY')
     assert xml_charge_density is not None
     total_density_r = parse_xml_array(xml_charge_density, nr_xml, norm_const)
 
-    orbital_files = []
-    total_files = []
+    orbital_files = {}
+    total_files = {}
 
     # Compute the decomposition for each band
     assert len(orbital_densities_xml) == len(bands)
@@ -216,7 +216,7 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
             filled_str = 'emp'
 
         # load the orbital density
-        raw_filecontents = get_content(*orbital_density_xml)
+        raw_filecontents = read_content(orbital_density_xml)
         xml_root = ET.fromstringlist(raw_filecontents)
         assert xml_root is not None
         xml_charge_density = xml_root.find('EFFECTIVE-POTENTIAL')
@@ -240,12 +240,9 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
 
         # save the decomposition coefficients in files
         orbital_file = f'coeff.orbital.{filled_str}.{band.index}.npy'
-        write_binary_content(orbital_file, coefficients_orbital.tobytes())
+        orbital_files[orbital_file] = coefficients_orbital.tobytes()
         total_file = f'coeff.total.{filled_str}.{band.index}.npy'
-        write_binary_content(total_file, coefficients_total.tobytes())
-
-        orbital_files.append(orbital_file)
-        total_files.append(total_file)
+        total_files[total_file] = coefficients_total.tobytes()
 
     return orbital_files, total_files
 

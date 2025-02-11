@@ -203,11 +203,11 @@ class HasDirectory:
 
     __slots__ = ['parent', '_directory', '_base_directory', 'engine']
 
-    def __init__(self, parent=None, directory=None, base_directory=None, engine=None):
+    def __init__(self, parent: Optional[HasDirectory] = None, directory=None, base_directory=None, engine: Optional[Engine] = None):
         self._base_directory: Optional[Path] = None
         self._directory: Optional[Path] = None
-        self.parent: Optional[HasDirectory] = parent
-        self.engine: Optional[Engine] = engine
+        self.parent = parent
+        self.engine = engine
 
         if not self.parent:
             self.base_directory = base_directory

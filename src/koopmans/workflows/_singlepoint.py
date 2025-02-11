@@ -16,7 +16,7 @@ import numpy as np
 
 from koopmans import utils
 from koopmans.calculators import ProjwfcCalculator
-from koopmans.files import FilePointer
+from koopmans.files import File
 from koopmans.outputs import OutputModel
 from koopmans.status import Status
 from koopmans.step import Step

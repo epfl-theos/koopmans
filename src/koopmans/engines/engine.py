@@ -6,7 +6,7 @@ from typing import Generator, Optional
 from upf_tools import UPFDict
 
 from koopmans import utils
-from koopmans.files import FilePointer
+from koopmans.files import File
 from koopmans.status import Status
 from koopmans.step import Step
 
@@ -73,15 +73,15 @@ class Engine(ABC):
         ...
 
     @abstractmethod
-    def read(self, file: FilePointer, binary: bool = False) -> str | bytes:
+    def read(self, file: File, binary: bool = False) -> str | bytes:
         ...
 
     @abstractmethod
-    def write(self, content: str | bytes, file: FilePointer) -> None:
+    def write(self, content: str | bytes, file: File) -> None:
         ...
 
     @abstractmethod
-    def link(self, source: FilePointer, destination: FilePointer) -> None:
+    def link(self, source: File, destination: File) -> None:
         ...
 
     @abstractmethod
@@ -90,7 +90,7 @@ class Engine(ABC):
         ...
 
     @abstractmethod
-    def glob(self, directory: FilePointer, pattern: str, recursive: bool = False) -> Generator[FilePointer, None, None]:
+    def glob(self, directory: File, pattern: str, recursive: bool = False) -> Generator[File, None, None]:
         ...
 
     @abstractmethod

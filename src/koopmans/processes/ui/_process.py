@@ -8,7 +8,6 @@ import copy
 import json
 import os
 from datetime import datetime
-from pathlib import Path
 from time import time
 from typing import List, Optional, Tuple, Type, Union
 
@@ -22,7 +21,7 @@ from numpy.typing import ArrayLike, NDArray
 from pydantic import ConfigDict, Field
 
 from koopmans import calculators, utils
-from koopmans.files import FilePointer
+from koopmans.files import File
 from koopmans.kpoints import Kpoints, kpath_to_dict
 from koopmans.settings import (PlotSettingsDict,
                                UnfoldAndInterpolateSettingsDict)
@@ -47,16 +46,16 @@ class UnfoldAndInterpolateInputs(IOModel):
     spreads: List[float] = \
         Field(..., description="spreads of Wannier functions (in Ang^2)")
 
-    kc_ham_file: FilePointer = \
+    kc_ham_file: File = \
         Field(..., description='The Koopmans Hamiltonian')
 
-    dft_ham_file: FilePointer = \
+    dft_ham_file: File = \
         Field(..., description='The DFT Hamiltonian')
 
-    dft_smooth_ham_file: Optional[FilePointer] = \
+    dft_smooth_ham_file: Optional[File] = \
         Field(default=None, description='The DFT Hamiltonian, evaluated on the smooth grid')
 
-    wf_phases_file: Optional[FilePointer] = \
+    wf_phases_file: Optional[File] = \
         Field(default=None, description='The file containing the phases of the Wannier functions')
 
     plotting_parameters: PlotSettingsDict = \
@@ -217,8 +216,10 @@ class UnfoldAndInterpolateProcess(Process):
         """
 
         try:
-            with open(f'wf_phases.dat', 'r') as ifile:
-                lines = ifile.readlines()
+            assert self.engine is not None
+            content = self.engine.read(File(self, 'wf_phases.dat'))
+            assert isinstance(content, str)
+            lines = content.split('\n')
             self._phases = [float(l.split()[0]) + float(l.split()[1]) * 1j for l in lines]
         except FileNotFoundError:
             if self.inputs.parameters.w90_input_sc:
@@ -267,14 +268,14 @@ class UnfoldAndInterpolateProcess(Process):
             if bs.shape[0] == 2:
                 fname += f'_spin_{label}'
 
-            with open(f'{fname}.dat', 'w') as ofile:
-                ofile.write('# Written at ' + datetime.now().isoformat(timespec='seconds'))
-
-                for energies in energies_spin.transpose():
-                    assert len(kx) == len(energies)
-                    for k, energy in zip(kx, energies):
-                        ofile.write(f'\n{k:16.8f}{energy:16.8f}')
-                    ofile.write('\n')
+            content = '# Written at ' + datetime.now().isoformat(timespec='seconds')
+            for energies in energies_spin.transpose():
+                assert len(kx) == len(energies)
+                for k, energy in zip(kx, energies):
+                    content += f'\n{k:16.8f}{energy:16.8f}'
+                content += '\n'
+            assert self.engine is not None
+            self.engine.write(content, File(self, f'{fname}.dat'))
 
         return
 
@@ -283,12 +284,13 @@ class UnfoldAndInterpolateProcess(Process):
         write_dos prints the DOS in a file called 'dos_interpolated.dat', in a format (E , DOS(E))
 
         """
-        with open(f'dos_interpolated.dat', 'w') as ofile:
-            ofile.write('# Written at ' + datetime.now().isoformat(timespec='seconds'))
-            dos = self.outputs.dos
-            for e, d in zip(dos.get_energies(), dos.get_dos()):
-                ofile.write('\n{:10.4f}{:12.6f}'.format(e, d))
-            ofile.write('\n')
+        content = '# Written at ' + datetime.now().isoformat(timespec='seconds')
+        dos = self.outputs.dos
+        for e, d in zip(dos.get_energies(), dos.get_dos()):
+            content += '\n{:10.4f}{:12.6f}'.format(e, d)
+        content += '\n'
+        assert self.engine is not None
+        self.engine.write(content, File(self, 'dos_interpolated.dat'))
 
         return
 
@@ -298,33 +300,33 @@ class UnfoldAndInterpolateProcess(Process):
         never actually used in a standard calculation, but it is useful for debugging
         """
 
-        with open(f'{self.name}.json', 'w') as fd:
-            settings = copy.deepcopy(self.inputs.parameters.data)
+        settings = copy.deepcopy(self.inputs.parameters.data)
 
-            # Remove the kpoints information from the settings dict
-            kgrid = settings.pop('kgrid')
-            kpath = settings.pop('kpath')
+        # Remove the kpoints information from the settings dict
+        kgrid = settings.pop('kgrid')
+        kpath = settings.pop('kpath')
 
-            # Converting Paths to JSON-serialisable strings
-            for k in self.inputs.parameters.are_paths:
-                if k in settings:
-                    settings[k] = str(settings[k])
+        # Converting Paths to JSON-serialisable strings
+        for k in self.inputs.parameters.are_paths:
+            if k in settings:
+                settings[k] = str(settings[k])
 
-            # Store all the settings in one big dictionary
-            bigdct = {"workflow": {"task": "ui"}, "ui": settings}
+        # Store all the settings in one big dictionary
+        bigdct = {"workflow": {"task": "ui"}, "ui": settings}
 
-            # Provide the bandpath information in the form of a string
-            bigdct['kpoints'] = {'grid': kgrid, **kpath_to_dict(kpath)}
-            # The cell is stored elsewhere
-            bigdct['kpoints'].pop('cell')
+        # Provide the bandpath information in the form of a string
+        bigdct['kpoints'] = {'grid': kgrid, **kpath_to_dict(kpath)}
+        # The cell is stored elsewhere
+        bigdct['kpoints'].pop('cell')
 
-            # Provide the plot information
-            bigdct['plotting'] = {k: v for k, v in self.inputs.plotting_parameters.data.items()}
+        # Provide the plot information
+        bigdct['plotting'] = {k: v for k, v in self.inputs.plotting_parameters.data.items()}
 
-            # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
-            bigdct['atoms'] = {'cell_parameters': utils.construct_cell_parameters_block(atoms)}
+        # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
+        bigdct['atoms'] = {'cell_parameters': utils.construct_cell_parameters_block(atoms)}
 
-            json.dump(bigdct, fd, indent=2)
+        assert self.engine is not None
+        self.engine.write(json.dumps(bigdct, indent=2), File(self, f'{self.name}.json'))
 
     def interpolate(self):
         """

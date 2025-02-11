@@ -4,7 +4,6 @@ Inspired by CWL."""
 
 import re
 from abc import ABC, abstractmethod
-from pathlib import Path
 from typing import TYPE_CHECKING, Dict, Generic, Tuple, Type, TypeVar
 from uuid import uuid4
 
@@ -13,7 +12,7 @@ import numpy as np
 from pydantic import BaseModel
 
 from koopmans import utils
-from koopmans.files import FilePointer
+from koopmans.files import File
 
 if TYPE_CHECKING:
     from koopmans.workflows import Workflow
@@ -55,7 +54,7 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
         # Initialize the directory information
         super().__init__()
 
-        self.linked_files: Dict[str, FilePointer] = {}
+        self.linked_files: Dict[str, File] = {}
 
     def run(self):
         self._pre_run()
@@ -90,7 +89,7 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
 
         # Link the files in self.linked_files
         for dest, src in self.linked_files.items():
-            self.engine.link(src, FilePointer(self, Path(dest)))
+            self.engine.link(src, File(self, dest))
 
     @abstractmethod
     def _run(self):
@@ -109,19 +108,19 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
     def dump_inputs(self):
         assert self.directory is not None
         assert self.engine is not None
-        dst = Path(f'{self.name}_inputs.pkl')
-        self.engine.write(dill.dumps(self.inputs), FilePointer(self, dst))
+        dst = f'{self.name}_inputs.pkl'
+        self.engine.write(dill.dumps(self.inputs), File(self, dst))
 
     def dump_outputs(self):
         assert self.directory is not None
         assert self.engine is not None
-        dst = Path(f'{self.name}_outputs.pkl')
-        self.engine.write(dill.dumps(self.outputs), FilePointer(self, dst))
+        dst = f'{self.name}_outputs.pkl'
+        self.engine.write(dill.dumps(self.outputs), File(self, dst))
 
     def load_outputs(self):
         if self.directory is None:
             raise ValueError('Process directory must be set before attempting to load outputs')
-        content = self.engine.read(FilePointer(self, f'{self.name}_outputs.pkl'), binary=True)
+        content = self.engine.read(File(self, f'{self.name}_outputs.pkl'), binary=True)
         self.outputs = dill.loads(content)
 
     def is_complete(self):

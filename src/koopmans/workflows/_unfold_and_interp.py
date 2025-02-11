@@ -16,7 +16,7 @@ from ase_koopmans.dft.dos import DOS
 from ase_koopmans.spectrum.band_structure import BandStructure
 
 from koopmans import calculators, outputs, utils
-from koopmans.files import FilePointer
+from koopmans.files import File
 from koopmans.processes.ui import UnfoldAndInterpolateProcess, generate_dos
 from koopmans.projections import BlockID
 from koopmans.status import Status
@@ -29,7 +29,7 @@ from ._workflow import Workflow
 class UnfoldAndInterpolateOutput(outputs.OutputModel):
     band_structure: BandStructure
     dos: Optional[DOS]
-    smooth_dft_ham_files: Optional[Dict[BlockID, FilePointer]]
+    smooth_dft_ham_files: Optional[Dict[BlockID, File]]
 
     class Config:
         arbitrary_types_allowed = True
@@ -39,9 +39,9 @@ class UnfoldAndInterpolateWorkflow(Workflow):
 
     output_model = UnfoldAndInterpolateOutput  # type: ignore
 
-    def __init__(self, *args, koopmans_ham_files: Dict[BlockID, FilePointer],
-                 dft_ham_files: Dict[BlockID, FilePointer],
-                 smooth_dft_ham_files: Dict[BlockID, FilePointer] | None = None, **kwargs) -> None:
+    def __init__(self, *args, koopmans_ham_files: Dict[BlockID, File],
+                 dft_ham_files: Dict[BlockID, File],
+                 smooth_dft_ham_files: Dict[BlockID, File] | None = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._dft_ham_files = dft_ham_files
         self._koopmans_ham_files = koopmans_ham_files

@@ -1,6 +1,7 @@
 """
 Processes used during the machine learning workflows
 """
+from functools import partial
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -10,7 +11,7 @@ from pydantic import ConfigDict
 
 from koopmans import ml, utils
 from koopmans.bands import Band
-from koopmans.files import FilePointer
+from koopmans.files import File
 
 from ._process import IOModel, Process
 
@@ -24,19 +25,19 @@ class ExtractCoefficientsFromXMLInput(IOModel):
     r_max: float
     r_cut: float
     wannier_centers: List[List[float]]
-    total_density_xml: FilePointer
+    total_density_xml: File
     cell: Cell
-    orbital_densities_xml: List[FilePointer]
+    orbital_densities_xml: List[File]
     bands: List[Band]
 
 
 class ExtractCoefficientsFromXMLOutput(IOModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    precomputed_alphas: FilePointer
-    precomputed_betas: FilePointer
-    total_coefficients: List[FilePointer]
-    orbital_coefficients: List[FilePointer]
+    precomputed_alphas: File
+    precomputed_betas: File
+    total_coefficients: List[File]
+    orbital_coefficients: List[File]
 
 
 class ExtractCoefficientsFromXMLProcess(Process):
@@ -56,35 +57,41 @@ class ExtractCoefficientsFromXMLProcess(Process):
         # Save the parameters to file
         suffix = '_'.join(str(x) for x in [self.inputs.n_max, self.inputs.l_max, self.inputs.r_min, self.inputs.r_max])
         assert self.directory is not None
-        alpha_file = f'alphas_{suffix}.npy'
-        beta_file = f'betas_{suffix}.npy'
-        alpha_filepointer = FilePointer(self, alpha_file)
-        beta_filepointer = FilePointer(self, beta_file)
-        utils.write_binary_content(self.directory / alpha_file, alphas.tobytes())
-        utils.write_binary_content(self.directory / beta_file, betas.tobytes())
+        alpha_file = File(self, f'alphas_{suffix}.npy')
+        beta_file = File(self, f'betas_{suffix}.npy')
+        self.engine.write(alphas.tobytes(), alpha_file)
+        self.engine.write(betas.tobytes(), beta_file)
 
         # Compute the decomposition
         orbital_files, total_files = ml.compute_decomposition(
-            alpha_file=alpha_filepointer, beta_file=beta_filepointer, **self.inputs.dict())
+            alpha_file=alpha_file, beta_file=beta_file,
+            read_content=partial(self.engine.read, binary=False),
+            read_binary_content=partial(self.engine.read, binary=True),
+            **self.inputs.dict())
 
-        self.outputs = ExtractCoefficientsFromXMLOutput(precomputed_alphas=alpha_filepointer,
-                                                        precomputed_betas=beta_filepointer,
-                                                        total_coefficients=[FilePointer(self, f) for f in total_files],
-                                                        orbital_coefficients=[FilePointer(self, f) for f in orbital_files])
+        # Write the files
+        for name, content in list(orbital_files.items()) + list(total_files.items()):
+            self.engine.write(content, File(self, name))
+
+        self.outputs = ExtractCoefficientsFromXMLOutput(precomputed_alphas=alpha_file,
+                                                        precomputed_betas=beta_file,
+                                                        total_coefficients=[File(self, f)
+                                                                            for f in total_files.keys()],
+                                                        orbital_coefficients=[File(self, f) for f in orbital_files.keys()])
 
 
 class ComputePowerSpectrumInput(IOModel):
     n_max: int
     l_max: int
-    orbital_coefficients: FilePointer
-    total_coefficients: FilePointer
+    orbital_coefficients: File
+    total_coefficients: File
 
     class Config:
         arbitrary_types_allowed = True
 
 
 class ComputePowerSpectrumOutput(IOModel):
-    power_spectrum: FilePointer
+    power_spectrum: File
 
     class Config:
         arbitrary_types_allowed = True
@@ -144,5 +151,8 @@ class ComputePowerSpectrumProcess(Process):
         power_mat = compute_power_mat(coeff_matrix, self.inputs.n_max, self.inputs.l_max)
 
         # Write the power spectrum to file
-        utils.write_binary_content(f'power_spectrum.npy', power_mat.tobytes())
-        self.outputs = self.output_model(power_spectrum=FilePointer(self, 'power_spectrum.npy'))
+        power_spectrum_file = File(self, Path('power_spectrum.npy'))
+        self.engine.write(power_mat.tobytes(), power_spectrum_file)
+
+        # Populate self.outputs
+        self.outputs = self.output_model(power_spectrum=power_spectrum_file)

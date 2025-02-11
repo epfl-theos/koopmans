@@ -3,7 +3,7 @@ from typing import List
 
 import numpy as np
 
-from koopmans.files import FilePointer
+from koopmans.files import File
 from koopmans.kpoints import Kpoints
 from koopmans.projections import ProjectionBlock
 
@@ -13,7 +13,7 @@ from ._process import IOModel
 
 class MergeEVCInputs(IOModel):
     kgrid: List[int]
-    src_files: List[FilePointer]
+    src_files: List[File]
     dest_filename: str
 
     class Config:
@@ -21,7 +21,7 @@ class MergeEVCInputs(IOModel):
 
 
 class MergeEVCOutputs(IOModel):
-    merged_file: FilePointer
+    merged_file: File
 
     class Config:
         arbitrary_types_allowed = True
@@ -47,4 +47,4 @@ class MergeEVCProcess(CommandLineTool):
             self.linked_files[f'input_{i}.dat'] = src_file
 
     def _set_outputs(self):
-        self.outputs = MergeEVCOutputs(merged_file=FilePointer(self, self.inputs.dest_filename))
+        self.outputs = MergeEVCOutputs(merged_file=File(self, self.inputs.dest_filename))

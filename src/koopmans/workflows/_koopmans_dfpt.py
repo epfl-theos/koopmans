@@ -16,7 +16,7 @@ from koopmans import pseudopotentials, utils
 from koopmans.bands import Bands
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
                                   Wann2KCCalculator, Wannier90Calculator)
-from koopmans.files import FilePointer
+from koopmans.files import File
 from koopmans.outputs import OutputModel
 from koopmans.projections import BlockID
 from koopmans.status import Status
@@ -245,10 +245,10 @@ class KoopmansDFPTWorkflow(Workflow):
             spin_suffix = f'_spin_{spin_component}' if self.parameters.spin_polarized else ''
 
             wann2kc_calc = self.new_calculator('kcw_wannier', spin_component=spin_component)
-            self.link(init_pw, init_pw.parameters.outdir, wann2kc_calc, wann2kc_calc.parameters.outdir)
+            wann2kc_calc.link(File(init_pw, init_pw.parameters.outdir), wann2kc_calc.parameters.outdir)
 
             for dst, f in wannier_files_to_link.items():
-                self.link(f.parent, f.name, wann2kc_calc, dst, symlink=True)
+                wann2kc_calc.link(f, dst, symlink=True)
 
             wann2kc_calc.prefix += spin_suffix
             wann2kc_calcs.append(wann2kc_calc)
@@ -285,14 +285,14 @@ class KoopmansDFPTWorkflow(Workflow):
             spin_suffix = f'_spin_{spin_component}' if self.parameters.spin_polarized else ''
             if self._perform_ham_calc:
                 kc_ham_calc = self.new_calculator('kcw_ham', kpts=self.kpoints.path, spin_component=spin_component)
-                self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.save'),
-                          kc_ham_calc, kc_ham_calc.parameters.outdir / (kc_ham_calc.parameters.prefix + '.save'), symlink=True)
-                self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.xml'),
-                          kc_ham_calc, kc_ham_calc.parameters.outdir / (kc_ham_calc.parameters.prefix + '.xml'), symlink=True)
-                self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / 'kcw', kc_ham_calc,
-                          kc_ham_calc.parameters.outdir / 'kcw', recursive_symlink=True)
+                kc_ham_calc.link(File(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.save')),
+                                 kc_ham_calc.parameters.outdir / (kc_ham_calc.parameters.prefix + '.save'), symlink=True)
+                kc_ham_calc.link(File(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.xml')),
+                                 kc_ham_calc.parameters.outdir / (kc_ham_calc.parameters.prefix + '.xml'), symlink=True)
+                kc_ham_calc.link(File(wann2kc_calc, wann2kc_calc.parameters.outdir / 'kcw'),
+                                 kc_ham_calc.parameters.outdir / 'kcw', recursive_symlink=True)
                 for dst, f in wannier_files_to_link.items():
-                    self.link(f.parent, f.name, kc_ham_calc, dst, symlink=True)
+                    kc_ham_calc.link(f, dst, symlink=True)
                 kc_ham_calc.prefix += spin_suffix
                 kc_ham_calcs.append(kc_ham_calc)
 
@@ -307,13 +307,13 @@ class KoopmansDFPTWorkflow(Workflow):
 
                 # Assemble the Hamiltonian files required by the UI workflow
                 if self.parameters.spin_polarized:
-                    koopmans_ham_files = {("occ", "up"): FilePointer(kc_ham_calc, f'{kc_ham_calcs[0].parameters.prefix}.kcw_hr_occ.dat'),
-                                          ("emp", "up"): FilePointer(kc_ham_calc, f'{kc_ham_calcs[0].parameters.prefix}.kcw_hr_emp.dat'),
-                                          ("occ", "down"): FilePointer(kc_ham_calc, f'{kc_ham_calcs[1].parameters.prefix}.kcw_hr_occ.dat'),
-                                          ("emp", "down"): FilePointer(kc_ham_calc, f'{kc_ham_calcs[1].parameters.prefix}.kcw_hr_emp.dat')}
+                    koopmans_ham_files = {("occ", "up"): File(kc_ham_calc, f'{kc_ham_calcs[0].parameters.prefix}.kcw_hr_occ.dat'),
+                                          ("emp", "up"): File(kc_ham_calc, f'{kc_ham_calcs[0].parameters.prefix}.kcw_hr_emp.dat'),
+                                          ("occ", "down"): File(kc_ham_calc, f'{kc_ham_calcs[1].parameters.prefix}.kcw_hr_occ.dat'),
+                                          ("emp", "down"): File(kc_ham_calc, f'{kc_ham_calcs[1].parameters.prefix}.kcw_hr_emp.dat')}
                 else:
-                    koopmans_ham_files = {("occ", None): FilePointer(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_occ.dat'),
-                                          ("emp", None): FilePointer(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_emp.dat')}
+                    koopmans_ham_files = {("occ", None): File(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_occ.dat'),
+                                          ("emp", None): File(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_emp.dat')}
                 if not dft_ham_files:
                     raise ValueError(
                         'The DFT Hamiltonian files have not been generated but are required for the UI workflow')
@@ -363,7 +363,7 @@ class ComputeScreeningViaDFPTWorkflow(Workflow):
     output_model = ComputeScreeningViaDFPTOutputs
     outputs: ComputeScreeningViaDFPTOutputs
 
-    def __init__(self, *args, spin_component: int, wannier_files_to_link: Dict[str, FilePointer], **kwargs):
+    def __init__(self, *args, spin_component: int, wannier_files_to_link: Dict[str, File], **kwargs):
         super().__init__(*args, **kwargs)
 
         self._wannier_files_to_link = wannier_files_to_link
@@ -422,15 +422,15 @@ class ComputeScreeningViaDFPTWorkflow(Workflow):
 
         # Link to the most recent wann2kc calculation
         wann2kc_calc = [c for c in self.calculations if isinstance(c, Wann2KCCalculator)][-1]
-        self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.save'),
-                  calc, calc.parameters.outdir / (calc.parameters.prefix + '.save'), symlink=True)
-        self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.xml'),
-                  calc, calc.parameters.outdir / (calc.parameters.prefix + '.xml'), symlink=True)
-        self.link(wann2kc_calc, wann2kc_calc.parameters.outdir / 'kcw', calc,
+        calc.link(File(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.save')),
+                  calc.parameters.outdir / (calc.parameters.prefix + '.save'), symlink=True)
+        calc.link(File(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.xml')),
+                  calc.parameters.outdir / (calc.parameters.prefix + '.xml'), symlink=True)
+        calc.link(File(wann2kc_calc, wann2kc_calc.parameters.outdir / 'kcw'),
                   calc.parameters.outdir / 'kcw', recursive_symlink=True)
 
         for dst, f in self._wannier_files_to_link.items():
-            self.link(f.parent, f.name, calc, dst, symlink=True)
+            calc.link(f, dst, symlink=True)
 
         return calc
 

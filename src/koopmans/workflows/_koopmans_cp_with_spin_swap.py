@@ -3,7 +3,7 @@
 from typing import Generator
 
 from koopmans.calculators import KoopmansCPCalculator
-from koopmans.files import FilePointer
+from koopmans.files import File
 from koopmans.outputs import OutputModel
 from koopmans.processes.koopmans_cp import SwapSpinFilesProcess
 from koopmans.status import Status
@@ -13,7 +13,7 @@ from ._workflow import Workflow
 
 
 class KoopmansCPWithSpinSwapOutput(OutputModel):
-    outdir: FilePointer
+    outdir: File
 
     class Config:
         arbitrary_types_allowed = True
@@ -39,11 +39,11 @@ class KoopmansCPWithSpinSwapWorkflow(Workflow):
             return
 
         # Swap the spin-up and spin-down output files using a process
-        process = SwapSpinFilesProcess(read_directory=FilePointer(self._calc, self._calc.write_directory))
+        process = SwapSpinFilesProcess(read_directory=self._calc.write_directory)
         status = self.run_steps(process)
         if status != Status.COMPLETED:
             return
 
-        self.outputs = self.output_model(outdir=FilePointer(process, process.outputs.write_directory))
+        self.outputs = self.output_model(outdir=process.outputs.write_directory)
 
         self.status = Status.COMPLETED

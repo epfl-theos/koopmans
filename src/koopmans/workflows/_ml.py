@@ -10,7 +10,7 @@ from sklearn.metrics import mean_absolute_error as mae
 
 from koopmans import calculators, ml, utils
 from koopmans.bands import Band
-from koopmans.files import FilePointer
+from koopmans.files import File
 from koopmans.outputs import OutputModel
 from koopmans.processes.power_spectrum import (
     ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
@@ -37,7 +37,7 @@ class SelfHartreeWorkflow(Workflow):
 
 
 class PowerSpectrumDecompositionOutput(OutputModel):
-    descriptors: List[FilePointer]
+    descriptors: List[File]
 
     class Config:
         arbitrary_types_allowed = True
@@ -145,8 +145,8 @@ class PowerSpectrumDecompositionWorkflow(Workflow):
 
 
 class ConvertOrbitalFilesToXMLOutput(OutputModel):
-    total_density: FilePointer
-    orbital_densities: List[FilePointer]
+    total_density: File
+    orbital_densities: List[File]
 
     class Config:
         arbitrary_types_allowed = True
@@ -168,23 +168,23 @@ class ConvertOrbitalFilesToXMLWorkflow(Workflow):
         from koopmans.processes.bin2xml import Bin2XMLProcess
 
         # Convert total density to XML
-        binary = FilePointer(self.calc_that_produced_orbital_densities,
-                             self.calc_that_produced_orbital_densities.write_directory / 'charge-density.dat')
+        binary = File(self.calc_that_produced_orbital_densities,
+                      self.calc_that_produced_orbital_densities.write_directory / 'charge-density.dat')
         bin2xml_total_density = Bin2XMLProcess(name='bin2xml_total_density', binary=binary)
         status = self.run_steps(bin2xml_total_density)
         if status != Status.COMPLETED:
             return
 
         # Convert orbital densities to XML
-        orbital_densities: List[FilePointer] = []
+        orbital_densities: List[File] = []
         assert self.bands
         for band in self.bands.to_solve:
             if band.filled:
                 occ_id = 'occ'
             else:
                 occ_id = 'emp'
-            binary = FilePointer(self.calc_that_produced_orbital_densities,
-                                 self.calc_that_produced_orbital_densities.write_directory / f'real_space_orb_density.{occ_id}.{band.spin}.{band.index:05d}.dat')
+            binary = File(self.calc_that_produced_orbital_densities,
+                          self.calc_that_produced_orbital_densities.write_directory / f'real_space_orb_density.{occ_id}.{band.spin}.{band.index:05d}.dat')
 
             bin2xml_orbital_density = Bin2XMLProcess(
                 name=f'bin2xml_{occ_id}_spin_{band.spin}_orb_{band.index}_density', binary=binary)

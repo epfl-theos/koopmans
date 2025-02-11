@@ -25,6 +25,7 @@ from koopmans.cell import (cell_follows_qe_conventions, cell_to_parameters,
                            parameters_to_cell)
 
 if TYPE_CHECKING:
+    from koopmans.files import File
     from koopmans.step import Step
 
 from ._os import HasDirectory, get_content
@@ -95,13 +96,13 @@ def construct_atomic_species_block(atoms: Atoms) -> Dict[str, Any]:
 
 
 def write_alpha_file(write_function, parent: Step, alphas: List[float], filling: List[bool]):
-    from koopmans.files import FilePointer
+    from koopmans.files import File
 
     a_filled = [a for a, f in zip(alphas, filling) if f]
     a_empty = [a for a, f in zip(alphas, filling) if not f]
     for alphas, suffix in zip([a_filled, a_empty], ['', '_empty']):
         assert isinstance(parent, HasDirectory)
-        dst_file = FilePointer(parent, Path(f'file_alpharef{suffix}.txt'))
+        dst_file = File(parent, f'file_alpharef{suffix}.txt')
         content = f'{len(alphas)}\n'
         content += ''.join([f'{i + 1} {a} 1.0\n' for i, a in enumerate(alphas)])
         write_function(content, dst_file)
@@ -322,8 +323,8 @@ def parse_wannier_hr_file_contents(content: str) -> Tuple[np.ndarray, np.ndarray
     return hr_np, rvect_np, weights, nrpts
 
 
-def read_wannier_hr_file(src_calc_path: Tuple[HasDirectory, Path]) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
-    content = get_content(*src_calc_path)
+def read_wannier_hr_file(src: File) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
+    content = get_content(src.parent, src.name)
     return parse_wannier_hr_file_contents(content)
 
 
