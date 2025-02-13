@@ -2,10 +2,11 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from ase.dft.kpoints import BandPath
-from ase.io.wannier90 import read_wannier90_out
+from ase_koopmans.dft.kpoints import BandPath
+from ase_koopmans.io.wannier90 import read_wannier90_out
 
-from koopmans.files import AbsoluteFilePointer
+from koopmans.engines import LocalhostEngine
+from koopmans.files import LocalFile
 from koopmans.processes import ui
 from koopmans.settings import (PlotSettingsDict,
                                UnfoldAndInterpolateSettingsDict)
@@ -27,10 +28,11 @@ def test_ui_si(silicon, tmp_path, datadir, check_patch):
                                               parameters=parameters,
                                               centers=np.array(w90_calc.results['centers']),
                                               spreads=w90_calc.results['spreads'],
-                                              kc_ham_file=AbsoluteFilePointer(datadir / "ui" / "kc_ham.dat"),
-                                              dft_ham_file=AbsoluteFilePointer(datadir / "ui" / "dft_ham.dat"),
-                                              dft_smooth_ham_file=AbsoluteFilePointer(
+                                              kc_ham_file=LocalFile(datadir / "ui" / "kc_ham.dat"),
+                                              dft_ham_file=LocalFile(datadir / "ui" / "dft_ham.dat"),
+                                              dft_smooth_ham_file=LocalFile(
                                                   datadir / "ui" / "smooth_dft_ham.dat"),
                                               plotting_parameters=PlotSettingsDict(degauss=0.05, nstep=1000, Emin=-10, Emax=4))
         proc.directory = Path()
+        proc.engine = LocalhostEngine()
         proc.run()

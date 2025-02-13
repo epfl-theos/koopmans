@@ -11,6 +11,8 @@ from koopmans.calculators import KoopmansCPCalculator
 from koopmans.calculators._koopmans_cp import (allowed,
                                                convert_flat_alphas_for_kcp,
                                                good_fft)
+from koopmans.engines import LocalhostEngine
+from koopmans.files import LocalFile
 
 
 def test_convert_flat_alphas_for_kcp():
@@ -60,12 +62,13 @@ def test_read_ham(water, datadir, tmp_path):
         # Create a kcp calculator
         calc = KoopmansCPCalculator(outdir='tmp', nspin=2, nelec=8, ndw=50, prefix='test_read_ham', **water)
         calc.directory = Path()
+        calc.engine = LocalhostEngine()
 
         # Copy over the XML Hamiltonian files
-        destdir = calc.write_directory / 'K00001'
+        destdir = calc.write_directory / 'K00001/'
         destdir.mkdir(parents=True)
-        for f in (datadir / 'kcp').glob('ham*'):
-            shutil.copy(f, destdir)
+        for f in LocalFile(datadir / 'kcp').glob('ham*'):
+            calc.engine.copy_file(f, destdir)
 
         # Read the XML Hamiltonian files (and in so doing, write them in pkl format)
         screened_lambda = calc.read_ham_files()

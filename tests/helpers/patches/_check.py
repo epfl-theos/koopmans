@@ -5,10 +5,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 import numpy as np
-from ase.calculators.calculator import CalculationFailed
-from ase.dft.dos import DOS
-from ase.spectrum.band_structure import BandStructure
-from ase.spectrum.doscollection import GridDOSCollection
+from ase_koopmans.calculators.calculator import CalculationFailed
+from ase_koopmans.dft.dos import DOS
+from ase_koopmans.spectrum.band_structure import BandStructure
+from ase_koopmans.spectrum.doscollection import GridDOSCollection
 
 from koopmans import pseudopotentials, utils
 from koopmans.calculators import (Calc, EnvironCalculator,
@@ -17,7 +17,7 @@ from koopmans.calculators import (Calc, EnvironCalculator,
                                   ProjwfcCalculator, PW2WannierCalculator,
                                   PWCalculator, Wann2KCCalculator,
                                   Wann2KCPCalculator, Wannier90Calculator)
-from koopmans.files import FilePointer
+from koopmans.files import File
 from koopmans.io import read_pkl
 from koopmans.processes.bin2xml import Bin2XMLProcess
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,

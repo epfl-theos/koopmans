@@ -2,11 +2,12 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from ase import Atoms
+from ase_koopmans import Atoms
 
 from koopmans import utils
 from koopmans.bands import Bands
-from koopmans.files import AbsoluteFilePointer
+from koopmans.engines.localhost import LocalhostEngine
+from koopmans.files import LocalFile
 from koopmans.processes.power_spectrum import (
     ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
 
@@ -35,14 +36,15 @@ def test_extract_coefficients_from_xml_process(tmpdir, datadir, check_patch):
         centers = np.array([[3.159166, -3.286943, -3.412441]])
 
         # copy the required input files from the data directory
-        total_density_xml = AbsoluteFilePointer(datadir / 'power_spectrum' / 'charge-density.xml')
-        orbital_density_xml = AbsoluteFilePointer(datadir / 'power_spectrum' / 'orbital.occ.0.00001.xml')
+        total_density_xml = LocalFile(datadir / 'power_spectrum' / 'charge-density.xml')
+        orbital_density_xml = LocalFile(datadir / 'power_spectrum' / 'orbital.occ.0.00001.xml')
 
         process = ExtractCoefficientsFromXMLProcess(n_max=n_max, l_max=l_max, r_min=r_min, r_max=r_max, r_cut=r_cut,
                                                     wannier_centers=centers, total_density_xml=total_density_xml,
                                                     orbital_densities_xml=[orbital_density_xml], bands=bands_to_extract, cell=water.cell)
 
         process.directory = Path()
+        process.engine = LocalhostEngine()
 
         process.run()
 
@@ -55,12 +57,13 @@ def test_compute_power_spectrum_process(tmpdir, datadir, check_patch):
         l_max = 6
 
         # copy the required input files from the data directory
-        orbital_coefficients = AbsoluteFilePointer(datadir / 'power_spectrum' / 'coeff.orbital.occ.1.npy')
-        total_coefficients = AbsoluteFilePointer(datadir / 'power_spectrum' / 'coeff.total.occ.1.npy')
+        orbital_coefficients = LocalFile(datadir / 'power_spectrum' / 'coeff.orbital.occ.1.npy')
+        total_coefficients = LocalFile(datadir / 'power_spectrum' / 'coeff.total.occ.1.npy')
 
         process = ComputePowerSpectrumProcess(n_max=n_max, l_max=l_max, orbital_coefficients=orbital_coefficients,
                                               total_coefficients=total_coefficients)
 
         process.directory = Path()
+        process.engine = LocalhostEngine()
 
         process.run()

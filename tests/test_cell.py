@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
-from ase.cell import Cell
-from ase.lattice import (BCC, BCT, CUB, FCC, HEX, MCL, MCLC, ORC, ORCC, ORCF,
-                         ORCI, RHL, TET, TRI, UnconventionalLattice)
+from ase_koopmans.cell import Cell
+from ase_koopmans.lattice import (BCC, BCT, CUB, FCC, HEX, MCL, MCLC, ORC,
+                                  ORCC, ORCF, ORCI, RHL, TET, TRI,
+                                  UnconventionalLattice)
 from hypothesis import given, settings, strategies
 
 from koopmans.cell import cell_to_parameters, parameters_to_cell

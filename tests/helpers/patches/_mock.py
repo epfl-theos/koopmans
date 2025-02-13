@@ -6,11 +6,10 @@ from pathlib import Path
 from typing import Union
 
 import numpy as np
-from ase import Atoms
+from ase_koopmans import Atoms
 
-from koopmans.files import FilePointer
 from koopmans.io import read_pkl
-from koopmans.utils import chdir, symlink, warn
+from koopmans.utils import chdir, symlink
 
 from ._utils import (benchmark_filename, metadata_filename,
                      recursively_find_files)

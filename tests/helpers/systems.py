@@ -3,9 +3,11 @@ from typing import Any, Dict
 
 import numpy as np
 import pytest
-from ase import Atoms
-from ase.build import bulk, molecule
-from ase.spacegroup import crystal
+from ase_koopmans import Atoms
+from ase_koopmans.build import bulk, molecule
+from ase_koopmans.spacegroup import crystal
+
+from koopmans.engines.localhost import LocalhostEngine
 
 np.random.seed(0)
 
@@ -14,6 +16,8 @@ np.random.seed(0)
 def water() -> Dict[str, Any]:
     # water
     return {'atoms': molecule('H2O', vacuum=5.0, pbc=False),
+            'engine': LocalhostEngine(),
+            'pseudo_library': 'SG15/1.2/PBE/SR',
             'ecutwfc': 20.0,
             'nbnd': 5}
 
@@ -42,6 +46,8 @@ def silicon() -> Dict[str, Any]:
     si_projs = ProjectionBlocks.fromlist([pdict, pdict], spins=[None, None], atoms=si)
     kpoints = Kpoints(grid=[2, 2, 2], path='GXG', cell=si.cell)
     return {'atoms': si,
+            'engine': LocalhostEngine(),
+            'pseudo_library': 'SG15/1.2/PBE/SR',
             'calculator_parameters': {'pw': {'nbnd': 10},
                                       'w90': {'dis_froz_max': 10.6, 'dis_win_max': 16.9}
                                       },
@@ -56,6 +62,8 @@ def silicon() -> Dict[str, Any]:
 def ozone() -> Dict[str, Any]:
     # ozone
     return {'atoms': molecule('O3', vacuum=5.0, pbc=False),
+            'pseudo_library': 'SG15/1.2/PBE/SR',
+            'engine': LocalhostEngine(),
             'calculator_parameters': {'pw': {'ecutwfc': 20.0, 'nbnd': 10}}}
 
 
@@ -76,6 +84,8 @@ def tio2() -> Dict[str, Any]:
 
     kpoints = Kpoints(grid=[2, 2, 2], path='GXG', cell=atoms.cell)
     return {'atoms': atoms,
+            'engine': LocalhostEngine(),
+            'pseudo_library': 'SG15/1.2/PBE/SR',
             'calculator_parameters': {'pw': {'nbnd': 34}},
             'projections': projs,
             'kpoints': kpoints,
@@ -93,6 +103,8 @@ def gaas() -> Dict[str, Any]:
                                            atoms=atoms)
     kpoints = Kpoints(grid=[2, 2, 2])
     return {'atoms': atoms,
+            'engine': LocalhostEngine(),
+            'pseudo_library': 'SG15/1.2/PBE/SR',
             'calculator_parameters': {'pw': {'nbnd': 45},
                                       'w90': {'dis_froz_max': 14.6, 'dis_win_max': 18.6}
                                       },

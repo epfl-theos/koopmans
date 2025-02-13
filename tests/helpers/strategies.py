@@ -1,10 +1,11 @@
 from typing import Callable, List, Optional
 
-from ase.cell import Cell
-from ase.dft.kpoints import BandPath
-from ase.lattice import (BCC, BCT, CUB, FCC, HEX, MCL, MCLC, ORC, ORCC, ORCF,
-                         ORCI, RHL, TET, TRI, BravaisLattice,
-                         UnconventionalLattice, tri_angles_explanation)
+from ase_koopmans.cell import Cell
+from ase_koopmans.dft.kpoints import BandPath
+from ase_koopmans.lattice import (BCC, BCT, CUB, FCC, HEX, MCL, MCLC, ORC,
+                                  ORCC, ORCF, ORCI, RHL, TET, TRI,
+                                  BravaisLattice, UnconventionalLattice,
+                                  tri_angles_explanation)
 from hypothesis import given, settings
 from hypothesis.strategies import (booleans, composite, decimals, floats,
                                    integers, lists)
