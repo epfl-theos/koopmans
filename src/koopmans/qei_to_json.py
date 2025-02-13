@@ -3,6 +3,7 @@ from typing import Any, Dict, Union
 
 from ase_koopmans.dft.kpoints import BandPath
 
+from koopmans.engines import LocalhostEngine
 from koopmans.io import read, write
 from koopmans.kpoints import Kpoints
 from koopmans.settings import WorkflowSettingsDict
@@ -49,6 +50,7 @@ def qei_to_json(input_file: Union[str, Path], json: Union[str, Path],
             kwargs['kpoints'] = Kpoints(grid=calc.parameters.kpts)
 
     wf = SinglepointWorkflow(atoms=calc.atoms,
+                             engine=LocalhostEngine(),
                              parameters=workflow_settings,
                              calculator_parameters={key: calc.parameters},
                              **kwargs)

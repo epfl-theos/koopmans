@@ -448,7 +448,8 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         flat_alphas = [a for sublist in self.alphas for a in sublist]
         flat_filling = [f for sublist in self.filling for f in sublist]
-        utils.write_alpha_file(self.engine.write, self, flat_alphas, flat_filling)
+        assert self.engine is not None
+        utils.write_alpha_file(self.engine.write_file, self, flat_alphas, flat_filling)
 
     def read_alphas(self) -> List[List[float]]:
         '''

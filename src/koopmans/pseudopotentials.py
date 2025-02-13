@@ -8,48 +8,22 @@ Split into a separate module Sep 2021
 
 """
 
-import json
-import os
 import re
-from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List
 
 from ase_koopmans import Atoms
 from upf_tools import UPFDict
 
-
-@dataclass
-class Pseudopotential:
-    name: str
-    element: str
-    path: Path
-    functional: str
-    library: str
-    kind: str
-    citations: List[str]
-    cutoff_wfc: Optional[float] = None
-    cutoff_rho: Optional[float] = None
+local_base_directory = (Path(__file__).parent / 'pseudopotentials').resolve()
+local_libraries = set([str(f.parent.relative_to(local_base_directory))
+                       for f in chain(local_base_directory.rglob('*.upf'),
+                                      local_base_directory.rglob('*.UPF'))])
 
 
-pseudos_directory = Path(__file__).parent / 'pseudopotentials'
-
-# A database containing all the available pseudopotentials
-pseudo_database: List[Pseudopotential] = []
-for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rglob('*.upf')):
-    pseudo_file = pseudo_file.relative_to(pseudos_directory)
-    library = str(pseudo_file.parent)
-    version, functional, protocol = pseudo_file.parts[1:4]
-    splitname = re.split(r'\.|_|-', pseudo_file.name)[0]
-    element = splitname[0].upper() + splitname[1:].lower()
-    citations: List[str] = []
-
-    if library.startswith('SG15') or library.startswith('PseudoDojo'):
-        kind = 'norm-conserving'
-    else:
-        kind = 'unknown'
-
+def pseudopotential_library_citations(library: str) -> List[str]:
+    citations = []
     if library.startswith('SG15'):
         citations.append('Hamann2013')
         citations.append('Schlipf2015')
@@ -58,25 +32,13 @@ for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rgl
     elif library.startswith('PseudoDojo'):
         citations.append('Hamann2013')
         citations.append('vanSetten2018')
-
-    pseudo_database.append(Pseudopotential(pseudo_file.name, element, pseudo_file.parent,
-                                           functional.lower(), library, kind, citations))
+    return citations
 
 
-def pseudos_library_directory(pseudo_library: str) -> Path:
-    return pseudos_directory / pseudo_library
-
-
-def fetch_pseudo(**kwargs: Any) -> Pseudopotential:
-    matches = [psp for psp in pseudo_database if all([getattr(psp, k) == v for k, v in kwargs.items()])]
-    request_str = ', '.join([f'{k} = {v}' for k, v in kwargs.items()])
-    if len(matches) == 0:
-        raise ValueError(
-            f'Could not find a pseudopotential in the database matching `{request_str}`. Run `koopmans --pseudos` to list the available pseudopotential families')
-    elif len(matches) > 1:
-        raise ValueError(f'Found multiple pseudopotentials in the database matching `{request_str}`')
-    else:
-        return matches[0]
+def element_from_pseudo_filename(filename: str) -> str:
+    splitname = re.split(r'\.|_|-', filename)[0]
+    element = splitname[0].upper() + splitname[1:].lower()
+    return element
 
 
 def read_pseudo_file(filename: Path) -> UPFDict:

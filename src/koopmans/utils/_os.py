@@ -14,7 +14,7 @@ import shutil
 import subprocess
 from glob import glob
 from pathlib import Path
-from typing import (TYPE_CHECKING, List, Optional, Protocol, Union,
+from typing import (TYPE_CHECKING, List, Optional, Protocol, Union, cast,
                     runtime_checkable)
 
 if TYPE_CHECKING:
@@ -100,7 +100,7 @@ def symlink_tree(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool =
             symlink(f, dest / f.relative_to(src), exist_ok=exist_ok, force=force)
 
 
-def copy(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool = False):
+def copy_file(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool = False):
     # Copy a file from "src" to "dest"
     if '*' in str(src) or '?' in str(src):
         raise ValueError('Do not use wildcards in `utils.copy()`')
@@ -201,13 +201,15 @@ class HasDirectory:
     # have been transformed to have pydantic inputs and outputs then those classes will be able to inherit directly
     # from Process
 
-    __slots__ = ['parent', '_directory', '_base_directory', 'engine']
+    __slots__ = ['parent', '_directory', '_base_directory', 'engine', '_directory_must_be_relative']
 
-    def __init__(self, parent: Optional[HasDirectory] = None, directory=None, base_directory=None, engine: Optional[Engine] = None):
+    def __init__(self, parent: Optional[HasDirectory] = None, directory=None, base_directory=Path(), engine: Optional[Engine] = None,
+                 _directory_must_be_relative=False):
         self._base_directory: Optional[Path] = None
         self._directory: Optional[Path] = None
+        self.engine: Optional[Engine] = engine
         self.parent = parent
-        self.engine = engine
+        self._directory_must_be_relative = _directory_must_be_relative
 
         if not self.parent:
             self.base_directory = base_directory
@@ -227,7 +229,7 @@ class HasDirectory:
             value = Path(value)
 
         # Sanity checks
-        if value.is_absolute():
+        if value.is_absolute() and self._directory_must_be_relative:
             raise ValueError(
                 f'{self.__class__.__name__} directory must be a relative path (relative to {self.__class__.__name__},base directory)')
 
@@ -262,51 +264,3 @@ class HasDirectory:
 
     def directory_has_been_set(self) -> bool:
         return self._directory is not None
-
-
-def get_binary_content(source: HasDirectory, relpath: Path | str) -> bytes:
-    if isinstance(relpath, str):
-        relpath = Path(relpath)
-    assert source.absolute_directory is not None
-    with open(source.absolute_directory / relpath, "rb") as f:
-        flines = f.read()
-    return flines
-
-
-def write_binary_content(dst_file: Path | str, merged_filecontents: bytes):
-    if isinstance(dst_file, str):
-        dst_file = Path(dst_file)
-    dst_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(dst_file, "wb") as f:
-        f.write(merged_filecontents)
-
-
-def get_content(source: HasDirectory | None, relpath: Path | str) -> str:
-    if isinstance(relpath, str):
-        relpath = Path(relpath)
-
-    if source is None or source.absolute_directory is None:
-        full_path = relpath
-    else:
-        full_path = source.absolute_directory / relpath
-
-    with open(full_path, "r") as f:
-        flines = f.read()
-    return flines
-
-
-def write_content(dst_file: Path | str, merged_filecontents: str):
-    if isinstance(dst_file, str):
-        dst_file = Path(dst_file)
-    dst_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(dst_file, "w") as f:
-        f.write(merged_filecontents)
-
-
-def remove(path: Union[Path, str]):
-    if isinstance(path, str):
-        path = Path(path)
-    if path.is_dir():
-        shutil.rmtree(path)
-    else:
-        path.unlink()

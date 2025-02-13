@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Any, Union
+from typing import TYPE_CHECKING, Any, Generator, Union
 
 import numpy as np
 
-from koopmans.utils import (HasDirectory, get_binary_content, get_content,
-                            write_binary_content, write_content)
+from koopmans.utils import HasDirectory
+
+if TYPE_CHECKING:
+    from koopmans.engines import Engine
 
 
 class File:
@@ -15,57 +19,63 @@ class File:
     file as a parent (which is a Process, Calculator, or some other object that exists in a directory known
     to koopmans/AiiDA) and a name (which is the path of the file relative to the parent's directory).
 
+    We also need to delegate file creation/modification/deletion to the engine
+
     """
 
-    def __init__(self, parent: HasDirectory | None, name: Union[str, Path]):
+    def __init__(self, parent: HasDirectory, name: Union[str, Path]):
         self.parent = parent
         self.name = Path(name)
+
+    @property
+    def _engine(self) -> Engine | None:
+        return self.parent.engine
 
     def __repr__(self):
         return f'File({self.aspath()})'
 
     def aspath(self) -> Path:
-        if self.parent is None:
+        if self.parent.directory is None:
             return self.name
         else:
-            assert self.parent.directory is not None
             return self.parent.directory / self.name
 
-    def copy(self, dst: Path, binary=False):
-        assert self.parent is not None
-        if binary:
-            binary_content = get_binary_content(self.parent, self.name)
-            write_binary_content(dst, binary_content)
-        else:
-            content = get_content(self.parent, self.name)
-            write_content(dst, content)
+    def copy(self, dst: File, binary=False):
+        assert self._engine is not None
+        self._engine.copy_file(self, dst, binary)
 
     def exists(self):
-        return self.aspath().exists()
+        assert self._engine is not None
+        return self._engine.file_exists(self)
 
     def read(self, binary: bool = False, numpy: bool = False) -> Any:
-        assert self.parent is not None
-        if binary:
-            binary_content = get_binary_content(self.parent, self.name)
-            if numpy:
-                return np.frombuffer(binary_content)
+        assert self._engine is not None
+        content = self._engine.read_file(self, binary=binary)
+        if numpy:
+            if binary:
+                assert isinstance(content, bytes)
+                return np.frombuffer(content)
             else:
-                return binary_content
-        else:
-            content = get_content(self.parent, self.name)
-            if numpy:
+                assert isinstance(content, str)
                 return np.array(content)
-            else:
-                return content
+        else:
+            return content
 
-    def rglob(self, pattern: str):
-        for f in self.aspath().rglob(pattern):
-            assert self.parent is not None
-            assert self.parent.absolute_directory is not None
-            yield File(parent=self.parent, name=f.relative_to(self.parent.absolute_directory))
+    def rglob(self, pattern: str) -> Generator[File, None, None]:
+        assert self._engine is not None
+        yield from self._engine.glob(self, pattern, recursive=True)
 
-    def is_dir(self):
-        return self.aspath().is_dir()
+    def glob(self, pattern: str) -> Generator[File, None, None]:
+        assert self._engine is not None
+        yield from self._engine.glob(self, pattern, recursive=False)
+
+    def mkdir(self, *args, **kwargs):
+        assert self._engine is not None
+        self._engine.mkdir(self, *args, **kwargs)
+
+    def is_dir(self) -> bool:
+        assert self._engine is not None
+        return self._engine.file_is_dir(self)
 
     def __eq__(self, other):
         if not isinstance(other, File):
@@ -95,12 +105,10 @@ class File:
 
 
 class ParentPlaceholder(HasDirectory):
-    # Placeholder parent for Files that don't have a Workflow/Process/Calculator as a parent
-    def __init__(self, parent, directory, base_directory=None):
-        super().__init__(parent)
-        self.directory = directory
-        if self.parent is None:
-            self.base_directory = base_directory
+    # Placeholder parent for Files that don't have a Workflow/Process/Calculator as a parent OR for when we
+    # don't want to store the parent in the database
+    def __init__(self, parent, directory, engine):
+        super().__init__(parent, directory, engine=engine, _directory_must_be_relative=False)
 
     def __repr__(self):
         return f'ParentPlaceholder(directory={self.absolute_directory})'
@@ -130,11 +138,17 @@ class ParentPlaceholder(HasDirectory):
         return new_obj
 
     @classmethod
-    def frompath(cls, path: Path):
-        return cls(None, Path(), path)
+    def frompath(cls, path: Path, engine: Engine | None = None):
+        return cls(None, path, engine)
 
 
-def AbsoluteFile(path: Path | str) -> File:
+def LocalFile(path: Path | str) -> File:
+    from koopmans.engines.localhost import LocalhostEngine
     path = path if isinstance(path, Path) else Path(path)
-    parent = ParentPlaceholder.frompath(path.parent)
-    return File(parent=parent, name=Path(path.name))
+    engine = LocalhostEngine()
+    if path.is_dir():
+        parent = ParentPlaceholder.frompath(path.resolve(), engine=engine)
+        return File(parent=parent, name='')
+    else:
+        parent = ParentPlaceholder.frompath(path.parent.resolve(), engine=engine)
+        return File(parent=parent, name=Path(path.name))

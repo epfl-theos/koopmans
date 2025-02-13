@@ -27,8 +27,9 @@ from koopmans.cell import (cell_follows_qe_conventions, cell_to_parameters,
 if TYPE_CHECKING:
     from koopmans.files import File
     from koopmans.step import Step
+    from koopmans.engines import Engine
 
-from ._os import HasDirectory, get_content
+from ._os import HasDirectory
 
 
 def parse_dict(dct: Dict[str, Any]) -> Dict[str, Any]:
@@ -270,7 +271,7 @@ def generate_wannier_hr_file_contents(ham: np.ndarray, rvect: List[List[int]], w
         flines += [f'{r[0]:5d}{r[1]:5d}{r[2]:5d}{j+1:5d}{i+1:5d}{val.real:12.6f}{val.imag:12.6f}' for i,
                    row in enumerate(ham_block) for j, val in enumerate(row)]
 
-    return "\n".join(flines)
+    return "\n".join(flines) + '\n'
 
 
 def parse_wannier_hr_file_contents(content: str) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
@@ -323,8 +324,9 @@ def parse_wannier_hr_file_contents(content: str) -> Tuple[np.ndarray, np.ndarray
     return hr_np, rvect_np, weights, nrpts
 
 
-def read_wannier_hr_file(src: File) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
-    content = get_content(src.parent, src.name)
+def read_wannier_hr_file(src: File, engine: Engine) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
+    content = engine.read_file(src)
+    assert isinstance(content, str)
     return parse_wannier_hr_file_contents(content)
 
 
@@ -357,7 +359,7 @@ def generate_wannier_u_file_contents(umat: npt.NDArray[np.complex128], kpts: npt
         flines.append(''.join([f'{k:15.10f}' for k in kpt]))
         flines += [f'{c.real:15.10f}{c.imag:15.10f}' for c in umatk.flatten()]
 
-    return "\n".join(flines)
+    return "\n".join(flines) + "\n"
 
 
 def parse_wannier_centers_file_contents(content: str) -> Tuple[List[List[float]], Atoms]:
@@ -389,4 +391,4 @@ def generate_wannier_centers_file_contents(centers: List[List[float]], atoms: At
     for atom in atoms:
         flines.append(f'{atom.symbol: <5}' + ''.join([f'{x:16.8f}' for x in atom.position]))
 
-    return "\n".join(flines)
+    return "\n".join(flines) + "\n"

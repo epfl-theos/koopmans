@@ -107,7 +107,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
 
         # Read the file contents
         assert self.engine is not None
-        content = self.engine.read(filename)
+        content = self.engine.read_file(filename)
         assert isinstance(content, str)
         flines = content.split('\n')
 

@@ -62,17 +62,18 @@ class ConvertFilesFromSpin1To2(Process):
                 raise ValueError(
                     f'{self.__class__.__name__} is attempting to write to a file outside of its working directory; this is not allowed')
 
-            contents = self.engine.read(spin_1_file, binary=True)
+            assert self.engine is not None
+            contents = self.engine.read_file(spin_1_file, binary=True)
 
             contents = contents.replace(b'nk="1"', b'nk="2"')
             contents = contents.replace(b'nspin="1"', b'nspin="2"')
 
-            self.engine.write(contents, File(self, spin_2_up_file))
+            self.engine.write_file(contents, File(self, spin_2_up_file))
 
             contents = contents.replace(b'ik="1"', b'ik="2"')
             contents = contents.replace(b'ispin="1"', b'ispin="2"')
 
-            self.engine.write(contents, File(self, spin_2_down_file))
+            self.engine.write_file(contents, File(self, spin_2_down_file))
 
         self.outputs = self.output_model(generated_files=self.inputs.spin_2_up_files + self.inputs.spin_2_down_files)
 

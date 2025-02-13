@@ -1,8 +1,10 @@
 import contextlib
 import os
+import shutil
 import sys
+from itertools import chain
 from pathlib import Path
-from typing import Generator, List
+from typing import Generator, List, Literal, overload
 
 from ase_koopmans.calculators.calculator import CalculationFailed
 from upf_tools import UPFDict
@@ -10,11 +12,10 @@ from upf_tools import UPFDict
 from koopmans import utils
 from koopmans.calculators import (Calc, ImplementedCalc, PhCalculator,
                                   ProjwfcCalculator, ReturnsBandStructure)
-from koopmans.files import File
+from koopmans.files import File, LocalFile
 from koopmans.processes import Process
-from koopmans.pseudopotentials import (fetch_pseudo, pseudo_database,
-                                       pseudos_library_directory,
-                                       read_pseudo_file)
+from koopmans.pseudopotentials import (element_from_pseudo_filename,
+                                       local_libraries)
 from koopmans.status import Status
 from koopmans.step import Step
 
@@ -32,7 +33,8 @@ class LocalhostEngine(Engine):
 
         assert step.directory is not None
         if step.directory.exists():
-            self.rmdir(step.directory)
+            assert isinstance(step, utils.HasDirectory)
+            self.rmdir(File(step, ''))
 
         try:
             step.run()
@@ -96,32 +98,74 @@ class LocalhostEngine(Engine):
         pass
 
     def get_pseudopotential(self, library: str, element: str) -> UPFDict:
-        pseudo = fetch_pseudo(library=library, element=element)
-        pseudo_path = pseudos_library_directory(pseudo.library) / pseudo.name
-        return read_pseudo_file(pseudo_path)
+        pseudo_dir = LocalFile(Path(__file__).parents[1] / 'pseudopotentials' / library)
+        pseudo_name = None
+        for pseudo_file in chain(self.glob(pseudo_dir, '*.upf'), self.glob(pseudo_dir, '*.UPF')):
+            if element_from_pseudo_filename(pseudo_file.name.name) == element:
+                pseudo_name = pseudo_file.name
+                break
 
-    def read(self, file: File, binary=False) -> str | bytes:
-        assert file.parent is not None
-        if binary:
-            return utils.get_binary_content(file.parent, file.name)
+        if pseudo_name is None:
+            raise ValueError(f'Pseudo for {element} not found in library {library}')
+
+        pseudo_path = pseudo_dir / pseudo_name
+        return UPFDict.from_upf(pseudo_path.aspath())
+
+    @overload
+    def read_file(self, file: File, binary: Literal[True]) -> bytes: ...
+
+    @overload
+    def read_file(self, file: File, binary: Literal[False]) -> str: ...
+
+    @overload
+    def read_file(self, file: File, binary: bool = False) -> bytes | str: ...
+
+    def read_file(self, file: File, binary: bool = False) -> bytes | str:
+        assert file.parent.absolute_directory is not None
+        full_path = file.parent.absolute_directory / file.name
+        fstring = 'rb' if binary else 'r'
+        with open(full_path, fstring) as f:
+            flines = f.read()
+        return flines
+
+    def write_file(self, content: str | bytes, file: File) -> None:
+        fstring = 'wb' if isinstance(content, bytes) else 'w'
+        if len(file.name.parents) > 0:
+            parent_directory = File(file.parent, file.name.parent)
+            self.mkdir(parent_directory, parents=True, exist_ok=True)
+        with open(file.aspath(), fstring) as f:
+            f.write(content)
+
+    def copy_file(self, source: File, destination: File, exist_ok: bool = False) -> None:
+        utils.copy_file(source.aspath(), destination.aspath(), exist_ok=exist_ok)
+
+    def link_file(self, source: File, destination: File, recursive: bool = False, overwrite: bool = False) -> None:
+        if recursive:
+            utils.symlink_tree(source.aspath(), destination.aspath())
         else:
-            return utils.get_content(file.parent, file.name)
+            utils.symlink(source.aspath(), destination.aspath(), exist_ok=overwrite, force=overwrite)
 
-    def write(self, content: str | bytes, file: File) -> None:
-        if isinstance(content, str):
-            utils.write_content(file.aspath(), content)
-        elif isinstance(content, bytes):
-            utils.write_binary_content(file.aspath(), content)
+    def file_exists(self, file: File) -> bool:
+        return file.aspath().exists()
 
-    def link(self, source: File, destination: File) -> None:
-        utils.symlink(source.aspath(), destination.aspath())
+    def file_is_dir(self, file: File) -> bool:
+        return file.aspath().is_dir()
 
     @contextlib.contextmanager
     def chdir(self, directory: Path):
         return utils.chdir_logic(directory)
 
-    def rmdir(self, directory: Path) -> None:
-        utils.remove(directory)
+    def rmdir(self, directory: File) -> None:
+        path = directory.aspath()
+        if isinstance(path, str):
+            path = Path(path)
+        if path.is_dir():
+            shutil.rmtree(path)
+        else:
+            path.unlink()
+
+    def mkdir(self, directory: File, parents: bool = False, exist_ok: bool = False) -> None:
+        directory.aspath().mkdir(parents=parents, exist_ok=exist_ok)
 
     def glob(self, directory: File, pattern: str, recursive: bool = False) -> Generator[File, None, None]:
         assert directory.parent is not None
@@ -134,7 +178,7 @@ class LocalhostEngine(Engine):
             yield File(parent=directory.parent, name=path.relative_to(directory.parent.directory))
 
     def available_pseudo_families(self) -> set[str]:
-        return set([p.library for p in pseudo_database])
+        return local_libraries
 
 
 def load_old_calculator(calc):

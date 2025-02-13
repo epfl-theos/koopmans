@@ -50,16 +50,15 @@ from koopmans import calculators, outputs, settings, utils
 from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.engines import Engine, LocalhostEngine
-from koopmans.files import File
+from koopmans.files import File, LocalFile
 from koopmans.kpoints import Kpoints
 from koopmans.ml import AbstractMLModel, MLModel, OccEmpMLModels
 from koopmans.processes import Process
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
 from koopmans.projections import ProjectionBlocks
-from koopmans.pseudopotentials import (fetch_pseudo, nelec_from_pseudos,
-                                       pseudo_database,
-                                       pseudos_library_directory)
+from koopmans.pseudopotentials import (nelec_from_pseudos,
+                                       pseudopotential_library_citations)
 from koopmans.references import bib_data
 from koopmans.status import Status
 from koopmans.step import Step
@@ -123,7 +122,7 @@ class Workflow(utils.HasDirectory, ABC):
                                                 'pseudopotentials', 'projections', 'ml_model', 'snapshots',
                                                 'version', 'calculations', 'processes',
                                                 'steps', 'plotting', 'ml', '_bands', 'step_counter', 'print_indent',
-                                                'status', 'engine']
+                                                'status']
 
     def __init__(self,
                  atoms: Atoms,
@@ -152,6 +151,7 @@ class Workflow(utils.HasDirectory, ABC):
         base_directory = None if parent else Path.cwd()
         directory = None if parent else Path()
         super().__init__(parent=parent, base_directory=base_directory, directory=directory, engine=engine)
+        assert self.engine == engine
 
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
@@ -169,7 +169,7 @@ class Workflow(utils.HasDirectory, ABC):
         self.calculations: List[calculators.Calc] = []
         self.processes: List[Process] = []
         self.steps: List = []
-        self._bands = None
+        self._bands: Optional[Bands] = None
 
         if projections is None:
             proj_list: List[List[Any]]
@@ -198,12 +198,12 @@ class Workflow(utils.HasDirectory, ABC):
         if ml_model is not None:
             self.ml_model = ml_model
         elif self.ml.train:
-            assert self.ml.estimator is not None
-            assert self.ml.descriptor is not None
+            assert isinstance(self.ml.estimator, str)
+            assert isinstance(self.ml.descriptor, str)
             if self.ml.occ_and_emp_together:
-                self.ml_model = MLModel(self.ml.estimator, self.ml.descriptor)
+                self.ml_model = MLModel(self.ml.estimator, self.ml.descriptor, engine=self.engine)
             else:
-                self.ml_model = OccEmpMLModels(self.ml.estimator, self.ml.descriptor)
+                self.ml_model = OccEmpMLModels(self.ml.estimator, self.ml.descriptor, engine=self.engine)
         elif self.ml.predict or self.ml.test:
             if self.ml.model_file is None:
                 raise ValueError('Cannot initialize a Workflow with `ml.predict = True` without providing a model via '
@@ -232,29 +232,16 @@ class Workflow(utils.HasDirectory, ABC):
         self.kpoints = kpoints
 
         # Pseudopotentials and pseudo_dir
-        if self.parameters.pseudo_directory is None:
-            if self.parameters.pseudo_library:
-                pseudo_dir = pseudos_library_directory(self.parameters.pseudo_library)
-            elif 'ESPRESSO_PSEUDO' in os.environ:
-                pseudo_dir = Path(os.environ['ESPRESSO_PSEUDO'])
-            else:
-                pseudo_dir = Path.cwd()
-            self.parameters.pseudo_directory = os.path.relpath(pseudo_dir.resolve(), self.base_directory)
-        elif self.parameters.pseudo_directory.is_absolute():
-            self.parameters.pseudo_directory = os.path.relpath(self.parameters.pseudo_directory, self.base_directory)
+        if self.parameters.pseudo_library is None:
+            raise NotImplementedError()
 
-        if pseudopotentials:
+        if self.parameters.pseudo_library is None:
+            raise ValueError('No pseudopotential library was provided`')
+        elif pseudopotentials:
+            # Ensure pseudopotentials are converted to UPFDict objects
             self.pseudopotentials = {k: UPFDict.from_upf(
                 self.parameters.pseudo_directory / v) if isinstance(v, str) else v for k, v in pseudopotentials.items()}
         else:
-            if self.parameters.pseudo_library is None:
-                if self.parameters.base_functional != 'pbe':
-                    raise ValueError(
-                        'No pseudopotential library was provided; either provide a pseudopotential library or switch to using PBE`')
-                self.parameters.pseudo_library = f'SG15/1.2/PBE/SR/'
-                utils.warn(
-                    'Neither a pseudopotential library nor a list of pseudopotentials was provided; defaulting to '
-                    + self.parameters.pseudo_library)
             self.pseudopotentials = {}
             for element, tag in set([(a.symbol, a.tag) for a in self.atoms]):
                 pseudo = self.engine.get_pseudopotential(library=self.parameters.pseudo_library, element=element)
@@ -632,11 +619,6 @@ class Workflow(utils.HasDirectory, ABC):
                        'Changing `do_wf_cmplx` to `True`')
             self.calculator_parameters['kcp'].do_wf_cmplx = True
 
-        # Check pseudopotentials exist
-        if not os.path.isdir(self.base_directory / self.parameters.pseudo_directory):
-            raise NotADirectoryError('The pseudopotential directory you provided '
-                                     f'(`{self.base_directory / self.parameters.pseudo_directory}`) does not exist')
-
         # Make sanity checks for the ML model
         if self.ml.predict or self.ml.train or self.ml.test:
             utils.warn("Predicting screening parameters with machine-learning is an experimental feature; proceed with "
@@ -777,8 +759,11 @@ class Workflow(utils.HasDirectory, ABC):
         # Link the pseudopotentials if relevant
         if calculator_parameters.is_valid('pseudo_dir'):
             for pseudo in self.pseudopotentials.values():
-                calc.link(File(None, pseudo.filename), Path('pseudopotentials') / pseudo.filename.name, symlink=True)
+                calc.link(LocalFile(pseudo.filename), Path('pseudopotentials') / pseudo.filename.name, symlink=True)
             calc.parameters.pseudo_dir = 'pseudopotentials'
+
+        # Link the engine
+        calc.engine = self.engine
 
         return calc
 
@@ -1139,14 +1124,9 @@ class Workflow(utils.HasDirectory, ABC):
             else:
                 add_ref('Borghi2015', 'Describes the algorithms underpinning the kcp.x code')
 
-            psp_lib = self.parameters.pseudo_library
-            if psp_lib is not None:
-                psp_subset = [p for p in pseudo_database if p.functional == self.parameters.base_functional
-                              and p.library == psp_lib]
-                citations = set([c for psp in psp_subset for c in psp.citations if psp.element in self.atoms.symbols])
-
-                for citation in citations:
-                    add_ref(citation, f'Citation for the {psp_lib.replace("_", " ")} pseudopotential library')
+            for citation in pseudopotential_library_citations(self.parameters.pseudo_library):
+                add_ref(
+                    citation, f'Citation for the {self.parameters.pseudo_library.replace("_", " ")} pseudopotential library')
 
         utils.print_alert(
             'note', f'Please cite the papers listed in `{self.name}.bib` in work involving this calculation')

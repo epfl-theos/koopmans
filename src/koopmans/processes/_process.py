@@ -107,20 +107,18 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
 
     def dump_inputs(self):
         assert self.directory is not None
-        assert self.engine is not None
         dst = f'{self.name}_inputs.pkl'
-        self.engine.write(dill.dumps(self.inputs), File(self, dst))
+        self.engine.write_file(dill.dumps(self.inputs), File(self, dst))
 
     def dump_outputs(self):
         assert self.directory is not None
-        assert self.engine is not None
         dst = f'{self.name}_outputs.pkl'
-        self.engine.write(dill.dumps(self.outputs), File(self, dst))
+        self.engine.write_file(dill.dumps(self.outputs), File(self, dst))
 
     def load_outputs(self):
         if self.directory is None:
             raise ValueError('Process directory must be set before attempting to load outputs')
-        content = self.engine.read(File(self, f'{self.name}_outputs.pkl'), binary=True)
+        content = self.engine.read_file(File(self, f'{self.name}_outputs.pkl'), binary=True)
         self.outputs = dill.loads(content)
 
     def is_complete(self):

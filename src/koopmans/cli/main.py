@@ -10,7 +10,6 @@ import traceback
 import koopmans.mpl_config
 from koopmans.engines import Engine, LocalhostEngine
 from koopmans.io import read, write
-from koopmans.pseudopotentials import pseudo_database
 from koopmans.status import Status
 from koopmans.utils import print_alert
 

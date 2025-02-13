@@ -177,37 +177,23 @@ class CalculatorExt(utils.HasDirectory):
 
         This function is called in _pre_calculate() i.e. immediately before a calculation is run.
         """
-        for dest_filename, (src_filepointer, symlink, recursive_symlink, overwrite) in self.linked_files.items():
-            # Get the source calculator and the filename from the File object
-            src_calc = src_filepointer.parent
-            src_filename = src_filepointer.name
+        assert self.engine is not None
+        for dest_filename, (src_file, symlink, recursive_symlink, overwrite) in self.linked_files.items():
+            # Convert to a File object
+            dest_file = File(self, dest_filename)
 
-            # Convert to absolute paths
-            if src_calc is None:
-                src_filename = src_filename.resolve()
-            else:
-                src_filename = src_calc.absolute_directory / src_filename
-            dest_filename = self.directory / dest_filename
+            # Create the containing folder if it exists
+            if len(dest_file.name.parents) > 0:
+                self.engine.mkdir(File(self, dest_file.name.parent), parents=True, exist_ok=True)
 
-            if not src_filename.exists():
-                raise FileNotFoundError(
-                    f'Tried to link `{src_filename}` with the `{self.prefix}` calculator but it does not exist')
-
-            if dest_filename.exists() or dest_filename.is_symlink():
-                if overwrite:
-                    utils.remove(dest_filename)
-                else:
-                    raise FileExistsError(f'`{dest_filename}` already exists')
-
-            # Create the copy/symlink
-            dest_filename.parent.mkdir(parents=True, exist_ok=True)
+            # Copy/link the file
             if recursive_symlink:
-                assert src_filename.is_dir(), 'recursive_symlink=True requires src to be a directory'
-                utils.symlink_tree(src_filename, dest_filename)
+                assert src_file.is_dir(), 'recursive_symlink=True requires src to be a directory'
+                self.engine.link_file(src_file, dest_file, recursive=True)
             elif symlink:
-                utils.symlink(src_filename, dest_filename)
+                self.engine.link_file(src_file, dest_file, overwrite=overwrite)
             else:
-                utils.copy(src_filename, dest_filename)
+                self.engine.copy_file(src_file, dest_file, exist_ok=overwrite)
 
     def _pre_calculate(self):
         """Perform any necessary pre-calculation steps before running the calculation"""
