@@ -14,7 +14,6 @@ def test_read_dynG(tio2, tmp_path, datadir, pytestconfig):
     with utils.chdir(tmp_path):
         # Create a ph calculator to match the one that was used to generate the dynG file
         wf = workflows.DFTPhWorkflow(
-            engine=LocalhostEngine(),
             parameters={'pseudo_library': 'PseudoDojo/0.4/PBEsol/SR/standard/upf', 'from_scratch': True},
             name='tio2', **tio2)
         wf.directory = Path()

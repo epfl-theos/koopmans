@@ -6,7 +6,7 @@ import pytest
 from koopmans import __path__ as koopmans_src
 from koopmans import utils, workflows
 from koopmans.engines.localhost import LocalhostEngine
-from koopmans.files import LocalFile
+from koopmans.files import LocalFile, File
 from koopmans.io import read_pkl, write_pkl
 from tests.helpers.patches import benchmark_filename
 
@@ -14,9 +14,7 @@ from tests.helpers.patches import benchmark_filename
 def test_generate_dos(silicon, tmp_path, datadir, pytestconfig):
     with utils.chdir(tmp_path):
         # Create a projwfc calculator to match the one that was used to generate the pdos files
-        engine = LocalhostEngine()
         wf = workflows.DFTBandsWorkflow(
-            engine=engine,
             parameters={'pseudo_library': 'PseudoDojo/0.4/PBEsol/SR/standard/upf', 'from_scratch': True},
             name='si', **silicon)
         wf.directory = Path()
@@ -25,14 +23,13 @@ def test_generate_dos(silicon, tmp_path, datadir, pytestconfig):
 
         # Make sure the pseudopotential files exist where the calculator will expect them to be
         pseudo_dir = LocalFile(calc.directory / calc.parameters.outdir / (calc.parameters.prefix + '.save'))
-        engine.mkdir(pseudo_dir, parents=True)
-        assert wf.parameters.pseudo_directory is not None
+        wf.engine.mkdir(pseudo_dir, parents=True)
         for psp in wf.pseudopotentials.values():
-            engine.copy_file(LocalFile(psp.filename), pseudo_dir)
+            wf.engine.copy_file(LocalFile(psp.filename), pseudo_dir)
 
         # Copy over pdos files
         for f in (datadir / 'projwfc').glob('*.pdos*'):
-            utils.copy(f, f.name)
+            wf.engine.copy_file(LocalFile(f), File(wf, f.name))
 
         # Attempt to read pdos files
         calc.generate_dos()
