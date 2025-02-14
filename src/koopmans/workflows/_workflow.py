@@ -57,7 +57,7 @@ from koopmans.processes import Process
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
 from koopmans.projections import ProjectionBlocks
-from koopmans.pseudopotentials import (nelec_from_pseudos,
+from koopmans.pseudopotentials import (nelec_from_pseudos, element_from_pseudo_filename,
                                        pseudopotential_library_citations)
 from koopmans.references import bib_data
 from koopmans.status import Status
@@ -239,8 +239,14 @@ class Workflow(utils.HasDirectory, ABC):
             raise ValueError('No pseudopotential library was provided`')
         elif pseudopotentials:
             # Ensure pseudopotentials are converted to UPFDict objects
-            self.pseudopotentials = {k: UPFDict.from_upf(
-                self.parameters.pseudo_directory / v) if isinstance(v, str) else v for k, v in pseudopotentials.items()}
+            self.pseudopotentials = {}
+            for symbol, pseudo_filename in pseudopotentials.items():
+                if isinstance(pseudo_filename, str):
+                    self.pseudopotentials[element] = self.engine.get_pseudopotential(self.parameters.pseudo_library, filename=pseudo_filename)
+                elif isinstance(pseudo_filename, UPFDict):
+                    self.pseudopotentials[element] = pseudo_filename
+                else:
+                    raise ValueError(f'Invalid pseudopotential type: {pseudo_filename.__class__.__name__}')
         else:
             self.pseudopotentials = {}
             for element, tag in set([(a.symbol, a.tag) for a in self.atoms]):

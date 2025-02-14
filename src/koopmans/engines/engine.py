@@ -69,7 +69,18 @@ class Engine(ABC):
         ...
 
     @abstractmethod
-    def get_pseudopotential(self, library: str, element: str) -> UPFDict:
+    def get_pseudopotential(self, library: str, element: Optional[str] = None, filename: Optional[str] = None) -> UPFDict:
+        # Load a pseudopotential from a library either by the species of the atom (element) or the name of the pseudopotential (filename)
+        ...
+
+    @abstractmethod
+    def install_pseudopotential(self, file: Path, library: str) -> None:
+        # Install a local pseudopotential file so that it can be accessed by the engine via self.get_pseudopotential()
+        ...
+    
+    @abstractmethod
+    def uninstall_pseudopotential_library(self, library: str) -> None:
+        # Uninstall a pseudopotential library
         ...
 
     @overload

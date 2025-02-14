@@ -4,7 +4,8 @@ import shutil
 import sys
 from itertools import chain
 from pathlib import Path
-from typing import Generator, List, Literal, overload
+from typing import Generator, List, Literal, overload, Optional
+import yaml
 
 from ase_koopmans.calculators.calculator import CalculationFailed
 from upf_tools import UPFDict
@@ -20,6 +21,9 @@ from koopmans.status import Status
 from koopmans.step import Step
 
 from .engine import Engine
+
+
+config_file = Path.home() / '.koopmans/config.yaml'
 
 
 class LocalhostEngine(Engine):
@@ -97,19 +101,85 @@ class LocalhostEngine(Engine):
     def update_statuses(self) -> None:
         pass
 
-    def get_pseudopotential(self, library: str, element: str) -> UPFDict:
-        pseudo_dir = LocalFile(Path(__file__).parents[1] / 'pseudopotentials' / library)
-        pseudo_name = None
-        for pseudo_file in chain(self.glob(pseudo_dir, '*.upf'), self.glob(pseudo_dir, '*.UPF')):
-            if element_from_pseudo_filename(pseudo_file.name.name) == element:
-                pseudo_name = pseudo_file.name
-                break
+    def get_pseudopotential(self, library: str, element: Optional[str] = None, filename: Optional[str] = None) -> UPFDict:
 
-        if pseudo_name is None:
-            raise ValueError(f'Pseudo for {element} not found in library {library}')
+        if element is None and filename is None:
+            raise ValueError('Either `element` or `filename` must be provided')
 
-        pseudo_path = pseudo_dir / pseudo_name
+        if library in local_libraries:
+            pseudo_dir = LocalFile(Path(__file__).parents[1] / 'pseudopotentials' / library)
+            if filename is not None:
+                pseudo_name = filename
+            elif element is not None:
+                pseudo_name = None
+                for pseudo_file in chain(self.glob(pseudo_dir, '*.upf'), self.glob(pseudo_dir, '*.UPF')):
+                    if element_from_pseudo_filename(pseudo_file.name.name) == element:
+                        pseudo_name = pseudo_file.name
+                        break
+                if pseudo_name is None:
+                    raise ValueError(f'Pseudo for {element} not found in library {library}')
+            else:
+                raise ValueError('Either `element` or `filename` must be provided')
+            pseudo_path = pseudo_dir / pseudo_name
+        else:
+            try:
+                with open(config_file, 'r') as f:
+                    config = yaml.safe_load(f)
+            except FileNotFoundError:
+                raise FileNotFoundError('Could not find the pseudopotential library')
+
+            if library not in config['installed_pseudopotentials']:
+                raise FileNotFoundError(f'Could not find the custom pseudopotential library `{library}`')
+        
+            pseudo_path = None    
+            for pseudo_file in config['installed_pseudopotentials'][library]:
+                if filename is not None:
+                    if Path(pseudo_file).name == filename:
+                        pseudo_path = LocalFile(pseudo_file)
+                        break
+                elif element is not None:
+                    if element_from_pseudo_filename(pseudo_file.name) == element:
+                        pseudo_path = LocalFile(pseudo_file)
+                        break
+            if pseudo_path is None:
+                raise FileNotFoundError(f'Could not find the requested pseudopotential in library {library}')
+
+        if not self.file_exists(pseudo_path):
+            raise FileNotFoundError(f'Could not find the pseudopotential file `{pseudo_path}`')
+
         return UPFDict.from_upf(pseudo_path.aspath())
+
+    def install_pseudopotential(self, file: str, library: str) -> None:
+        try:
+            with open(config_file, 'r') as f:
+                config = yaml.safe_load(f)
+        except FileNotFoundError:
+            config = {'installed_pseudopotentials': {}}
+
+        if library not in config['installed_pseudopotentials']:
+            config['installed_pseudopotentials'][library] = set([str(file.resolve())])
+        else:
+            config['installed_pseudopotentials'][library].add(str(file.resolve()))
+
+        with utils.chdir(config_file.parent):
+            with open(config_file.name, 'w') as f:
+                yaml.dump(config, f)
+    
+    def uninstall_pseudopotential_library(self, library):
+        try:
+            with open(config_file, 'r') as f:
+                config = yaml.safe_load(f)
+        except FileNotFoundError:
+            raise ValueError(f'No custom pseudopotential libraries are installed; skipping uninstallation of {library}')
+        
+        if library in config['installed_pseudopotentials']:
+            del config['installed_pseudopotentials'][library]
+        else:
+            raise ValueError(f'Could not find the custom pseudopotential library `{library}`')
+        
+        with utils.chdir(config_file.parent):
+            with open(config_file.name, 'w') as f:
+                yaml.dump(config, f)
 
     @overload
     def read_file(self, file: File, binary: Literal[True]) -> bytes: ...
@@ -178,7 +248,13 @@ class LocalhostEngine(Engine):
             yield File(parent=directory.parent, name=path.relative_to(directory.parent.directory))
 
     def available_pseudo_families(self) -> set[str]:
-        return local_libraries
+        try:
+            with open(config_file, 'r') as f:
+                config = yaml.safe_load(f)
+            installed_libraries = set(config['installed_pseudopotentials'].keys())
+        except FileNotFoundError:
+            installed_libraries = set()
+        return local_libraries.union(installed_libraries)
 
 
 def load_old_calculator(calc):

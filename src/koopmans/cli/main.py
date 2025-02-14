@@ -6,6 +6,7 @@ import re
 import sys
 import textwrap
 import traceback
+from pathlib import Path
 
 import koopmans.mpl_config
 from koopmans.engines import Engine, LocalhostEngine
@@ -24,7 +25,7 @@ def _custom_exception_hook(exception_type, exception_value, traceback):
     print_alert('caution', str(exception_value), header=spaced_text, indent=1)
 
 
-class PrintPseudoAction(argparse.Action):
+class ListPseudoAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         engine_name = getattr(namespace, 'engine', DEFAULT_ENGINE)
         engine_config = getattr(namespace, 'engine_config', None)
@@ -32,7 +33,27 @@ class PrintPseudoAction(argparse.Action):
 
         for p in sorted(engine.available_pseudo_families()):
             print(p)
-        parser.exit()
+
+class InstallPseudoAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        engine_name = getattr(parser, 'engine', DEFAULT_ENGINE)
+        engine_config = getattr(parser, 'engine_config', None)
+        engine = initialize_engine(engine_name, engine_config)
+
+        for f in parser.file:
+            pseudo_file = Path(f).resolve()
+            if not pseudo_file.exists():
+                raise FileNotFoundError(f"File {pseudo_file} does not exist")
+            engine.install_pseudopotential(pseudo_file, library=parser.library)
+
+class UninstallPseudoAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        engine_name = getattr(namespace, 'engine', DEFAULT_ENGINE)
+        engine_config = getattr(namespace, 'engine_config', None)
+        engine = initialize_engine(engine_name, engine_config)
+
+        for value in values:
+            engine.uninstall_pseudopotential_library(value)
 
 
 def initialize_engine(engine_arg: str, engine_config: str | None) -> Engine:
@@ -59,28 +80,72 @@ def main():
         description='Perform Koopmans functional calculations',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='See https://koopmans-functionals.org for more details')
-    parser.add_argument('json', metavar='system.json', type=str,
-                        help='a single JSON file containing the workflow and code settings')
-    parser.add_argument('-t', '--traceback', action='store_true', help='enable traceback')
-    parser.add_argument('--engine', choices=['localhost', 'aiida'], default=DEFAULT_ENGINE,
-                        help="Specify the execution engine: 'local' or 'aiida' (default: 'local')")
-    parser.add_argument('--engine_config', type=str, default='engine.json',
-                        help='Specify the engine configuration file (default: engine.json)')
+
+    # Subcommands
+    subparsers = parser.add_subparsers(dest='command', title='subcommands')
+    
+    # koopmans --version
     parser.add_argument('--version', action='version', version=__version__,
-                        help="Show the program's version number and exit")
-    parser.add_argument('--pseudos', nargs=0, action=PrintPseudoAction,
-                        help="List the available pseudopotential families and exit")
+                        help="show the program's version number and exit")
+    
+    def add_engine_flag(p):
+        p.add_argument('--engine', choices=['localhost', 'aiida'], default=DEFAULT_ENGINE,
+                       help="specify the execution engine")
+
+    # koopmans run
+    run_parser = subparsers.add_parser("run", help="run a Koopmans workflow")
+    run_parser.add_argument('json', metavar='system.json', type=str,
+                            help='a single JSON file containing the workflow and code settings')
+    run_parser.add_argument('-t', '--traceback', action='store_true', help='enable traceback')
+    add_engine_flag(run_parser)
+    run_parser.add_argument('--engine_config', type=str, default='engine.json',
+                        help='Specify the engine configuration file (default: engine.json)')
+
+    # koopmans pseudos
+    pseudos_parser = subparsers.add_parser("pseudos", help="manage pseudopotentials")
+    pseudos_subparsers = pseudos_parser.add_subparsers(title='subcommands')
+
+    # koopmans pseudos list
+    pseudos_list = pseudos_subparsers.add_parser("list", help="List available pseudopotential families")
+    pseudos_list.set_defaults(action=ListPseudoAction)
+    add_engine_flag(pseudos_list)
+
+    # koopmans pseudos install
+    pseudos_install = pseudos_subparsers.add_parser("install", help="Install a local pseudopotential file")
+    pseudos_install.add_argument('file', type=str, help="the pseudopotential file to install", nargs='+')
+    pseudos_install.add_argument('--library', type=str, nargs='?', help="the custom library to put the pseudopotential in", default="CustomPseudos")
+    pseudos_install.set_defaults(action=InstallPseudoAction)
+    add_engine_flag(pseudos_install)
+
+    # koopmans pseudos uninstall
+    pseudos_uninstall = pseudos_subparsers.add_parser("uninstall", help="Uninstall a pseudopotential family")
+    pseudos_uninstall.add_argument('group', type=str, help="the pseudopotential family to uninstall", nargs='+', action=UninstallPseudoAction)
+    add_engine_flag(pseudos_uninstall)
+
+    # Hide traceback
+    sys.tracebacklimit = 0
+    default_excepthook, sys.excepthook = sys.excepthook, _custom_exception_hook
 
     # Parse arguments
     args = parser.parse_args()
 
-    # Set traceback behavior
-    if not args.traceback:
-        sys.tracebacklimit = 0
-        sys.excepthook = _custom_exception_hook
+    if args.command is None:
+        parser.print_help()
+        parser.exit()
 
     # Create the engine
-    engine = initialize_engine(args.engine, args.engine_config)
+    engine = initialize_engine(args.engine, getattr(args, 'engine_config', None))
+
+    # For koopmans pseudo list, perform the action and exit
+    if args.command == 'pseudos':
+        if hasattr(args, 'action'):
+            args.action.__call__(parser, args, None, None)
+        parser.exit()
+
+    # Restore traceback behavior if requested
+    if args.traceback:
+        sys.tracebacklimit = None
+        sys.excepthook = default_excepthook
 
     # Reading in JSON file
     workflow = read(args.json, engine=engine)

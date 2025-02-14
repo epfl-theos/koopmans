@@ -8,6 +8,8 @@ from koopmans.io import read, write
 from koopmans.kpoints import Kpoints
 from koopmans.settings import WorkflowSettingsDict
 from koopmans.workflows import SinglepointWorkflow
+from koopmans.pseudopotentials import local_libraries
+from koopmans.utils import warn
 
 
 def qei_to_json(input_file: Union[str, Path], json: Union[str, Path],
@@ -49,12 +51,22 @@ def qei_to_json(input_file: Union[str, Path], json: Union[str, Path],
         else:
             kwargs['kpoints'] = Kpoints(grid=calc.parameters.kpts)
 
+    # Determine the pseudopotential library
+    pseudo_library = str(calc.parameters.pop('pseudo_dir'))
+    default_library = 'SG15/1.2/PBE/SR'
+    try:
+        [matching_library] = [local_library for local_library in local_libraries if pseudo_library.endswith(local_library)]
+    except ValueError:
+        warn(f'Could not find a matching pseudopotential library; defaulting to {default_library}')
+        matching_library = default_library
+    
+    # Construct the workflow and write the input file to disk
     wf = SinglepointWorkflow(atoms=calc.atoms,
                              engine=LocalhostEngine(),
+                             pseudo_library=matching_library,
                              parameters=workflow_settings,
                              calculator_parameters={key: calc.parameters},
                              **kwargs)
-
     write(wf, json)
 
     return calc
