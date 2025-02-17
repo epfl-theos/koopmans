@@ -31,7 +31,7 @@ class ListPseudoAction(argparse.Action):
         engine_config = getattr(namespace, 'engine_config', None)
         engine = initialize_engine(engine_name, engine_config)
 
-        for p in sorted(engine.available_pseudo_families()):
+        for p in sorted(engine.available_pseudo_libraries()):
             print(p)
 
 class InstallPseudoAction(argparse.Action):
@@ -93,7 +93,7 @@ def main():
                        help="specify the execution engine")
 
     # koopmans run
-    run_parser = subparsers.add_parser("run", help="run a Koopmans workflow")
+    run_parser = subparsers.add_parser("run", help="run a Koopmans spectral functional calculation")
     run_parser.add_argument('json', metavar='system.json', type=str,
                             help='a single JSON file containing the workflow and code settings')
     run_parser.add_argument('-t', '--traceback', action='store_true', help='enable traceback')
@@ -102,29 +102,29 @@ def main():
                         help='Specify the engine configuration file (default: engine.json)')
 
     # koopmans pseudos
-    pseudos_parser = subparsers.add_parser("pseudos", help="manage pseudopotentials")
+    pseudos_parser = subparsers.add_parser("pseudos", help="list, install, and uninstall pseudopotentials")
     pseudos_subparsers = pseudos_parser.add_subparsers(title='subcommands')
 
     # koopmans pseudos list
-    pseudos_list = pseudos_subparsers.add_parser("list", help="List available pseudopotential families")
+    pseudos_list = pseudos_subparsers.add_parser("list", help="list available pseudopotential libraries")
     pseudos_list.set_defaults(action=ListPseudoAction)
     add_engine_flag(pseudos_list)
 
     # koopmans pseudos install
-    pseudos_install = pseudos_subparsers.add_parser("install", help="Install a local pseudopotential file")
-    pseudos_install.add_argument('file', type=str, help="the pseudopotential file to install", nargs='+')
+    pseudos_install = pseudos_subparsers.add_parser("install", help="install a local pseudopotential file")
+    pseudos_install.add_argument('file', type=str, help="the local .upf file to install", nargs='+')
     pseudos_install.add_argument('--library', type=str, nargs='?', help="the custom library to put the pseudopotential in", default="CustomPseudos")
     pseudos_install.set_defaults(action=InstallPseudoAction)
     add_engine_flag(pseudos_install)
 
     # koopmans pseudos uninstall
-    pseudos_uninstall = pseudos_subparsers.add_parser("uninstall", help="Uninstall a pseudopotential family")
-    pseudos_uninstall.add_argument('group', type=str, help="the pseudopotential family to uninstall", nargs='+', action=UninstallPseudoAction)
+    pseudos_uninstall = pseudos_subparsers.add_parser("uninstall", help="uninstall a pseudopotential library")
+    pseudos_uninstall.add_argument('library', type=str, help="the pseudopotential library to uninstall", nargs='+', action=UninstallPseudoAction)
     add_engine_flag(pseudos_uninstall)
 
-    # Hide traceback
-    sys.tracebacklimit = 0
-    default_excepthook, sys.excepthook = sys.excepthook, _custom_exception_hook
+    # # Hide traceback
+    # sys.tracebacklimit = 0
+    # default_excepthook, sys.excepthook = sys.excepthook, _custom_exception_hook
 
     # Parse arguments
     args = parser.parse_args()
@@ -134,12 +134,15 @@ def main():
         parser.exit()
 
     # Create the engine
-    engine = initialize_engine(args.engine, getattr(args, 'engine_config', None))
+    if getattr(args, 'engine', None):
+        engine = initialize_engine(args.engine, getattr(args, 'engine_config', None))
 
     # For koopmans pseudo list, perform the action and exit
     if args.command == 'pseudos':
         if hasattr(args, 'action'):
             args.action.__call__(parser, args, None, None)
+        else:
+            pseudos_parser.print_help()
         parser.exit()
 
     # Restore traceback behavior if requested
