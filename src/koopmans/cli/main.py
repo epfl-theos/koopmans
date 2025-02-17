@@ -122,9 +122,9 @@ def main():
     pseudos_uninstall.add_argument('library', type=str, help="the pseudopotential library to uninstall", nargs='+', action=UninstallPseudoAction)
     add_engine_flag(pseudos_uninstall)
 
-    # # Hide traceback
-    # sys.tracebacklimit = 0
-    # default_excepthook, sys.excepthook = sys.excepthook, _custom_exception_hook
+    # Hide traceback
+    sys.tracebacklimit = 0
+    default_excepthook, sys.excepthook = sys.excepthook, _custom_exception_hook
 
     # Parse arguments
     args = parser.parse_args()
