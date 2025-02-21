@@ -30,7 +30,7 @@ class Bin2XMLProcess(CommandLineTool):
 
     def _pre_run(self):
         super()._pre_run()
-        if not self.inputs.binary.parent_process.exists():
+        if not self.inputs.binary.exists():
             raise FileNotFoundError(f'`{self.inputs.binary}` does not exist')
 
         # Link the input binary file to the directory of this process as input.dat

@@ -62,7 +62,7 @@ class ExtractCoefficientsFromXMLProcess(Process):
         alpha_file.write_bytes(alphas.tobytes())
 
         beta_file = File(self, f'betas_{suffix}.npy')
-        beta_file.write_file(betas.tobytes())
+        beta_file.write_bytes(betas.tobytes())
 
         # Compute the decomposition
         orbital_files, total_files = ml.compute_decomposition(

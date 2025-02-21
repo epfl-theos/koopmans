@@ -32,7 +32,7 @@ for i in range(n_total):
 models = []
 training_data = []
 for i, ab_initio_wf in enumerate(ab_initio_wfs[:n_train]):
-    model = MLModel('ridge_regression', descriptor='orbital_density')
+    model = MLModel('ridge_regression', descriptor='orbital_density', engine=ab_initio_wf.engine)
     training_data += ab_initio_wf.bands.to_solve
     model.add_training_data(training_data)
     model.train()

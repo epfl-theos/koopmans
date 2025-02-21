@@ -61,6 +61,9 @@ class TrajectoryWorkflow(Workflow):
         if not all([w.status == Status.COMPLETED for w in workflows]):
             return
 
+        self.calculations += [c for w in workflows for c in w.calculations]
+        self.steps += [s for w in workflows for s in w.steps]
+
         self.outputs = self.output_model(snapshot_outputs=[w.outputs for w in workflows])
         self.status = Status.COMPLETED
 
