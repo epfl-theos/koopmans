@@ -8,7 +8,7 @@ from upf_tools import UPFDict
 from koopmans import utils
 from koopmans.files import File
 from koopmans.status import Status
-from koopmans.step import Step
+from koopmans.processes import ProcessProtocol
 
 
 class Engine(ABC):
@@ -49,23 +49,28 @@ class Engine(ABC):
         self._step_message(uid, '⏭️ ', 'already complete  ')
 
     @abstractmethod
-    def run(self, step: Step) -> None:
+    def run(self, step: ProcessProtocol) -> None:
+        # Run a step of the workflow
         ...
 
     @abstractmethod
-    def get_status(self, step: Step) -> Status:
+    def get_status(self, step: ProcessProtocol) -> Status:
+        # Get the status of a step
         ...
 
     @abstractmethod
-    def set_status(self, step: Step, status: Status):
+    def set_status(self, step: ProcessProtocol, status: Status):
+        # Set the status of a step
         ...
 
     @abstractmethod
     def update_statuses(self) -> None:
+        # Check the statuses of all steps and update them if necessary
         ...
 
     @abstractmethod
-    def load_results(self, step: Step) -> None:
+    def load_results(self, step: ProcessProtocol) -> None:
+        # Load the results of a completed step
         ...
 
     @abstractmethod
@@ -83,6 +88,11 @@ class Engine(ABC):
         # Uninstall a pseudopotential library
         ...
 
+    @abstractmethod
+    def available_pseudo_libraries(self) -> set[str]:
+        # Return a set of available pseudopotential libraries
+        ...
+
     @overload
     @abstractmethod
     def read_file(self, file: File, binary: Literal[True]) -> bytes: ...
@@ -97,13 +107,18 @@ class Engine(ABC):
 
     @abstractmethod
     def read_file(self, file: File, binary: bool = False) -> bytes | str: ...
+        # Read content from file; should mimic Path.write_text() or Path.write_bytes()
 
     @abstractmethod
     def write_file(self, content: str | bytes, file: File) -> None:
+        # Write content to a file; should mimic Path.write_text() or Path.write_bytes()
         ...
 
     @abstractmethod
     def link_file(self, source: File, destination: File, recursive: bool = False, overwrite: bool = False) -> None:
+        # Create a symbolic link at destination that points to source; should mimic Path.symlink_to()
+        # Additionally must support recursive = True, which, if source is a directory, will link all the files
+        # individually rather than creating a single link to the entire directory
         ...
 
     @abstractmethod
@@ -112,14 +127,22 @@ class Engine(ABC):
 
     @abstractmethod
     def copy_file(self, source: File, destination: File, exist_ok: bool = False) -> None:
+        # Remove a file; should mimic shutil.copy()
+        ...
+    
+    @abstractmethod
+    def unlink_file(self, file: File) -> None:
+        # Remove a file; should mimic Path.unlink()
         ...
 
     @abstractmethod
     def file_exists(self, file: File) -> bool:
+        # Check if a file exists; should mimic Path.exists()
         ...
 
     @abstractmethod
     def file_is_dir(self, file: File) -> bool:
+        # Check if a file is a directory; should mimic Path.is_dir()
         ...
 
     @abstractmethod
@@ -129,12 +152,10 @@ class Engine(ABC):
 
     @abstractmethod
     def mkdir(self, directory: File, parents: bool = False, exist_ok: bool = False) -> None:
+        # Create a directory; should mimic Path.mkdir()
         ...
 
     @abstractmethod
     def rmdir(self, directory: File) -> None:
-        ...
-
-    @abstractmethod
-    def available_pseudo_families(self) -> set[str]:
+        # Remove a directory; should mimic Path.rmdir()
         ...

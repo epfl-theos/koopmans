@@ -26,7 +26,6 @@ from koopmans.cell import (cell_follows_qe_conventions, cell_to_parameters,
 
 if TYPE_CHECKING:
     from koopmans.files import File
-    from koopmans.step import Step
     from koopmans.engines import Engine
 
 from ._os import HasDirectory
@@ -96,29 +95,28 @@ def construct_atomic_species_block(atoms: Atoms) -> Dict[str, Any]:
     return {'species': species}
 
 
-def write_alpha_file(write_function, parent: Step, alphas: List[float], filling: List[bool]):
+def write_alpha_file(parent_process: HasDirectory, alphas: List[float], filling: List[bool]):
     from koopmans.files import File
 
     a_filled = [a for a, f in zip(alphas, filling) if f]
     a_empty = [a for a, f in zip(alphas, filling) if not f]
     for alphas, suffix in zip([a_filled, a_empty], ['', '_empty']):
-        assert isinstance(parent, HasDirectory)
-        dst_file = File(parent, f'file_alpharef{suffix}.txt')
+        assert isinstance(parent_process, HasDirectory)
+        dst_file = File(parent_process, f'file_alpharef{suffix}.txt')
         content = f'{len(alphas)}\n'
         content += ''.join([f'{i + 1} {a} 1.0\n' for i, a in enumerate(alphas)])
-        write_function(content, dst_file)
+        dst_file.write_text(content)
 
 
-def read_alpha_file(directory: Path) -> List[float]:
+def read_alpha_file(parent_process: HasDirectory) -> List[float]:
     alphas: List[float] = []
     for suffix in ['', '_empty']:
-        fname = directory / f'file_alpharef{suffix}.txt'
-        if not fname.is_file():
+        fname = File(parent_process, f'file_alpharef{suffix}.txt')
+        if not fname.exists():
             break
-        with open(fname, 'r') as fd:
-            flines = fd.readlines()
-            n_orbs = int(flines[0])
-            alphas += [float(line.split()[1]) for line in flines[1:n_orbs + 1]]
+        flines = fname.read_text().split('\n')
+        n_orbs = int(flines[0])
+        alphas += [float(line.split()[1]) for line in flines[1:n_orbs + 1]]
     return alphas
 
 
@@ -284,7 +282,7 @@ def parse_wannier_hr_file_contents(content: str) -> Tuple[np.ndarray, np.ndarray
         - the number of wannier functions
     """
 
-    lines = content.split('\n')
+    lines = content.rstrip('\n').split('\n')
     if 'written on' in lines[0].lower():
         pass
     elif 'xml version' in lines[0]:
@@ -309,7 +307,7 @@ def parse_wannier_hr_file_contents(content: str) -> Tuple[np.ndarray, np.ndarray
     # Read in the hamiltonian and the unique r-vectors
     hr: List[complex] = []
     rvect: List[List[int]] = []
-    for i, line in enumerate(lines[lines_to_skip:-1]):
+    for i, line in enumerate(lines[lines_to_skip:]):
         hr.append(float(line.split()[5]) + 1j * float(line.split()[6]))
         if not single_R and i % num_wann**2 == 0:
             rvect.append([int(x) for x in line.split()[0:3]])
@@ -324,10 +322,8 @@ def parse_wannier_hr_file_contents(content: str) -> Tuple[np.ndarray, np.ndarray
     return hr_np, rvect_np, weights, nrpts
 
 
-def read_wannier_hr_file(src: File, engine: Engine) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
-    content = engine.read_file(src)
-    assert isinstance(content, str)
-    return parse_wannier_hr_file_contents(content)
+def read_wannier_hr_file(src: File) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
+    return parse_wannier_hr_file_contents(src.read_text())
 
 
 def parse_wannier_u_file_contents(content: str) -> Tuple[npt.NDArray[np.complex128], npt.NDArray[np.float64], int]:

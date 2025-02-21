@@ -17,9 +17,8 @@ from koopmans import calculators, pseudopotentials, utils
 from koopmans.files import File
 from koopmans.outputs import OutputModel
 from koopmans.status import Status
-from koopmans.step import Step
 
-from ._workflow import Workflow
+from ._workflow import Workflow, spin_symmetrize
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 
@@ -59,9 +58,14 @@ class DFTCPWorkflow(DFTWorkflow):
             if calc.parameters.empty_states_maxstep is None:
                 calc.parameters.empty_states_maxstep = 300
 
-        status = self.run_steps(calc)
-        if status == Status.COMPLETED:
-            self.status = Status.COMPLETED
+        if self.parameters.fix_spin_contamination:
+            status = spin_symmetrize(self, calc)
+            if status == Status.COMPLETED:
+                self.status = status
+        else:
+            status = self.run_steps(calc)
+            if status == Status.COMPLETED:
+                self.status = status
 
         return
 

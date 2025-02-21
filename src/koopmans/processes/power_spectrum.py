@@ -54,24 +54,28 @@ class ExtractCoefficientsFromXMLProcess(Process):
         alphas, betas = ml.precompute_parameters_of_radial_basis(self.inputs.n_max, self.inputs.l_max,
                                                                  self.inputs.r_min, self.inputs.r_max)
 
-        # Save the parameters to file
+        # Save the parameters to files
         suffix = '_'.join(str(x) for x in [self.inputs.n_max, self.inputs.l_max, self.inputs.r_min, self.inputs.r_max])
         assert self.directory is not None
+
         alpha_file = File(self, f'alphas_{suffix}.npy')
+        alpha_file.write_bytes(alphas.tobytes())
+
         beta_file = File(self, f'betas_{suffix}.npy')
-        self.engine.write(alphas.tobytes(), alpha_file)
-        self.engine.write(betas.tobytes(), beta_file)
+        beta_file.write_file(betas.tobytes())
 
         # Compute the decomposition
         orbital_files, total_files = ml.compute_decomposition(
             alpha_file=alpha_file, beta_file=beta_file,
-            read_content=partial(self.engine.read, binary=False),
-            read_binary_content=partial(self.engine.read, binary=True),
             **self.inputs.dict())
 
         # Write the files
         for name, content in list(orbital_files.items()) + list(total_files.items()):
-            self.engine.write(content, File(self, name))
+            dst = File(self, name)
+            if isinstance(content, bytes):
+                dst.write_bytes(content)
+            else:
+                dst.write_text(content)
 
         self.outputs = ExtractCoefficientsFromXMLOutput(precomputed_alphas=alpha_file,
                                                         precomputed_betas=beta_file,
@@ -143,8 +147,8 @@ class ComputePowerSpectrumProcess(Process):
         """
 
         # Load the coefficients from file
-        coeff_orb = np.frombuffer(utils.get_binary_content(*self.inputs.orbital_coefficients))
-        coeff_tot = np.frombuffer(utils.get_binary_content(*self.inputs.total_coefficients))
+        coeff_orb = np.frombuffer(self.inputs.orbital_coefficients.read_bytes())
+        coeff_tot = np.frombuffer(self.inputs.total_coefficients.read_bytes())
         coeff_matrix = read_coeff_matrix(coeff_orb, coeff_tot, self.inputs.n_max, self.inputs.l_max)
 
         # Compute the power spectrum
@@ -152,7 +156,7 @@ class ComputePowerSpectrumProcess(Process):
 
         # Write the power spectrum to file
         power_spectrum_file = File(self, Path('power_spectrum.npy'))
-        self.engine.write(power_mat.tobytes(), power_spectrum_file)
+        power_spectrum_file.write_bytes(power_mat.tobytes())
 
         # Populate self.outputs
         self.outputs = self.output_model(power_spectrum=power_spectrum_file)

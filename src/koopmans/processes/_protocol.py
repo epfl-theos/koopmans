@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from koopmans.utils import HasDirectory
 
@@ -10,9 +10,9 @@ if TYPE_CHECKING:
 
 
 @runtime_checkable
-class Step(Protocol):
+class ProcessProtocol(Protocol):
     # Ultimately to be merged with Process once that has a more general definition
-    parent: HasDirectory | None
+    parent_process: HasDirectory | None
     name: str
     engine: Engine | None
 

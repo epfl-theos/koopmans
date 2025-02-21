@@ -23,14 +23,13 @@ from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
 from koopmans.projections import BlockID
 from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.status import Status
-from koopmans.step import Step
 
 from ._folding import FoldToSupercellWorkflow
 from ._koopmans_cp_with_spin_swap import KoopmansCPWithSpinSwapWorkflow
 from ._ml import PowerSpectrumDecompositionWorkflow
 from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
 from ._wannierize import WannierizeWorkflow
-from ._workflow import Workflow
+from ._workflow import Workflow, spin_symmetrize
 
 
 class KoopmansDSCFOutputs(OutputModel):
@@ -239,7 +238,7 @@ class KoopmansDSCFWorkflow(Workflow):
         to a nested list using convert_flat_alphas_for_kcp()
         '''
 
-        flat_alphas = utils.read_alpha_file(directory)
+        flat_alphas = utils.read_alpha_file(self)
         params = self.calculator_parameters['kcp']
         assert isinstance(params, KoopmansCPSettingsDict)
         alphas = calculators.convert_flat_alphas_for_kcp(flat_alphas, params)
@@ -454,7 +453,7 @@ class CalculateScreeningViaDSCF(Workflow):
                     utils.warn('The screening parameters for a KI calculation with no empty states will converge '
                                'instantly; to save computational time set `alpha_numsteps == 1`')
 
-            parent = iteration_wf.outputs.n_electron_restart_dir.parent
+            parent = iteration_wf.outputs.n_electron_restart_dir.parent_process
             assert isinstance(parent, calculators.KoopmansCPCalculator)
             n_electron_calc = parent
             dummy_outdirs = iteration_wf.outputs.dummy_outdirs
@@ -1400,80 +1399,3 @@ def print_alpha_history(wf: Workflow):
         else:
             wf.print(wf.bands.error_history().to_markdown(), wrap=False)
     wf.print('')
-
-
-def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
-    """
-    Generate a series of calculators that will be equivalent to the original master_calc
-    but switching back and forth between nspin=1 and nspin=2 calculations to fix spin contamination
-    """
-
-    if not isinstance(master_calc, calculators.CalculatorCanEnforceSpinSym):
-        raise NotImplementedError(f'`{master_calc.__class__.__name__}` cannot enforce spin symmetry')
-
-    # nspin=1
-    calc_nspin1 = master_calc.nspin1_calculator()
-
-    if not master_calc.from_scratch:
-        # Locate the preceeding nspin=2 calculation from which the calculation is configured to read
-        # (and from which we will fetch the nspin=2 wavefunctions)
-        ndr_directory = str(master_calc.read_directory)
-        if ndr_directory not in master_calc.linked_files.keys():
-            raise ValueError('This calculator needs to be linked to a previous `nspin=2` calculation before '
-                             '`run_calculator` is called')
-        prev_calc_nspin2 = master_calc.linked_files[ndr_directory][0]
-        if not isinstance(prev_calc_nspin2, calculators.KoopmansCPCalculator):
-            raise ValueError(
-                'Unexpected calculator type linked during the procedure for fixing spin contamination')
-
-        # Wipe the linked files (except for globally-linked files)
-        master_calc.linked_files = {k: v for k, v in master_calc.linked_files.items() if v[0] is None}
-        calc_nspin1.linked_files = {k: v for k, v in calc_nspin1.linked_files.items() if v[0] is None}
-
-        # nspin=1 dummy
-        calc_nspin1_dummy = master_calc.nspin1_dummy_calculator()
-        calc_nspin1_dummy.skip_qc = True
-        status = wf.run_steps(calc_nspin1_dummy)
-        if status != Status.COMPLETED:
-            return status
-
-        calc_nspin1.link(File(calc_nspin1_dummy, calc_nspin1_dummy.parameters.outdir),
-                         calc_nspin1.parameters.outdir)
-
-        # Copy over nspin=2 wavefunction to nspin=1 tmp directory
-        process2to1 = ConvertFilesFromSpin2To1(name=None,
-                                               **prev_calc_nspin2.files_to_convert_with_spin2_to_spin1)
-        status = wf.run_steps(process2to1)
-        if status != Status.COMPLETED:
-            return status
-        for f in process2to1.outputs.generated_files:
-            dst_dir = calc_nspin1.parameters.outdir / \
-                f'{calc_nspin1.parameters.prefix}_{calc_nspin1.parameters.ndr}.save/K00001'
-            calc_nspin1.link(File(process2to1, f), dst_dir / f.name, symlink=True, overwrite=True)
-
-    status = wf.run_steps(calc_nspin1)
-    if status != Status.COMPLETED:
-        return status
-
-    # nspin=2 from scratch (dummy run for creating files of appropriate size)
-    calc_nspin2_dummy = master_calc.nspin2_dummy_calculator()
-    calc_nspin2_dummy.skip_qc = True
-    status = wf.run_steps(calc_nspin2_dummy)
-    if status != Status.COMPLETED:
-        return status
-    master_calc.link(File(calc_nspin2_dummy, calc_nspin2_dummy.parameters.outdir), master_calc.parameters.outdir)
-
-    # Copy over nspin=1 wavefunction to nspin=2 tmp directory
-    process1to2 = ConvertFilesFromSpin1To2(**calc_nspin1.files_to_convert_with_spin1_to_spin2)
-    status = wf.run_steps(process1to2)
-    if status != Status.COMPLETED:
-        return status
-
-    # nspin=2, reading in the spin-symmetric nspin=1 wavefunction
-    master_calc.prepare_to_read_nspin1()
-    for f in process1to2.outputs.generated_files:
-        dst_dir = master_calc.parameters.outdir / \
-            f'{master_calc.parameters.prefix}_{master_calc.parameters.ndr}.save/K00001'
-        master_calc.link(File(process1to2, f), dst_dir / f.name, symlink=True, overwrite=True)
-    status = wf.run_steps(master_calc)
-    return status

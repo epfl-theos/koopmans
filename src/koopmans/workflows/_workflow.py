@@ -53,7 +53,7 @@ from koopmans.engines import Engine, LocalhostEngine
 from koopmans.files import File, LocalFile
 from koopmans.kpoints import Kpoints
 from koopmans.ml import AbstractMLModel, MLModel, OccEmpMLModels
-from koopmans.processes import Process
+from koopmans.processes import Process, ProcessProtocol
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
 from koopmans.projections import ProjectionBlocks
@@ -61,7 +61,6 @@ from koopmans.pseudopotentials import (nelec_from_pseudos, element_from_pseudo_f
                                        pseudopotential_library_citations)
 from koopmans.references import bib_data
 from koopmans.status import Status
-from koopmans.step import Step
 from koopmans.utils import SpinType
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
@@ -116,7 +115,7 @@ class Workflow(utils.HasDirectory, ABC):
     step_counter: int
     print_indent: int
     status: Status
-    engine: Engine
+    engine: Engine | None
 
     __slots__ = utils.HasDirectory.__slots__ + ['atoms', 'parameters', 'calculator_parameters', 'name', 'kpoints',
                                                 'pseudopotentials', 'projections', 'ml_model', 'snapshots',
@@ -140,18 +139,19 @@ class Workflow(utils.HasDirectory, ABC):
                  snapshots: Optional[List[Atoms]] = None,
                  autogenerate_settings: bool = True,
                  version: Optional[str] = None,
-                 parent: Optional[Workflow] = None,
+                 parent_process: Optional[Workflow] = None,
                  **kwargs: Dict[str, Any]):
 
         self.step_counter = 0
         self.print_indent = 0
         self.status = Status.NOT_STARTED
 
-        # Initialize the HasDirectory information (parent, base_directory, directory)
-        base_directory = None if parent else Path.cwd()
-        directory = None if parent else Path()
-        super().__init__(parent=parent, base_directory=base_directory, directory=directory, engine=engine)
-        assert self.engine == engine
+        # Initialize the HasDirectory information (parent_process, base_directory, directory)
+        base_directory = None if parent_process else Path.cwd()
+        directory = None if parent_process else Path()
+        super().__init__(parent_process=parent_process, base_directory=base_directory, directory=directory, engine=engine)
+        if self.engine is None:
+            raise ValueError('Please provide an engine -- without one, a Workflow cannot be initialized as it does not know e.g. how to load pseudopotentials')
 
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
@@ -242,9 +242,9 @@ class Workflow(utils.HasDirectory, ABC):
             self.pseudopotentials = {}
             for symbol, pseudo_filename in pseudopotentials.items():
                 if isinstance(pseudo_filename, str):
-                    self.pseudopotentials[element] = self.engine.get_pseudopotential(self.parameters.pseudo_library, filename=pseudo_filename)
+                    self.pseudopotentials[symbol] = self.engine.get_pseudopotential(self.parameters.pseudo_library, filename=pseudo_filename)
                 elif isinstance(pseudo_filename, UPFDict):
-                    self.pseudopotentials[element] = pseudo_filename
+                    self.pseudopotentials[symbol] = pseudo_filename
                 else:
                     raise ValueError(f'Invalid pseudopotential type: {pseudo_filename.__class__.__name__}')
         else:
@@ -416,14 +416,14 @@ class Workflow(utils.HasDirectory, ABC):
             assert abs_pseudo_dir.is_dir()
             self.parameters.pseudo_directory = os.path.relpath(abs_pseudo_dir, self.base_directory)
 
-    def run_while(self,):
+    def run_while(self):
         '''
         Run the workflow
         '''
         self.print_preamble()
         attempts = 0
 
-        if not self.parent:
+        if not self.parent_process:
             bf = '**' if sys.stdout.isatty() else ''
             self.print(bf + self.name + bf)
             self.print(bf + '-' * len(self.name) + bf)
@@ -442,34 +442,38 @@ class Workflow(utils.HasDirectory, ABC):
 
             self.engine.update_statuses()
 
-        if not self.parent and self.status == Status.COMPLETED:
+        if not self.parent_process and self.status == Status.COMPLETED:
             self._teardown()
 
         self.status = Status.COMPLETED
-        return
 
-    def run(self, subdirectory: Optional[str] = None, copy_outputs_to_parent: Optional[bool] = True):
-        '''
-        Run the workflow
-        '''
+    def _pre_run(self):
 
         self.step_counter = 0
 
         if self.status == Status.NOT_STARTED:
             self.status = Status.RUNNING
 
-        if self.parent:
+    def run(self, subdirectory: Optional[str] = None, copy_outputs_to_parent: Optional[bool] = True):
+        '''
+        Run the workflow
+        '''
+
+        self._pre_run()
+
+        if self.parent_process:
             with self._parent_context(subdirectory, copy_outputs_to_parent):
                 self._run()
         else:
+            self.base_directory = Path.cwd().resolve()
             if subdirectory:
-                self.base_directory = Path(subdirectory).resolve()
-                with utils.chdir(subdirectory):
-                    self._run()
-            else:
-                self.base_directory = Path.cwd().resolve()
-                self._run()
+                self.directory = Path(subdirectory)
+            self._run()
 
+        self._post_run()
+
+    def _post_run(self):
+        assert self.engine is not None
         self.engine.update_statuses()
 
     @abstractmethod
@@ -519,7 +523,7 @@ class Workflow(utils.HasDirectory, ABC):
         e.g.
         >>> sub_wf = Workflow.fromparent(self)
         '''
-        return cls.from_other(other_wf=parent_wf, parent=parent_wf, **kwargs)
+        return cls.from_other(other_wf=parent_wf, parent_process=parent_wf, **kwargs)
 
     def _run_sanity_checks(self):
         # Check internal consistency of workflow settings
@@ -727,7 +731,7 @@ class Workflow(utils.HasDirectory, ABC):
             raise ValueError(f'Cound not find a calculator of type `{calc_type}`')
 
         # Merge calculator_parameters and kwargs, giving kwargs higher precedence
-        all_kwargs: Dict[str, Any] = {'parent': self}
+        all_kwargs: Dict[str, Any] = {'parent_process': self}
         calculator_parameters = self.calculator_parameters[calc_type]
         all_kwargs.update(**calculator_parameters)
         all_kwargs.update(**kwargs)
@@ -806,25 +810,28 @@ class Workflow(utils.HasDirectory, ABC):
 
         self.atoms = self.atoms[mask]
 
-    def run_steps(self, steps: Step | Sequence[Step]) -> Status:
+    def run_steps(self, steps: ProcessProtocol | Sequence[ProcessProtocol]) -> Status:
         """Run a sequence of steps in the workflow
 
         Run either a step or sequence (i.e. list) of steps. If a list is provided, the steps must be able to be run
         in parallel.
 
         :param steps: The step or steps to run
-        :type steps: Step | Sequence[Step]
+        :type steps: ProcessProtocol | Sequence[ProcessProtocol]
         :return: The status of this set of steps
         :rtype: Status
         """
+
+        assert self.engine is not None
+
         # Convert steps to an immutable, covariant tuple
-        if isinstance(steps, Step):
+        if isinstance(steps, ProcessProtocol):
             steps = (steps,)
         if not isinstance(steps, tuple):
             steps = tuple(steps)
 
         for step in steps:
-            step.parent = self
+            step.parent_process = self
             step.engine = self.engine
             self.step_counter += 1
 
@@ -866,6 +873,7 @@ class Workflow(utils.HasDirectory, ABC):
         return Status.COMPLETED
 
     def steps_are_running(self) -> bool:
+        assert self.engine is not None
         for step in self.steps:
             if self.engine.get_status(step) == Status.RUNNING:
                 return True
@@ -875,23 +883,23 @@ class Workflow(utils.HasDirectory, ABC):
     def _parent_context(self, subdirectory: Optional[str] = None,
                         copy_outputs_to_parent: Optional[bool] = True) -> Generator[None, None, None]:
         '''
-        Context for calling self._run(), within which self inherits relevant information from self.parent, runs, and
+        Context for calling self._run(), within which self inherits relevant information from self.parent_process, runs, and
         then passes back relevant information to self.parent
         '''
 
-        assert isinstance(self.parent, Workflow)
+        assert isinstance(self.parent_process, Workflow)
 
         # Increase the indent level
-        self.print_indent = self.parent.print_indent + 2
+        self.print_indent = self.parent_process.print_indent + 2
 
         # Ensure altering self.calculator_parameters won't affect self.parent.calculator_parameters
-        if self.calculator_parameters is self.parent.calculator_parameters:
-            self.calculator_parameters = copy.deepcopy(self.parent.calculator_parameters)
+        if self.calculator_parameters is self.parent_process.calculator_parameters:
+            self.calculator_parameters = copy.deepcopy(self.parent_process.calculator_parameters)
 
         # Copy the lists of calculations, processes, and steps
-        self.calculations = [c for c in self.parent.calculations]
-        self.processes = [p for p in self.parent.processes]
-        self.steps = [s for s in self.parent.steps]
+        self.calculations = [c for c in self.parent_process.calculations]
+        self.processes = [p for p in self.parent_process.processes]
+        self.steps = [s for s in self.parent_process.steps]
 
         # Store the current length of the lists so we can tell how many calculations are new
         n_steps = len(self.steps)
@@ -899,32 +907,32 @@ class Workflow(utils.HasDirectory, ABC):
         n_processes = len(self.processes)
 
         # Link the bands
-        if self.parent.bands is not None:
+        if self.parent_process.bands is not None:
             if copy_outputs_to_parent:
-                self.bands = self.parent.bands
+                self.bands = self.parent_process.bands
             else:
-                self.bands = copy.deepcopy(self.parent.bands)
+                self.bands = copy.deepcopy(self.parent_process.bands)
 
         # Prepend the step counter to the subdirectory name
         subdirectory_str = self.name.replace(' ', '-').lower() if subdirectory is None else subdirectory
-        self.parent.step_counter += 1
-        subdirectory_path = Path(f'{self.parent.step_counter:02}-{subdirectory_str}')
-        assert self.parent.directory is not None
-        self.directory = self.parent.directory / subdirectory_path
+        self.parent_process.step_counter += 1
+        subdirectory_path = Path(f'{self.parent_process.step_counter:02}-{subdirectory_str}')
+        assert self.parent_process.directory is not None
+        self.directory = self.parent_process.directory / subdirectory_path
         try:
             # Run the workflow
             yield
         finally:
             if copy_outputs_to_parent:
                 # Updating the lists of calculations, processes, and steps
-                self.parent.calculations += self.calculations[n_calculations:]
-                self.parent.processes += self.processes[n_processes:]
-                self.parent.steps += self.steps[n_steps:]
+                self.parent_process.calculations += self.calculations[n_calculations:]
+                self.parent_process.processes += self.processes[n_processes:]
+                self.parent_process.steps += self.steps[n_steps:]
 
                 if self.status == Status.COMPLETED:
-                    if self.bands is not None and self.parent.bands is None:
+                    if self.bands is not None and self.parent_process.bands is None:
                         # Copy the entire bands object
-                        self.parent.bands = self.bands
+                        self.parent_process.bands = self.bands
 
     def print(self, *args, **kwargs):
         utils.indented_print(*args, **kwargs)
@@ -1088,6 +1096,11 @@ class Workflow(utils.HasDirectory, ABC):
         # Check for unexpected blocks
         for block in bigdct:
             raise ValueError(f'Unrecognized block `{block}` in the json input file')
+        
+        # Attach an engine if it does not exist
+        if 'engine' not in kwargs:
+            engine_args = {k: parameters[k] for k in parameters if k in ['from_scratch']}
+            kwargs['engine'] = LocalhostEngine(**engine_args)
 
         # Create the workflow. Note that any keywords provided in the calculator_parameters (i.e. whatever is left in
         # calcdict) are provided as kwargs
@@ -1139,7 +1152,7 @@ class Workflow(utils.HasDirectory, ABC):
         relevant_references.to_file(self.name + '.bib')
 
     def print_preamble(self):
-        if self.parent:
+        if self.parent_process:
             return
 
         self.print(header())
@@ -1383,17 +1396,29 @@ class Workflow(utils.HasDirectory, ABC):
         Removes tmpdirs
         '''
 
-        all_outdirs = [calc.parameters.get('outdir', None) for calc in self.calculations]
-        outdirs = set([o.resolve() for o in all_outdirs if o is not None and o.resolve().exists()])
-        for outdir in outdirs:
-            shutil.rmtree(outdir)
+        for calc in self.calculations:
+            if calc.parameters.get('outdir', None) is None:
+                continue
+            outdir = File(calc, calc.parameters.outdir)
+            if outdir.exists():
+                outdir.rmdir()
 
     def _teardown(self):
         '''
         Performs final tasks before the workflow completes
         '''
 
+        from koopmans.io import write
+
         assert self.status == Status.COMPLETED
+
+        # Save workflow to file
+        write(self, self.name + '.pkl')
+
+        # Save the ML model to a separate file
+        if self.ml.train:
+            assert self.ml_model is not None
+            write(self.ml_model, self.name + '_ml_model.pkl')
 
         # Removing tmpdirs
         if not self.parameters.keep_tmpdirs:
@@ -1533,3 +1558,80 @@ def header():
               ]
 
     return '\n'.join(header)
+
+
+def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
+    """
+    Generate a series of calculators that will be equivalent to the original master_calc
+    but switching back and forth between nspin=1 and nspin=2 calculations to fix spin contamination
+    """
+
+    if not isinstance(master_calc, calculators.CalculatorCanEnforceSpinSym):
+        raise NotImplementedError(f'`{master_calc.__class__.__name__}` cannot enforce spin symmetry')
+
+    # nspin=1
+    calc_nspin1 = master_calc.nspin1_calculator()
+
+    if not master_calc.from_scratch:
+        # Locate the preceeding nspin=2 calculation from which the calculation is configured to read
+        # (and from which we will fetch the nspin=2 wavefunctions)
+        ndr_directory = str(master_calc.read_directory)
+        if ndr_directory not in master_calc.linked_files.keys():
+            raise ValueError('This calculator needs to be linked to a previous `nspin=2` calculation before '
+                             '`run_calculator` is called')
+        prev_calc_nspin2 = master_calc.linked_files[ndr_directory][0]
+        if not isinstance(prev_calc_nspin2, calculators.KoopmansCPCalculator):
+            raise ValueError(
+                'Unexpected calculator type linked during the procedure for fixing spin contamination')
+
+        # Wipe the linked files (except for globally-linked files)
+        master_calc.linked_files = {k: v for k, v in master_calc.linked_files.items() if v[0] is None}
+        calc_nspin1.linked_files = {k: v for k, v in calc_nspin1.linked_files.items() if v[0] is None}
+
+        # nspin=1 dummy
+        calc_nspin1_dummy = master_calc.nspin1_dummy_calculator()
+        calc_nspin1_dummy.skip_qc = True
+        status = wf.run_steps(calc_nspin1_dummy)
+        if status != Status.COMPLETED:
+            return status
+
+        calc_nspin1.link(File(calc_nspin1_dummy, calc_nspin1_dummy.parameters.outdir),
+                         calc_nspin1.parameters.outdir)
+
+        # Copy over nspin=2 wavefunction to nspin=1 tmp directory
+        process2to1 = ConvertFilesFromSpin2To1(name=None,
+                                               **prev_calc_nspin2.files_to_convert_with_spin2_to_spin1)
+        status = wf.run_steps(process2to1)
+        if status != Status.COMPLETED:
+            return status
+        for f in process2to1.outputs.generated_files:
+            dst_dir = calc_nspin1.parameters.outdir / \
+                f'{calc_nspin1.parameters.prefix}_{calc_nspin1.parameters.ndr}.save/K00001'
+            calc_nspin1.link(File(process2to1, f), dst_dir / f.name, symlink=True, overwrite=True)
+
+    status = wf.run_steps(calc_nspin1)
+    if status != Status.COMPLETED:
+        return status
+
+    # nspin=2 from scratch (dummy run for creating files of appropriate size)
+    calc_nspin2_dummy = master_calc.nspin2_dummy_calculator()
+    calc_nspin2_dummy.skip_qc = True
+    status = wf.run_steps(calc_nspin2_dummy)
+    if status != Status.COMPLETED:
+        return status
+    master_calc.link(File(calc_nspin2_dummy, calc_nspin2_dummy.parameters.outdir), master_calc.parameters.outdir)
+
+    # Copy over nspin=1 wavefunction to nspin=2 tmp directory
+    process1to2 = ConvertFilesFromSpin1To2(**calc_nspin1.files_to_convert_with_spin1_to_spin2)
+    status = wf.run_steps(process1to2)
+    if status != Status.COMPLETED:
+        return status
+
+    # nspin=2, reading in the spin-symmetric nspin=1 wavefunction
+    master_calc.prepare_to_read_nspin1()
+    for f in process1to2.outputs.generated_files:
+        dst_dir = master_calc.parameters.outdir / \
+            f'{master_calc.parameters.prefix}_{master_calc.parameters.ndr}.save/K00001'
+        master_calc.link(f, dst_dir / f.name, symlink=True, overwrite=True)
+    status = wf.run_steps(master_calc)
+    return status

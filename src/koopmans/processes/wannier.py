@@ -134,13 +134,14 @@ class MergeProcess(Process):
         if len(self.inputs.src_files) == 0:
             raise ValueError('No input files provided to merge.')
 
-        filecontents = [self.engine.read_file(f) for f in self.inputs.src_files]
+        filecontents = [f.read_text() for f in self.inputs.src_files]
 
         merged_filecontents = self.merge_function(filecontents)
 
-        self.engine.write_file(merged_filecontents, File(self, self.inputs.dst_file))
+        dst_file = File(self, self.inputs.dst_file)
+        dst_file.write_text(merged_filecontents)
 
-        self.outputs = self.output_model(dst_file=self.inputs.dst_file)
+        self.outputs = self.output_model(dst_file=dst_file)
 
 
 class ExtendInputModel(IOModel):
@@ -168,12 +169,12 @@ class ExtendProcess(Process):
 
     def _run(self):
 
-        filecontent = self.engine.read_file(self.inputs.src_file)
+        filecontent = self.inputs.src_file.read_text()
 
         extended_filecontent = self.extend_function(filecontent)
 
         dst_file = File(self, self.inputs.dst_file)
 
-        self.engine.write_file(extended_filecontent, dst_file)
+        dst_file.write_text(extended_filecontent)
 
         self.outputs = self.output_model(dst_file=dst_file)

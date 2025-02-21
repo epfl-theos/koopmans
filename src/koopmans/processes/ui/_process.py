@@ -162,8 +162,7 @@ class UnfoldAndInterpolateProcess(Process):
         """
 
         # Read the Hamiltonian
-        assert self.engine is not None
-        hr, rvect, _, nrpts = utils.read_wannier_hr_file(self.inputs.kc_ham_file, self.engine)
+        hr, rvect, _, nrpts = utils.read_wannier_hr_file(self.inputs.kc_ham_file)
 
         # Reshape the hamiltonian and convert it to a numpy array
         if nrpts == 1:
@@ -182,7 +181,7 @@ class UnfoldAndInterpolateProcess(Process):
         # Reading the two Hamiltonians for the smooth interpolation method
         if self.inputs.parameters.do_smooth_interpolation:
             # The coarse Hamiltonian
-            hr_coarse, rvect, _, nrpts = utils.read_wannier_hr_file(self.inputs.dft_ham_file, self.engine)
+            hr_coarse, rvect, _, nrpts = utils.read_wannier_hr_file(self.inputs.dft_ham_file)
             if nrpts == 1:
                 assert len(hr_coarse) == self.inputs.parameters.num_wann_sc**2, \
                     f'Wrong number of matrix elements for hr_coarse {len(hr_coarse)}'
@@ -201,8 +200,7 @@ class UnfoldAndInterpolateProcess(Process):
                     self.inputs.parameters.num_wann_sc, self.inputs.parameters.num_wann)
 
             # The smooth Hamiltonian
-            hr_smooth, self._Rsmooth, self._wRs, nrpts = utils.read_wannier_hr_file(
-                self.inputs.dft_smooth_ham_file, self.engine)
+            hr_smooth, self._Rsmooth, self._wRs, nrpts = utils.read_wannier_hr_file(self.inputs.dft_smooth_ham_file)
             assert len(hr_smooth) == nrpts * \
                 self.inputs.parameters.num_wann**2, f'Wrong number of matrix elements for hr_smooth {len(hr_smooth)}'
             self._hr_smooth = np.array(hr_smooth, dtype=complex)
@@ -218,9 +216,8 @@ class UnfoldAndInterpolateProcess(Process):
         """
 
         try:
-            assert self.engine is not None
-            content = self.engine.read_file(File(self, 'wf_phases.dat'))
-            assert isinstance(content, str)
+            wf_phases_file = File(self, 'wf_phases.dat')
+            content = wf_phases_file.read_text()
             lines = content.split('\n')
             self._phases = [float(l.split()[0]) + float(l.split()[1]) * 1j for l in lines]
         except FileNotFoundError:
@@ -276,8 +273,8 @@ class UnfoldAndInterpolateProcess(Process):
                 for k, energy in zip(kx, energies):
                     content += f'\n{k:16.8f}{energy:16.8f}'
                 content += '\n'
-            assert self.engine is not None
-            self.engine.write_file(content, File(self, f'{fname}.dat'))
+            bs_file = File(self, f'{fname}.dat')
+            bs_file.write_text(content)
 
         return
 
@@ -291,8 +288,8 @@ class UnfoldAndInterpolateProcess(Process):
         for e, d in zip(dos.get_energies(), dos.get_dos()):
             content += '\n{:10.4f}{:12.6f}'.format(e, d)
         content += '\n'
-        assert self.engine is not None
-        self.engine.write_file(content, File(self, 'dos_interpolated.dat'))
+        dos_file = File(self, 'dos_interpolated.dat')
+        dos_file.write_text(content)
 
         return
 
@@ -327,8 +324,8 @@ class UnfoldAndInterpolateProcess(Process):
         # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
         bigdct['atoms'] = {'cell_parameters': utils.construct_cell_parameters_block(atoms)}
 
-        assert self.engine is not None
-        self.engine.write_file(json.dumps(bigdct, indent=2), File(self, f'{self.name}.json'))
+        json_file = File(self, f'{self.name}_input.json')
+        json_file.write_text(json.dumps(bigdct, indent=2))
 
     def interpolate(self):
         """

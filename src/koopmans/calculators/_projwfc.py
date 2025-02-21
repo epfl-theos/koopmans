@@ -33,7 +33,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
     def __init__(self, atoms: Atoms, *args, **kwargs):
         # Define the valid settings
         self.parameters = ProjwfcSettingsDict()
-        self.parent = None
+        self.parent_process = None
 
         # Initialize first using the ASE parent and then CalculatorExt
         Projwfc.__init__(self, atoms=atoms)
@@ -77,11 +77,8 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         """
         dos_list = []
         for atom in self.atoms:
-            assert self.directory is not None
-            assert self.engine is not None
-            filenames = self.engine.glob(directory=File(self, Path()),
-                                         pattern=self.parameters.filpdos + f'.pdos_atm#{atom.index+1}(*',
-                                         recursive=False)
+            parent_directory = File(self, Path())
+            filenames = parent_directory.glob(pattern=self.parameters.filpdos + f'.pdos_atm#{atom.index+1}(*')
             # The filename does not encode the principal quantum number n. In order to recover this number, we compare
             # the reported angular momentum quantum number l against the list of expected orbitals, and infer n
             # assuming only that the file corresponding to nl will come before (n+1)l

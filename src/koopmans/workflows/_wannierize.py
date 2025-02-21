@@ -37,7 +37,6 @@ from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
 from koopmans.projections import BlockID
 from koopmans.pseudopotentials import nelec_from_pseudos, read_pseudo_file
 from koopmans.status import Status
-from koopmans.step import Step
 from koopmans.utils import SpinType
 
 from ._workflow import Workflow
@@ -142,7 +141,6 @@ class WannierizeWorkflow(Workflow):
         using PW and Wannier90
 
         '''
-
         # Run PW scf and nscf calculations
         # PWscf needs only the valence bands
         calc_scf = self.new_calculator('pw')
@@ -196,7 +194,7 @@ class WannierizeWorkflow(Workflow):
                 preprocessing_calculations.append(subwf.outputs.preprocessing_calculation)
 
             # Merging Hamiltonian files, U matrix files, centers files if necessary
-            if self.parent is not None:
+            if self.parent_process is not None:
 
                 for block_id, block in self.projections.to_merge.items():
                     if len(block) == 1:
@@ -225,7 +223,7 @@ class WannierizeWorkflow(Workflow):
                             return
                         hr_files[block_id] = File(merge_hr_proc, merge_hr_proc.outputs.dst_file)
 
-                        if self.parameters.method == 'dfpt' and self.parent is not None:
+                        if self.parameters.method == 'dfpt' and self.parent_process is not None:
                             # Merging the U (rotation matrix) files
                             merge_u_proc = MergeProcess(merge_function=merge_wannier_u_file_contents,
                                                         src_files=[File(calc, calc.prefix + '_u.mat')
@@ -336,10 +334,9 @@ class WannierizeWorkflow(Workflow):
             ax = None
             labels = ['explicit']
             for c in selected_calcs:
-                assert c.directory is not None
-                labels.append(f'interpolation ({c.directory.parent.name})')
-            labels = [l.split("-", 2)[-1].replace("block-", "block ").replace("spin-", "spin ").replace("-", ", ")
-                      for l in labels]
+                assert c.parent_process is not None
+                assert hasattr(c.parent_process, 'block')
+                labels.append(f'interpolation ({c.parent_process.block.id.label.replace("_", " ")})')
             color_cycle = plt.rcParams['axes.prop_cycle']()
             bsplot_kwargs_list = []
             colors: dict[str, str | list[str]] = {}
@@ -350,10 +347,10 @@ class WannierizeWorkflow(Workflow):
 
                     # Tweaking the plot aesthetics
                     kwargs: dict[str, Any] = {'label': label}
-                    up_label = label.replace(', down', ', up')
-                    if ', down' in label:
+                    up_label = label.replace('down', 'up')
+                    if 'down' in label:
                         kwargs['ls'] = '--'
-                    if ', down' in label and up_label in colors:
+                    if 'down' in label and up_label in colors:
                         colors[label] = colors[up_label]
                     else:
                         colors[label] = [next(color_cycle)['color'] for _ in range(bs.energies.shape[0])]

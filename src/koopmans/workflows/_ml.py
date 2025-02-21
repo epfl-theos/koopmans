@@ -14,9 +14,7 @@ from koopmans.files import File
 from koopmans.outputs import OutputModel
 from koopmans.processes.power_spectrum import (
     ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
-from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.status import Status
-from koopmans.step import Step
 
 from ._workflow import Workflow
 
@@ -168,8 +166,7 @@ class ConvertOrbitalFilesToXMLWorkflow(Workflow):
         from koopmans.processes.bin2xml import Bin2XMLProcess
 
         # Convert total density to XML
-        binary = File(self.calc_that_produced_orbital_densities,
-                      self.calc_that_produced_orbital_densities.write_directory / 'charge-density.dat')
+        binary = self.calc_that_produced_orbital_densities.write_directory / 'charge-density.dat'
         bin2xml_total_density = Bin2XMLProcess(name='bin2xml_total_density', binary=binary)
         status = self.run_steps(bin2xml_total_density)
         if status != Status.COMPLETED:
@@ -183,8 +180,7 @@ class ConvertOrbitalFilesToXMLWorkflow(Workflow):
                 occ_id = 'occ'
             else:
                 occ_id = 'emp'
-            binary = File(self.calc_that_produced_orbital_densities,
-                          self.calc_that_produced_orbital_densities.write_directory / f'real_space_orb_density.{occ_id}.{band.spin}.{band.index:05d}.dat')
+            binary = self.calc_that_produced_orbital_densities.write_directory / f'real_space_orb_density.{occ_id}.{band.spin}.{band.index:05d}.dat'
 
             bin2xml_orbital_density = Bin2XMLProcess(
                 name=f'bin2xml_{occ_id}_spin_{band.spin}_orb_{band.index}_density', binary=binary)

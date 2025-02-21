@@ -92,7 +92,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
     def __init__(self, atoms: Atoms, alphas: Optional[List[List[float]]] = None,
                  filling: Optional[List[List[bool]]] = None, **kwargs):
 
-        self.parent = None
+        self.parent_process = None
 
         # Define the valid parameters
         self.parameters = settings.KoopmansCPSettingsDict()
@@ -448,8 +448,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         flat_alphas = [a for sublist in self.alphas for a in sublist]
         flat_filling = [f for sublist in self.filling for f in sublist]
-        assert self.engine is not None
-        utils.write_alpha_file(self.engine.write_file, self, flat_alphas, flat_filling)
+        utils.write_alpha_file(self, flat_alphas, flat_filling)
 
     def read_alphas(self) -> List[List[float]]:
         '''
@@ -463,7 +462,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             return [[]]
 
         assert self.directory is not None
-        flat_alphas = utils.read_alpha_file(self.directory)
+        flat_alphas = utils.read_alpha_file(self)
 
         assert isinstance(self.parameters, settings.KoopmansCPSettingsDict)
 
@@ -506,10 +505,10 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return self.parameters.nbnd > nel
 
     def nspin1_dummy_calculator(self) -> KoopmansCPCalculator:
-        self.parent, parent = None, self.parent
+        self.parent_process, parent_process = None, self.parent_process
         calc = copy.deepcopy(self)
-        self.parent = parent
-        calc.parent = parent
+        self.parent_process = parent_process
+        calc.parent_process = parent_process
         calc.prefix += '_nspin1_dummy'
         calc.parameters.do_outerloop = False
         calc.parameters.do_outerloop_empty = False
@@ -526,10 +525,10 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return calc
 
     def nspin1_calculator(self) -> KoopmansCPCalculator:
-        self.parent, parent = None, self.parent
+        self.parent_process, parent_process = None, self.parent_process
         calc = copy.deepcopy(self)
-        calc.parent = parent
-        self.parent = parent
+        calc.parent_process = parent_process
+        self.parent_process = parent_process
         calc.prefix += '_nspin1'
         calc.parameters.nspin = 1
         calc.parameters.nelup = None

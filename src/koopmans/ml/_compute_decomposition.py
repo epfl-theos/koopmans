@@ -144,8 +144,7 @@ def get_coefficients(rho: np.ndarray, rho_total: np.ndarray, r_cartesian: np.nda
 def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_cut: float,
                           total_density_xml: File, orbital_densities_xml: List[File],
                           bands: List[Band], cell: Cell, wannier_centers: np.ndarray, alpha_file: File,
-                          beta_file: File, read_content: Callable[[File], str],
-                          read_binary_content: Callable[[File], bytes]) -> Tuple[Dict[str, bytes], Dict[str, bytes]]:
+                          beta_file: File) -> Tuple[Dict[str, bytes], Dict[str, bytes]]:
     """
     Computes the expansion coefficients of the total and orbital densities.
     """
@@ -154,7 +153,7 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
     norm_const = 1/(units.Bohr)**3
 
     # Load the grid dimensions nr_xml from charge-density-file
-    raw_filecontents = read_content(total_density_xml)
+    raw_filecontents = total_density_xml.read_text()
     xml_root = ET.fromstringlist(raw_filecontents)
     xml_charge_density = xml_root.find('CHARGE-DENSITY')
     assert xml_charge_density is not None
@@ -187,8 +186,8 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
     r_spherical = cart2sph_array(r_cartesian)
 
     # Define our radial basis functions, which are partially parameterized by precomputed vectors
-    alphas = np.frombuffer(read_binary_content(alpha_file)).reshape((n_max, l_max+1))
-    betas = np.frombuffer(read_binary_content(beta_file)).reshape((n_max, n_max, l_max+1))
+    alphas = np.frombuffer(alpha_file.read_bytes()).reshape((n_max, l_max+1))
+    betas = np.frombuffer(beta_file.read_bytes()).reshape((n_max, n_max, l_max+1))
     radial_basis_functions: RadialBasisFunctions = partial(g_basis, betas=betas, alphas=alphas)
 
     # Compute R_nl Y_lm for each point on the integration domain
@@ -196,7 +195,7 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
         radial_basis_functions, real_spherical_harmonics_basis_functions, r_cartesian, r_spherical, n_max, l_max)
 
     # load the total charge density
-    raw_filecontents = read_content(total_density_xml)
+    raw_filecontents = total_density_xml.read_text()
     xml_root = ET.fromstringlist(raw_filecontents)
     assert xml_root is not None
     xml_charge_density = xml_root.find('CHARGE-DENSITY')
@@ -216,7 +215,7 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
             filled_str = 'emp'
 
         # load the orbital density
-        raw_filecontents = read_content(orbital_density_xml)
+        raw_filecontents = orbital_density_xml.read_text()
         xml_root = ET.fromstringlist(raw_filecontents)
         assert xml_root is not None
         xml_charge_density = xml_root.find('EFFECTIVE-POTENTIAL')

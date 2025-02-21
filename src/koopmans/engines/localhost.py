@@ -14,11 +14,10 @@ from koopmans import utils
 from koopmans.calculators import (Calc, ImplementedCalc, PhCalculator,
                                   ProjwfcCalculator, ReturnsBandStructure)
 from koopmans.files import File, LocalFile
-from koopmans.processes import Process
+from koopmans.processes import Process, ProcessProtocol
 from koopmans.pseudopotentials import (element_from_pseudo_filename,
                                        local_libraries)
 from koopmans.status import Status
-from koopmans.step import Step
 
 from .engine import Engine
 
@@ -32,7 +31,7 @@ class LocalhostEngine(Engine):
         super().__init__(*args, **kwargs)
         self.statuses = {}
 
-    def run(self, step: Step):
+    def run(self, step: ProcessProtocol):
         self._step_running_message(step)
 
         assert step.directory is not None
@@ -58,11 +57,11 @@ class LocalhostEngine(Engine):
     def load_old_calculator(self, calc: Calc):
         return load_old_calculator(calc)
 
-    def load_results(self, step: Step):
+    def load_results(self, step: ProcessProtocol):
         # For the local calculation, step.run() also loads the results of the calculator
         pass
 
-    def get_status(self, step: Step) -> Status:
+    def get_status(self, step: ProcessProtocol) -> Status:
 
         if not self.from_scratch:
             to_run = True
@@ -95,7 +94,7 @@ class LocalhostEngine(Engine):
 
         return self.statuses[step.uid]
 
-    def set_status(self, step: Step, status: Status):
+    def set_status(self, step: ProcessProtocol, status: Status):
         self.statuses[step.uid] = status
 
     def update_statuses(self) -> None:
@@ -106,21 +105,22 @@ class LocalhostEngine(Engine):
         if element is None and filename is None:
             raise ValueError('Either `element` or `filename` must be provided')
 
+        matching_pseudo = None
         if library in local_libraries:
             pseudo_dir = LocalFile(Path(__file__).parents[1] / 'pseudopotentials' / library)
             if filename is not None:
-                pseudo_name = filename
+                pseudo_name: str | None = filename
             elif element is not None:
                 pseudo_name = None
                 for pseudo_file in chain(self.glob(pseudo_dir, '*.upf'), self.glob(pseudo_dir, '*.UPF')):
                     if element_from_pseudo_filename(pseudo_file.name.name) == element:
-                        pseudo_name = pseudo_file.name
+                        pseudo_name = str(pseudo_file.name)
                         break
                 if pseudo_name is None:
                     raise ValueError(f'Pseudo for {element} not found in library {library}')
             else:
                 raise ValueError('Either `element` or `filename` must be provided')
-            pseudo_path = pseudo_dir / pseudo_name
+            matching_pseudo = pseudo_dir / pseudo_name
         else:
             try:
                 with open(config_file, 'r') as f:
@@ -131,25 +131,25 @@ class LocalhostEngine(Engine):
             if library not in config['installed_pseudopotentials']:
                 raise FileNotFoundError(f'Could not find the custom pseudopotential library `{library}`')
         
-            pseudo_path = None    
-            for pseudo_file in config['installed_pseudopotentials'][library]:
+            for pseudo_filepath in config['installed_pseudopotentials'][library]:
+                assert pseudo_filepath is not None
                 if filename is not None:
-                    if Path(pseudo_file).name == filename:
-                        pseudo_path = LocalFile(pseudo_file)
+                    if Path(pseudo_filepath).name == filename:
+                        matching_pseudo = LocalFile(pseudo_filepath)
                         break
                 elif element is not None:
-                    if element_from_pseudo_filename(pseudo_file.name) == element:
-                        pseudo_path = LocalFile(pseudo_file)
+                    if element_from_pseudo_filename(Path(pseudo_filepath).name) == element:
+                        matching_pseudo = LocalFile(pseudo_filepath)
                         break
-            if pseudo_path is None:
+            if matching_pseudo is None:
                 raise FileNotFoundError(f'Could not find the requested pseudopotential in library {library}')
 
-        if not self.file_exists(pseudo_path):
-            raise FileNotFoundError(f'Could not find the pseudopotential file `{pseudo_path}`')
+        if not self.file_exists(matching_pseudo):
+            raise FileNotFoundError(f'Could not find the pseudopotential file `{matching_pseudo}`')
 
-        return UPFDict.from_upf(pseudo_path.aspath())
+        return UPFDict.from_upf(matching_pseudo.aspath())
 
-    def install_pseudopotential(self, file: str, library: str) -> None:
+    def install_pseudopotential(self, file: Path, library: str) -> None:
         try:
             with open(config_file, 'r') as f:
                 config = yaml.safe_load(f)
@@ -191,8 +191,8 @@ class LocalhostEngine(Engine):
     def read_file(self, file: File, binary: bool = False) -> bytes | str: ...
 
     def read_file(self, file: File, binary: bool = False) -> bytes | str:
-        assert file.parent.absolute_directory is not None
-        full_path = file.parent.absolute_directory / file.name
+        assert file.parent_process.absolute_directory is not None
+        full_path = file.parent_process.absolute_directory / file.name
         fstring = 'rb' if binary else 'r'
         with open(full_path, fstring) as f:
             flines = f.read()
@@ -200,9 +200,8 @@ class LocalhostEngine(Engine):
 
     def write_file(self, content: str | bytes, file: File) -> None:
         fstring = 'wb' if isinstance(content, bytes) else 'w'
-        if len(file.name.parents) > 0:
-            parent_directory = File(file.parent, file.name.parent)
-            self.mkdir(parent_directory, parents=True, exist_ok=True)
+        if file.parents:
+            self.mkdir(file.parent, parents=True, exist_ok=True)
         with open(file.aspath(), fstring) as f:
             f.write(content)
 
@@ -234,20 +233,23 @@ class LocalhostEngine(Engine):
         else:
             path.unlink()
 
+    def unlink_file(self, file: File) -> None:
+        file.aspath().unlink()
+
     def mkdir(self, directory: File, parents: bool = False, exist_ok: bool = False) -> None:
         directory.aspath().mkdir(parents=parents, exist_ok=exist_ok)
 
     def glob(self, directory: File, pattern: str, recursive: bool = False) -> Generator[File, None, None]:
-        assert directory.parent is not None
-        assert directory.parent.directory is not None
+        assert directory.parent_process is not None
+        assert directory.parent_process.directory is not None
         if recursive:
             generator = directory.aspath().rglob(pattern)
         else:
             generator = directory.aspath().glob(pattern)
         for path in generator:
-            yield File(parent=directory.parent, name=path.relative_to(directory.parent.directory))
+            yield File(parent_process=directory.parent_process, name=path.relative_to(directory.parent_process.directory))
 
-    def available_pseudo_families(self) -> set[str]:
+    def available_pseudo_libraries(self) -> set[str]:
         try:
             with open(config_file, 'r') as f:
                 config = yaml.safe_load(f)

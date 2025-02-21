@@ -176,7 +176,7 @@ class AbstractMLModel(ABC):
 
 def power_spectrum_from_band(band: Band, engine: Engine) -> np.ndarray:
     assert band.power_spectrum is not None
-    assert band.power_spectrum.parent is not None
+    assert band.power_spectrum.parent_process is not None
     binary_content = engine.read_file(band.power_spectrum, binary=True)
     assert isinstance(binary_content, bytes)
     return np.frombuffer(binary_content)

@@ -57,13 +57,15 @@ def qei_to_json(input_file: Union[str, Path], json: Union[str, Path],
     try:
         [matching_library] = [local_library for local_library in local_libraries if pseudo_library.endswith(local_library)]
     except ValueError:
-        warn(f'Could not find a matching pseudopotential library; defaulting to {default_library}')
+        warn(f'Could not find a matching pseudopotential library; defaulting to {default_library}. If you want to use '
+             'these specific pseudopotentials, install them via `koopmans pseudos install`')
         matching_library = default_library
+        kwargs.pop('pseudopotentials', None)
+    kwargs['pseudo_library'] = matching_library
     
     # Construct the workflow and write the input file to disk
     wf = SinglepointWorkflow(atoms=calc.atoms,
                              engine=LocalhostEngine(),
-                             pseudo_library=matching_library,
                              parameters=workflow_settings,
                              calculator_parameters={key: calc.parameters},
                              **kwargs)

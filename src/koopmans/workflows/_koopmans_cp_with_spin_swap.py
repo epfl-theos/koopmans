@@ -7,7 +7,6 @@ from koopmans.files import File
 from koopmans.outputs import OutputModel
 from koopmans.processes.koopmans_cp import SwapSpinFilesProcess
 from koopmans.status import Status
-from koopmans.step import Step
 
 from ._workflow import Workflow
 

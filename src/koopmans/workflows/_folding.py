@@ -19,7 +19,6 @@ from koopmans.outputs import OutputModel
 from koopmans.processes.merge_evc import MergeEVCProcess
 from koopmans.projections import BlockID, ProjectionBlock
 from koopmans.status import Status
-from koopmans.step import Step
 
 from ._workflow import Workflow
 

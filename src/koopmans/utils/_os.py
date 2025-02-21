@@ -197,21 +197,21 @@ def find_executable(program: Union[Path, str]) -> Optional[Path]:
 
 class HasDirectory:
     # This class will eventually be merged with the Process class
-    # For the moment it only contains information related to parents and directories. Once calculators and workflows
+    # For the moment it only contains information related to parent processes and directories. Once calculators and workflows
     # have been transformed to have pydantic inputs and outputs then those classes will be able to inherit directly
     # from Process
 
-    __slots__ = ['parent', '_directory', '_base_directory', 'engine', '_directory_must_be_relative']
+    __slots__ = ['parent_process', '_directory', '_base_directory', 'engine', '_directory_must_be_relative']
 
-    def __init__(self, parent: Optional[HasDirectory] = None, directory=None, base_directory=Path(), engine: Optional[Engine] = None,
+    def __init__(self, parent_process: Optional[HasDirectory] = None, directory=None, base_directory=Path(), engine: Optional[Engine] = None,
                  _directory_must_be_relative=False):
         self._base_directory: Optional[Path] = None
         self._directory: Optional[Path] = None
         self.engine: Optional[Engine] = engine
-        self.parent = parent
+        self.parent_process = parent_process
         self._directory_must_be_relative = _directory_must_be_relative
 
-        if not self.parent:
+        if not self.parent_process:
             self.base_directory = base_directory
         self.directory = directory
 
@@ -241,15 +241,15 @@ class HasDirectory:
 
     @property
     def base_directory(self) -> Path | None:
-        if self.parent:
-            return self.parent.base_directory
+        if self.parent_process:
+            return self.parent_process.base_directory
         else:
             return self._base_directory
 
     @base_directory.setter
     def base_directory(self, value: Path | str | None):
-        if self.parent is not None:
-            raise ValueError('Do not directly set `base_directory` for objects with a parent')
+        if self.parent_process is not None:
+            raise ValueError('Do not directly set `base_directory` for objects with a parent_process')
         if isinstance(value, str):
             value = Path(value)
         self._base_directory = None if value is None else value.resolve()

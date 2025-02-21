@@ -23,7 +23,6 @@ import numpy as np
 from koopmans import cell, utils
 from koopmans.outputs import OutputModel
 from koopmans.status import Status
-from koopmans.step import Step
 
 from ._workflow import Workflow
 
@@ -299,7 +298,7 @@ class ConvergenceWorkflow(Workflow):
             and self.parameters.functional in ['ki', 'kipz', 'pkipz', 'all'] \
             and self.parameters.alpha_from_file
         if provide_alpha:
-            master_alphas = utils.read_alpha_file(directory=Path())
+            master_alphas = utils.read_alpha_file(self)
             if self.parameters.orbital_groups is None:
                 self.parameters.orbital_groups = list(
                     range(self.calculator_parameters['kcp'].nbnd))

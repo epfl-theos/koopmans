@@ -156,11 +156,3 @@ def main():
 
     # Run workflow
     workflow.run_while()
-
-    # Save workflow to file
-    write(workflow, workflow.name + '.pkl')
-
-    # Save the ML model to a separate file
-    if workflow.ml.train:
-        assert workflow.ml_model is not None
-        write(workflow.ml_model, workflow.name + '_ml_model.pkl')

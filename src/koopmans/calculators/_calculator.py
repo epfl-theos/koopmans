@@ -78,10 +78,10 @@ class CalculatorExt(utils.HasDirectory):
     results: Dict[str, Any]
     ext_in: str = ''
     ext_out: str = ''
-    parent: Workflow | None
+    parent_process: Workflow | None
 
-    def __init__(self, parent=None, engine=None, skip_qc: bool = False, **kwargs: Any):
-        super().__init__(parent=parent, engine=engine)
+    def __init__(self, parent_process=None, engine=None, skip_qc: bool = False, **kwargs: Any):
+        super().__init__(parent_process=parent_process, engine=engine)
 
         # Remove arguments that should not be treated as QE keywords
         kwargs.pop('directory', None)
@@ -127,24 +127,24 @@ class CalculatorExt(utils.HasDirectory):
                 self._parameters.update(**value)
 
     def run(self):
-        # Alias for self.calculate so that calculators follow the Step protocol
+        # Alias for self.calculate so that calculators follow the Process protocol
         self.calculate()
 
     def _pre_run(self):
-        # Alias for self._pre_calculate so that calculators follow the Step protocol
+        # Alias for self._pre_calculate so that calculators follow the Process protocol
         self._pre_calculate()
 
     def _run(self):
-        # Alias for self._calculate so that calculators follow the Step protocol
+        # Alias for self._calculate so that calculators follow the Process protocol
         self._calculate()
 
     def _post_run(self):
-        # Alias for self._post_calculate so that calculators follow the Step protocol
+        # Alias for self._post_calculate so that calculators follow the Process protocol
         self._post_calculate()
 
     @property
     def name(self) -> str:
-        # Alias for self.prefix so that calculators follow the Step protocol
+        # Alias for self.prefix so that calculators follow the Process protocol
         return self.prefix
 
     def calculate(self):
@@ -177,23 +177,23 @@ class CalculatorExt(utils.HasDirectory):
 
         This function is called in _pre_calculate() i.e. immediately before a calculation is run.
         """
-        assert self.engine is not None
         for dest_filename, (src_file, symlink, recursive_symlink, overwrite) in self.linked_files.items():
             # Convert to a File object
             dest_file = File(self, dest_filename)
 
-            # Create the containing folder if it exists
-            if len(dest_file.name.parents) > 0:
-                self.engine.mkdir(File(self, dest_file.name.parent), parents=True, exist_ok=True)
+            # Create the containing folder if it doesn't exist
+            if dest_file.parents:
+                containing_folder = dest_file.parent
+                containing_folder.mkdir(parents=True, exist_ok=True)
 
             # Copy/link the file
             if recursive_symlink:
                 assert src_file.is_dir(), 'recursive_symlink=True requires src to be a directory'
-                self.engine.link_file(src_file, dest_file, recursive=True)
+                dest_file.symlink_to(src_file, recursive=True)
             elif symlink:
-                self.engine.link_file(src_file, dest_file, overwrite=overwrite)
+                dest_file.symlink_to(src_file, overwrite=overwrite)
             else:
-                self.engine.copy_file(src_file, dest_file, exist_ok=overwrite)
+                src_file.copy_to(dest_file, exist_ok=overwrite)
 
     def _pre_calculate(self):
         """Perform any necessary pre-calculation steps before running the calculation"""
@@ -291,9 +291,9 @@ class CalculatorExt(utils.HasDirectory):
         if dest_filename is None:
             dest_filename = src.name
         if isinstance(dest_filename, File):
-            if dest_filename.parent != self:
+            if dest_filename.parent_process != self:
                 raise ValueError(
-                    'When linking to a calculator, destination `File` objects must have that calculator as their `parent`')
+                    'When linking to a calculator, destination `File` objects must have that calculator as their `parent_process`')
             dest_filename = dest_filename.name
         self.linked_files[str(dest_filename)] = (src, symlink, recursive_symlink, overwrite)
 
@@ -375,11 +375,11 @@ class CalculatorABC(ABC, Generic[TCalc]):
                 pass
 
         # Update calc.directory and calc.parameters.prefix
-        assert hasattr(calc, 'parent')
-        if calc.parent is None:
+        assert hasattr(calc, 'parent_process')
+        if calc.parent_process is None:
             base_directory = sanitized_filenames[0].parents[1]
         else:
-            base_directory = calc.parent.base_directory
+            base_directory = calc.parent_process.base_directory
         calc.directory = Path(os.path.relpath(sanitized_filenames[0].parent, base_directory))
         calc.prefix = sanitized_filenames[0].stem
 

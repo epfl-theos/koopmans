@@ -27,7 +27,7 @@ class PhCalculator(CalculatorExt, EspressoPh, CalculatorABC):
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
         self.parameters = PhSettingsDict()
-        self.parent = None
+        self.parent_process = None
 
         # Initialise first using the ASE parent and then CalculatorExt
         EspressoPh.__init__(self, atoms=atoms)

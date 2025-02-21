@@ -84,12 +84,13 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
     def _pre_run(self):
         assert self.directory is not None, 'Process directory must be set before running'
         self.dump_inputs()
+
         if self.engine is None:
             raise ValueError('Process engine must be set before running')
 
         # Link the files in self.linked_files
         for dest, src in self.linked_files.items():
-            self.engine.link(src, File(self, dest))
+            src.link_to(File(self, dest))
 
     @abstractmethod
     def _run(self):
@@ -107,18 +108,19 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
 
     def dump_inputs(self):
         assert self.directory is not None
-        dst = f'{self.name}_inputs.pkl'
-        self.engine.write_file(dill.dumps(self.inputs), File(self, dst))
+        dst = File(self, f'{self.name}_inputs.pkl')
+        dst.write_bytes(dill.dumps(self.inputs))
 
     def dump_outputs(self):
         assert self.directory is not None
-        dst = f'{self.name}_outputs.pkl'
-        self.engine.write_file(dill.dumps(self.outputs), File(self, dst))
+        dst = File(self, f'{self.name}_outputs.pkl')
+        dst.write_bytes(dill.dumps(self.outputs))
 
     def load_outputs(self):
         if self.directory is None:
             raise ValueError('Process directory must be set before attempting to load outputs')
-        content = self.engine.read_file(File(self, f'{self.name}_outputs.pkl'), binary=True)
+        src = File(self, f'{self.name}_outputs.pkl')
+        content = src.read_bytes()
         self.outputs = dill.loads(content)
 
     def is_complete(self):

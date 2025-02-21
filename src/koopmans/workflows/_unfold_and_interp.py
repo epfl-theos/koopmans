@@ -20,7 +20,6 @@ from koopmans.files import File
 from koopmans.processes.ui import UnfoldAndInterpolateProcess, generate_dos
 from koopmans.projections import BlockID
 from koopmans.status import Status
-from koopmans.step import Step
 
 from ._wannierize import WannierizeWorkflow
 from ._workflow import Workflow

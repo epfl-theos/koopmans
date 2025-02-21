@@ -15,7 +15,6 @@ from sklearn.metrics import mean_absolute_error, r2_score
 from koopmans import calculators, utils
 from koopmans.outputs import OutputModel
 from koopmans.status import Status
-from koopmans.step import Step
 
 from ._koopmans_dscf import KoopmansDSCFOutputs, KoopmansDSCFWorkflow
 from ._workflow import Workflow
