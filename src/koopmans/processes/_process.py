@@ -90,7 +90,8 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
 
         # Link the files in self.linked_files
         for dest, src in self.linked_files.items():
-            src.link_to(File(self, dest))
+            dest_file = File(self, dest)
+            dest_file.symlink_to(src)
 
     @abstractmethod
     def _run(self):

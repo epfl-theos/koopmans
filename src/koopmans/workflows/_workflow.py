@@ -1401,7 +1401,7 @@ class Workflow(utils.HasDirectory, ABC):
                 continue
             outdir = File(calc, calc.parameters.outdir)
             if outdir.exists():
-                outdir.rmdir()
+                outdir.unlink()
 
     def _teardown(self):
         '''

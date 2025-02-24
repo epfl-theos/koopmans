@@ -221,7 +221,7 @@ class WannierizeWorkflow(Workflow):
                         status = self.run_steps(merge_hr_proc)
                         if status != Status.COMPLETED:
                             return
-                        hr_files[block_id] = File(merge_hr_proc, merge_hr_proc.outputs.dst_file)
+                        hr_files[block_id] = merge_hr_proc.outputs.dst_file
 
                         if self.parameters.method == 'dfpt' and self.parent_process is not None:
                             # Merging the U (rotation matrix) files
@@ -233,7 +233,7 @@ class WannierizeWorkflow(Workflow):
                             status = self.run_steps(merge_u_proc)
                             if status != Status.COMPLETED:
                                 return
-                            u_matrices_files[block_id] = File(merge_u_proc, merge_u_proc.outputs.dst_file)
+                            u_matrices_files[block_id] = merge_u_proc.outputs.dst_file
 
                             # Merging the wannier centers files
                             merge_centers_proc = MergeProcess(
@@ -244,8 +244,7 @@ class WannierizeWorkflow(Workflow):
                             status = self.run_steps(merge_centers_proc)
                             if status != Status.COMPLETED:
                                 return
-                            centers_files[block_id] = File(
-                                merge_centers_proc, merge_centers_proc.outputs.dst_file)
+                            centers_files[block_id] = merge_centers_proc.outputs.dst_file
 
                 # For the last block (per spin channel), extend the U_dis matrix file if necessary
                 spins: List[SpinType] = ['up', 'down'] if self.parameters.spin_polarized else [None]
@@ -283,7 +282,7 @@ class WannierizeWorkflow(Workflow):
                             status = self.run_steps(extend_proc)
                             if status != Status.COMPLETED:
                                 return
-                            u_dis_file = File(extend_proc, extend_proc.outputs.dst_file)
+                            u_dis_file = extend_proc.outputs.dst_file
                     u_dis_files[block_id] = u_dis_file
 
         dos = None

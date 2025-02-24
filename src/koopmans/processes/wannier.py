@@ -119,7 +119,9 @@ class MergeInputModel(IOModel):
 
 
 class MergeOutputModel(IOModel):
-    dst_file: Path
+    dst_file: File
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class MergeProcess(Process):

@@ -84,12 +84,16 @@ class File:
         yield from self._engine.glob(self, pattern, recursive=False)
     
     def symlink_to(self, target: File, overwrite=False, recursive=False):
+        # Create a symbolic link at self that points to target
         assert self._engine is not None
         self._engine.link_file(target, self, overwrite=overwrite, recursive=recursive)
     
     def unlink(self):
         assert self._engine is not None
-        self._engine.unlink_file(self)
+        if self.is_dir():
+            self._engine.rmdir(self)
+        else:
+            self._engine.unlink_file(self)
 
     def mkdir(self, *args, **kwargs):
         assert self._engine is not None

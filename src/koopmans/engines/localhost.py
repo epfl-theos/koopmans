@@ -231,7 +231,7 @@ class LocalhostEngine(Engine):
         if path.is_dir():
             shutil.rmtree(path)
         else:
-            path.unlink()
+            raise ValueError(f'{path} is not a directory')
 
     def unlink_file(self, file: File) -> None:
         file.aspath().unlink()
