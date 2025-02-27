@@ -9,7 +9,6 @@ import numpy as np
 from sklearn.metrics import mean_absolute_error as mae
 
 from koopmans import calculators, ml, utils
-from koopmans.bands import Band
 from koopmans.files import File
 from koopmans.outputs import OutputModel
 from koopmans.processes.power_spectrum import (

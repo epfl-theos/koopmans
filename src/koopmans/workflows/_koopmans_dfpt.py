@@ -175,6 +175,7 @@ class KoopmansDFPTWorkflow(Workflow):
             coarse_wf.parameters.dfpt_coarse_grid = None
             coarse_wf.kpoints.grid = self.parameters.dfpt_coarse_grid
             coarse_wf._perform_ham_calc = False
+            coarse_wf.name += '-coarse'
             coarse_wf.run()
             if coarse_wf.status != Status.COMPLETED:
                 return
@@ -307,13 +308,13 @@ class KoopmansDFPTWorkflow(Workflow):
 
                 # Assemble the Hamiltonian files required by the UI workflow
                 if self.parameters.spin_polarized:
-                    koopmans_ham_files = {("occ", "up"): File(kc_ham_calc, f'{kc_ham_calcs[0].parameters.prefix}.kcw_hr_occ.dat'),
-                                          ("emp", "up"): File(kc_ham_calc, f'{kc_ham_calcs[0].parameters.prefix}.kcw_hr_emp.dat'),
-                                          ("occ", "down"): File(kc_ham_calc, f'{kc_ham_calcs[1].parameters.prefix}.kcw_hr_occ.dat'),
-                                          ("emp", "down"): File(kc_ham_calc, f'{kc_ham_calcs[1].parameters.prefix}.kcw_hr_emp.dat')}
+                    koopmans_ham_files = {BlockID(filled=True, spin="up"): File(kc_ham_calc, f'{kc_ham_calcs[0].parameters.prefix}.kcw_hr_occ.dat'),
+                                          BlockID(filled=False, spin="up"): File(kc_ham_calc, f'{kc_ham_calcs[0].parameters.prefix}.kcw_hr_emp.dat'),
+                                          BlockID(filled=True, spin="down"): File(kc_ham_calc, f'{kc_ham_calcs[1].parameters.prefix}.kcw_hr_occ.dat'),
+                                          BlockID(filled=False, spin="down"): File(kc_ham_calc, f'{kc_ham_calcs[1].parameters.prefix}.kcw_hr_emp.dat')}
                 else:
-                    koopmans_ham_files = {("occ", None): File(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_occ.dat'),
-                                          ("emp", None): File(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_emp.dat')}
+                    koopmans_ham_files = {BlockID(filled=True): File(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_occ.dat'),
+                                          BlockID(filled=False): File(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_emp.dat')}
                 if not dft_ham_files:
                     raise ValueError(
                         'The DFT Hamiltonian files have not been generated but are required for the UI workflow')
