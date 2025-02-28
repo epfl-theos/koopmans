@@ -169,7 +169,6 @@ class KoopmansDFPTWorkflow(Workflow):
                     shutil.rmtree(output_directory)
 
         if self.parameters.dfpt_coarse_grid is not None:
-            self.print('Coarse grid calculations', style='heading')
             coarse_wf = self.__class__.fromparent(
                 self, scf_kgrid=self.kpoints.grid)
             coarse_wf.parameters.dfpt_coarse_grid = None

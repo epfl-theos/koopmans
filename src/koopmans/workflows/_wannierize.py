@@ -172,7 +172,7 @@ class WannierizeWorkflow(Workflow):
             block_subworkflows: list[Workflow] = []
             for block in self.projections:
                 wannierize_block_subworkflow = WannierizeBlockWorkflow.fromparent(
-                    self, force_nspin2=self._force_nspin2, block=block)
+                    self, force_nspin2=self._force_nspin2, block=block, pw_outdir=File(calc_nscf, calc_nscf.parameters.outdir))
                 wannierize_block_subworkflow.name = \
                     f'Wannierize {block.id.label.replace("_", " ").replace("block", "Block")}'
                 block_subworkflows.append(wannierize_block_subworkflow)
@@ -402,9 +402,10 @@ class WannierizeBlockWorkflow(Workflow):
 
     output_model = WannierizeBlockOutput  # type: ignore
 
-    def __init__(self, *args, block: projections.ProjectionBlock, force_nspin2=False, **kwargs):
-        self._force_nspin2 = force_nspin2
+    def __init__(self, *args, pw_outdir: File, block: projections.ProjectionBlock, force_nspin2=False, **kwargs):
+        self.pw_outdir = pw_outdir
         self.block = block
+        self._force_nspin2 = force_nspin2
         super().__init__(*args, **kwargs)
 
     def _run(self) -> None:
@@ -416,12 +417,8 @@ class WannierizeBlockWorkflow(Workflow):
         if max(self.block.include_bands) <= n_occ_bands:
             # Block consists purely of occupied bands
             init_orbs = self.parameters.init_orbitals
-        elif min(self.block.include_bands) > n_occ_bands:
-            # Block consists purely of empty bands
-            init_orbs = self.parameters.init_empty_orbitals
         else:
-            # Block contains both occupied and empty bands
-            raise ValueError(f'`{self.block}` contains both occupied and empty bands. This should not happen.')
+            init_orbs = self.parameters.init_empty_orbitals
         # Store the number of electrons in the ProjectionBlocks object so that it can work out which blocks to
         # merge with one another
         self.projections.num_occ_bands[self.block.spin] = n_occ_bands
@@ -442,9 +439,7 @@ class WannierizeBlockWorkflow(Workflow):
         # 2) standard pw2wannier90 calculation
         calc_p2w: calculators.PW2WannierCalculator = self.new_calculator('pw2wannier', spin_component=self.block.spin)
         calc_p2w.prefix = 'pw2wannier90'
-        calc_nscf = [c for c in self.calculations if isinstance(
-            c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
-        calc_p2w.link(File(calc_nscf, calc_nscf.parameters.outdir), calc_p2w.parameters.outdir, symlink=True)
+        calc_p2w.link(self.pw_outdir, calc_p2w.parameters.outdir, symlink=True)
         calc_p2w.link(File(calc_w90_pp, calc_w90_pp.prefix + '.nnkp'), calc_p2w.parameters.seedname + '.nnkp')
         status = self.run_steps(calc_p2w)
         if status != Status.COMPLETED:

@@ -333,10 +333,6 @@ class Workflow(utils.HasDirectory, ABC):
 
             # Various checks for the wannier90 blocks
             if block.startswith('w90'):
-                # If we are spin-polarized, don't store the spin-independent w90 block
-                # Likewise, if we are not spin-polarized, don't store the spin-dependent w90 blocks
-                if self.parameters.spin_polarized is not ('up' in block or 'down' in block):
-                    continue
                 if 'projections' in params or 'projections_blocks' in params:
                     raise ValueError(f'You have provided projection information in the '
                                      f'`calculator_parameters[{block}]` argument to `{self.__class__.__name__}`. '

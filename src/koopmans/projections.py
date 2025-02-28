@@ -159,7 +159,7 @@ class ProjectionBlocks(object):
         return False
 
     def __getitem__(self, key):
-        return self._blocks[key]
+        return self.blocks[key]
 
     def __setitem__(self, key, value):
         self._blocks[key] = value
