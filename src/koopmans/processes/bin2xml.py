@@ -1,26 +1,23 @@
 from pathlib import Path
 from typing import List
+from pydantic import ConfigDict
 
 from koopmans import utils
 from koopmans.commands import Command
 from koopmans.files import File
+from koopmans.process_io import IOModel
 
 from ._commandlinetool import CommandLineTool
-from ._process import IOModel
 
 
 class Bin2XMLInput(IOModel):
     binary: File
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class Bin2XMLOutput(IOModel):
     xml: File
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class Bin2XMLProcess(CommandLineTool):

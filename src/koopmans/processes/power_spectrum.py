@@ -4,10 +4,10 @@ Processes used during the machine learning workflows
 from functools import partial
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
+from pydantic import ConfigDict
 
 import numpy as np
 from ase_koopmans.cell import Cell
-from pydantic import ConfigDict
 
 from koopmans import ml, utils
 from koopmans.bands import Band
@@ -17,8 +17,6 @@ from ._process import IOModel, Process
 
 
 class ExtractCoefficientsFromXMLInput(IOModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
     n_max: int
     l_max: int
     r_min: float
@@ -29,15 +27,15 @@ class ExtractCoefficientsFromXMLInput(IOModel):
     cell: Cell
     orbital_densities_xml: List[File]
     bands: List[Band]
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ExtractCoefficientsFromXMLOutput(IOModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
     precomputed_alphas: File
     precomputed_betas: File
     total_coefficients: List[File]
     orbital_coefficients: List[File]
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ExtractCoefficientsFromXMLProcess(Process):
@@ -89,16 +87,12 @@ class ComputePowerSpectrumInput(IOModel):
     l_max: int
     orbital_coefficients: File
     total_coefficients: File
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ComputePowerSpectrumOutput(IOModel):
     power_spectrum: File
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 def read_coeff_matrix(coeff_orb: np.ndarray, coeff_tot: np.ndarray, n_max: int, l_max: int) -> np.ndarray:

@@ -10,6 +10,7 @@ Split off from workflow.py Oct 2020
 import shutil
 from pathlib import Path
 from typing import Dict, Generator, List, Mapping, Optional, Tuple
+from pydantic import ConfigDict
 
 import numpy as np
 from ase_koopmans.dft import DOS
@@ -17,7 +18,7 @@ from ase_koopmans.dft import DOS
 from koopmans import calculators, utils
 from koopmans.bands import Band, Bands
 from koopmans.files import File
-from koopmans.outputs import OutputModel
+from koopmans.process_io import IOModel
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
 from koopmans.projections import BlockID
@@ -32,7 +33,7 @@ from ._wannierize import WannierizeWorkflow
 from ._workflow import Workflow, spin_symmetrize
 
 
-class KoopmansDSCFOutputs(OutputModel):
+class KoopmansDSCFOutputs(IOModel):
     '''
     Outputs for the KoopmansDSCFWorkflow
     '''
@@ -40,15 +41,12 @@ class KoopmansDSCFOutputs(OutputModel):
     final_calc: calculators.KoopmansCPCalculator
     wannier_hamiltonian_files: Dict[BlockID, File] | None = None
     smooth_dft_ham_files: Dict[BlockID, File] | None = None
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class KoopmansDSCFWorkflow(Workflow):
+class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
 
-    output_model = KoopmansDSCFOutputs  # type: ignore
-    outputs: KoopmansDSCFOutputs
+    output_model = KoopmansDSCFOutputs
 
     def __init__(self, *args,
                  initial_variational_orbital_files: Dict[str, File] | None = None,
@@ -390,17 +388,14 @@ class KoopmansDSCFWorkflow(Workflow):
                 shutil.copy(savedir / f'evc_empty{ispin + 1}.dat', savedir / f'evc0_empty{ispin + 1}.dat')
 
 
-class CalculateScreeningViaDSCFOutput(OutputModel):
+class CalculateScreeningViaDSCFOutput(IOModel):
     n_electron_restart_dir: File
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class CalculateScreeningViaDSCF(Workflow):
+class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
 
-    output_model = CalculateScreeningViaDSCFOutput  # type: ignore
-    outputs: CalculateScreeningViaDSCFOutput
+    output_model = CalculateScreeningViaDSCFOutput
 
     def __init__(self, *args, initial_variational_orbital_files: Dict[str, Tuple[Workflow, str]],
                  initial_cp_calculation: calculators.KoopmansCPCalculator,
@@ -471,19 +466,16 @@ class CalculateScreeningViaDSCF(Workflow):
         return
 
 
-class DeltaSCFIterationOutputs(OutputModel):
+class DeltaSCFIterationOutputs(IOModel):
     converged: bool
     n_electron_restart_dir: File
     dummy_outdirs: Dict[Tuple[int, int], File | None]
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class DeltaSCFIterationWorkflow(Workflow):
+class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
 
-    output_model = DeltaSCFIterationOutputs  # type: ignore
-    outputs: DeltaSCFIterationOutputs
+    output_model = DeltaSCFIterationOutputs
 
     def __init__(self, *args, variational_orbital_files: Dict[str, File],
                  previous_n_electron_calculation=calculators.KoopmansCPCalculator,
@@ -648,18 +640,16 @@ class DeltaSCFIterationWorkflow(Workflow):
         self.status = Status.COMPLETED
 
 
-class OrbitalDeltaSCFOutputs(OutputModel):
+class OrbitalDeltaSCFOutputs(IOModel):
     alpha: float
     error: float
     dummy_outdir: File | None
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class OrbitalDeltaSCFWorkflow(Workflow):
+class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
 
-    output_model = OrbitalDeltaSCFOutputs  # type: ignore
+    output_model = OrbitalDeltaSCFOutputs
 
     def __init__(self, band: Band, trial_calc: calculators.KoopmansCPCalculator,
                  dummy_outdir: File | None, i_sc: int,
@@ -1186,10 +1176,9 @@ def internal_new_kcp_calculator(workflow,
     return calc
 
 
-class InitializationWorkflow(Workflow):
+class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
 
-    output_model = KoopmansDSCFOutputs  # type: ignore
-    outputs: KoopmansDSCFOutputs
+    output_model = KoopmansDSCFOutputs
 
     def _run(self) -> None:
         wannier_hamiltonian_files: Dict[BlockID, File] | None = None

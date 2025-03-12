@@ -1,6 +1,7 @@
 import math
 from pathlib import Path
 from typing import Callable, List, Tuple
+from pydantic import ConfigDict
 
 import numpy as np
 from ase_koopmans import Atoms
@@ -113,15 +114,12 @@ def extend_wannier_u_dis_file_content(filecontent: str, nbnd: int, nwann: int) -
 class MergeInputModel(IOModel):
     src_files: List[File]
     dst_file: Path
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MergeOutputModel(IOModel):
     dst_file: File
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MergeProcess(Process):
@@ -149,16 +147,12 @@ class MergeProcess(Process):
 class ExtendInputModel(IOModel):
     src_file: File
     dst_file: Path
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ExtendOutputModel(IOModel):
     dst_file: File
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ExtendProcess(Process):

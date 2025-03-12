@@ -33,6 +33,9 @@ class File:
 
     def __repr__(self):
         return f'File({self.aspath()})'
+    
+    def __str__(self):
+        return str(self.aspath())
 
     def aspath(self) -> Path:
         if self.parent_process.directory is None:

@@ -1,29 +1,26 @@
 from pathlib import Path
 from typing import List, Tuple
+from pydantic import ConfigDict
 
 from koopmans import utils
 from koopmans.files import File
-from koopmans.outputs import OutputModel
+from koopmans.process_io import IOModel
 
 from ._process import Process
 
 
-class ConvertFilesFromSpin2To1InputModel(OutputModel):
+class ConvertFilesFromSpin2To1InputModel(IOModel):
     spin_2_files: List[File]
     spin_1_files: List[Path]
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class ConvertFilesOutputModel(OutputModel):
+class ConvertFilesOutputModel(IOModel):
     generated_files: List[File]
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class ConvertFilesFromSpin2To1(Process):
+class ConvertFilesFromSpin2To1(Process[ConvertFilesFromSpin2To1InputModel, ConvertFilesOutputModel]):
     input_model = ConvertFilesFromSpin2To1InputModel  # type: ignore
     output_model = ConvertFilesOutputModel  # type: ignore
 
@@ -43,18 +40,17 @@ class ConvertFilesFromSpin2To1(Process):
         self.outputs = self.output_model(generated_files=generated_files)
 
 
-class ConvertFilesFromSpin1To2InputModel(OutputModel):
+class ConvertFilesFromSpin1To2InputModel(IOModel):
     spin_1_files: List[File]
     spin_2_up_files: List[Path]
     spin_2_down_files: List[Path]
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class ConvertFilesFromSpin1To2(Process):
-    input_model = ConvertFilesFromSpin1To2InputModel  # type: ignore
-    output_model = ConvertFilesOutputModel  # type: ignore
+class ConvertFilesFromSpin1To2(Process[ConvertFilesFromSpin1To2InputModel, ConvertFilesOutputModel]):
+
+    input_model = ConvertFilesFromSpin1To2InputModel
+    output_model = ConvertFilesOutputModel
 
     def _run(self):
 
@@ -89,18 +85,17 @@ class ConvertFilesFromSpin1To2(Process):
         self.outputs = self.output_model(generated_files=generated_files)
 
 
-class SwapSpinFilesInputModel(OutputModel):
+class SwapSpinFilesInputModel(IOModel):
     read_directory: File
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class SwapSpinFilesOutputModel(OutputModel):
-    write_directory: Path
+class SwapSpinFilesOutputModel(IOModel):
+    write_directory: File
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class SwapSpinFilesProcess(Process):
+class SwapSpinFilesProcess(Process[SwapSpinFilesInputModel, SwapSpinFilesOutputModel]):
 
     input_model = SwapSpinFilesInputModel
     output_model = SwapSpinFilesOutputModel

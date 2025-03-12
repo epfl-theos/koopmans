@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import List
+from pydantic import ConfigDict
 
 import numpy as np
 
@@ -15,16 +16,12 @@ class MergeEVCInputs(IOModel):
     kgrid: List[int]
     src_files: List[File]
     dest_filename: str
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MergeEVCOutputs(IOModel):
     merged_file: File
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MergeEVCProcess(CommandLineTool):

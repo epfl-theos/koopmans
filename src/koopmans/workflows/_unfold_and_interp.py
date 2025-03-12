@@ -10,12 +10,14 @@ Integrated within koopmans by Edward Linscott Jan 2021
 """
 
 from typing import Dict, Generator, List, Literal, Optional, Tuple
+from pydantic import ConfigDict
 
 import numpy as np
 from ase_koopmans.dft.dos import DOS
 from ase_koopmans.spectrum.band_structure import BandStructure
 
-from koopmans import calculators, outputs, utils
+from koopmans import calculators, utils
+from koopmans.process_io import IOModel
 from koopmans.files import File
 from koopmans.processes.ui import UnfoldAndInterpolateProcess, generate_dos
 from koopmans.projections import BlockID
@@ -25,13 +27,11 @@ from ._wannierize import WannierizeWorkflow
 from ._workflow import Workflow
 
 
-class UnfoldAndInterpolateOutput(outputs.OutputModel):
+class UnfoldAndInterpolateOutput(IOModel):
     band_structure: BandStructure
     dos: Optional[DOS]
     smooth_dft_ham_files: Optional[Dict[BlockID, File]]
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class UnfoldAndInterpolateWorkflow(Workflow):

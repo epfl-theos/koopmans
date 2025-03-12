@@ -1,27 +1,25 @@
 """A workflow for managing kcp.x calculations that would want more spin-down electrons than spin-up"""
 
 from typing import Generator
+from pydantic import ConfigDict
 
 from koopmans.calculators import KoopmansCPCalculator
 from koopmans.files import File
-from koopmans.outputs import OutputModel
+from koopmans.process_io import IOModel
 from koopmans.processes.koopmans_cp import SwapSpinFilesProcess
 from koopmans.status import Status
 
 from ._workflow import Workflow
 
 
-class KoopmansCPWithSpinSwapOutput(OutputModel):
+class KoopmansCPWithSpinSwapOutput(IOModel):
     outdir: File
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class KoopmansCPWithSpinSwapWorkflow(Workflow):
+class KoopmansCPWithSpinSwapWorkflow(Workflow[KoopmansCPWithSpinSwapOutput]):
 
     output_model = KoopmansCPWithSpinSwapOutput
-    outputs: KoopmansCPWithSpinSwapOutput
 
     def __init__(self, calc: KoopmansCPCalculator, *args, **kwargs):
         super().__init__(*args, **kwargs)

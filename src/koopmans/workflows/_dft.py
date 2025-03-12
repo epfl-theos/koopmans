@@ -15,27 +15,27 @@ from typing import Generator, List, TypeVar
 
 from koopmans import calculators, pseudopotentials, utils
 from koopmans.files import File
-from koopmans.outputs import OutputModel
+from koopmans.process_io import IOModel
 from koopmans.status import Status
 
 from ._workflow import Workflow, spin_symmetrize
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
+OutputModel = TypeVar('OutputModel', bound=IOModel)
 
-
-class DFTWorkflow(Workflow):
+class DFTWorkflow(Workflow[OutputModel]):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.parameters.functional = 'dft'
 
 
-class DFTCPOutput(OutputModel):
+class DFTCPOutput(IOModel):
     pass
 
 
-class DFTCPWorkflow(DFTWorkflow):
-    output_model = DFTCPOutput  # type: ignore
-    outputs: DFTCPOutput
+class DFTCPWorkflow(DFTWorkflow[DFTCPOutput]):
+
+    output_model = DFTCPOutput
 
     def _run(self) -> None:
 
@@ -70,14 +70,13 @@ class DFTCPWorkflow(DFTWorkflow):
         return
 
 
-class DFTPWOutput(OutputModel):
+class DFTPWOutput(IOModel):
     pass
 
 
-class DFTPWWorkflow(DFTWorkflow):
+class DFTPWWorkflow(DFTWorkflow[DFTPWOutput]):
 
-    output_model = DFTPWOutput  # type: ignore
-    outputs: DFTPWOutput
+    output_model = DFTPWOutput
 
     def _run(self) -> None:
 
@@ -97,14 +96,13 @@ class DFTPWWorkflow(DFTWorkflow):
         return
 
 
-class DFTPhOutput(OutputModel):
+class DFTPhOutput(IOModel):
     pass
 
 
-class DFTPhWorkflow(Workflow):
+class DFTPhWorkflow(Workflow[DFTPhOutput]):
 
     output_model = DFTPhOutput
-    outputs: DFTPhOutput
 
     def _run(self) -> None:
 
@@ -127,14 +125,13 @@ class DFTPhWorkflow(Workflow):
         return
 
 
-class DFTBandsOutput(OutputModel):
+class DFTBandsOutput(IOModel):
     pass
 
 
 class DFTBandsWorkflow(DFTWorkflow):
 
     output_model = DFTBandsOutput
-    outputs: DFTBandsOutput
 
     def _run(self) -> None:
 

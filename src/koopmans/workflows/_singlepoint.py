@@ -17,7 +17,7 @@ import numpy as np
 from koopmans import utils
 from koopmans.calculators import ProjwfcCalculator
 from koopmans.files import File
-from koopmans.outputs import OutputModel
+from koopmans.process_io import IOModel
 from koopmans.status import Status
 
 from ._dft import DFTCPWorkflow, DFTPhWorkflow
@@ -28,14 +28,14 @@ from ._workflow import Workflow
 load_results_from_output = True
 
 
-class SinglepointOutputs(OutputModel):
+class SinglepointOutputs(IOModel):
     '''
     Outputs for the SinglepointWorkflow
     '''
     pass
 
 
-class SinglepointWorkflow(Workflow):
+class SinglepointWorkflow(Workflow[SinglepointOutputs]):
 
     '''
     Examples
@@ -101,9 +101,6 @@ class SinglepointWorkflow(Workflow):
                 # For pKIPZ/KIPZ, use KI as a starting point
                 restart_from_old_ki = (functional == 'kipz')
 
-                # We only need to do the smooth interpolation the first time (i.e. for KI)
-                redo_smooth_dft = None if functional == 'ki' else False
-
                 # For pKIPZ should not be recalculated
                 if self.parameters.calculate_alpha:
                     calculate_alpha = (functional != 'pkipz')
@@ -123,7 +120,6 @@ class SinglepointWorkflow(Workflow):
 
                 kc_workflow = KoopmansDSCFWorkflow.fromparent(self, functional=functional,
                                                               initial_variational_orbital_files=variational_orbital_files,
-                                                              redo_smooth_dft=redo_smooth_dft,
                                                               smooth_dft_ham_files=smooth_dft_ham_files,
                                                               previous_cp_calc=previous_cp_calc,
                                                               calculate_alpha=calculate_alpha)

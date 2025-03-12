@@ -13,21 +13,20 @@ from ase_koopmans import Atoms, io
 from sklearn.metrics import mean_absolute_error, r2_score
 
 from koopmans import calculators, utils
-from koopmans.outputs import OutputModel
+from koopmans.process_io import IOModel
 from koopmans.status import Status
 
 from ._koopmans_dscf import KoopmansDSCFOutputs, KoopmansDSCFWorkflow
 from ._workflow import Workflow
 
 
-class TrajectoryOutputs(OutputModel):
+class TrajectoryOutputs(IOModel):
     snapshot_outputs: List[KoopmansDSCFOutputs]
 
 
-class TrajectoryWorkflow(Workflow):
+class TrajectoryWorkflow(Workflow[TrajectoryOutputs]):
 
-    output_model = TrajectoryOutputs  # type: ignore
-    outputs: TrajectoryOutputs
+    output_model = TrajectoryOutputs
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

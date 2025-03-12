@@ -4,13 +4,14 @@ Written by Yannick Schubert Jul 2022
 import os
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Tuple
+from pydantic import ConfigDict
 
 import numpy as np
 from sklearn.metrics import mean_absolute_error as mae
 
 from koopmans import calculators, ml, utils
 from koopmans.files import File
-from koopmans.outputs import OutputModel
+from koopmans.process_io import IOModel
 from koopmans.processes.power_spectrum import (
     ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
 from koopmans.status import Status
@@ -18,13 +19,13 @@ from koopmans.status import Status
 from ._workflow import Workflow
 
 
-class SelfHartreeOutput(OutputModel):
+class SelfHartreeOutput(IOModel):
     descriptors: List[float]
 
 
-class SelfHartreeWorkflow(Workflow):
+class SelfHartreeWorkflow(Workflow[SelfHartreeOutput]):
 
-    output_model = SelfHartreeOutput  # type: ignore
+    output_model = SelfHartreeOutput
 
     def _run(self) -> None:
         assert self.bands
@@ -33,14 +34,12 @@ class SelfHartreeWorkflow(Workflow):
         return
 
 
-class PowerSpectrumDecompositionOutput(OutputModel):
+class PowerSpectrumDecompositionOutput(IOModel):
     descriptors: List[File]
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class PowerSpectrumDecompositionWorkflow(Workflow):
+class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionOutput]):
 
     output_model = PowerSpectrumDecompositionOutput  # type: ignore
 
@@ -141,15 +140,13 @@ class PowerSpectrumDecompositionWorkflow(Workflow):
             dct, calc_that_produced_orbital_densities=calc_that_produced_orbital_densities, **kwargs)
 
 
-class ConvertOrbitalFilesToXMLOutput(OutputModel):
+class ConvertOrbitalFilesToXMLOutput(IOModel):
     total_density: File
     orbital_densities: List[File]
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class ConvertOrbitalFilesToXMLWorkflow(Workflow):
+class ConvertOrbitalFilesToXMLWorkflow(Workflow[ConvertOrbitalFilesToXMLOutput]):
 
     output_model = ConvertOrbitalFilesToXMLOutput  # type: ignore
 

@@ -21,7 +21,7 @@ from typing import (Any, Callable, Dict, Generator, Generic, List, Optional,
 import numpy as np
 
 from koopmans import cell, utils
-from koopmans.outputs import OutputModel
+from koopmans.process_io import IOModel
 from koopmans.status import Status
 
 from ._workflow import Workflow
@@ -236,15 +236,14 @@ def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
                                   'construct your `ConvergenceWorkflow` using the `ConvergenceWorkflowFactory`')
 
 
-class ConvergenceOutputs(OutputModel):
+class ConvergenceOutputs(IOModel):
 
     converged_values: Dict[str, Any]
 
 
-class ConvergenceWorkflow(Workflow):
+class ConvergenceWorkflow(Workflow[ConvergenceOutputs]):
 
-    output_model = ConvergenceOutputs  # type: ignore
-    outputs: ConvergenceOutputs
+    output_model = ConvergenceOutputs
 
     '''
     A Workflow class that wraps another workflow in a convergence procedure in order to converge the observable within the specified tolerance with respect to the variables

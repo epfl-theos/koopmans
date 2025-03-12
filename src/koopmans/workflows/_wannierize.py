@@ -13,6 +13,7 @@ import shutil
 from functools import partial
 from typing import (Any, Callable, Dict, Generator, List, Optional, Tuple,
                     TypeVar)
+from pydantic import ConfigDict
 
 from ase_koopmans import Atoms
 from ase_koopmans.dft.kpoints import BandPath
@@ -28,7 +29,7 @@ import numpy as np
 
 from koopmans import calculators, projections, utils
 from koopmans.files import File
-from koopmans.outputs import OutputModel
+from koopmans.process_io import IOModel
 from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         extend_wannier_u_dis_file_content,
                                         merge_wannier_centers_file_contents,
@@ -44,7 +45,7 @@ from ._workflow import Workflow
 CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 
 
-class WannierizeOutput(OutputModel):
+class WannierizeOutput(IOModel):
     band_structures: List[BandStructure]
     dos: Optional[GridDOSCollection] = None
     u_matrices_files: Dict[BlockID, File | None]
@@ -54,15 +55,12 @@ class WannierizeOutput(OutputModel):
     preprocessing_calculations: List[calculators.Wannier90Calculator]
     nscf_calculation: calculators.PWCalculator
     wannier90_calculations: List[calculators.Wannier90Calculator]
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class WannierizeWorkflow(Workflow):
+class WannierizeWorkflow(Workflow[WannierizeOutput]):
 
-    output_model = WannierizeOutput  # type: ignore
-    outputs: WannierizeOutput
+    output_model = WannierizeOutput
 
     def __init__(self, *args, force_nspin2: bool = False, scf_kgrid: List[float] | None = None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -387,20 +385,18 @@ class WannierizeWorkflow(Workflow):
         """
 
 
-class WannierizeBlockOutput(OutputModel):
+class WannierizeBlockOutput(IOModel):
     hr_file: File | None = None
     centers_file: File | None = None
     u_matrices_file: File | None = None
     wannier90_calculation: calculators.Wannier90Calculator
     preprocessing_calculation: calculators.Wannier90Calculator
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class WannierizeBlockWorkflow(Workflow):
+class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
 
-    output_model = WannierizeBlockOutput  # type: ignore
+    output_model = WannierizeBlockOutput
 
     def __init__(self, *args, pw_outdir: File, block: projections.ProjectionBlock, force_nspin2=False, **kwargs):
         self.pw_outdir = pw_outdir
@@ -431,7 +427,7 @@ class WannierizeBlockWorkflow(Workflow):
         calc_w90_pp: calculators.Wannier90Calculator = self.new_calculator(
             calc_type, init_orbitals=init_orbs, **self.block.w90_kwargs)
         calc_w90_pp.prefix = 'wannier90_preproc'
-        calc_w90_pp.command.flags = '-pp'
+        calc_w90_pp.command.flags = '-pp' 
         status = self.run_steps(calc_w90_pp)
         if status != Status.COMPLETED:
             return

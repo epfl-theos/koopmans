@@ -5,32 +5,13 @@ Inspired by CWL."""
 import re
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Dict, Generic, Tuple, Type, TypeVar
-from uuid import uuid4
 
 import dill
 import numpy as np
-from pydantic import BaseModel
 
 from koopmans import utils
 from koopmans.files import File
-
-if TYPE_CHECKING:
-    from koopmans.workflows import Workflow
-
-
-class IOModel(BaseModel):
-    # BaseModel with an __eq__ method that compares attributes rather than memory addresses
-
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return False
-        for key in self.dict().keys():
-            cond = (getattr(self, key) == getattr(other, key))
-            if isinstance(cond, np.ndarray):
-                cond = cond.all()
-            if not cond:
-                return False
-        return True
+from koopmans.process_io import IOModel
 
 
 InputModel = TypeVar('InputModel', bound=IOModel)
@@ -39,7 +20,10 @@ OutputModel = TypeVar('OutputModel', bound=IOModel)
 
 class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
 
-    __slots__ = utils.HasDirectory.__slots__ + ['inputs', '_outputs', 'name', 'linked_files']
+    __slots__ = utils.HasDirectory.__slots__ + ['inputs', '_outputs', 'name', 'linked_files', 'input_model', 'output_model']
+
+    input_model: Type[InputModel]
+    output_model: Type[OutputModel]
 
     def __init__(self, name: str | None = None, **kwargs):
         self.inputs: InputModel = self.input_model(**kwargs)
@@ -60,16 +44,6 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
         self._pre_run()
         self._run()
         self._post_run()
-
-    @property
-    @abstractmethod
-    def input_model(self) -> Type[InputModel]:
-        ...
-
-    @property
-    @abstractmethod
-    def output_model(self) -> Type[OutputModel]:
-        ...
 
     @property
     def outputs(self) -> OutputModel:
@@ -98,7 +72,7 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
         ...
 
     def _post_run(self):
-        assert self.outputs is not None, 'Process outputs must be set when running'
+        assert self._outputs is not None, 'Process outputs must be set when running'
         self.dump_outputs()
 
     def __repr__(self):

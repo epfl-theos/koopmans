@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
+from pydantic import ConfigDict
 
 from ase_koopmans import Atoms
 from ase_koopmans.io.wannier90 import (list_to_formatted_str,
@@ -16,9 +17,7 @@ class BlockID(BaseModel):
     label: Optional[str] = None
     filled: Optional[bool] = None
     spin: SpinType = None
-
-    class Config:
-        frozen = True
+    model_config = ConfigDict(frozen=True)
 
     def __str__(self):
         if self.label is None:

@@ -213,7 +213,6 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                     raise FileNotFoundError(f'Expected {other_dst_file} to be linked to the {self.prefix} calculator')
                 # Switch the links
                 self.linked_files[dst_file], self.linked_files[other_dst_file] = self.linked_files[other_dst_file], self.linked_files[dst_file]
-                print(f'Swapping {dst_file} <-> {other_dst_file}')
 
         # alphas and filling
         self.alphas = self.alphas[::-1]
@@ -506,7 +505,10 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
     def nspin1_dummy_calculator(self) -> KoopmansCPCalculator:
         self.parent_process, parent_process = None, self.parent_process
+        self.linked_files, linked_files = {}, self.linked_files
         calc = copy.deepcopy(self)
+        calc.linked_files = linked_files
+        self.linked_files = linked_files
         self.parent_process = parent_process
         calc.parent_process = parent_process
         calc.prefix += '_nspin1_dummy'
@@ -526,7 +528,10 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
     def nspin1_calculator(self) -> KoopmansCPCalculator:
         self.parent_process, parent_process = None, self.parent_process
+        self.linked_files, linked_files = {}, self.linked_files
         calc = copy.deepcopy(self)
+        calc.linked_files = linked_files
+        self.linked_files = linked_files
         calc.parent_process = parent_process
         self.parent_process = parent_process
         calc.prefix += '_nspin1'

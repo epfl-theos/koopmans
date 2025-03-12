@@ -18,7 +18,7 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
 from pathlib import Path
-from typing import (Any, Callable, Dict, Generator, List, Optional, Sequence,
+from typing import (Any, Callable, Dict, Generator, Generic, List, Optional, Sequence,
                     Tuple, Type, TypeVar, Union)
 
 import dill
@@ -46,11 +46,12 @@ from ase_koopmans.spectrum.doscollection import GridDOSCollection
 from ase_koopmans.spectrum.dosdata import GridDOSData
 from upf_tools import UPFDict
 
-from koopmans import calculators, outputs, settings, utils
+from koopmans import calculators, settings, utils
+from koopmans.process_io import IOModel
 from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.engines import Engine, LocalhostEngine
-from koopmans.files import File, LocalFile
+from koopmans.files import File, LocalFile, ParentProcessPlaceholder
 from koopmans.kpoints import Kpoints
 from koopmans.ml import AbstractMLModel, MLModel, OccEmpMLModels
 from koopmans.processes import Process, ProcessProtocol
@@ -65,9 +66,9 @@ from koopmans.utils import SpinType
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 W = TypeVar('W', bound='Workflow')
+OutputModel = TypeVar('OutputModel', bound=IOModel)
 
-
-class Workflow(utils.HasDirectory, ABC):
+class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
     r'''
     Abstract base class that defines a Koopmans workflow
@@ -121,7 +122,7 @@ class Workflow(utils.HasDirectory, ABC):
                                                 'pseudopotentials', 'projections', 'ml_model', 'snapshots',
                                                 'version', 'calculations', 'processes',
                                                 'steps', 'plotting', 'ml', '_bands', 'step_counter', 'print_indent',
-                                                'status']
+                                                'status', '_outputs']
 
     def __init__(self,
                  atoms: Atoms,
@@ -142,6 +143,7 @@ class Workflow(utils.HasDirectory, ABC):
                  parent_process: Optional[Workflow] = None,
                  **kwargs: Dict[str, Any]):
 
+        self._outputs: OutputModel | None = None
         self.step_counter = 0
         self.print_indent = 0
         self.status = Status.NOT_STARTED
@@ -478,8 +480,18 @@ class Workflow(utils.HasDirectory, ABC):
 
     @property
     @abstractmethod
-    def output_model(self) -> Type[outputs.OutputModel]:
+    def output_model(self) -> Type[OutputModel]:
         ...
+
+    @property
+    def outputs(self) -> OutputModel:
+        if self._outputs is None:
+            raise ValueError('Process has no outputs because it has not been run yet')
+        return self._outputs
+    
+    @outputs.setter
+    def outputs(self, value: OutputModel):
+        self._outputs = value
 
     @classmethod
     def from_other(cls: Type[W], other_wf: Workflow, **kwargs: Any) -> W:
@@ -763,7 +775,7 @@ class Workflow(utils.HasDirectory, ABC):
         calc = calc_class(atoms=copy.deepcopy(self.atoms), **all_kwargs)
 
         # Link the pseudopotentials if relevant
-        if calculator_parameters.is_valid('pseudo_dir'):
+        if calculator_parameters.is_valid('pseudo_dir') or isinstance(calc, calculators.KoopmansHamCalculator):
             for pseudo in self.pseudopotentials.values():
                 calc.link(LocalFile(pseudo.filename), Path('pseudopotentials') / pseudo.filename.name, symlink=True)
             calc.parameters.pseudo_dir = 'pseudopotentials'
@@ -1575,14 +1587,14 @@ def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
         if ndr_directory not in master_calc.linked_files.keys():
             raise ValueError('This calculator needs to be linked to a previous `nspin=2` calculation before '
                              '`run_calculator` is called')
-        prev_calc_nspin2 = master_calc.linked_files[ndr_directory][0]
+        prev_calc_nspin2 = master_calc.linked_files[ndr_directory][0].parent_process
         if not isinstance(prev_calc_nspin2, calculators.KoopmansCPCalculator):
             raise ValueError(
                 'Unexpected calculator type linked during the procedure for fixing spin contamination')
 
         # Wipe the linked files (except for globally-linked files)
-        master_calc.linked_files = {k: v for k, v in master_calc.linked_files.items() if v[0] is None}
-        calc_nspin1.linked_files = {k: v for k, v in calc_nspin1.linked_files.items() if v[0] is None}
+        master_calc.linked_files = {k: v for k, v in master_calc.linked_files.items() if isinstance(v[0].parent_process, ParentProcessPlaceholder)}
+        calc_nspin1.linked_files = {k: v for k, v in calc_nspin1.linked_files.items() if isinstance(v[0].parent_process, ParentProcessPlaceholder)}
 
         # nspin=1 dummy
         calc_nspin1_dummy = master_calc.nspin1_dummy_calculator()
@@ -1600,10 +1612,12 @@ def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
         status = wf.run_steps(process2to1)
         if status != Status.COMPLETED:
             return status
+        
+        # Linking converted files to the nspin=1 calculation
         for f in process2to1.outputs.generated_files:
             dst_dir = calc_nspin1.parameters.outdir / \
                 f'{calc_nspin1.parameters.prefix}_{calc_nspin1.parameters.ndr}.save/K00001'
-            calc_nspin1.link(File(process2to1, f), dst_dir / f.name, symlink=True, overwrite=True)
+            calc_nspin1.link(f, dst_dir / f.name, symlink=True, overwrite=True)
 
     status = wf.run_steps(calc_nspin1)
     if status != Status.COMPLETED:

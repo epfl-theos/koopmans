@@ -17,7 +17,7 @@ from koopmans.bands import Bands
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
                                   Wann2KCCalculator, Wannier90Calculator)
 from koopmans.files import File
-from koopmans.outputs import OutputModel
+from koopmans.process_io import IOModel
 from koopmans.projections import BlockID
 from koopmans.status import Status
 
@@ -27,14 +27,13 @@ from ._wannierize import WannierizeWorkflow
 from ._workflow import Workflow
 
 
-class KoopmansDFPTOutputs(OutputModel):
+class KoopmansDFPTOutputs(IOModel):
     pass
 
 
-class KoopmansDFPTWorkflow(Workflow):
+class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
 
     output_model = KoopmansDFPTOutputs  # type: ignore
-    outputs: KoopmansDFPTOutputs
 
     def __init__(self, scf_kgrid: Optional[List[int]] = None, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -355,13 +354,13 @@ class KoopmansDFPTWorkflow(Workflow):
         return internal_new_calculator(self, calc_presets, **kwargs)
 
 
-class ComputeScreeningViaDFPTOutputs(OutputModel):
+class ComputeScreeningViaDFPTOutputs(IOModel):
     pass
 
 
-class ComputeScreeningViaDFPTWorkflow(Workflow):
+class ComputeScreeningViaDFPTWorkflow(Workflow[ComputeScreeningViaDFPTOutputs]):
+
     output_model = ComputeScreeningViaDFPTOutputs
-    outputs: ComputeScreeningViaDFPTOutputs
 
     def __init__(self, *args, spin_component: int, wannier_files_to_link: Dict[str, File], **kwargs):
         super().__init__(*args, **kwargs)

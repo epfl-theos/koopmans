@@ -10,12 +10,13 @@ Written by Edward Linscott Feb 2021
 import os
 from pathlib import Path
 from typing import Dict, Generator, List, Tuple
+from pydantic import ConfigDict
 
 import numpy as np
 
 from koopmans import calculators, utils
 from koopmans.files import File
-from koopmans.outputs import OutputModel
+from koopmans.process_io import IOModel
 from koopmans.processes.merge_evc import MergeEVCProcess
 from koopmans.projections import BlockID, ProjectionBlock
 from koopmans.status import Status
@@ -23,11 +24,9 @@ from koopmans.status import Status
 from ._workflow import Workflow
 
 
-class FoldToSupercellOutputs(OutputModel):
+class FoldToSupercellOutputs(IOModel):
     kcp_files: Dict[str, File]
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class FoldToSupercellWorkflow(Workflow):
