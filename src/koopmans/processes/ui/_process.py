@@ -23,10 +23,11 @@ from pydantic import ConfigDict, Field
 from koopmans import calculators, utils
 from koopmans.files import File
 from koopmans.kpoints import Kpoints, kpath_to_dict
+from koopmans.process_io import IOModel
 from koopmans.settings import (PlotSettingsDict,
                                UnfoldAndInterpolateSettingsDict)
 
-from .._process import IOModel, Process
+from .._process import Process
 from ._atoms import UIAtoms
 from ._utils import crys_to_cart, extract_hr, latt_vect
 
@@ -63,15 +64,14 @@ class UnfoldAndInterpolateInputs(IOModel):
 
 
 class UnfoldAndInterpolateOutputs(IOModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
-
     band_structure: BandStructure
     dos: Optional[DOS] = None
+    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
 
 
-class UnfoldAndInterpolateProcess(Process):
-    __slots__ = ['inputs', 'outputs', '_centers', '_spreads', '_Rvec', '_hr',
-                 '_hr_smooth', '_hr_coarse', '_phases', '_wRs', '_Rsmooth', '_hk']
+class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndInterpolateOutputs]):
+    __slots__ = Process.__slots__ + ['_centers', '_spreads', '_Rvec', '_hr',
+                                     '_hr_smooth', '_hr_coarse', '_phases', '_wRs', '_Rsmooth', '_hk']
 
     input_model = UnfoldAndInterpolateInputs
     output_model = UnfoldAndInterpolateOutputs
@@ -200,6 +200,8 @@ class UnfoldAndInterpolateProcess(Process):
                     self.inputs.parameters.num_wann_sc, self.inputs.parameters.num_wann)
 
             # The smooth Hamiltonian
+            if self.inputs.dft_smooth_ham_file is None:
+                raise ValueError('Smooth interpolation requested but no smooth DFT Hamiltonian file provided')
             hr_smooth, self._Rsmooth, self._wRs, nrpts = utils.read_wannier_hr_file(self.inputs.dft_smooth_ham_file)
             assert len(hr_smooth) == nrpts * \
                 self.inputs.parameters.num_wann**2, f'Wrong number of matrix elements for hr_smooth {len(hr_smooth)}'
@@ -285,6 +287,7 @@ class UnfoldAndInterpolateProcess(Process):
         """
         content = '# Written at ' + datetime.now().isoformat(timespec='seconds')
         dos = self.outputs.dos
+        assert dos is not None
         for e, d in zip(dos.get_energies(), dos.get_dos()):
             content += '\n{:10.4f}{:12.6f}'.format(e, d)
         content += '\n'

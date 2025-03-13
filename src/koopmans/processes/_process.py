@@ -2,6 +2,7 @@
 
 Inspired by CWL."""
 
+import logging
 import re
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Dict, Generic, Tuple, Type, TypeVar
@@ -13,14 +14,15 @@ from koopmans import utils
 from koopmans.files import File
 from koopmans.process_io import IOModel
 
-
 InputModel = TypeVar('InputModel', bound=IOModel)
 OutputModel = TypeVar('OutputModel', bound=IOModel)
+
+logger = logging.getLogger(__name__)
 
 
 class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
 
-    __slots__ = utils.HasDirectory.__slots__ + ['inputs', '_outputs', 'name', 'linked_files', 'input_model', 'output_model']
+    __slots__ = utils.HasDirectory.__slots__ + ['inputs', '_outputs', 'name', 'linked_files']
 
     input_model: Type[InputModel]
     output_model: Type[OutputModel]
@@ -40,7 +42,11 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
 
         self.linked_files: Dict[str, File] = {}
 
+        logger.info(f'Creating an instance of {self.__class__.__name__}')
+        logger.info(f'with inputs={self.inputs.model_dump()}')
+
     def run(self):
+        logger.info(f'Running {self.directory}')
         self._pre_run()
         self._run()
         self._post_run()
@@ -49,10 +55,12 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
     def outputs(self) -> OutputModel:
         if self._outputs is None:
             raise ValueError('Process has no outputs because it has not been run yet')
+        logger.info(f'Querying outputs of {self.directory}')
         return self._outputs
 
     @outputs.setter
     def outputs(self, value: OutputModel):
+        logger.info(f'Setting outputs of {self.directory}')
         self._outputs = value
 
     def _pre_run(self):

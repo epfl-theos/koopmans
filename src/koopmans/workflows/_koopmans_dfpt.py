@@ -480,7 +480,7 @@ def internal_new_calculator(workflow, calc_presets, **kwargs):
         have_empty = (nemp > 0)
         has_disentangle = (nemp != nemp_pw)
     else:
-        if workflow.parametetrs.spin_polarized:
+        if workflow.parameters.spin_polarized:
             if calc.parameters.spin_component == 1:
                 nocc = workflow.calculator_parameters['kcp'].nelup
             else:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generator, Union
 
@@ -9,6 +10,8 @@ from koopmans.utils import HasDirectory
 
 if TYPE_CHECKING:
     from koopmans.engines import Engine
+
+logger = logging.getLogger(__name__)
 
 
 class File:
@@ -33,7 +36,7 @@ class File:
 
     def __repr__(self):
         return f'File({self.aspath()})'
-    
+
     def __str__(self):
         return str(self.aspath())
 
@@ -43,7 +46,7 @@ class File:
         else:
             return self.parent_process.directory / self.name
 
-    @property  
+    @property
     def parent(self) -> File:
         return File(self.parent_process, self.name.parent)
 
@@ -56,6 +59,7 @@ class File:
 
     def copy_to(self, dst: File, exist_ok=False):
         assert self._engine is not None
+        logger.info(f'Copying {self.aspath()} to {dst.aspath()}')
         self._engine.copy_file(self, dst, exist_ok=exist_ok)
 
     def exists(self):
@@ -64,18 +68,22 @@ class File:
 
     def read_text(self) -> str:
         assert self._engine is not None
+        logger.info(f'Reading text from {self.aspath()}')
         return self._engine.read_file(self, binary=False)
 
     def read_bytes(self) -> bytes:
         assert self._engine is not None
+        logger.info(f'Reading bytes from {self.aspath()}')
         return self._engine.read_file(self, binary=True)
-    
+
     def write_text(self, content: str):
         assert self._engine is not None
+        logger.info(f'Writing text to {self.aspath()}')
         self._engine.write_file(content, self)
-    
+
     def write_bytes(self, content: bytes):
         assert self._engine is not None
+        logger.info(f'Writing bytes to {self.aspath()}')
         self._engine.write_file(content, self)
 
     def rglob(self, pattern: str) -> Generator[File, None, None]:
@@ -85,21 +93,24 @@ class File:
     def glob(self, pattern: str) -> Generator[File, None, None]:
         assert self._engine is not None
         yield from self._engine.glob(self, pattern, recursive=False)
-    
+
     def symlink_to(self, target: File, overwrite=False, recursive=False):
         # Create a symbolic link at self that points to target
         assert self._engine is not None
+        logger.info(f'Creating symlink from {self.aspath()} to {target.aspath()}')
         self._engine.link_file(target, self, overwrite=overwrite, recursive=recursive)
-    
+
     def unlink(self):
         assert self._engine is not None
         if self.is_dir():
             self._engine.rmdir(self)
         else:
             self._engine.unlink_file(self)
+        logger.info(f'Removing {self.aspath()}')
 
     def mkdir(self, *args, **kwargs):
         assert self._engine is not None
+        logger.info(f'Creating directory {self.aspath()}')
         self._engine.mkdir(self, *args, **kwargs)
 
     def is_dir(self) -> bool:

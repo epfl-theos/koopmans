@@ -93,8 +93,7 @@ class SinglepointWorkflow(Workflow[SinglepointOutputs]):
             functionals = ['ki', 'pkipz', 'kipz']
 
             if self.parameters.alpha_from_file:
-                utils.warn('Need to make sure alpharef files are copied over')
-                # utils.system_call('cp file_alpharef*.txt ki/')
+                raise NotImplementedError('Need to make sure alpharef files are copied over')
 
             ki_workflow = None
             for functional in functionals:

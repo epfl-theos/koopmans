@@ -7,13 +7,14 @@ Split off from workflow.py Oct 2020
 
 """
 
+import logging
 import shutil
 from pathlib import Path
 from typing import Dict, Generator, List, Mapping, Optional, Tuple
-from pydantic import ConfigDict
 
 import numpy as np
 from ase_koopmans.dft import DOS
+from pydantic import ConfigDict
 
 from koopmans import calculators, utils
 from koopmans.bands import Band, Bands
@@ -31,6 +32,8 @@ from ._ml import PowerSpectrumDecompositionWorkflow
 from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
 from ._wannierize import WannierizeWorkflow
 from ._workflow import Workflow, spin_symmetrize
+
+logger = logging.getLogger(__name__)
 
 
 class KoopmansDSCFOutputs(IOModel):
@@ -678,6 +681,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
             assert self.band.alpha is not None
             self.outputs = self.output_model(alpha=self.band.alpha, error=self.band.error,
                                              dummy_outdir=self._dummy_outdir)
+            self.status = Status.COMPLETED
             return
 
         # When we write/update the alpharef files in the work directory

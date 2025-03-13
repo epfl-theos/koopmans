@@ -11,6 +11,7 @@ from pathlib import Path
 import koopmans.mpl_config
 from koopmans.engines import Engine, LocalhostEngine
 from koopmans.io import read, write
+from koopmans.logging_config import setup_logging
 from koopmans.status import Status
 from koopmans.utils import print_alert
 
@@ -34,6 +35,7 @@ class ListPseudoAction(argparse.Action):
         for p in sorted(engine.available_pseudo_libraries()):
             print(p)
 
+
 class InstallPseudoAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         engine_name = getattr(parser, 'engine', DEFAULT_ENGINE)
@@ -45,6 +47,7 @@ class InstallPseudoAction(argparse.Action):
             if not pseudo_file.exists():
                 raise FileNotFoundError(f"File {pseudo_file} does not exist")
             engine.install_pseudopotential(pseudo_file, library=parser.library)
+
 
 class UninstallPseudoAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -83,11 +86,11 @@ def main():
 
     # Subcommands
     subparsers = parser.add_subparsers(dest='command', title='subcommands')
-    
+
     # koopmans --version
     parser.add_argument('--version', action='version', version=__version__,
                         help="show the program's version number and exit")
-    
+
     def add_engine_flag(p):
         p.add_argument('--engine', choices=['localhost', 'aiida'], default=DEFAULT_ENGINE,
                        help="specify the execution engine")
@@ -97,9 +100,10 @@ def main():
     run_parser.add_argument('json', metavar='system.json', type=str,
                             help='a single JSON file containing the workflow and code settings')
     run_parser.add_argument('-t', '--traceback', action='store_true', help='enable traceback')
+    run_parser.add_argument('-l', '--log', action='store_true', help='enable logging')
     add_engine_flag(run_parser)
     run_parser.add_argument('--engine_config', type=str, default='engine.json',
-                        help='Specify the engine configuration file (default: engine.json)')
+                            help='Specify the engine configuration file (default: engine.json)')
 
     # koopmans pseudos
     pseudos_parser = subparsers.add_parser("pseudos", help="list, install, and uninstall pseudopotentials")
@@ -113,13 +117,15 @@ def main():
     # koopmans pseudos install
     pseudos_install = pseudos_subparsers.add_parser("install", help="install a local pseudopotential file")
     pseudos_install.add_argument('file', type=str, help="the local .upf file to install", nargs='+')
-    pseudos_install.add_argument('--library', type=str, nargs='?', help="the custom library to put the pseudopotential in", default="CustomPseudos")
+    pseudos_install.add_argument('--library', type=str, nargs='?',
+                                 help="the custom library to put the pseudopotential in", default="CustomPseudos")
     pseudos_install.set_defaults(action=InstallPseudoAction)
     add_engine_flag(pseudos_install)
 
     # koopmans pseudos uninstall
     pseudos_uninstall = pseudos_subparsers.add_parser("uninstall", help="uninstall a pseudopotential library")
-    pseudos_uninstall.add_argument('library', type=str, help="the pseudopotential library to uninstall", nargs='+', action=UninstallPseudoAction)
+    pseudos_uninstall.add_argument(
+        'library', type=str, help="the pseudopotential library to uninstall", nargs='+', action=UninstallPseudoAction)
     add_engine_flag(pseudos_uninstall)
 
     # Hide traceback
@@ -149,6 +155,10 @@ def main():
     if args.traceback:
         sys.tracebacklimit = None
         sys.excepthook = default_excepthook
+
+    # If requested, set up logging
+    if args.log:
+        setup_logging()
 
     # Reading in JSON file
     workflow = read(args.json, engine=engine)

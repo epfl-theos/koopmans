@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import copy
 import json as json_ext
+import logging
 import os
 import re
 import shutil
@@ -18,8 +19,8 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
 from pathlib import Path
-from typing import (Any, Callable, Dict, Generator, Generic, List, Optional, Sequence,
-                    Tuple, Type, TypeVar, Union)
+from typing import (Any, Callable, Dict, Generator, Generic, List, Optional,
+                    Sequence, Tuple, Type, TypeVar, Union)
 
 import dill
 import numpy as np
@@ -47,18 +48,19 @@ from ase_koopmans.spectrum.dosdata import GridDOSData
 from upf_tools import UPFDict
 
 from koopmans import calculators, settings, utils
-from koopmans.process_io import IOModel
 from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.engines import Engine, LocalhostEngine
 from koopmans.files import File, LocalFile, ParentProcessPlaceholder
 from koopmans.kpoints import Kpoints
 from koopmans.ml import AbstractMLModel, MLModel, OccEmpMLModels
+from koopmans.process_io import IOModel
 from koopmans.processes import Process, ProcessProtocol
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
 from koopmans.projections import ProjectionBlocks
-from koopmans.pseudopotentials import (nelec_from_pseudos, element_from_pseudo_filename,
+from koopmans.pseudopotentials import (element_from_pseudo_filename,
+                                       nelec_from_pseudos,
                                        pseudopotential_library_citations)
 from koopmans.references import bib_data
 from koopmans.status import Status
@@ -67,6 +69,10 @@ from koopmans.utils import SpinType
 T = TypeVar('T', bound='calculators.CalculatorExt')
 W = TypeVar('W', bound='Workflow')
 OutputModel = TypeVar('OutputModel', bound=IOModel)
+
+
+logger = logging.getLogger(__name__)
+
 
 class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
@@ -153,7 +159,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         directory = None if parent_process else Path()
         super().__init__(parent_process=parent_process, base_directory=base_directory, directory=directory, engine=engine)
         if self.engine is None:
-            raise ValueError('Please provide an engine -- without one, a Workflow cannot be initialized as it does not know e.g. how to load pseudopotentials')
+            raise ValueError(
+                'Please provide an engine -- without one, a Workflow cannot be initialized as it does not know e.g. how to load pseudopotentials')
 
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
@@ -244,7 +251,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             self.pseudopotentials = {}
             for symbol, pseudo_filename in pseudopotentials.items():
                 if isinstance(pseudo_filename, str):
-                    self.pseudopotentials[symbol] = self.engine.get_pseudopotential(self.parameters.pseudo_library, filename=pseudo_filename)
+                    self.pseudopotentials[symbol] = self.engine.get_pseudopotential(
+                        self.parameters.pseudo_library, filename=pseudo_filename)
                 elif isinstance(pseudo_filename, UPFDict):
                     self.pseudopotentials[symbol] = pseudo_filename
                 else:
@@ -457,6 +465,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         Run the workflow
         '''
 
+        logger.info(f'Running workflow {self.name} ({self.__class__.__name__})')
+
         self._pre_run()
 
         if self.parent_process:
@@ -469,6 +479,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             self._run()
 
         self._post_run()
+        logger.info(f'Exiting workflow {self.name} with status "{self.status.value}" ({self.__class__.__name__})')
 
     def _post_run(self):
         assert self.engine is not None
@@ -488,7 +499,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         if self._outputs is None:
             raise ValueError('Process has no outputs because it has not been run yet')
         return self._outputs
-    
+
     @outputs.setter
     def outputs(self, value: OutputModel):
         self._outputs = value
@@ -854,11 +865,15 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             status = self.engine.get_status(step)
             if status == Status.NOT_STARTED:
                 # Run the step
+                logger.info(f'Submitting {step.directory} ({step.__class__.__name__})')
                 self.engine.run(step)
+            else:
+                logger.info(f'Step {step.name} is already {status}')
 
         for step in steps:
             if self.engine.get_status(step) == Status.COMPLETED:
                 # Load the results of the step
+                logger.info(f'Loading the results for {step.directory} ({step.__class__.__name__})')
                 self.engine.load_results(step)
 
                 # Store the results of the step
@@ -1104,7 +1119,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         # Check for unexpected blocks
         for block in bigdct:
             raise ValueError(f'Unrecognized block `{block}` in the json input file')
-        
+
         # Attach an engine if it does not exist
         if 'engine' not in kwargs:
             engine_args = {k: parameters[k] for k in parameters if k in ['from_scratch']}
@@ -1593,8 +1608,10 @@ def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
                 'Unexpected calculator type linked during the procedure for fixing spin contamination')
 
         # Wipe the linked files (except for globally-linked files)
-        master_calc.linked_files = {k: v for k, v in master_calc.linked_files.items() if isinstance(v[0].parent_process, ParentProcessPlaceholder)}
-        calc_nspin1.linked_files = {k: v for k, v in calc_nspin1.linked_files.items() if isinstance(v[0].parent_process, ParentProcessPlaceholder)}
+        master_calc.linked_files = {k: v for k, v in master_calc.linked_files.items(
+        ) if isinstance(v[0].parent_process, ParentProcessPlaceholder)}
+        calc_nspin1.linked_files = {k: v for k, v in calc_nspin1.linked_files.items(
+        ) if isinstance(v[0].parent_process, ParentProcessPlaceholder)}
 
         # nspin=1 dummy
         calc_nspin1_dummy = master_calc.nspin1_dummy_calculator()
@@ -1612,7 +1629,7 @@ def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
         status = wf.run_steps(process2to1)
         if status != Status.COMPLETED:
             return status
-        
+
         # Linking converted files to the nspin=1 calculation
         for f in process2to1.outputs.generated_files:
             dst_dir = calc_nspin1.parameters.outdir / \

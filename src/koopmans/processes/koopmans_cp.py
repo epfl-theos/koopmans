@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import List, Tuple
+
 from pydantic import ConfigDict
 
 from koopmans import utils
@@ -105,12 +106,10 @@ class SwapSpinFilesProcess(Process[SwapSpinFilesInputModel, SwapSpinFilesOutputM
             raise FileNotFoundError(f'{self.inputs.read_directory} does not exist')
         spin_up_files = list(self.inputs.read_directory.rglob('*1.*'))
         spin_down_files = list(self.inputs.read_directory.rglob('*2.*'))
+
         for src in self.inputs.read_directory.rglob('*'):
             if src.is_dir():
                 continue
-
-            if src.parent.exists():
-                src.parent.mkdir(parents=True, exist_ok=True)
 
             if src in spin_up_files:
                 dst = File(self, str(src.name).replace('1.', '2.'))
@@ -119,9 +118,12 @@ class SwapSpinFilesProcess(Process[SwapSpinFilesInputModel, SwapSpinFilesOutputM
             else:
                 dst = File(self, src.name)
 
+            dst.parent.mkdir(parents=True, exist_ok=True)
+
             try:
                 dst.symlink_to(src)
             except FileExistsError:
                 assert src == dst
+                raise ValueError()
 
-        self.outputs = self.output_model(write_directory=self.inputs.read_directory.name)
+        self.outputs = self.output_model(write_directory=File(self, self.inputs.read_directory.name))
