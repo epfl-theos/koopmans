@@ -174,7 +174,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
             coarse_wf.kpoints.grid = self.parameters.dfpt_coarse_grid
             coarse_wf._perform_ham_calc = False
             coarse_wf.name += '-coarse'
-            coarse_wf.run()
+            coarse_wf.proceed()
             if coarse_wf.status != Status.COMPLETED:
                 return
 
@@ -187,7 +187,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                     self.calculator_parameters[key].write_u_matrices = True
                     self.calculator_parameters[key].write_xyz = True
             wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True, scf_kgrid=self._scf_kgrid)
-            wf_workflow.run()
+            wf_workflow.proceed()
             if wf_workflow.status != Status.COMPLETED:
                 return
 
@@ -229,7 +229,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
             pw_params.nspin = 2
 
             # Run the subworkflow
-            pw_workflow.run()
+            pw_workflow.proceed()
             if pw_workflow.status != Status.COMPLETED:
                 return
 
@@ -273,7 +273,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                     self.bands.alphas = self.parameters.alpha_guess
 
         for wf in screen_wfs:
-            wf.run()
+            wf.proceed()
 
         if any([wf.status != Status.COMPLETED for wf in screen_wfs]):
             return
@@ -319,7 +319,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                 ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(
                     self, dft_ham_files=dft_ham_files, koopmans_ham_files=koopmans_ham_files)
 
-                ui_workflow.run()
+                ui_workflow.proceed()
                 if ui_workflow.status != Status.COMPLETED:
                     return
 

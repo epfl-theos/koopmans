@@ -77,14 +77,14 @@ class SinglepointWorkflow(Workflow[SinglepointOutputs]):
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
         if self.parameters.eps_inf == 'auto':
             eps_workflow = DFTPhWorkflow.fromparent(self)
-            eps_workflow.run()
+            eps_workflow.proceed()
             if eps_workflow.status != Status.COMPLETED:
                 return
             self.parameters.eps_inf = np.trace(eps_workflow.calculations[-1].results['dielectric tensor']) / 3
 
         if self.parameters.method == 'dfpt':
             workflow = KoopmansDFPTWorkflow.fromparent(self)
-            workflow.run()
+            workflow.proceed()
             if workflow.status != Status.COMPLETED:
                 return
 
@@ -133,7 +133,7 @@ class SinglepointWorkflow(Workflow[SinglepointOutputs]):
                     kc_workflow.primitive_to_supercell()
 
                 # Run the workflow
-                kc_workflow.run()
+                kc_workflow.proceed()
                 if kc_workflow.status != Status.COMPLETED:
                     return
 
@@ -141,12 +141,12 @@ class SinglepointWorkflow(Workflow[SinglepointOutputs]):
             # self.functional != all and self.method != 'dfpt'
             if self.parameters.functional in ['ki', 'pkipz', 'kipz']:
                 dscf_workflow = KoopmansDSCFWorkflow.fromparent(self)
-                dscf_workflow.run()
+                dscf_workflow.proceed()
                 if dscf_workflow.status != Status.COMPLETED:
                     return
             else:
                 dft_workflow = DFTCPWorkflow.fromparent(self)
-                dft_workflow.run()
+                dft_workflow.proceed()
                 if dft_workflow.status != Status.COMPLETED:
                     return
 

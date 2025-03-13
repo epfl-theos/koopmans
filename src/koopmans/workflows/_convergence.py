@@ -353,7 +353,7 @@ class ConvergenceWorkflow(Workflow[ConvergenceOutputs]):
                 indices_to_run.append(indices)
 
             for w in subwfs:
-                w.run()
+                w.proceed()
 
             if any([w.status != Status.COMPLETED for w in subwfs]):
                 return

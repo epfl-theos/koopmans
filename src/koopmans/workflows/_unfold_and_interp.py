@@ -10,15 +10,15 @@ Integrated within koopmans by Edward Linscott Jan 2021
 """
 
 from typing import Dict, Generator, List, Literal, Optional, Tuple
-from pydantic import ConfigDict
 
 import numpy as np
 from ase_koopmans.dft.dos import DOS
 from ase_koopmans.spectrum.band_structure import BandStructure
+from pydantic import ConfigDict
 
 from koopmans import calculators, utils
-from koopmans.process_io import IOModel
 from koopmans.files import File
+from koopmans.process_io import IOModel
 from koopmans.processes.ui import UnfoldAndInterpolateProcess, generate_dos
 from koopmans.projections import BlockID
 from koopmans.status import Status
@@ -72,7 +72,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             wannier_workflow.kpoints.grid = [x * y for x, y in zip(self.kpoints.grid,
                                              self.calculator_parameters['ui'].smooth_int_factor)]
 
-            wannier_workflow.run()
+            wannier_workflow.proceed()
             if wannier_workflow.status != Status.COMPLETED:
                 return
 

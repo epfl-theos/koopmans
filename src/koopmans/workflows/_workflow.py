@@ -422,7 +422,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             assert abs_pseudo_dir.is_dir()
             self.parameters.pseudo_directory = os.path.relpath(abs_pseudo_dir, self.base_directory)
 
-    def run_while(self):
+    def run(self):
         '''
         Run the workflow
         '''
@@ -439,7 +439,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
         while self.status != Status.COMPLETED:
             # Reset the step counter each time we reattempt the workflow
-            self.run()
+            self.proceed()
 
             attempts += 1
             if attempts == 1000:
@@ -460,9 +460,17 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         if self.status == Status.NOT_STARTED:
             self.status = Status.RUNNING
 
-    def run(self, subdirectory: Optional[str] = None, copy_outputs_to_parent: Optional[bool] = True):
+    def proceed(self, subdirectory: Optional[str] = None, copy_outputs_to_parent: Optional[bool] = True):
         '''
-        Run the workflow
+        Proceed through the workflow until a step has status `RUNNING`
+
+        Typically, this will involve proceeding to the next step in the workflow which has not been run,
+        set it `RUNNING`, and then returning
+
+        Note, however, for some engines this function will execute the _entire_ workflow e.g. `localhost` workflows,
+        which, when requested to run a step in the workflow, will run that step and block the interpreter until the
+        step is completed. For such a workflow, the status of individual steps proceed immediately from `NOT_STARTED`
+        to `COMPLETE` and `proceed()` will not exit until all the steps in the workflow are `COMPLETED`.
         '''
 
         logger.info(f'Running workflow {self.name} ({self.__class__.__name__})')

@@ -165,4 +165,4 @@ def main():
     engine.from_scratch = workflow.parameters.from_scratch
 
     # Run workflow
-    workflow.run_while()
+    workflow.run()

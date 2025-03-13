@@ -55,7 +55,7 @@ class TrajectoryWorkflow(Workflow[TrajectoryOutputs]):
             workflows.append(workflow)
 
         for w in workflows:
-            w.run(copy_outputs_to_parent=False)
+            w.proceed(copy_outputs_to_parent=False)
 
         if not all([w.status == Status.COMPLETED for w in workflows]):
             return

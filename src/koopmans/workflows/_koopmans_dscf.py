@@ -257,7 +257,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
         init_wf: Optional[InitializationWorkflow] = None
         if self._initial_variational_orbital_files is None:
             init_wf = InitializationWorkflow.fromparent(self)
-            init_wf.run()
+            init_wf.proceed()
             if init_wf.status != Status.COMPLETED:
                 return
             self._initial_variational_orbital_files = init_wf.outputs.variational_orbital_files
@@ -272,7 +272,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
             screening_wf = CalculateScreeningViaDSCF.fromparent(self, initial_variational_orbital_files=self._initial_variational_orbital_files,
                                                                 initial_cp_calculation=initial_cp_calculation,
                                                                 precomputed_descriptors=self._precomputed_descriptors)
-            screening_wf.run()
+            screening_wf.proceed()
             if screening_wf.status != Status.COMPLETED:
                 return
 
@@ -365,7 +365,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
                     koopmans_ham_files=koopmans_ham_files,
                     dft_ham_files=dft_ham_files,
                     smooth_dft_ham_files=self._smooth_dft_ham_files)
-                ui_workflow.run()
+                ui_workflow.proceed()
                 if ui_workflow.status != Status.COMPLETED:
                     return
                 smooth_dft_ham_files = ui_workflow.outputs.smooth_dft_ham_files
@@ -434,7 +434,7 @@ class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
                 # For the first iteration, the spin contamination has already been addressed during the initialization
                 iteration_wf.parameters.fix_spin_contamination = False
 
-            iteration_wf.run()
+            iteration_wf.proceed()
             if iteration_wf.status != Status.COMPLETED:
                 return
 
@@ -547,7 +547,7 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
                 if self.ml.descriptor == 'orbital_density':
                     psfit_workflow = PowerSpectrumDecompositionWorkflow.fromparent(
                         self, calc_that_produced_orbital_densities=trial_calc)
-                    psfit_workflow.run()
+                    psfit_workflow.proceed()
                     if psfit_workflow.status != Status.COMPLETED:
                         return
 
@@ -598,7 +598,7 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
                 dummy_outdir = self._dummy_outdirs.get((band.index, band.spin), None)
                 subwf = OrbitalDeltaSCFWorkflow.fromparent(
                     self, band=band, trial_calc=trial_calc, dummy_outdir=dummy_outdir, i_sc=self._i_sc, alpha_indep_calcs=self._alpha_indep_calcs)
-                subwf.run()
+                subwf.proceed()
                 if subwf.status != Status.COMPLETED:
                     return
                 alpha = subwf.outputs.alpha
@@ -776,7 +776,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
             # Run kcp.x
             if calc.parameters.nelup < calc.parameters.neldw:
                 subwf = KoopmansCPWithSpinSwapWorkflow.fromparent(self, calc=calc)
-                subwf.run()
+                subwf.proceed()
                 if subwf.status != Status.COMPLETED:
                     return
                 if 'dummy' in calc_type:
@@ -1196,7 +1196,7 @@ class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
                     not self.calculator_parameters['ui'].do_smooth_interpolation
 
             # Perform the wannierization workflow
-            wannier_workflow.run()
+            wannier_workflow.proceed()
             if wannier_workflow.status != Status.COMPLETED:
                 return
 
@@ -1223,7 +1223,7 @@ class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
                                                                hr_files=wannier_workflow.outputs.hr_files,
                                                                wannier90_calculations=wannier_workflow.outputs.wannier90_calculations,
                                                                wannier90_pp_calculations=wannier_workflow.outputs.preprocessing_calculations)
-            fold_workflow.run()
+            fold_workflow.proceed()
             if fold_workflow.status != Status.COMPLETED:
                 return
 
