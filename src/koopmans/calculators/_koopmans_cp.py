@@ -193,17 +193,13 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # First, recurse over the linked files and replace directories with their contents
         new_files = {}
         for key in list(self.linked_files.keys()):
-            parent, name, sym, rsym, force = self.linked_files[key]
-            if parent is None:
-                continue
-            dst_filepointer = File(parent, name)
+            dst_filepointer, sym, rsym, force = self.linked_files[key]
             if dst_filepointer.is_dir():
                 self.linked_files.pop(key)
-                for filepointer in dst_filepointer.rglob('*'):
-                    if filepointer.is_dir():
+                for subfile in dst_filepointer.rglob('*'):
+                    if subfile.is_dir():
                         continue
-                    new_key = name / filepointer.name.relative_to(name)
-                    self.linked_files[str(new_key)] = (filepointer.parent, filepointer.name, rsym, False, force)
+                    self.linked_files[str(subfile.name)] = (subfile, rsym, False, force)
 
         # Now iterate over the linked files and swap any pairs of spin up/down files
         for dst_file in self.linked_files:
