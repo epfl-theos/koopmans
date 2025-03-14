@@ -5,7 +5,7 @@
         "from_scratch": true,
         "converge": true,
         "fix_spin_contamination": false,
-        "pseudo_library": "sg15_v1.0"
+        "pseudo_library": "PseudoDojo/0.4/PBE/SR/standard/upf"
     },
     "convergence": {
         "observable": "homo energy",
