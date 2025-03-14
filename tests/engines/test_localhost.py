@@ -2,12 +2,12 @@ import pytest
 
 from koopmans import utils
 from koopmans.engines.localhost import LocalhostEngine
-from koopmans.outputs import OutputModel
-from koopmans.workflows import Workflow
+from koopmans.process_io import IOModel
 from koopmans.status import Status
+from koopmans.workflows import Workflow
 
 
-class DummyOutput(OutputModel):
+class DummyOutput(IOModel):
     message: 'str'
 
 
@@ -28,6 +28,7 @@ def test_localhost_running_dummy_workflow(silicon):
     assert workflow.status == Status.COMPLETED
     assert workflow.outputs.message == dummy_message
 
+
 def test_localhost_installing_custom_pseudopotentials(datadir):
     # Install a pseudopotential, fetch it, and check that it is the same file
 
@@ -46,5 +47,3 @@ def test_localhost_installing_custom_pseudopotentials(datadir):
 
     # Uninstall the testing library
     engine.uninstall_pseudopotential_library('testing')
-
-    

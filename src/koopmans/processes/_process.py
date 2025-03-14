@@ -5,6 +5,7 @@ Inspired by CWL."""
 import logging
 import re
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import TYPE_CHECKING, Dict, Generic, Tuple, Type, TypeVar
 
 import dill
@@ -110,3 +111,7 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
         if self.directory is None:
             raise ValueError('Process directory must be set before checking if it is complete')
         return (self.directory / f'{self.name}_outputs.pkl').exists()
+
+    def __truediv__(self, other):
+        assert isinstance(other, Path) or isinstance(other, str)
+        return File(self, other)

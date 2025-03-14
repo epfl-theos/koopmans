@@ -45,10 +45,10 @@ def patch_calculator(c, monkeypatch):
 
         # Temporary wipe the parent and linked_files attributes so that the entire workflow doesn't get pickled
         base_directory = self.base_directory
-        self.parent, parent = None, self.parent
+        self.parent_process, parent_process = None, self.parent_process
         self.linked_files, linked_files = [], self.linked_files
         write_pkl(self, filename, base_directory)
-        self.parent = parent
+        self.parent_process = parent_process
         self.linked_files = linked_files
 
         # After running the calculation, make a new list of the files, and then work out which files have been
@@ -93,14 +93,15 @@ def patch_process(p, monkeypatch):
             filename.parent.mkdir(parents=True)
         # Temporarily wipe the parent attribute so that the entire workflow doesn't get pickled
         base_directory = self.base_directory
-        self.parent, parent = None, self.parent
+        self.parent_process, parent_process = None, self.parent_process
         write_pkl(self, filename, base_directory)
-        self.parent = parent
+        self.parent_process = parent_process
 
         # Copy over all files that are outputs of the process that need to be read
         for filepath in recursively_find_files([o for _, o in self.outputs]):
             if filepath.name in ['power_spectrum.npy']:
-                shutil.copy(filepath, benchmark_filename(self).parent / filepath.name)
+                dst = benchmark_filename(self).parent / filepath.name
+                shutil.copy(filepath, dst)
 
     monkeypatch.setattr(p, '_run', _run)
 

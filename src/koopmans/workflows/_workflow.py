@@ -387,6 +387,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             return False
         else:
             for key in self.__slots__:
+                if key == 'engine':
+                    continue
                 if getattr(self, key) != getattr(other, key):
                     return False
         return True

@@ -150,7 +150,7 @@ def mock_process_run(self):
         if f.name in ['power_spectrum.npy']:
             src = benchmark_filename(self).parent / f.name
             assert src.exists()
-            shutil.copy(src, f.name)
+            shutil.copy(src, f)
         else:
             write_mock_file(f, self.name)
 

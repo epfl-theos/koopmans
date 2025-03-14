@@ -16,7 +16,6 @@ from koopmans.utils import (chdir, parse_wannier_hr_file_contents,
 
 def test_wannierize_merge_hr_file_contents(tmp_path, datadir):
     with chdir(tmp_path):
-        engine = LocalhostEngine()
         filecontents = []
         for dir_in in sorted((datadir / 'w90').glob('occ_block*')):
             with open(dir_in / 'wann_hr.dat') as f:
@@ -27,7 +26,7 @@ def test_wannierize_merge_hr_file_contents(tmp_path, datadir):
         ham, rvec, weights, num_wann = parse_wannier_hr_file_contents(merged_contents)
 
         ham_ref, rvec_ref, weights_ref, num_wann_ref = read_wannier_hr_file(
-            LocalFile(datadir / 'w90' / 'occ' / 'wann_hr.dat'), engine=engine)
+            LocalFile(datadir / 'w90' / 'occ' / 'wann_hr.dat'))
 
         assert np.allclose(ham, ham_ref)
         assert np.all(rvec == rvec_ref)
@@ -56,7 +55,7 @@ def test_merge_process(tmp_path):
         process.engine = engine
         process.run()
 
-        assert file3.read() == file1_contents + '\n' + file2_contents
+        assert file3.read_text() == file1_contents + '\n' + file2_contents
 
 
 def test_extend_wannier_u_dis_file_content(tmp_path, datadir):
@@ -92,4 +91,4 @@ def test_extend_process(tmp_path):
         process.engine = engine
         process.run()
 
-        assert file2.read() == file1_contents + '\n' + extra_contents
+        assert file2.read_text() == file1_contents + '\n' + extra_contents

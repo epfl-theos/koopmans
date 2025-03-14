@@ -22,7 +22,8 @@ for i in range(n_total):
     ab_initio_wf.atoms = ab_initio_wf.snapshots[i]
 
     # Run the workflow
-    ab_initio_wf.run(subdirectory=f'ab_initio/snapshot_{i + 1}')
+    ab_initio_wf.directory = f'ab_initio/snapshot_{i + 1}'
+    ab_initio_wf.run()
 
     # Store the result
     ab_initio_wfs.append(ab_initio_wf)
@@ -48,7 +49,8 @@ for i_snapshot in range(n_train, n_total):
     init_wf = InitializationWorkflow.from_other(ab_initio_wf)
     init_wf.bands = copy.deepcopy(ab_initio_wf.bands)
     init_wf.ml.train = False
-    init_wf.run(subdirectory=f'ml/snapshot_{i_snapshot + 1}/init')
+    init_wf.directory = f'ml/snapshot_{i_snapshot + 1}/init'
+    init_wf.run()
     descriptors = [b.power_spectrum for b in init_wf.bands.to_solve]
 
     for i_train, model in enumerate(models):
@@ -65,7 +67,8 @@ for i_snapshot in range(n_train, n_total):
         ml_wf.ml.predict = True
 
         # Run the workflow
-        ml_wf.run(subdirectory=f'ml/snapshot_{i_snapshot + 1}/predict_with_ntrain_{i_train + 1}')
+        ml_wf.directory = f'ml/snapshot_{i_snapshot + 1}/predict_with_ntrain_{i_train + 1}'
+        ml_wf.run()
 
         # Extract and store the error in the orbital energies when using the ML model
         predicted_orbital_energies = ml_wf.calculations[-1].results['eigenvalues'][0]
