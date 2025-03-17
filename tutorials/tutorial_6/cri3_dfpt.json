@@ -10,7 +10,9 @@
         "alpha_guess": 0.122,
         "spin_polarized": true,
         "pseudo_library": "pseudo_dojo_standard",
-        "from_scratch": false
+    },
+    "engine": {
+        "from_scratch": true
     },
     "atoms": {
         "cell_parameters": {

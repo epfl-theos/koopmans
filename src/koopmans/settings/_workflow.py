@@ -88,13 +88,6 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'if True, uses the file_alpharef.txt from the base directory as a '
                     'starting guess',
                     bool, False, (True, False)),
-            Setting('from_scratch',
-                    'if True, will delete any preexisting workflow and start again; '
-                    'if False, will resume a workflow from where it was last up to',
-                    bool, True, (True, False)),
-            Setting('keep_tmpdirs',
-                    'If False, delete all of the temporary directories at the end of the calculation',
-                    bool, True, (True, False)),
             Setting('orbital_groups',
                     'a list of integers the same length as the total number of bands, '
                     'denoting which bands to assign the same screening parameter to',

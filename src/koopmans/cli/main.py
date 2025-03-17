@@ -162,7 +162,6 @@ def main():
 
     # Reading in JSON file
     workflow = read(args.json, engine=engine)
-    engine.from_scratch = workflow.parameters.from_scratch
 
     # Run workflow
     workflow.run()

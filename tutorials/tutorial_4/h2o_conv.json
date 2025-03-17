@@ -2,10 +2,12 @@
     "workflow": {
         "functional": "dft",
         "task": "singlepoint",
-        "from_scratch": true,
         "converge": true,
         "fix_spin_contamination": false,
         "pseudo_library": "PseudoDojo/0.4/PBE/SR/standard/upf"
+    },
+    "engine": {
+        "from_scratch": true
     },
     "convergence": {
         "observable": "homo energy",

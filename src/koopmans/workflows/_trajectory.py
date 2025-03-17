@@ -44,11 +44,6 @@ class TrajectoryWorkflow(Workflow[TrajectoryOutputs]):
             # Get the atomic positions for the current snapshot
             self.atoms.set_positions(snapshot.positions)
 
-            # after each snapshot we want to set the from_scratch_parameter to its original value
-            # To do so, we save it here since it might get set from False to True during the calculation
-            # of the snapshot
-            from_scratch = self.parameters.from_scratch
-
             # Initialize and run the DSCF workflow
             workflow = KoopmansDSCFWorkflow.fromparent(self)
             workflow.name += f' Snapshot {i+1} of {len(self.snapshots)}'

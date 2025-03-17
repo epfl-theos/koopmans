@@ -435,7 +435,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             bf = '**' if sys.stdout.isatty() else ''
             self.print(bf + self.name + bf)
             self.print(bf + '-' * len(self.name) + bf)
-            if self.parameters.from_scratch:
+            if self.engine.from_scratch:
                 self._remove_tmpdirs()
             self._run_sanity_checks()
 
@@ -1126,14 +1126,18 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         if parameters.converge:
             conv_block = settings.ConvergenceSettingsDict(**bigdct.pop('convergence', {}))
 
+        # Engine
+        if 'engine' not in kwargs:
+            engine_parameters = settings.EngineSettingsDict(**bigdct.pop('engine', {}))
+            kwargs['engine'] = LocalhostEngine(**engine_parameters)
+        else:
+            engine_parameters = bigdct.pop('engine', {})
+            for k, v in engine_parameters.items():
+                setattr(kwargs['engine'], k, v)
+
         # Check for unexpected blocks
         for block in bigdct:
             raise ValueError(f'Unrecognized block `{block}` in the json input file')
-
-        # Attach an engine if it does not exist
-        if 'engine' not in kwargs:
-            engine_args = {k: parameters[k] for k in parameters if k in ['from_scratch']}
-            kwargs['engine'] = LocalhostEngine(**engine_args)
 
         # Create the workflow. Note that any keywords provided in the calculator_parameters (i.e. whatever is left in
         # calcdict) are provided as kwargs
@@ -1454,7 +1458,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             write(self.ml_model, self.name + '_ml_model.pkl')
 
         # Removing tmpdirs
-        if not self.parameters.keep_tmpdirs:
+        if not self.engine.keep_tmpdirs:
             self._remove_tmpdirs()
 
     def number_of_electrons(self, spin: Optional[str] = None) -> int:

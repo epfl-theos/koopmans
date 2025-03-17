@@ -3,19 +3,21 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Generator, Literal, Optional, overload
 
+from pydantic import BaseModel, ConfigDict, Field
 from upf_tools import UPFDict
 
 from koopmans import utils
 from koopmans.files import File
-from koopmans.status import Status
 from koopmans.processes import ProcessProtocol
+from koopmans.status import Status
 
 
-class Engine(ABC):
+class Engine(BaseModel, ABC):
 
-    def __init__(self, from_scratch: bool = True, npool: Optional[int] = None):
-        self.from_scratch = from_scratch
-        self.npool = npool
+    from_scratch: bool = True
+    npool: Optional[int] = None
+    keep_tmpdirs: bool = True
+    statuses: dict[str, Status] = Field(default_factory=dict)
 
     def print(self, text: str, **kwargs):
         utils.indented_print(text, **kwargs, wrap=False)
@@ -82,7 +84,7 @@ class Engine(ABC):
     def install_pseudopotential(self, file: Path, library: str) -> None:
         # Install a local pseudopotential file so that it can be accessed by the engine via self.get_pseudopotential()
         ...
-    
+
     @abstractmethod
     def uninstall_pseudopotential_library(self, library: str) -> None:
         # Uninstall a pseudopotential library
@@ -107,7 +109,7 @@ class Engine(ABC):
 
     @abstractmethod
     def read_file(self, file: File, binary: bool = False) -> bytes | str: ...
-        # Read content from file; should mimic Path.write_text() or Path.write_bytes()
+    # Read content from file; should mimic Path.write_text() or Path.write_bytes()
 
     @abstractmethod
     def write_file(self, content: str | bytes, file: File) -> None:
@@ -129,7 +131,7 @@ class Engine(ABC):
     def copy_file(self, source: File, destination: File, exist_ok: bool = False) -> None:
         # Remove a file; should mimic shutil.copy()
         ...
-    
+
     @abstractmethod
     def unlink_file(self, file: File) -> None:
         # Remove a file; should mimic Path.unlink()

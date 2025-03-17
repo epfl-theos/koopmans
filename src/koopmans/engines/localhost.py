@@ -4,15 +4,16 @@ import shutil
 import sys
 from itertools import chain
 from pathlib import Path
-from typing import Generator, List, Literal, overload, Optional
-import yaml
+from typing import Generator, List, Literal, Optional, overload
 
+import yaml
 from ase_koopmans.calculators.calculator import CalculationFailed
 from upf_tools import UPFDict
 
 from koopmans import utils
 from koopmans.calculators import (Calc, ImplementedCalc, PhCalculator,
                                   ProjwfcCalculator, ReturnsBandStructure)
+from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.files import File, LocalFile
 from koopmans.processes import Process, ProcessProtocol
 from koopmans.pseudopotentials import (element_from_pseudo_filename,
@@ -20,7 +21,6 @@ from koopmans.pseudopotentials import (element_from_pseudo_filename,
 from koopmans.status import Status
 
 from .engine import Engine
-
 
 config_file = Path.home() / '.koopmans/config.yaml'
 
@@ -39,6 +39,10 @@ class LocalhostEngine(Engine):
             assert isinstance(step, utils.HasDirectory)
             self.rmdir(File(step, ''))
 
+        # Update postfix if relevant
+        if self.npool and isinstance(getattr(step, 'command', None), ParallelCommandWithPostfix):
+            assert hasattr(step, 'command')
+            step.command.postfix = f'-npool {self.npool}'
         try:
             step.run()
         except CalculationFailed:
@@ -130,7 +134,7 @@ class LocalhostEngine(Engine):
 
             if library not in config['installed_pseudopotentials']:
                 raise FileNotFoundError(f'Could not find the custom pseudopotential library `{library}`')
-        
+
             for pseudo_filepath in config['installed_pseudopotentials'][library]:
                 assert pseudo_filepath is not None
                 if filename is not None:
@@ -164,19 +168,19 @@ class LocalhostEngine(Engine):
         with utils.chdir(config_file.parent):
             with open(config_file.name, 'w') as f:
                 yaml.dump(config, f)
-    
+
     def uninstall_pseudopotential_library(self, library):
         try:
             with open(config_file, 'r') as f:
                 config = yaml.safe_load(f)
         except FileNotFoundError:
             raise ValueError(f'No custom pseudopotential libraries are installed; skipping uninstallation of {library}')
-        
+
         if library in config['installed_pseudopotentials']:
             del config['installed_pseudopotentials'][library]
         else:
             raise ValueError(f'Could not find the custom pseudopotential library `{library}`')
-        
+
         with utils.chdir(config_file.parent):
             with open(config_file.name, 'w') as f:
                 yaml.dump(config, f)

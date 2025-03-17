@@ -160,13 +160,6 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
         This function runs the workflow from start to finish
         '''
 
-        if self.parameters.from_scratch:
-            for output_directory in [self.calculator_parameters['pw'].outdir, 'wannier', 'init', 'screening',
-                                     'hamiltonian', 'postproc']:
-                output_directory = Path(output_directory)
-                if output_directory.exists():
-                    shutil.rmtree(output_directory)
-
         if self.parameters.dfpt_coarse_grid is not None:
             coarse_wf = self.__class__.fromparent(
                 self, scf_kgrid=self.kpoints.grid)
