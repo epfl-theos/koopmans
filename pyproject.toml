@@ -29,7 +29,7 @@ dependencies = [
     "typing>=3.6",
     "pybtex>=0.24",
     "spglib>=1.9",
-    "upf-tools>=0.1.7",
+    "upf-tools>=0.1.9",
     "ase-koopmans==0.1.6",
     "scikit-learn>=1.0",
     "deepdiff>=5.8.1",
