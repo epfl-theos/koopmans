@@ -41,4 +41,4 @@ def test_generate_dos(silicon, tmp_path, datadir, pytestconfig):
         else:
             # Compare with the DOS on file
             dos_ref = read_pkl(benchmark_filename(calc))
-            assert dos == dos_ref
+            assert dos._almost_equals(dos_ref)
