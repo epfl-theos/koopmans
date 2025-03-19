@@ -6,7 +6,7 @@ from ase_koopmans.lattice import (BCC, BCT, CUB, FCC, HEX, MCL, MCLC, ORC,
                                   ORCC, ORCF, ORCI, RHL, TET, TRI,
                                   BravaisLattice, UnconventionalLattice,
                                   tri_angles_explanation)
-from hypothesis import given, settings
+from hypothesis import given, note, settings
 from hypothesis.strategies import (booleans, composite, decimals, floats,
                                    integers, lists)
 
@@ -46,6 +46,9 @@ def ase_cells(draw: Callable) -> Cell:
         gamma: int = draw(gammas)
 
         parameters = {"a": a, "b": b, "c": c, "alpha": float(alpha), "beta": float(beta), "gamma": float(gamma)}
+
+        # Log these parameters so hypothesis can report them upon a failure
+        note('Generating cell for ' + ', '.join([f'{k}={v}' for k, v in parameters.items()]))
 
         # Return a lattice with the relevant parameters
         try:
