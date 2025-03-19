@@ -94,6 +94,11 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
                 # Load the DOSs
                 dos_list += self.read_pdos(filename, orbital)
 
+        # Check that dos_list is not empty:
+        if not dos_list:
+            message = f'In path {parent_directory.aspath()} there are no DOS files'
+            raise ValueError(message)
+
         #  add pDOS to self.results
         self.results['dos'] = GridDOSCollection(dos_list)
 
