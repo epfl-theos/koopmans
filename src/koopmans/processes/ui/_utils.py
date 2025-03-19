@@ -45,7 +45,7 @@ def extract_hr(hr: NDArray[np.complex128], rvect: NDArray[np.int_],
 
     Rvec = latt_vect(nr1, nr2, nr3)
     rgrid = [nr1, nr2, nr3]
-    hr_new = []
+    hr_new: list[NDArray[np.complex128]] = []
     ir = 0
 
     for R in Rvec:
@@ -59,7 +59,7 @@ def extract_hr(hr: NDArray[np.complex128], rvect: NDArray[np.int_],
 
     assert len(hr_new) == np.prod(rgrid), f'Wrong number ({len(hr_new)}) of R-vectors in `extract_hr`'
 
-    return np.array(hr_new, dtype=complex)
+    return np.array(hr_new, dtype=np.complex128)
 
 
 def latt_vect(nr1: int, nr2: int, nr3: int) -> NDArray[np.int_]:
