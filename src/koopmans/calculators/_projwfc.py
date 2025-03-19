@@ -78,7 +78,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         dos_list = []
         for atom in self.atoms:
             parent_directory = File(self, Path())
-            filenames = parent_directory.glob(pattern=self.parameters.filpdos + f'.pdos_atm#{atom.index+1}(*')
+            filenames = sorted(parent_directory.glob(pattern=self.parameters.filpdos + f'.pdos_atm#{atom.index+1}(*'))
             # The filename does not encode the principal quantum number n. In order to recover this number, we compare
             # the reported angular momentum quantum number l against the list of expected orbitals, and infer n
             # assuming only that the file corresponding to nl will come before (n+1)l
@@ -93,11 +93,6 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
 
                 # Load the DOSs
                 dos_list += self.read_pdos(filename, orbital)
-
-        # Check that dos_list is not empty:
-        if not dos_list:
-            message = f'In path {parent_directory.aspath()} there are no DOS files'
-            raise ValueError(message)
 
         #  add pDOS to self.results
         self.results['dos'] = GridDOSCollection(dos_list)
