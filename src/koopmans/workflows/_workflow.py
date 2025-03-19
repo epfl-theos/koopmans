@@ -113,7 +113,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
     calculator_parameters: Dict[str, settings.SettingsDict]
     name: str
     kpoints: Kpoints
-    pseudopotentials: Dict[str, UPFDict]
+    pseudopotentials: OrderedDict[str, UPFDict]
     pseudo_dir: Path
     projections: ProjectionBlocks
     ml_model: Optional[AbstractMLModel]
@@ -133,7 +133,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
     def __init__(self,
                  atoms: Atoms,
                  engine: Engine,
-                 pseudopotentials: Dict[str, UPFDict | str] = {},
+                 pseudopotentials: OrderedDict[str, UPFDict | str] = OrderedDict(),
                  kpoints: Optional[Kpoints] = None,
                  projections: Optional[ProjectionBlocks] = None,
                  name: Optional[str] = None,
@@ -248,7 +248,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             raise ValueError('No pseudopotential library was provided`')
         elif pseudopotentials:
             # Ensure pseudopotentials are converted to UPFDict objects
-            self.pseudopotentials = {}
+            self.pseudopotentials = OrderedDict()
             for symbol, pseudo_filename in pseudopotentials.items():
                 if isinstance(pseudo_filename, str):
                     self.pseudopotentials[symbol] = self.engine.get_pseudopotential(
@@ -258,7 +258,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 else:
                     raise ValueError(f'Invalid pseudopotential type: {pseudo_filename.__class__.__name__}')
         else:
-            self.pseudopotentials = {}
+            self.pseudopotentials = OrderedDict()
             for element, tag in set([(a.symbol, a.tag) for a in self.atoms]):
                 pseudo = self.engine.get_pseudopotential(library=self.parameters.pseudo_library, element=element)
 
@@ -787,7 +787,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 elif kw == 'gamma_only':
                     val = self.kpoints.gamma_only
                 elif kw == 'pseudopotentials':
-                    val = {k: v.filename.name for k, v in self.pseudopotentials.items()}
+                    val = OrderedDict(**{k: v.filename.name for k, v in self.pseudopotentials.items()})
                 else:
                     val = getattr(self, kw)
                 all_kwargs[kw] = val
