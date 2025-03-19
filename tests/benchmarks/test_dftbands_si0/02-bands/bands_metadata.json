@@ -1,1 +1,1 @@
-{"input_files": ["pseudopotentials/Si_ONCV_PBE-1.2.upf"], "output_files": ["bands.pwo"]}
+{"input_files": ["pseudopotentials/Si.upf"], "output_files": ["bands.pwo"]}
