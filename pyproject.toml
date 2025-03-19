@@ -30,7 +30,7 @@ dependencies = [
     "pybtex>=0.24",
     "spglib>=1.9",
     "upf-tools>=0.1.9",
-    "ase-koopmans==0.1.7",
+    "ase-koopmans @ git+https://github.com/elinscott/ase_koopmans.git@fixing_package_files",
     "scikit-learn>=1.0",
     "deepdiff>=5.8.1",
     "pydantic>=2.7.0",
@@ -50,7 +50,7 @@ test = [
     "hypothesis>=6.0.0",
     "pytest>=5.4",
     "pytest-cov>=2.9",
-    "types-PyYAML=6.0.12.20241230",
+    "types-PyYAML==6.0.12.20241230",
 ]
 docs = [
     "sphinx>=3.0",
