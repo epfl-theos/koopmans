@@ -386,7 +386,7 @@ class ConvergenceWorkflow(Workflow[ConvergenceOutputs]):
                 slice_where: List[Union[slice, int]] = [
                     slice(None) for _ in self.variables]
                 slice_where[-1] = 0
-                converged_indices = np.array(np.where(converged[tuple(subarray_slice)]))[
+                converged_indices = np.array(np.where(converged[tuple(subarray_slice)]), dtype=int)[
                     tuple(slice_where)]
 
                 # Extract the corresponding variables

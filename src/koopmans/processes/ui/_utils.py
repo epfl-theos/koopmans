@@ -50,6 +50,7 @@ def extract_hr(hr: NDArray[np.complex128], rvect: NDArray[np.int_],
 
     for R in Rvec:
         for ir, rvec in enumerate(rvect):
+            assert isinstance(rvec, np.ndarray)
             if all(x < 1 for x in rvec / rgrid):
                 rvec %= rgrid
                 if all(rvec == R):

@@ -351,6 +351,7 @@ def generate_wannier_u_file_contents(umat: npt.NDArray[np.complex128], kpts: npt
     flines.append(''.join([f'{x:12d}' for x in umat.shape]))
 
     for kpt, umatk in zip(kpts, umat):
+        assert isinstance(kpt, np.ndarray)
         flines.append('')
         flines.append(''.join([f'{k:15.10f}' for k in kpt]))
         flines += [f'{c.real:15.10f}{c.imag:15.10f}' for c in umatk.flatten()]

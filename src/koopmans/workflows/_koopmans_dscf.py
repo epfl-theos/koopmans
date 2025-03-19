@@ -16,8 +16,10 @@ import numpy as np
 from ase_koopmans.dft import DOS
 from pydantic import ConfigDict
 
-from koopmans import calculators, utils
+from koopmans import utils
 from koopmans.bands import Band, Bands
+from koopmans.calculators import (KoopmansCPCalculator, PWCalculator,
+                                  convert_flat_alphas_for_kcp)
 from koopmans.files import File
 from koopmans.process_io import IOModel
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
@@ -41,7 +43,7 @@ class KoopmansDSCFOutputs(IOModel):
     Outputs for the KoopmansDSCFWorkflow
     '''
     variational_orbital_files: Dict[str, File]
-    final_calc: calculators.KoopmansCPCalculator
+    final_calc: KoopmansCPCalculator
     wannier_hamiltonian_files: Dict[BlockID, File] | None = None
     smooth_dft_ham_files: Dict[BlockID, File] | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -53,7 +55,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
 
     def __init__(self, *args,
                  initial_variational_orbital_files: Dict[str, File] | None = None,
-                 previous_cp_calc: calculators.KoopmansCPCalculator | None = None,
+                 previous_cp_calc: KoopmansCPCalculator | None = None,
                  smooth_dft_ham_files: Dict[BlockID, File] | None = None,
                  precomputed_descriptors: List[File] | None = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -242,7 +244,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
         flat_alphas = utils.read_alpha_file(self)
         params = self.calculator_parameters['kcp']
         assert isinstance(params, KoopmansCPSettingsDict)
-        alphas = calculators.convert_flat_alphas_for_kcp(flat_alphas, params)
+        alphas = convert_flat_alphas_for_kcp(flat_alphas, params)
 
         if self.parameters.spin_polarized:
             raise NotImplementedError('Need to check implementation')
@@ -381,7 +383,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
 
         return
 
-    def _overwrite_canonical_with_variational_orbitals(self, calc: calculators.KoopmansCPCalculator) -> None:
+    def _overwrite_canonical_with_variational_orbitals(self, calc: KoopmansCPCalculator) -> None:
         self.print('Overwriting the variational orbitals with Kohn-Sham orbitals')
         savedir = calc.parameters.write_directory / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
         for ispin in range(2):
@@ -401,7 +403,7 @@ class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
     output_model = CalculateScreeningViaDSCFOutput
 
     def __init__(self, *args, initial_variational_orbital_files: Dict[str, Tuple[Workflow, str]],
-                 initial_cp_calculation: calculators.KoopmansCPCalculator,
+                 initial_cp_calculation: KoopmansCPCalculator,
                  precomputed_descriptors: List[File] | None = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._initial_variational_orbital_files = initial_variational_orbital_files
@@ -412,7 +414,7 @@ class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
         converged = False
         i_sc = 0
 
-        alpha_indep_calcs: List[calculators.KoopmansCPCalculator] = []
+        alpha_indep_calcs: List[KoopmansCPCalculator] = []
 
         variational_orbital_files = self._initial_variational_orbital_files
         n_electron_calc = self._initial_cp_calculation
@@ -452,7 +454,7 @@ class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
                                'instantly; to save computational time set `alpha_numsteps == 1`')
 
             parent = iteration_wf.outputs.n_electron_restart_dir.parent_process
-            assert isinstance(parent, calculators.KoopmansCPCalculator)
+            assert isinstance(parent, KoopmansCPCalculator)
             n_electron_calc = parent
             dummy_outdirs = iteration_wf.outputs.dummy_outdirs
             variational_orbital_files = {}
@@ -481,9 +483,9 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
     output_model = DeltaSCFIterationOutputs
 
     def __init__(self, *args, variational_orbital_files: Dict[str, File],
-                 previous_n_electron_calculation=calculators.KoopmansCPCalculator,
+                 previous_n_electron_calculation=KoopmansCPCalculator,
                  dummy_outdirs: Dict[Tuple[int, int], File | None], i_sc: int,
-                 alpha_indep_calcs: List[calculators.KoopmansCPCalculator], precomputed_descriptors: List[File] | None, **kwargs) -> None:
+                 alpha_indep_calcs: List[KoopmansCPCalculator], precomputed_descriptors: List[File] | None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._variational_orbital_files = variational_orbital_files
         self._previous_n_electron_calculation = previous_n_electron_calculation
@@ -510,7 +512,7 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
 
         # Link the temporary files from the previous calculation
         previous_calc = self._previous_n_electron_calculation
-        assert isinstance(previous_calc, calculators.KoopmansCPCalculator)
+        assert isinstance(previous_calc, KoopmansCPCalculator)
         trial_calc.link(previous_calc.write_directory, trial_calc.read_directory, recursive_symlink=True)
 
         for filename, src_file in self._variational_orbital_files.items():
@@ -654,9 +656,9 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
 
     output_model = OrbitalDeltaSCFOutputs
 
-    def __init__(self, band: Band, trial_calc: calculators.KoopmansCPCalculator,
+    def __init__(self, band: Band, trial_calc: KoopmansCPCalculator,
                  dummy_outdir: File | None, i_sc: int,
-                 alpha_indep_calcs: List[calculators.KoopmansCPCalculator],
+                 alpha_indep_calcs: List[KoopmansCPCalculator],
                  **kwargs):
         super().__init__(**kwargs)
         self.band = band
@@ -850,8 +852,8 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
         self.status = Status.COMPLETED
 
     def calculate_alpha_from_list_of_calcs(self,
-                                           calcs: List[calculators.KoopmansCPCalculator],
-                                           trial_calc: calculators.KoopmansCPCalculator,
+                                           calcs: List[KoopmansCPCalculator],
+                                           trial_calc: KoopmansCPCalculator,
                                            band: Band,
                                            filled: bool = True) -> Tuple[float, float]:
         '''
@@ -952,7 +954,7 @@ def internal_new_kcp_calculator(workflow,
                                 alphas: Optional[List[List[float]]] = None,
                                 filling: Optional[List[List[bool]]] = None,
                                 add_to_spin_up: bool = True,
-                                **kwargs) -> calculators.KoopmansCPCalculator:
+                                **kwargs) -> KoopmansCPCalculator:
     """
 
     Generates a new KCP calculator based on the self.calculator_parameters["kcp"]
@@ -1012,7 +1014,7 @@ def internal_new_kcp_calculator(workflow,
         alphas = workflow.bands.alphas
 
     # Generate a new kcp calculator copied from the master calculator
-    calc: calculators.KoopmansCPCalculator = workflow.new_calculator('kcp', alphas=alphas, filling=filling)
+    calc: KoopmansCPCalculator = workflow.new_calculator('kcp', alphas=alphas, filling=filling)
 
     # Set up read/write indexes
     if calc_presets in ['dft_init', 'dft_dummy']:
@@ -1249,7 +1251,7 @@ class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
 
             # Check the consistency between the PW and CP band gaps
             pw_calc = [c for c in self.calculations if isinstance(
-                c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
+                c, PWCalculator) and c.parameters.calculation == 'nscf'][-1]
             pw_gap = pw_calc.results['lumo_energy'] - pw_calc.results['homo_energy']
             cp_gap = calc.results['lumo_energy'] - calc.results['homo_energy']
             if abs(pw_gap - cp_gap) > 2e-2 * pw_gap:

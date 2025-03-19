@@ -481,11 +481,9 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
                     phase[ik, i] += np.exp(2j * np.pi * np.dot(kvect, Tvec[it]))
                 phase[ik, i] /= len(t_index)
 
-        phase = phase.reshape(len(self.inputs.parameters.kpath.kpts), self.inputs.parameters.num_wann, len(self._Rvec),
-                              self.inputs.parameters.num_wann)
-        phase = np.transpose(phase, axes=(0, 2, 3, 1))
-
-        return phase
+        phase_reshaped = phase.reshape(len(self.inputs.parameters.kpath.kpts), self.inputs.parameters.num_wann, len(self._Rvec),
+                                       self.inputs.parameters.num_wann)
+        return np.transpose(phase_reshaped, axes=(0, 2, 3, 1))
 
 
 def generate_dos(band_structure: BandStructure, plotting_parameters: PlotSettingsDict, spin_polarized=False) -> DOS:

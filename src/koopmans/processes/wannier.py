@@ -1,10 +1,10 @@
 import math
 from pathlib import Path
 from typing import Callable, List, Tuple
-from pydantic import ConfigDict
 
 import numpy as np
 from ase_koopmans import Atoms
+from pydantic import ConfigDict
 
 from koopmans import calculators, utils
 from koopmans.files import File
@@ -49,7 +49,11 @@ def merge_wannier_hr_file_contents(filecontents: List[str]) -> str:
     assert rvect_out is not None
     assert weights_out is not None
 
-    return utils.generate_wannier_hr_file_contents(hr_out, rvect_out.tolist(), weights_out)
+    rvect_out_list = rvect_out.tolist()
+    assert isinstance(rvect_out_list, list) and all([isinstance(sublist, list) for sublist in rvect_out_list]) and all(
+        [isinstance(x, int) for sublist in rvect_out_list for x in sublist])
+
+    return utils.generate_wannier_hr_file_contents(hr_out, rvect_out_list, weights_out)
 
 
 def merge_wannier_u_file_contents(filecontents: List[str]) -> str:

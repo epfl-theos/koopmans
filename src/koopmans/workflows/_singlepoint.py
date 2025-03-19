@@ -10,14 +10,15 @@ Converted to a workflow object Nov 2020
 import os
 import shutil
 from pathlib import Path
-from typing import Generator, List
+from typing import Dict, Generator, List, Optional
 
 import numpy as np
 
 from koopmans import utils
-from koopmans.calculators import ProjwfcCalculator
+from koopmans.calculators import KoopmansCPCalculator, ProjwfcCalculator
 from koopmans.files import File
 from koopmans.process_io import IOModel
+from koopmans.projections import BlockID
 from koopmans.status import Status
 
 from ._dft import DFTCPWorkflow, DFTPhWorkflow
@@ -107,15 +108,14 @@ class SinglepointWorkflow(Workflow[SinglepointOutputs]):
                     calculate_alpha = self.parameters.calculate_alpha
 
                 # Create a KC workflow for this particular functional
+                variational_orbital_files: Optional[Dict[str, File]] = None
+                previous_cp_calc: Optional[KoopmansCPCalculator] = None
+                smooth_dft_ham_files: Optional[Dict[BlockID, File]] = None
                 if functional != 'ki':
                     assert ki_workflow is not None
                     variational_orbital_files = ki_workflow.outputs.variational_orbital_files
                     previous_cp_calc = ki_workflow.outputs.final_calc
                     smooth_dft_ham_files = ki_workflow.outputs.smooth_dft_ham_files
-                else:
-                    variational_orbital_files = None
-                    previous_cp_calc = None
-                    smooth_dft_ham_files = None
 
                 kc_workflow = KoopmansDSCFWorkflow.fromparent(self, functional=functional,
                                                               initial_variational_orbital_files=variational_orbital_files,
