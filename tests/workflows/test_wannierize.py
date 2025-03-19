@@ -13,7 +13,6 @@ def test_wannierize_tio2(tio2, tmp_path, sys2file, workflow_patch):
         parameters = {
             "init_orbitals": "mlwfs",
             "init_empty_orbitals": "projwfs",
-            "keep_tmpdirs": False,
         }
         tio2["pseudo_library"] = "PseudoDojo/0.4/PBE/SR/standard/upf"
         wf = workflows.WannierizeWorkflow(parameters=parameters, **tio2)

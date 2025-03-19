@@ -17,7 +17,6 @@ def test_singlepoint_h2o_ki_dscf_explicit(water, espresso_patch, tmp_path, sys2f
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'alpha_numsteps': 1,
-                      'keep_tmpdirs': False,
                       'orbital_groups_self_hartree_tol': 100.0
                       }
         wf = workflows.SinglepointWorkflow(parameters=parameters, **water)
@@ -28,7 +27,6 @@ def test_singlepoint_h2o_all_dscf(water, workflow_patch, tmp_path, sys2file):
     with chdir(tmp_path):
         parameters = {'functional': 'all',
                       'alpha_numsteps': 2,
-                      'keep_tmpdirs': False,
                       'orbital_groups_self_hartree_tol': 100.0
                       }
         wf = workflows.SinglepointWorkflow(parameters=parameters, **water)
@@ -41,13 +39,12 @@ def test_singlepoint_si_ki_dscf(spin_polarized, silicon, workflow_patch, tmp_pat
         parameters = {'functional': 'ki',
                       'method': 'dscf',
                       'spin_polarized': spin_polarized,
-                      'keep_tmpdirs': False,
                       'mp_correction': True,
                       'eps_inf': 13.02,
                       'init_orbitals': 'mlwfs',
                       'alpha_guess': 0.077,
-                      'orbital_groups_self_hartree_tol': 100.0,
-                      'pseudo_library': 'pseudo_dojo_standard'}
+                      'orbital_groups_self_hartree_tol': 100.0}
+        silicon['pseudo_library'] = 'PseudoDojo/0.4/PBE/SR/standard/upf'
 
         if spin_polarized:
             projs = silicon.pop('projections')
@@ -69,7 +66,6 @@ def test_singlepoint_si_ki_dfpt_explicit(silicon, espresso_patch, tmp_path, sys2
 
         parameters = {'functional': 'ki',
                       'method': 'dfpt',
-                      'keep_tmpdirs': False,
                       'eps_inf': 13.02,
                       'init_orbitals': 'mlwfs',
                       'alpha_guess': 0.077,
@@ -84,7 +80,6 @@ def test_singlepoint_si_ki_dfpt(silicon, workflow_patch, tmp_path, sys2file):
 
         parameters = {'functional': 'ki',
                       'method': 'dfpt',
-                      'keep_tmpdirs': False,
                       'eps_inf': 13.02,
                       'init_orbitals': 'mlwfs',
                       'alpha_guess': 0.077,
@@ -98,12 +93,11 @@ def test_singlepoint_ozone_ki_dfpt(ozone, workflow_patch, tmp_path, sys2file):
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'method': 'dfpt',
-                      'keep_tmpdirs': False,
                       'init_orbitals': 'kohn-sham',
                       'npool': 1,
                       'orbital_groups_self_hartree_tol': 100.0,
-                      'pseudo_library': 'sg15_v1.0'
                       }
+        ozone['pseudo_library'] = 'SG15/1.0/PBE/SR'
         wf = workflows.SinglepointWorkflow(parameters=parameters, **ozone)
         wf.run()
 
@@ -113,7 +107,6 @@ def test_singlepoint_gaas_wan2odd(gaas, espresso_patch, tmp_path, sys2file):
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'method': 'dscf',
-                      'keep_tmpdirs': False,
                       'calculate_alpha': False,
                       'init_orbitals': 'mlwfs',
                       'npool': 1,

@@ -6,7 +6,7 @@ import pytest
 from koopmans import __path__ as koopmans_src
 from koopmans import utils, workflows
 from koopmans.engines.localhost import LocalhostEngine
-from koopmans.files import LocalFile, File
+from koopmans.files import File, LocalFile
 from koopmans.io import read_pkl, write_pkl
 from tests.helpers.patches import benchmark_filename
 
@@ -15,7 +15,7 @@ def test_generate_dos(silicon, tmp_path, datadir, pytestconfig):
     with utils.chdir(tmp_path):
         # Create a projwfc calculator to match the one that was used to generate the pdos files
         wf = workflows.DFTBandsWorkflow(
-            parameters={'pseudo_library': 'PseudoDojo/0.4/PBEsol/SR/standard/upf', 'from_scratch': True},
+            parameters={'pseudo_library': 'PseudoDojo/0.4/PBEsol/SR/standard/upf'},
             name='si', **silicon)
         wf.directory = Path()
         calc = wf.new_calculator('projwfc')

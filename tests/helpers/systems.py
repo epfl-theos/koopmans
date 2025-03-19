@@ -9,14 +9,12 @@ from ase_koopmans.spacegroup import crystal
 
 from koopmans.engines.localhost import LocalhostEngine
 
-np.random.seed(0)
-
 
 @pytest.fixture
 def water() -> Dict[str, Any]:
     # water
     return {'atoms': molecule('H2O', vacuum=5.0, pbc=False),
-            'engine': LocalhostEngine(),
+            'engine': LocalhostEngine(keep_tmpdirs=False),
             'pseudo_library': 'SG15/1.2/PBE/SR',
             'ecutwfc': 20.0,
             'nbnd': 5}
@@ -27,6 +25,7 @@ def water_snapshots(water) -> Dict[str, Any]:
     atoms = water['atoms']
     atoms.pbc = True
     water['snapshots'] = []
+    np.random.seed(0)
     for _ in range(5):
         new_atoms = copy.deepcopy(atoms)
         new_atoms.positions += np.random.normal(0, 0.05, (3, 3))
@@ -46,7 +45,7 @@ def silicon() -> Dict[str, Any]:
     si_projs = ProjectionBlocks.fromlist([pdict, pdict], spins=[None, None], atoms=si)
     kpoints = Kpoints(grid=[2, 2, 2], path='GXG', cell=si.cell)
     return {'atoms': si,
-            'engine': LocalhostEngine(),
+            'engine': LocalhostEngine(keep_tmpdirs=False),
             'pseudo_library': 'SG15/1.2/PBE/SR',
             'calculator_parameters': {'pw': {'nbnd': 10},
                                       'w90': {'dis_froz_max': 10.6, 'dis_win_max': 16.9}
@@ -63,7 +62,7 @@ def ozone() -> Dict[str, Any]:
     # ozone
     return {'atoms': molecule('O3', vacuum=5.0, pbc=False),
             'pseudo_library': 'SG15/1.2/PBE/SR',
-            'engine': LocalhostEngine(),
+            'engine': LocalhostEngine(keep_tmpdirs=False),
             'calculator_parameters': {'pw': {'ecutwfc': 20.0, 'nbnd': 10}}}
 
 
@@ -84,7 +83,7 @@ def tio2() -> Dict[str, Any]:
 
     kpoints = Kpoints(grid=[2, 2, 2], path='GXG', cell=atoms.cell)
     return {'atoms': atoms,
-            'engine': LocalhostEngine(),
+            'engine': LocalhostEngine(keep_tmpdirs=False),
             'pseudo_library': 'SG15/1.2/PBE/SR',
             'calculator_parameters': {'pw': {'nbnd': 34}},
             'projections': projs,
@@ -103,13 +102,13 @@ def gaas() -> Dict[str, Any]:
                                            atoms=atoms)
     kpoints = Kpoints(grid=[2, 2, 2])
     return {'atoms': atoms,
-            'engine': LocalhostEngine(),
-            'pseudo_library': 'SG15/1.2/PBE/SR',
+            'engine': LocalhostEngine(keep_tmpdirs=False),
+            'pseudo_library': 'SG15/1.0/PBE/SR',
             'calculator_parameters': {'pw': {'nbnd': 45},
                                       'w90': {'dis_froz_max': 14.6, 'dis_win_max': 18.6}
                                       },
             'ecutwfc': 40.0,
             'smooth_int_factor': 4,
-            'plotting': {'degauss': 0.5},
+            'plotting': {'degauss': 0.5, 'Emin': -10, 'Emax': 4},
             'projections': gaas_projs,
             'kpoints': kpoints}
