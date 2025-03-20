@@ -41,8 +41,7 @@ def test_cli_run_si_with_logs(script_runner, workflow_patch, tmpdir, datadir):
     with chdir(tmpdir):
         shutil.copy(datadir / "json" / "si.json", tmpdir)
         result = script_runner.run(["koopmans", "run", "si.json", "--log"])
-    if not result.success:
-        raise AssertionError(result.stderr)
+    assert result.success
     assert (tmpdir / "koopmans.log").exists()
 
 

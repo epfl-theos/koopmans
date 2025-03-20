@@ -31,7 +31,7 @@ jobs:
               pip install -e .[test]
          - name: Test the source code
            run: |
-              pytest -x --ci tests/test_cli.py -m 'not (tutorials or espresso)' --cov-config=.coveragerc --cov=./src/koopmans/ --cov-report=xml
+              pytest -x --ci tests/ -m 'not (tutorials or espresso)' --cov-config=.coveragerc --cov=./src/koopmans/ --cov-report=xml
          - name: Upload coverage to Codecov
            if: github.repository == 'epfl-theos/koopmans'
            uses: codecov/codecov-action@v5
