@@ -51,6 +51,8 @@ test = [
     "pytest>=5.4",
     "pytest-cov>=2.9",
     "types-PyYAML==6.0.12.20241230",
+    "pytest-console-scripts==1.4.1",
+    "pytest-dependency==0.6.0",
 ]
 docs = [
     "sphinx>=3.0",
