@@ -37,6 +37,14 @@ def test_cli_run_si(script_runner, workflow_patch, tmpdir, datadir):
     assert result.success
 
 
+def test_cli_run_si_with_logs(script_runner, workflow_patch, tmpdir, datadir):
+    with chdir(tmpdir):
+        shutil.copy(datadir / "json" / "si.json", tmpdir)
+        result = script_runner.run(["koopmans", "run", "si.json", "--log"])
+    assert result.success
+    assert (tmpdir / "koopmans.log").exists()
+
+
 class TestPseudos:
     def test_cli_pseudos_list(self, script_runner):
         result = script_runner.run(["koopmans", "pseudos", "list"])
