@@ -84,8 +84,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
     atoms : Atoms
         an ASE ``Atoms`` object defining the atomic positions, cell, etc
-    pseudopotentials : OrderedDict[str, str]
-        a dictionary mapping atom labels to pseudopotential filenames
+    pseudopotentials : OrderedDict[str, UPFDict]
+        a dictionary mapping atom labels to pseudopotential objects
     kpoints : koopmans.kpoints.Kpoints
         a dataclass defining the k-point sampling and paths
     projections : ProjectionsBlocks
@@ -249,7 +249,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         elif pseudopotentials:
             # Ensure pseudopotentials are converted to UPFDict objects
             self.pseudopotentials = OrderedDict()
-            for symbol, pseudo_filename in pseudopotentials.items():
+            for symbol, pseudo_filename in sorted(pseudopotentials.items()):
                 if isinstance(pseudo_filename, str):
                     self.pseudopotentials[symbol] = self.engine.get_pseudopotential(
                         self.parameters.pseudo_library, filename=pseudo_filename)
@@ -259,7 +259,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                     raise ValueError(f'Invalid pseudopotential type: {pseudo_filename.__class__.__name__}')
         else:
             self.pseudopotentials = OrderedDict()
-            for element, tag in set([(a.symbol, a.tag) for a in self.atoms]):
+            for element, tag in sorted(set([(a.symbol, a.tag) for a in self.atoms])):
                 pseudo = self.engine.get_pseudopotential(library=self.parameters.pseudo_library, element=element)
 
                 pseudo_type = pseudo['header']['pseudo_type']

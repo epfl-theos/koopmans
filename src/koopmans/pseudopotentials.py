@@ -11,7 +11,7 @@ Split into a separate module Sep 2021
 import re
 from itertools import chain
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, OrderedDict
 
 from ase_koopmans import Atoms
 from upf_tools import UPFDict
@@ -56,7 +56,7 @@ def read_pseudo_file(filename: Path) -> UPFDict:
     return upf
 
 
-def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, UPFDict]) -> int:
+def nelec_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]) -> int:
     '''
     Determines the number of electrons in the system using information from pseudopotential files
     '''
@@ -72,13 +72,13 @@ def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, UPFDict]) -> in
     return sum(valences)
 
 
-def expected_subshells(atoms: Atoms, pseudopotentials: Dict[str, UPFDict]) -> Dict[str, List[str]]:
+def expected_subshells(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]) -> Dict[str, List[str]]:
     """
     Determine which subshells will make up the valences of a set of pseudopotentials.
 
     Returns
     -------
-    Dict[str, List[str]]
+    OrderedDict[str, List[str]]
         a dict mapping element names to a corresponding list of suborbitals that *might* be in the pseudopotential
         valence (depending on how many bands are included)
 
