@@ -11,33 +11,36 @@ Written by Edward Linscott Oct 2020
 import copy
 import shutil
 from pathlib import Path
-from typing import TypeVar
+from typing import Generator, List, TypeVar
 
 from koopmans import calculators, pseudopotentials, utils
-from koopmans.outputs import OutputModel
+from koopmans.files import File
+from koopmans.process_io import IOModel
+from koopmans.status import Status
 
-from ._workflow import Workflow
+from ._workflow import Workflow, spin_symmetrize
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
+OutputModel = TypeVar('OutputModel', bound=IOModel)
 
-
-class DFTWorkflow(Workflow):
+class DFTWorkflow(Workflow[OutputModel]):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.parameters.functional = 'dft'
 
 
-class DFTCPOutput(OutputModel):
+class DFTCPOutput(IOModel):
     pass
 
 
-class DFTCPWorkflow(DFTWorkflow):
-    output_model = DFTCPOutput  # type: ignore
-    outputs: DFTCPOutput
+class DFTCPWorkflow(DFTWorkflow[DFTCPOutput]):
 
-    def _run(self):
+    output_model = DFTCPOutput
+
+    def _run(self) -> None:
 
         calc = self.new_calculator('kcp')
+        assert isinstance(calc, calculators.KoopmansCPCalculator)
 
         calc.prefix = 'dft'
         calc.parameters.ndr = 50
@@ -55,21 +58,27 @@ class DFTCPWorkflow(DFTWorkflow):
             if calc.parameters.empty_states_maxstep is None:
                 calc.parameters.empty_states_maxstep = 300
 
-        self.run_calculator(calc, enforce_spin_symmetry=self.parameters.fix_spin_contamination)
+        if self.parameters.fix_spin_contamination:
+            status = spin_symmetrize(self, calc)
+            if status == Status.COMPLETED:
+                self.status = status
+        else:
+            status = self.run_steps(calc)
+            if status == Status.COMPLETED:
+                self.status = status
 
-        return calc
+        return
 
 
-class DFTPWOutput(OutputModel):
+class DFTPWOutput(IOModel):
     pass
 
 
-class DFTPWWorkflow(DFTWorkflow):
+class DFTPWWorkflow(DFTWorkflow[DFTPWOutput]):
 
-    output_model = DFTPWOutput  # type: ignore
-    outputs: DFTPWOutput
+    output_model = DFTPWOutput
 
-    def _run(self):
+    def _run(self) -> None:
 
         # Create the calculator
         calc = self.new_calculator('pw')
@@ -80,72 +89,87 @@ class DFTPWWorkflow(DFTWorkflow):
         calc.parameters.ndw = 51
         calc.parameters.restart_mode = 'from_scratch'
 
-        # Run the calculator
-        self.run_calculator(calc)
+        status = self.run_steps(calc)
+        if status == Status.COMPLETED:
+            self.status = Status.COMPLETED
 
         return
 
 
-class DFTPhOutput(OutputModel):
+class DFTPhOutput(IOModel):
     pass
 
 
-class DFTPhWorkflow(Workflow):
+class DFTPhWorkflow(Workflow[DFTPhOutput]):
 
     output_model = DFTPhOutput
-    outputs: DFTPhOutput
 
-    def _run(self):
+    def _run(self) -> None:
 
         self.print('Calculate the dielectric tensor', style='heading')
 
         calc_scf = self.new_calculator('pw', nbnd=None)
         calc_scf.prefix = 'scf'
-        self.run_calculator(calc_scf)
+        status = self.run_steps(calc_scf)
+        if status != Status.COMPLETED:
+            return
+
         calc_ph = self.new_calculator('ph', epsil=True, fildyn=f'{self.name}.dynG')
         calc_ph.prefix = 'eps'
-        self.link(calc_scf, calc_scf.parameters.outdir, calc_ph, calc_ph.parameters.outdir, symlink=True)
-        self.run_calculator(calc_ph)
+        calc_ph.link(File(calc_scf, calc_scf.parameters.outdir), calc_ph.parameters.outdir, symlink=True)
+        status = self.run_steps(calc_ph)
+
+        if status == Status.COMPLETED:
+            self.status = Status.COMPLETED
+
+        return
 
 
-class DFTBandsOutput(OutputModel):
+class DFTBandsOutput(IOModel):
     pass
 
 
 class DFTBandsWorkflow(DFTWorkflow):
 
     output_model = DFTBandsOutput
-    outputs: DFTBandsOutput
 
-    def _run(self):
+    def _run(self) -> None:
 
         self.print('DFT bandstructure workflow', style='heading')
 
         # First, a scf calculation
-        calc_scf = self.new_calculator('pw', nbnd=None)
+        calc_scf: calculators.PWCalculator = self.new_calculator('pw', nbnd=None)
         calc_scf.prefix = 'scf'
-        self.run_calculator(calc_scf)
+        status = self.run_steps(calc_scf)
+        if status != Status.COMPLETED:
+            return
 
         # Second, a bands calculation
         if self.parameters.calculate_bands in (True, None):
-            calc_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpoints.path)
+            calc_bands: calculators.PWCalculator = self.new_calculator(
+                'pw', calculation='bands', kpts=self.kpoints.path)
         else:
             calc_bands = self.new_calculator('pw', calculation='nscf')
         calc_bands.prefix = 'bands'
-        self.link(calc_scf, calc_scf.parameters.outdir, calc_bands, calc_bands.parameters.outdir, symlink=True)
-        self.run_calculator(calc_bands)
+        assert isinstance(calc_scf.parameters.outdir, Path)
+        assert isinstance(calc_bands.parameters.outdir, Path)
+        calc_bands.link(File(calc_scf, calc_scf.parameters.outdir), calc_bands.parameters.outdir, symlink=True)
+        status = self.run_steps(calc_bands)
+        if status != Status.COMPLETED:
+            return
 
         # Prepare the band structure for plotting
         if self.parameters.calculate_bands in (True, None):
             bs = calc_bands.results['band structure']
 
         # Third, a PDOS calculation
-        pseudos = [pseudopotentials.read_pseudo_file(calc_scf.directory / calc_scf.parameters.pseudo_dir / p) for p in
-                   self.pseudopotentials.values()]
-        if all([int(p['header'].get('number_of_wfc', 0)) > 0 for p in pseudos]):
-            calc_dos = self.new_calculator('projwfc')
-            self.link(calc_bands, calc_bands.parameters.outdir, calc_dos, calc_dos.parameters.outdir, symlink=True)
-            self.run_calculator(calc_dos)
+        if all([p['header'].get('number_of_wfc', 0) for p in self.pseudopotentials.values()]):
+            calc_dos: calculators.ProjwfcCalculator = self.new_calculator('projwfc')
+            assert isinstance(calc_dos.parameters.outdir, Path)
+            calc_dos.link(File(calc_bands, calc_bands.parameters.outdir), calc_dos.parameters.outdir, symlink=True)
+            status = self.run_steps(calc_dos)
+            if status != Status.COMPLETED:
+                return
 
             # Prepare the DOS for plotting
             dos = copy.deepcopy(calc_dos.results['dos'])
@@ -164,6 +188,8 @@ class DFTBandsWorkflow(DFTWorkflow):
             workflow_name = self.__class__.__name__.lower()
             filename = f'{self.name}_{workflow_name}_dos'
             dos.plot(filename=filename)
+
+        self.status = Status.COMPLETED
 
     def new_calculator(self,
                        calc_type: str,

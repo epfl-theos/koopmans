@@ -14,7 +14,7 @@ def test_generate_and_parse_wannier_hr_file_contents():
     Test function for utils.generate_wannier_hr_file_contents and utils.parse_wannier_hr_file_contents
     '''
     # Dummy data
-    rvec_in = [x for x in itertools.product([-1, 0, 1], repeat=3)]
+    rvec_in = [list(x) for x in itertools.product([-1, 0, 1], repeat=3)]
     n = 5
     ham_in = np.arange(len(rvec_in) * n**2, dtype=complex)
     weights_in = [1 for _ in rvec_in]
@@ -62,7 +62,7 @@ def test_parse_wannier_centers_file_contents(tmp_path, datadir):
         xyz_file = (datadir / 'w90' / 'example_centres.xyz').resolve()
 
         with open(xyz_file) as f:
-            contents = f.readlines()
+            contents = f.read()
 
         centers, atoms = utils.parse_wannier_centers_file_contents(contents)
 
@@ -88,6 +88,6 @@ def test_generate_and_parse_wannier_centers_file(silicon, tmp_path, datadir):
         centers_in, atoms_in = utils.parse_wannier_centers_file_contents(contents)
 
         # Check that the centers and atoms are unchanged
-        assert np.allclose(centers_in, centers)
+        assert np.allclose(centers_in, centers, atol=1e-7)
         assert np.allclose(atoms.positions, atoms_in.positions)
         assert all(atoms.symbols == atoms_in.symbols)

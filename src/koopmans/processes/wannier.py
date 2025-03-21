@@ -3,15 +3,16 @@ from pathlib import Path
 from typing import Callable, List, Tuple
 
 import numpy as np
-from ase import Atoms
+from ase_koopmans import Atoms
+from pydantic import ConfigDict
 
 from koopmans import calculators, utils
-from koopmans.files import FilePointer
+from koopmans.files import File
 
 from ._process import IOModel, Process
 
 
-def merge_wannier_hr_file_contents(filecontents: List[List[str]]) -> List[str]:
+def merge_wannier_hr_file_contents(filecontents: List[str]) -> str:
     # Reading in each hr file in turn
     hr_list = []
     weights_out = None
@@ -48,10 +49,14 @@ def merge_wannier_hr_file_contents(filecontents: List[List[str]]) -> List[str]:
     assert rvect_out is not None
     assert weights_out is not None
 
-    return utils.generate_wannier_hr_file_contents(hr_out, rvect_out.tolist(), weights_out)
+    rvect_out_list = rvect_out.tolist()
+    assert isinstance(rvect_out_list, list) and all([isinstance(sublist, list) for sublist in rvect_out_list]) and all(
+        [isinstance(x, int) for sublist in rvect_out_list for x in sublist])
+
+    return utils.generate_wannier_hr_file_contents(hr_out, rvect_out_list, weights_out)
 
 
-def merge_wannier_u_file_contents(filecontents: List[List[str]]) -> List[str]:
+def merge_wannier_u_file_contents(filecontents: List[str]) -> str:
     u_list = []
     kpts_master = None
     for filecontent in filecontents:
@@ -84,7 +89,7 @@ def merge_wannier_u_file_contents(filecontents: List[List[str]]) -> List[str]:
     return utils.generate_wannier_u_file_contents(u_merged, kpts)
 
 
-def merge_wannier_centers_file_contents(filecontents: List[List[str]], atoms: Atoms) -> List[str]:
+def merge_wannier_centers_file_contents(filecontents: list[str], atoms: Atoms) -> str:
     centers_list = []
     for filecontent in filecontents:
         centers, _ = utils.parse_wannier_centers_file_contents(filecontent)
@@ -95,7 +100,7 @@ def merge_wannier_centers_file_contents(filecontents: List[List[str]], atoms: At
     return utils.generate_wannier_centers_file_contents(centers_list, atoms)
 
 
-def extend_wannier_u_dis_file_content(filecontent: List[str], nbnd: int, nwann: int) -> List[str]:
+def extend_wannier_u_dis_file_content(filecontent: str, nbnd: int, nwann: int) -> str:
     # Parse the file content
     udis_mat, kpts, _ = utils.parse_wannier_u_file_contents(filecontent)
 
@@ -111,22 +116,21 @@ def extend_wannier_u_dis_file_content(filecontent: List[str], nbnd: int, nwann: 
 
 
 class MergeInputModel(IOModel):
-    src_files: List[FilePointer]
+    src_files: List[File]
     dst_file: Path
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MergeOutputModel(IOModel):
-    dst_file: Path
+    dst_file: File
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MergeProcess(Process):
     input_model = MergeInputModel
     output_model = MergeOutputModel
 
-    def __init__(self, merge_function: Callable[[List[List[str]]], List[str]], **kwargs):
+    def __init__(self, merge_function: Callable[[List[str]], str], **kwargs):
         self.merge_function = merge_function
         super().__init__(**kwargs)
 
@@ -134,41 +138,43 @@ class MergeProcess(Process):
         if len(self.inputs.src_files) == 0:
             raise ValueError('No input files provided to merge.')
 
-        filecontents = [utils.get_content(calc, relpath) for calc, relpath in self.inputs.src_files]
+        filecontents = [f.read_text() for f in self.inputs.src_files]
 
         merged_filecontents = self.merge_function(filecontents)
 
-        utils.write_content(self.inputs.dst_file, merged_filecontents)
+        dst_file = File(self, self.inputs.dst_file)
+        dst_file.write_text(merged_filecontents)
 
-        self.outputs = self.output_model(dst_file=self.inputs.dst_file)
+        self.outputs = self.output_model(dst_file=dst_file)
 
 
 class ExtendInputModel(IOModel):
-    src_file: FilePointer
+    src_file: File
     dst_file: Path
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ExtendOutputModel(IOModel):
-    dst_file: Path
+    dst_file: File
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ExtendProcess(Process):
     input_model = ExtendInputModel
     output_model = ExtendOutputModel
 
-    def __init__(self, extend_function: Callable[[List[str]], List[str]], **kwargs):
+    def __init__(self, extend_function: Callable[[str], str], **kwargs):
         self.extend_function = extend_function
         super().__init__(**kwargs)
 
     def _run(self):
 
-        filecontent = utils.get_content(*self.inputs.src_file)
+        filecontent = self.inputs.src_file.read_text()
 
         extended_filecontent = self.extend_function(filecontent)
 
-        utils.write_content(self.inputs.dst_file, extended_filecontent)
+        dst_file = File(self, self.inputs.dst_file)
 
-        self.outputs = self.output_model(dst_file=self.inputs.dst_file)
+        dst_file.write_text(extended_filecontent)
+
+        self.outputs = self.output_model(dst_file=dst_file)

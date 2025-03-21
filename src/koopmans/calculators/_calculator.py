@@ -28,16 +28,16 @@ from typing import (TYPE_CHECKING, Any, Dict, Generic, List, Optional, Tuple,
                     Type, TypeVar, Union)
 from uuid import UUID, uuid4
 
-import ase.io as ase_io
+import ase_koopmans.io as ase_io
 import numpy as np
-from ase import Atoms
-from ase.calculators.calculator import CalculationFailed, Calculator
-from ase.dft.kpoints import BandPath
-from ase.spectrum.band_structure import BandStructure
+from ase_koopmans import Atoms
+from ase_koopmans.calculators.calculator import CalculationFailed, Calculator
+from ase_koopmans.dft.kpoints import BandPath
+from ase_koopmans.spectrum.band_structure import BandStructure
 from numpy import typing as npt
 
 from koopmans import settings, utils
-from koopmans.files import FilePointer
+from koopmans.files import File
 
 if TYPE_CHECKING:
     from koopmans.workflows import Workflow
@@ -78,11 +78,10 @@ class CalculatorExt(utils.HasDirectory):
     results: Dict[str, Any]
     ext_in: str = ''
     ext_out: str = ''
-    parent: Workflow | None
-    uuid: str
+    parent_process: Workflow | None
 
-    def __init__(self, parent=None, skip_qc: bool = False, **kwargs: Any):
-        super().__init__(parent=parent)
+    def __init__(self, parent_process=None, engine=None, skip_qc: bool = False, **kwargs: Any):
+        super().__init__(parent_process=parent_process, engine=engine)
 
         # Remove arguments that should not be treated as QE keywords
         kwargs.pop('directory', None)
@@ -95,10 +94,7 @@ class CalculatorExt(utils.HasDirectory):
         self.skip_qc = skip_qc
 
         # Prepare a dictionary to store a record of linked files
-        self.linked_files: Dict[str, Tuple[utils.HasDirectory | None, Path, bool, bool, bool]] = {}
-
-        # Generate a unique identifier for this calculation
-        self.uuid = str(uuid4())
+        self.linked_files: Dict[str, Tuple[File, bool, bool, bool]] = {}
 
     def __repr__(self):
         entries = []
@@ -130,6 +126,27 @@ class CalculatorExt(utils.HasDirectory):
             if value is not None:
                 self._parameters.update(**value)
 
+    def run(self):
+        # Alias for self.calculate so that calculators follow the Process protocol
+        self.calculate()
+
+    def _pre_run(self):
+        # Alias for self._pre_calculate so that calculators follow the Process protocol
+        self._pre_calculate()
+
+    def _run(self):
+        # Alias for self._calculate so that calculators follow the Process protocol
+        self._calculate()
+
+    def _post_run(self):
+        # Alias for self._post_calculate so that calculators follow the Process protocol
+        self._post_calculate()
+
+    @property
+    def name(self) -> str:
+        # Alias for self.prefix so that calculators follow the Process protocol
+        return self.prefix
+
     def calculate(self):
         """Generic function for running a calculator"""
 
@@ -160,33 +177,23 @@ class CalculatorExt(utils.HasDirectory):
 
         This function is called in _pre_calculate() i.e. immediately before a calculation is run.
         """
-        for dest_filename, (src_calc, src_filename, symlink, recursive_symlink, overwrite) in self.linked_files.items():
-            # Convert to absolute paths
-            if src_calc is None:
-                src_filename = src_filename.resolve()
-            else:
-                src_filename = src_calc.absolute_directory / src_filename
-            dest_filename = self.directory / dest_filename
+        for dest_filename, (src_file, symlink, recursive_symlink, overwrite) in self.linked_files.items():
+            # Convert to a File object
+            dest_file = File(self, dest_filename)
 
-            if not src_filename.exists():
-                raise FileNotFoundError(
-                    f'Tried to link `{src_filename}` with the `{self.prefix}` calculator but it does not exist')
+            # Create the containing folder if it doesn't exist
+            if dest_file.parents:
+                containing_folder = dest_file.parent
+                containing_folder.mkdir(parents=True, exist_ok=True)
 
-            if dest_filename.exists() or dest_filename.is_symlink():
-                if overwrite:
-                    utils.remove(dest_filename)
-                else:
-                    raise FileExistsError(f'`{dest_filename}` already exists')
-
-            # Create the copy/symlink
-            dest_filename.parent.mkdir(parents=True, exist_ok=True)
+            # Copy/link the file
             if recursive_symlink:
-                assert src_filename.is_dir(), 'recursive_symlink=True requires src to be a directory'
-                utils.symlink_tree(src_filename, dest_filename)
+                assert src_file.is_dir(), 'recursive_symlink=True requires src to be a directory'
+                dest_file.symlink_to(src_file, recursive=True)
             elif symlink:
-                utils.symlink(src_filename, dest_filename)
+                dest_file.symlink_to(src_file, overwrite=overwrite)
             else:
-                utils.copy(src_filename, dest_filename)
+                src_file.copy_to(dest_file, exist_ok=overwrite)
 
     def _pre_calculate(self):
         """Perform any necessary pre-calculation steps before running the calculation"""
@@ -223,6 +230,7 @@ class CalculatorExt(utils.HasDirectory):
     def read_input(self, input_file: Optional[Path] = None):
         # Auto-generate the appropriate input file name if required
         if input_file is None:
+            assert self.directory is not None
             input_file = self.directory / (self.prefix + self.ext_in)
         elif not input_file.suffix:
             # Add extension if necessary
@@ -278,15 +286,16 @@ class CalculatorExt(utils.HasDirectory):
             setattr(calc, k.lstrip('_'), v)
         return calc
 
-    def link_file(self, src_calc: utils.HasDirectory | None, src_filename: Path, dest_filename: Path,
-                  symlink: bool = False, recursive_symlink: bool = False, overwrite: bool = False):
-        if src_filename.is_absolute() and src_calc is not None:
-            raise ValueError(f'`src_filename` in `{self.__class__.__name__}.link_file()` must be a relative path if a '
-                             f'`src_calc` is provided')
-        if dest_filename.is_absolute():
-            raise ValueError(f'`dest_filename` in `{self.__class__.__name__}.link_file()` must be a relative path')
-
-        self.linked_files[str(dest_filename)] = (src_calc, src_filename, symlink, recursive_symlink, overwrite)
+    def link(self, src: File, dest_filename: File | Path | str | None = None,
+             symlink: bool = False, recursive_symlink: bool = False, overwrite: bool = False):
+        if dest_filename is None:
+            dest_filename = src.name
+        if isinstance(dest_filename, File):
+            if dest_filename.parent_process != self:
+                raise ValueError(
+                    'When linking to a calculator, destination `File` objects must have that calculator as their `parent_process`')
+            dest_filename = dest_filename.name
+        self.linked_files[str(dest_filename)] = (src, symlink, recursive_symlink, overwrite)
 
 
 class CalculatorABC(ABC, Generic[TCalc]):
@@ -311,8 +320,9 @@ class CalculatorABC(ABC, Generic[TCalc]):
     def read_results(self) -> None:
         ...
 
-    @abstractproperty
-    def directory(self) -> Path:
+    @property
+    @abstractmethod
+    def directory(self) -> Path | None:
         ...
 
     @directory.setter
@@ -357,19 +367,19 @@ class CalculatorABC(ABC, Generic[TCalc]):
         # Read qe output file
         for filename in [f for f in sanitized_filenames if f.suffix == cls.ext_out]:
             calc.prefix = filename.stem
+            calc.directory = filename.parent
             try:
-                with utils.chdir(filename.parent):
-                    calc.read_results()
+                calc.read_results()
             except Exception:
                 # Calculation could not be read; must have been incomplete
                 pass
 
         # Update calc.directory and calc.parameters.prefix
-        assert hasattr(calc, 'parent')
-        if calc.parent is None:
+        assert hasattr(calc, 'parent_process')
+        if calc.parent_process is None:
             base_directory = sanitized_filenames[0].parents[1]
         else:
-            base_directory = calc.parent.base_directory / calc.parent.directory
+            base_directory = calc.parent_process.base_directory
         calc.directory = Path(os.path.relpath(sanitized_filenames[0].parent, base_directory))
         calc.prefix = sanitized_filenames[0].stem
 
@@ -426,12 +436,12 @@ class CalculatorCanEnforceSpinSym(ABC):
 
     @property
     @abstractmethod
-    def files_to_convert_with_spin2_to_spin1(self) -> Dict[str, List[FilePointer] | List[Path]]:
+    def files_to_convert_with_spin2_to_spin1(self) -> Dict[str, List[File] | List[Path]]:
         ...
 
     @property
     @abstractmethod
-    def files_to_convert_with_spin1_to_spin2(self) -> Dict[str, List[FilePointer] | List[Path]]:
+    def files_to_convert_with_spin1_to_spin2(self) -> Dict[str, List[File] | List[Path]]:
         ...
 
     @abstractmethod

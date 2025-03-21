@@ -8,7 +8,6 @@ def test_convergence_h2o(water, workflow_patch, tmp_path, sys2file):
         parameters = {
             "functional": "dft",
             "task": "convergence",
-            "keep_tmpdirs": False,
             "converge": True}
 
         subwf = workflows.DFTCPWorkflow(parameters=parameters, **water)

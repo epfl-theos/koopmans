@@ -8,6 +8,7 @@
 
 # isort: off
 import locale
+
 locale.setlocale(locale.LC_ALL, 'C.UTF-8')  # noqa
 # isort: on
 

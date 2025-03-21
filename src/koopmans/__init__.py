@@ -2,6 +2,8 @@
 import sys
 from pathlib import Path
 
+from .logging_config import setup_logging
+
 if sys.version_info >= (3, 8):
     from importlib import metadata
 else:

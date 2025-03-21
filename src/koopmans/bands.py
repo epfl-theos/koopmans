@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from koopmans.files import FilePointer
+from koopmans.files import File
 from koopmans.utils import indented_print, warn
 
 
@@ -14,7 +14,7 @@ class Band(object):
                  self_hartree: Optional[float] = None,
                  spread: Optional[float] = None,
                  center: Optional[np.ndarray] = None,
-                 power_spectrum: Optional[FilePointer] = None) -> None:
+                 power_spectrum: Optional[File] = None) -> None:
         self.index = index
         self.spin = spin
         self.filled = filled

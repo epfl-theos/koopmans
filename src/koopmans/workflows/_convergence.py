@@ -15,13 +15,14 @@ import shutil
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import (Any, Callable, Dict, Generic, List, Optional, Type,
-                    TypeVar, Union, cast)
+from typing import (Any, Callable, Dict, Generator, Generic, List, Optional,
+                    Type, TypeVar, Union, cast)
 
 import numpy as np
 
 from koopmans import cell, utils
-from koopmans.outputs import OutputModel
+from koopmans.process_io import IOModel
+from koopmans.status import Status
 
 from ._workflow import Workflow
 
@@ -235,15 +236,14 @@ def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
                                   'construct your `ConvergenceWorkflow` using the `ConvergenceWorkflowFactory`')
 
 
-class ConvergenceOutputs(OutputModel):
+class ConvergenceOutputs(IOModel):
 
     converged_values: Dict[str, Any]
 
 
-class ConvergenceWorkflow(Workflow):
+class ConvergenceWorkflow(Workflow[ConvergenceOutputs]):
 
-    output_model = ConvergenceOutputs  # type: ignore
-    outputs: ConvergenceOutputs
+    output_model = ConvergenceOutputs
 
     '''
     A Workflow class that wraps another workflow in a convergence procedure in order to converge the observable within the specified tolerance with respect to the variables
@@ -266,10 +266,6 @@ class ConvergenceWorkflow(Workflow):
         return super(ConvergenceWorkflow, cls).fromdict(dct, **kwargs)
 
     def _run(self) -> None:
-
-        # Deferred import to allow for monkeypatching
-        from koopmans import workflows
-
         # Set the initial value for each of the convergence variables
         for c in self.variables:
             if c.initial_value is None:
@@ -301,7 +297,7 @@ class ConvergenceWorkflow(Workflow):
             and self.parameters.functional in ['ki', 'kipz', 'pkipz', 'all'] \
             and self.parameters.alpha_from_file
         if provide_alpha:
-            master_alphas = utils.read_alpha_file(directory=Path())
+            master_alphas = utils.read_alpha_file(self)
             if self.parameters.orbital_groups is None:
                 self.parameters.orbital_groups = list(
                     range(self.calculator_parameters['kcp'].nbnd))
@@ -309,8 +305,9 @@ class ConvergenceWorkflow(Workflow):
                 self.parameters.orbital_groups)
 
         while True:
-
             # Loop over all possible permutations of convergence variables
+            subwfs = []
+            indices_to_run = []
             for indices in itertools.product(*[range(len(x)) for x in self.variables]):
                 # If we already have results for this permutation, don't recalculate it
                 if not np.isnan(results[tuple(indices)]):
@@ -351,9 +348,18 @@ class ConvergenceWorkflow(Workflow):
 
                 # Perform calculation
                 subwf.name += label
-                subwf.run()
 
-                # Store the result
+                subwfs.append(subwf)
+                indices_to_run.append(indices)
+
+            for w in subwfs:
+                w.proceed()
+
+            if any([w.status != Status.COMPLETED for w in subwfs]):
+                return
+
+            # Store the result
+            for indices, subwf in zip(indices_to_run, subwfs):
                 results[indices] = self.observable(subwf)
 
             # Check convergence
@@ -380,7 +386,7 @@ class ConvergenceWorkflow(Workflow):
                 slice_where: List[Union[slice, int]] = [
                     slice(None) for _ in self.variables]
                 slice_where[-1] = 0
-                converged_indices = np.array(np.where(converged[tuple(subarray_slice)]))[
+                converged_indices = np.array(np.where(converged[tuple(subarray_slice)]), dtype=int)[
                     tuple(slice_where)]
 
                 # Extract the corresponding variables
@@ -391,6 +397,8 @@ class ConvergenceWorkflow(Workflow):
                            + ', '.join([f'{p.name} = {p.converged_value}' for p in self.variables]))
 
                 self.outputs = self.output_model(converged_values={v.name: v.converged_value for v in self.variables})
+
+                self.status = Status.COMPLETED
 
                 return
             else:
@@ -430,8 +438,6 @@ class ConvergenceWorkflow(Workflow):
                 new_results[:] = np.nan
                 new_results[tuple(new_array_slice)] = results
                 results = new_results
-
-        return
 
 
 def ConvergenceWorkflowFactory(subworkflow: Workflow, observable: Union[str, Callable[[Workflow], float]], threshold: float,

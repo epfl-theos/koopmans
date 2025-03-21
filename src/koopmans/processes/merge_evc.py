@@ -1,8 +1,10 @@
+from pathlib import Path
 from typing import List
+from pydantic import ConfigDict
 
 import numpy as np
 
-from koopmans.files import FilePointer
+from koopmans.files import File
 from koopmans.kpoints import Kpoints
 from koopmans.projections import ProjectionBlock
 
@@ -12,18 +14,14 @@ from ._process import IOModel
 
 class MergeEVCInputs(IOModel):
     kgrid: List[int]
-    src_files: List[FilePointer]
+    src_files: List[File]
     dest_filename: str
-
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MergeEVCOutputs(IOModel):
-    merged_file: FilePointer
-
-    class Config:
-        arbitrary_types_allowed = True
+    merged_file: File
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MergeEVCProcess(CommandLineTool):
@@ -33,12 +31,17 @@ class MergeEVCProcess(CommandLineTool):
 
     @property
     def command(self):
+        input_files = [f'input_{i}.dat' for i in range(len(self.inputs.src_files))]
         return ' '.join([f'merge_evc.x -nr {np.prod(self.inputs.kgrid)}']
-                        + [f'-i {f.aspath()}' for f in self.inputs.src_files]
+                        + [f'-i {f}' for f in input_files]
                         + [f'-o {self.inputs.dest_filename}'])
 
-    def _pre_run(self):
-        pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-    def _post_run(self):
-        self.outputs = MergeEVCOutputs(merged_file=FilePointer(self, self.inputs.dest_filename))
+        # Add src_files to those that we need to link
+        for i, src_file in enumerate(self.inputs.src_files):
+            self.linked_files[f'input_{i}.dat'] = src_file
+
+    def _set_outputs(self):
+        self.outputs = MergeEVCOutputs(merged_file=File(self, self.inputs.dest_filename))

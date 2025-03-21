@@ -11,12 +11,14 @@ import copy
 import math
 import shutil
 from functools import partial
-from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, TypeVar
+from typing import (Any, Callable, Dict, Generator, List, Optional, Tuple,
+                    TypeVar)
+from pydantic import ConfigDict
 
-from ase import Atoms
-from ase.spectrum.band_structure import BandStructure
-from ase.spectrum.doscollection import GridDOSCollection
+from ase_koopmans import Atoms
+from ase_koopmans.dft.kpoints import BandPath
+from ase_koopmans.spectrum.band_structure import BandStructure
+from ase_koopmans.spectrum.doscollection import GridDOSCollection
 
 # isort: off
 import koopmans.mpl_config
@@ -26,39 +28,41 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from koopmans import calculators, projections, utils
-from koopmans.files import FilePointer
-from koopmans.outputs import OutputModel
-from koopmans.processes import Process
+from koopmans.files import File
+from koopmans.process_io import IOModel
 from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         extend_wannier_u_dis_file_content,
                                         merge_wannier_centers_file_contents,
                                         merge_wannier_hr_file_contents,
                                         merge_wannier_u_file_contents)
+from koopmans.projections import BlockID
 from koopmans.pseudopotentials import nelec_from_pseudos, read_pseudo_file
+from koopmans.status import Status
+from koopmans.utils import SpinType
 
 from ._workflow import Workflow
 
 CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 
 
-class WannierizeOutput(OutputModel):
+class WannierizeOutput(IOModel):
     band_structures: List[BandStructure]
     dos: Optional[GridDOSCollection] = None
-    u_matrices_files: Dict[str, FilePointer | None]
-    hr_files: Dict[str, FilePointer | None]
-    centers_files: Dict[str, FilePointer | None]
-    u_dis_file: FilePointer | None
+    u_matrices_files: Dict[BlockID, File | None]
+    hr_files: Dict[BlockID, File]
+    centers_files: Dict[BlockID, File | None]
+    u_dis_files: Dict[BlockID, File | None]
+    preprocessing_calculations: List[calculators.Wannier90Calculator]
+    nscf_calculation: calculators.PWCalculator
+    wannier90_calculations: List[calculators.Wannier90Calculator]
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    class Config:
-        arbitrary_types_allowed = True
 
+class WannierizeWorkflow(Workflow[WannierizeOutput]):
 
-class WannierizeWorkflow(Workflow):
+    output_model = WannierizeOutput
 
-    output_model = WannierizeOutput  # type: ignore
-    outputs: WannierizeOutput
-
-    def __init__(self, *args, force_nspin2=False, scf_kgrid=None, **kwargs):
+    def __init__(self, *args, force_nspin2: bool = False, scf_kgrid: List[float] | None = None, **kwargs):
         super().__init__(*args, **kwargs)
 
         pw_params = self.calculator_parameters['pw']
@@ -66,10 +70,7 @@ class WannierizeWorkflow(Workflow):
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
 
-            if self.parameters.spin_polarized:
-                spins = ['up', 'down']
-            else:
-                spins = [None]
+            spins: List[SpinType] = ["up", "down"] if self.parameters.spin_polarized else [None]
 
             for spin in spins:
                 # Work out where we have breaks between blocks of projections, and check that this is commensurate
@@ -77,7 +78,7 @@ class WannierizeWorkflow(Workflow):
                 # an algorithm for occ-emp separation within Wannier90
                 num_bands_occ = self.number_of_electrons(spin)
                 if not spin:
-                    num_bands_occ /= 2
+                    num_bands_occ //= 2
                 divs = self.projections.divisions(spin)
                 cumulative_divs = [sum(divs[:i + 1]) for i in range(len(divs))]
                 if num_bands_occ not in cumulative_divs:
@@ -122,6 +123,7 @@ class WannierizeWorkflow(Workflow):
 
         # Calculate by default the band structure
         if self.parameters.calculate_bands is None:
+            assert isinstance(self.kpoints.path, BandPath)
             if len(self.kpoints.path.kpts) > 1:
                 self.parameters.calculate_bands = True
             else:
@@ -130,14 +132,13 @@ class WannierizeWorkflow(Workflow):
         # This workflow only makes sense for DFT, not an ODD
         self.parameters.functional = 'dft'
 
-    def _run(self):
+    def _run(self) -> None:
         '''
 
         Wrapper for the calculation of (maximally localized) Wannier functions
         using PW and Wannier90
 
         '''
-
         # Run PW scf and nscf calculations
         # PWscf needs only the valence bands
         calc_scf = self.new_calculator('pw')
@@ -145,110 +146,142 @@ class WannierizeWorkflow(Workflow):
         calc_scf.prefix = 'scf'
         if self._scf_kgrid:
             calc_scf.parameters.kpts = self._scf_kgrid
-        self.run_calculator(calc_scf)
+        status = self.run_steps(calc_scf)
+        if status != Status.COMPLETED:
+            return
 
         calc_nscf = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True)
         calc_nscf.prefix = 'nscf'
-        self.link(calc_scf, calc_scf.parameters.outdir, calc_nscf, calc_nscf.parameters.outdir)
-        self.run_calculator(calc_nscf)
+        calc_nscf.link(File(calc_scf, calc_scf.parameters.outdir))
+        status = self.run_steps(calc_nscf)
+        if status != Status.COMPLETED:
+            return
 
         u_matrices_files = {}
-        hr_files = {}
+        hr_files: Dict[BlockID, File] = {}
         centers_files = {}
-        u_dis_file = None
+        u_dis_files = {}
+        wannier90_calculations = []
+        preprocessing_calculations = []
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
 
+            block_subworkflows: list[Workflow] = []
             for block in self.projections:
                 wannierize_block_subworkflow = WannierizeBlockWorkflow.fromparent(
-                    self, force_nspin2=self._force_nspin2, block=block)
+                    self, force_nspin2=self._force_nspin2, block=block, pw_outdir=File(calc_nscf, calc_nscf.parameters.outdir))
                 wannierize_block_subworkflow.name = \
-                    f'Wannierize {block.name.replace("_", " ").replace("block", "Block")}'
-                wannierize_block_subworkflow.run()
+                    f'Wannierize {block.id.label.replace("_", " ").replace("block", "Block")}'
+                block_subworkflows.append(wannierize_block_subworkflow)
+
+            for wf in block_subworkflows:
+                wf.run()
+            if any([wf.status != Status.COMPLETED for wf in block_subworkflows]):
+                return
+
+            for block, subwf in zip(self.projections, block_subworkflows):
+                assert isinstance(subwf, WannierizeBlockWorkflow)
 
                 # Store the results
-                hr_files[block.name] = wannierize_block_subworkflow.outputs.hr_file
-                centers_files[block.name] = wannierize_block_subworkflow.outputs.centers_file
-                u_matrices_files[block.name] = wannierize_block_subworkflow.outputs.u_matrices_file
+                assert subwf.outputs.hr_file is not None
+                hr_files[block.id] = subwf.outputs.hr_file
+                centers_files[block.id] = subwf.outputs.centers_file
+                u_matrices_files[block.id] = subwf.outputs.u_matrices_file
+                wannier90_calculations.append(subwf.outputs.wannier90_calculation)
+                preprocessing_calculations.append(subwf.outputs.preprocessing_calculation)
 
             # Merging Hamiltonian files, U matrix files, centers files if necessary
-            if self.parent is not None:
+            if self.parent_process is not None:
 
-                for label, block in self.projections.to_merge.items():
+                for block_id, block in self.projections.to_merge.items():
                     if len(block) == 1:
                         # If there is only one block, we don't need to merge anything
                         calc = block[0].w90_calc
                         if calc.parameters.write_hr:
-                            hr_files[label] = FilePointer(calc, calc.prefix + '_hr.dat')
+                            hr_files[block_id] = File(calc, calc.prefix + '_hr.dat')
                         if calc.parameters.write_u_matrices:
-                            u_matrices_files[label] = FilePointer(calc, calc.prefix + '_u.mat')
+                            u_matrices_files[block_id] = File(calc, calc.prefix + '_u.mat')
                         if calc.parameters.write_xyz:
-                            centers_files[label] = FilePointer(calc, calc.prefix + '_centres.xyz')
+                            centers_files[block_id] = File(calc, calc.prefix + '_centres.xyz')
                     else:
                         # Fetching the list of calculations for this block
                         src_calcs: List[calculators.Wannier90Calculator] = [
                             b.w90_calc for b in block if b.w90_calc is not None]
-                        emp_label = '_emp' if label == 'emp' else ''
                         prefix = src_calcs[-1].prefix
 
                         # Merging the wannier_hr (Hamiltonian) files
                         merge_hr_proc = MergeProcess(merge_function=merge_wannier_hr_file_contents,
-                                                     src_files=[(calc, Path(calc.prefix + '_hr.dat'))
+                                                     src_files=[File(calc, calc.prefix + '_hr.dat')
                                                                 for calc in src_calcs],
-                                                     dst_file=prefix + f'{emp_label}_hr.dat')
-                        merge_hr_proc.name = f'merge_{label}_wannier_hamiltonian'
-                        self.run_process(merge_hr_proc)
-                        hr_files[label] = FilePointer(merge_hr_proc, merge_hr_proc.outputs.dst_file)
+                                                     dst_file=f'{prefix}_hr.dat')
+                        merge_hr_proc.name = f'merge_{block_id.label}_wannier_hamiltonian'
+                        status = self.run_steps(merge_hr_proc)
+                        if status != Status.COMPLETED:
+                            return
+                        hr_files[block_id] = merge_hr_proc.outputs.dst_file
 
-                        if self.parameters.method == 'dfpt' and self.parent is not None:
+                        if self.parameters.method == 'dfpt' and self.parent_process is not None:
                             # Merging the U (rotation matrix) files
                             merge_u_proc = MergeProcess(merge_function=merge_wannier_u_file_contents,
-                                                        src_files=[(calc, Path(calc.prefix + '_u.mat'))
+                                                        src_files=[File(calc, calc.prefix + '_u.mat')
                                                                    for calc in src_calcs],
-                                                        dst_file=prefix + f'{emp_label}_u.mat')
-                            merge_u_proc.name = f'merge_{label}_wannier_u'
-                            self.run_process(merge_u_proc)
-                            u_matrices_files[label] = FilePointer(merge_u_proc, merge_u_proc.outputs.dst_file)
+                                                        dst_file=f'{prefix}_u.mat')
+                            merge_u_proc.name = f'merge_{block_id.label}_wannier_u'
+                            status = self.run_steps(merge_u_proc)
+                            if status != Status.COMPLETED:
+                                return
+                            u_matrices_files[block_id] = merge_u_proc.outputs.dst_file
 
                             # Merging the wannier centers files
                             merge_centers_proc = MergeProcess(
                                 merge_function=partial(merge_wannier_centers_file_contents, atoms=self.atoms),
-                                src_files=[(calc, Path(calc.prefix + '_centres.xyz'))
-                                           for calc in src_calcs],
-                                dst_file=prefix + f'{emp_label}_centres.xyz')
-                            merge_centers_proc.name = f'merge_{label}_wannier_centers'
-                            self.run_process(merge_centers_proc)
-                            centers_files[label] = FilePointer(merge_centers_proc, merge_centers_proc.outputs.dst_file)
+                                src_files=[File(calc, calc.prefix + '_centres.xyz') for calc in src_calcs],
+                                dst_file=f'{prefix}_centres.xyz')
+                            merge_centers_proc.name = f'merge_{block_id.label}_wannier_centers'
+                            status = self.run_steps(merge_centers_proc)
+                            if status != Status.COMPLETED:
+                                return
+                            centers_files[block_id] = merge_centers_proc.outputs.dst_file
 
-                # For the last block, extend the U_dis matrix file if necessary
-                num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
-                num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
-                if num_bands > num_wann and self.parameters.method == 'dfpt':
-                    calc_with_u_dis = block[-1].w90_calc
-                    if len(block) == 1:
-                        u_dis_file = FilePointer(calc_with_u_dis, calc_with_u_dis.prefix + '_u_dis.mat')
-                    else:
-                        # First, calculate how many empty bands we have
-                        spin = block[0].spin
-                        if spin:
-                            nbnd_occ = self.number_of_electrons(spin)
+                # For the last block (per spin channel), extend the U_dis matrix file if necessary
+                spins: List[SpinType] = ['up', 'down'] if self.parameters.spin_polarized else [None]
+                final_label_blocks = [
+                    [(block_id, block) for block_id, block in self.projections.to_merge.items() if block_id.spin == s][-1] for s in spins]
+
+                for block_id, block in final_label_blocks:
+                    u_dis_file = None
+                    num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
+                    num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
+                    if num_bands > num_wann and self.parameters.method == 'dfpt':
+                        calc_with_u_dis = block[-1].w90_calc
+                        if len(block) == 1:
+                            u_dis_file = File(calc_with_u_dis, calc_with_u_dis.prefix + '_u_dis.mat')
                         else:
-                            nbnd_occ = self.number_of_electrons() // 2
-                        nbnd_tot = self.calculator_parameters['pw'].nbnd - nbnd_occ
+                            # First, calculate how many empty bands we have
+                            spin = block_id.spin
+                            if spin:
+                                nbnd_occ = self.number_of_electrons(spin)
+                            else:
+                                nbnd_occ = self.number_of_electrons() // 2
+                            nbnd_tot = self.calculator_parameters['pw'].nbnd - nbnd_occ
 
-                        # Second, calculate how many empty wannier functions we have
-                        nwann_tot = sum([p.num_wann for p in block])
+                            # Second, calculate how many empty wannier functions we have
+                            nwann_tot = sum([p.num_wann for p in block])
 
-                        # Finally, construct and run a Process to perform the file manipulation
-                        filling_label = '_emp' if label == 'emp' else ''
-                        extend_function = partial(extend_wannier_u_dis_file_content, nbnd=nbnd_tot, nwann=nwann_tot)
-                        extend_proc = ExtendProcess(extend_function=extend_function,
-                                                    src_file=(calc_with_u_dis, calc_with_u_dis.prefix + '_u_dis.mat'),
-                                                    dst_file=calc_with_u_dis.prefix + f'{filling_label}_u_dis.mat')
-                        extend_proc.name = f'extend_{label}_wannier_u_dis'
-                        self.run_process(extend_proc)
-                        u_dis_file = FilePointer(extend_proc, extend_proc.outputs.dst_file)
+                            # Finally, construct and run a Process to perform the file manipulation
+                            filling_label = '' if block_id.filled else '_emp'
+                            extend_function = partial(extend_wannier_u_dis_file_content, nbnd=nbnd_tot, nwann=nwann_tot)
+                            extend_proc = ExtendProcess(extend_function=extend_function,
+                                                        src_file=(calc_with_u_dis,
+                                                                  calc_with_u_dis.prefix + '_u_dis.mat'),
+                                                        dst_file=calc_with_u_dis.prefix + f'{filling_label}_u_dis.mat')
+                            extend_proc.name = f'extend_{block_id.label}_wannier_u_dis'
+                            status = self.run_steps(extend_proc)
+                            if status != Status.COMPLETED:
+                                return
+                            u_dis_file = extend_proc.outputs.dst_file
+                    u_dis_files[block_id] = u_dis_file
 
         dos = None
         bs_list = []
@@ -260,22 +293,23 @@ class WannierizeWorkflow(Workflow):
             calc_pw_bands.parameters.prefix += '_bands'
 
             # Link the save directory so that the bands calculation can use the old density
-            self.link(calc_nscf, (calc_nscf.parameters.outdir / calc_nscf.parameters.prefix).with_suffix('.save'),
-                      calc_pw_bands,
-                      (calc_pw_bands.parameters.outdir / calc_pw_bands.parameters.prefix).with_suffix('.save'))
-            self.run_calculator(calc_pw_bands)
+            calc_pw_bands.link(File(calc_nscf, (calc_nscf.parameters.outdir / calc_nscf.parameters.prefix).with_suffix('.save')),
+                               (calc_pw_bands.parameters.outdir / calc_pw_bands.parameters.prefix).with_suffix('.save'))
+            status = self.run_steps(calc_pw_bands)
+            if status != Status.COMPLETED:
+                return
 
             # Calculate a projected DOS
-            pseudos = [read_pseudo_file(calc_pw_bands.directory / calc_pw_bands.parameters.pseudo_dir / p) for p in
-                       self.pseudopotentials.values()]
-            if all([p['header']['number_of_wfc'] > 0 for p in pseudos]):
+            if all([p['header']['number_of_wfc'] > 0 for p in self.pseudopotentials.values()]):
                 calc_dos = self.new_calculator('projwfc', filpdos=self.name)
                 calc_dos.pseudopotentials = self.pseudopotentials
                 calc_dos.spin_polarized = self.parameters.spin_polarized
                 calc_dos.pseudo_dir = calc_pw_bands.parameters.pseudo_dir
                 calc_dos.parameters.prefix = calc_pw_bands.parameters.prefix
-                self.link(calc_pw_bands, calc_pw_bands.parameters.outdir, calc_dos, calc_dos.parameters.outdir)
-                self.run_calculator(calc_dos)
+                calc_dos.link(File(calc_pw_bands, calc_pw_bands.parameters.outdir), calc_dos.parameters.outdir)
+                status = self.run_steps(calc_dos)
+                if status != Status.COMPLETED:
+                    return
 
                 # Prepare the DOS for plotting
                 dos = copy.deepcopy(calc_dos.results['dos'])
@@ -295,23 +329,25 @@ class WannierizeWorkflow(Workflow):
 
             # Prepare the band structures for plotting
             ax = None
-            labels = ['explicit'] + [f'interpolation ({c.absolute_directory.parent.name})' for c in selected_calcs]
-            labels = [l.split("-", 2)[-1].replace("block-", "block ").replace("spin-", "spin ").replace("-", ", ")
-                      for l in labels]
+            labels = ['explicit']
+            for c in selected_calcs:
+                assert c.parent_process is not None
+                assert hasattr(c.parent_process, 'block')
+                labels.append(f'interpolation ({c.parent_process.block.id.label.replace("_", " ")})')
             color_cycle = plt.rcParams['axes.prop_cycle']()
             bsplot_kwargs_list = []
-            colors = {}
+            colors: dict[str, str | list[str]] = {}
             for calc, label in zip([calc_pw_bands] + selected_calcs, labels):
                 if 'band structure' in calc.results:
                     # Load the bandstructure, shifted by the valence band maximum of the pw bands calculation
                     bs = calc.results['band structure'].subtract_reference(pw_bands.reference)
 
                     # Tweaking the plot aesthetics
-                    kwargs = {'label': label}
-                    up_label = label.replace(', down', ', up')
-                    if ', down' in label:
+                    kwargs: dict[str, Any] = {'label': label}
+                    up_label = label.replace('down', 'up')
+                    if 'down' in label:
                         kwargs['ls'] = '--'
-                    if ', down' in label and up_label in colors:
+                    if 'down' in label and up_label in colors:
                         colors[label] = colors[up_label]
                     else:
                         colors[label] = [next(color_cycle)['color'] for _ in range(bs.energies.shape[0])]
@@ -333,7 +369,12 @@ class WannierizeWorkflow(Workflow):
 
         # Store the results
         self.outputs = self.output_model(band_structures=bs_list, dos=dos, u_matrices_files=u_matrices_files,
-                                         hr_files=hr_files, centers_files=centers_files, u_dis_file=u_dis_file)
+                                         hr_files=hr_files, centers_files=centers_files, u_dis_files=u_dis_files,
+                                         preprocessing_calculations=preprocessing_calculations,
+                                         nscf_calculation=calc_nscf,
+                                         wannier90_calculations=wannier90_calculations)
+
+        self.status = Status.COMPLETED
 
         return
 
@@ -344,38 +385,36 @@ class WannierizeWorkflow(Workflow):
         """
 
 
-class WannierizeBlockOutput(OutputModel):
-    hr_file: FilePointer | None = None
-    centers_file: FilePointer | None = None
-    u_matrices_file: FilePointer | None = None
+class WannierizeBlockOutput(IOModel):
+    hr_file: File | None = None
+    centers_file: File | None = None
+    u_matrices_file: File | None = None
+    wannier90_calculation: calculators.Wannier90Calculator
+    preprocessing_calculation: calculators.Wannier90Calculator
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    class Config:
-        arbitrary_types_allowed = True
 
+class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
 
-class WannierizeBlockWorkflow(Workflow):
+    output_model = WannierizeBlockOutput
 
-    output_model = WannierizeBlockOutput  # type: ignore
-
-    def __init__(self, *args, block: projections.ProjectionBlock, force_nspin2=False, **kwargs):
-        self._force_nspin2 = force_nspin2
+    def __init__(self, *args, pw_outdir: File, block: projections.ProjectionBlock, force_nspin2=False, **kwargs):
+        self.pw_outdir = pw_outdir
         self.block = block
+        self._force_nspin2 = force_nspin2
         super().__init__(*args, **kwargs)
 
-    def _run(self):
+    def _run(self) -> None:
         n_occ_bands = self.number_of_electrons(self.block.spin)
         if not self.block.spin:
-            n_occ_bands /= 2
+            n_occ_bands //= 2
 
+        assert self.block.include_bands is not None
         if max(self.block.include_bands) <= n_occ_bands:
             # Block consists purely of occupied bands
             init_orbs = self.parameters.init_orbitals
-        elif min(self.block.include_bands) > n_occ_bands:
-            # Block consists purely of empty bands
-            init_orbs = self.parameters.init_empty_orbitals
         else:
-            # Block contains both occupied and empty bands
-            raise ValueError(f'`{self.block}` contains both occupied and empty bands. This should not happen.')
+            init_orbs = self.parameters.init_empty_orbitals
         # Store the number of electrons in the ProjectionBlocks object so that it can work out which blocks to
         # merge with one another
         self.projections.num_occ_bands[self.block.spin] = n_occ_bands
@@ -385,27 +424,32 @@ class WannierizeBlockWorkflow(Workflow):
             calc_type += f'_{self.block.spin}'
 
         # 1) pre-processing Wannier90 calculation
-        calc_w90_pp = self.new_calculator(calc_type, init_orbitals=init_orbs, **self.block.w90_kwargs)
+        calc_w90_pp: calculators.Wannier90Calculator = self.new_calculator(
+            calc_type, init_orbitals=init_orbs, **self.block.w90_kwargs)
         calc_w90_pp.prefix = 'wannier90_preproc'
-        calc_w90_pp.command.flags = '-pp'
-        self.run_calculator(calc_w90_pp)
+        calc_w90_pp.command.flags = '-pp' 
+        status = self.run_steps(calc_w90_pp)
+        if status != Status.COMPLETED:
+            return
 
         # 2) standard pw2wannier90 calculation
-        calc_p2w = self.new_calculator('pw2wannier', spin_component=self.block.spin)
+        calc_p2w: calculators.PW2WannierCalculator = self.new_calculator('pw2wannier', spin_component=self.block.spin)
         calc_p2w.prefix = 'pw2wannier90'
-        calc_nscf = [c for c in self.calculations if isinstance(
-            c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
-        self.link(calc_nscf, calc_nscf.parameters.outdir, calc_p2w, calc_p2w.parameters.outdir, symlink=True)
-        self.link(calc_w90_pp, calc_w90_pp.prefix + '.nnkp', calc_p2w, calc_p2w.parameters.seedname + '.nnkp')
-        self.run_calculator(calc_p2w)
+        calc_p2w.link(self.pw_outdir, calc_p2w.parameters.outdir, symlink=True)
+        calc_p2w.link(File(calc_w90_pp, calc_w90_pp.prefix + '.nnkp'), calc_p2w.parameters.seedname + '.nnkp')
+        status = self.run_steps(calc_p2w)
+        if status != Status.COMPLETED:
+            return
 
         # 3) Wannier90 calculation
-        calc_w90 = self.new_calculator(calc_type, init_orbitals=init_orbs,
-                                       bands_plot=self.parameters.calculate_bands, **self.block.w90_kwargs)
+        calc_w90: calculators.Wannier90Calculator = self.new_calculator(calc_type, init_orbitals=init_orbs,
+                                                                        bands_plot=self.parameters.calculate_bands, **self.block.w90_kwargs)
         calc_w90.prefix = 'wannier90'
         for ext in ['.eig', '.amn', '.mmn']:
-            self.link(calc_p2w, calc_p2w.parameters.seedname + ext, calc_w90, calc_w90.prefix + ext, symlink=True)
-        self.run_calculator(calc_w90)
+            calc_w90.link(File(calc_p2w, calc_p2w.parameters.seedname + ext), calc_w90.prefix + ext, symlink=True)
+        status = self.run_steps(calc_w90)
+        if status != Status.COMPLETED:
+            return
         self.block.w90_calc = calc_w90
 
         if self.bands is not None:
@@ -431,11 +475,15 @@ class WannierizeBlockWorkflow(Workflow):
                     match.center = center
                     match.spread = spread
 
-        hr_file = FilePointer(calc_w90, calc_w90.prefix + '_hr.dat') if calc_w90.parameters.write_hr else None
-        u_file = FilePointer(calc_w90, calc_w90.prefix + '_u.mat') if calc_w90.parameters.write_u_matrices else None
-        centers_file = FilePointer(calc_w90, calc_w90.prefix +
-                                   '_centres.xyz') if calc_w90.parameters.write_xyz else None
-        self.outputs = self.output_model(hr_file=hr_file, u_matrices_file=u_file, centers_file=centers_file)
+        hr_file = File(calc_w90, calc_w90.prefix + '_hr.dat') if calc_w90.parameters.write_hr else None
+        u_file = File(calc_w90, calc_w90.prefix + '_u.mat') if calc_w90.parameters.write_u_matrices else None
+        centers_file = File(calc_w90, calc_w90.prefix + '_centres.xyz') if calc_w90.parameters.write_xyz else None
+        self.outputs = self.output_model(hr_file=hr_file, u_matrices_file=u_file, centers_file=centers_file,
+                                         preprocessing_calculation=calc_w90_pp, wannier90_calculation=calc_w90)
+
+        self.status = Status.COMPLETED
+
+        return
 
     def new_calculator(self, calc_type, *args, **kwargs) -> CalcExtType:  # type: ignore[type-var, misc]
         init_orbs = kwargs.pop('init_orbitals', None)

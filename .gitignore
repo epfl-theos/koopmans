@@ -6,6 +6,7 @@
 *.pkl
 *.swp
 *.png
+*.log
 __pycache__/
 .vscode
 monkeytype.sqlite3

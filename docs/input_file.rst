@@ -158,6 +158,12 @@ The kcp subblock
 ~~~~~~~~~~~~~~~~
 This subblock contains keywords specific to ``kcp.x``, a modified version of ``cp.x`` for performing Koopmans calculations. In addition to `the keywords associated with cp.x <https://www.quantum-espresso.org/Doc/INPUT_CP.html>`_ there are several new keywords associated with the Koopmans implementation in ``kcp.x``. Non-experts will never need to change these.
 
+
+The kcw subblock
+~~~~~~~~~~~~~~~~
+This subblock contains keywords specific to ``kcw.x`` (see the `list of valid kcw.x keywords <https://www.quantum-espresso.org/Doc/INPUT_KCW.html>`_). Non-experts will never need to change these keywords.
+
+
 The ui subblock
 ~~~~~~~~~~~~~~~
 This subblock controls the unfolding and interpolation procedure for generating band structures and densities of states from Γ-only supercell calculations.

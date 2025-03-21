@@ -1,26 +1,23 @@
 from pathlib import Path
 from typing import List
+from pydantic import ConfigDict
 
 from koopmans import utils
 from koopmans.commands import Command
-from koopmans.files import FilePointer
+from koopmans.files import File
+from koopmans.process_io import IOModel
 
 from ._commandlinetool import CommandLineTool
-from ._process import IOModel
 
 
 class Bin2XMLInput(IOModel):
-    binary: FilePointer
-
-    class Config:
-        arbitrary_types_allowed = True
+    binary: File
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class Bin2XMLOutput(IOModel):
-    xml: FilePointer
-
-    class Config:
-        arbitrary_types_allowed = True
+    xml: File
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class Bin2XMLProcess(CommandLineTool):
@@ -29,19 +26,18 @@ class Bin2XMLProcess(CommandLineTool):
     output_model = Bin2XMLOutput
 
     def _pre_run(self):
-        if not (self.inputs.binary.parent.absolute_directory / self.inputs.binary.name).exists():
+        super()._pre_run()
+        if not self.inputs.binary.exists():
             raise FileNotFoundError(f'`{self.inputs.binary}` does not exist')
 
-        # Load the file
-        binary_file_contents = utils.get_binary_content(*self.inputs.binary)
-
-        # Write the file to disk
-        utils.write_binary_content(Path("input.dat"), binary_file_contents)
+        # Link the input binary file to the directory of this process as input.dat
+        dst = File(self, Path("input.dat"))
+        dst.symlink_to(self.inputs.binary)
 
     @property
     def command(self):
         return Command(executable='bin2xml.x', suffix=f'input.dat output.xml')
 
-    def _post_run(self):
-        xml_filepointer = FilePointer(self, "output.xml")
+    def _set_outputs(self):
+        xml_filepointer = File(self, Path("output.xml"))
         self.outputs = self.output_model(xml=xml_filepointer)

@@ -1,9 +1,10 @@
 from typing import Any
 
 import numpy as np
-from ase.dft.kpoints import BandPath, monkhorst_pack
-from ase.io.wannier90 import (construct_kpoint_path, formatted_str_to_list,
-                              proj_string_to_dict)
+from ase_koopmans.dft.kpoints import BandPath, monkhorst_pack
+from ase_koopmans.io.wannier90 import (construct_kpoint_path,
+                                       formatted_str_to_list,
+                                       proj_string_to_dict)
 
 from ._utils import SettingsDict
 
@@ -17,7 +18,7 @@ class Wannier90SettingsDict(SettingsDict):
                                 'bands_plot', 'mp_grid', 'kpoint_path', 'projections', 'write_hr',
                                 'write_u_matrices', 'write_xyz', 'wannier_plot', 'wannier_plot_list',
                                 'gamma_only', 'spin', 'use_ws_distance', 'translate_home_cell',
-                                'translation_centre_frac'],
+                                'translation_centre_frac', 'write_tb'],
                          defaults={'num_iter': 10000, 'conv_tol': 1.e-10, 'conv_window': 5,
                                    'write_hr': True, 'guiding_centres': True, 'gamma_only': False},
                          **kwargs)

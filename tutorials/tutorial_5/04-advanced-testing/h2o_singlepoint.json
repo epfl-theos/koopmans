@@ -3,12 +3,14 @@
         "task": "singlepoint",
         "functional": "ki",
         "init_orbitals": "mlwfs",
-        "from_scratch": true,
         "fix_spin_contamination": false,
-        "pseudo_library": "sg15_v1.0",
+        "pseudo_library": "SG15/1.0/PBE/SR",
         "mp_correction": true,
         "eps_inf": 1.72,
         "calculate_bands": false
+    },
+    "engine": {
+        "from_scratch": true
     },
     "ml": {
         "estimator": "ridge_regression",

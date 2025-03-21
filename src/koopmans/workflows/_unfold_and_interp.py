@@ -9,39 +9,42 @@ Originally written by Riccardo De Gennaro as the standalone 'unfolding and inter
 Integrated within koopmans by Edward Linscott Jan 2021
 """
 
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Generator, List, Literal, Optional, Tuple
 
 import numpy as np
-from ase.dft.dos import DOS
-from ase.spectrum.band_structure import BandStructure
+from ase_koopmans.dft.dos import DOS
+from ase_koopmans.spectrum.band_structure import BandStructure
+from pydantic import ConfigDict
 
-from koopmans import calculators, outputs, utils
-from koopmans.files import FilePointer
+from koopmans import calculators, utils
+from koopmans.files import File
+from koopmans.process_io import IOModel
 from koopmans.processes.ui import UnfoldAndInterpolateProcess, generate_dos
+from koopmans.projections import BlockID
+from koopmans.status import Status
 
+from ._wannierize import WannierizeWorkflow
 from ._workflow import Workflow
 
 
-class UnfoldAndInterpolateOutput(outputs.OutputModel):
+class UnfoldAndInterpolateOutput(IOModel):
     band_structure: BandStructure
     dos: Optional[DOS]
-
-    class Config:
-        arbitrary_types_allowed = True
+    smooth_dft_ham_files: Optional[Dict[BlockID, File]]
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class UnfoldAndInterpolateWorkflow(Workflow):
 
     output_model = UnfoldAndInterpolateOutput  # type: ignore
 
-    def __init__(self, *args, koopmans_ham_files: Dict[Tuple[str, str | None], FilePointer],
-                 dft_ham_files: Dict[Tuple[str, str | None], FilePointer],
-                 redo_smooth_dft: Optional[bool] = None, **kwargs) -> None:
+    def __init__(self, *args, koopmans_ham_files: Dict[BlockID, File],
+                 dft_ham_files: Dict[BlockID, File],
+                 smooth_dft_ham_files: Dict[BlockID, File] | None = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._dft_ham_files = dft_ham_files
         self._koopmans_ham_files = koopmans_ham_files
-        self._redo_smooth_dft = redo_smooth_dft
+        self._smooth_dft_ham_files = smooth_dft_ham_files
 
     def _run(self) -> None:
         '''
@@ -53,8 +56,6 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         - an UnfoldAndInterpolateProcess to merge occ and emp results
 
         '''
-        # Import these here so that if these have been monkey-patched, we get the monkey-patched version
-        from koopmans.workflows import WannierizeWorkflow
 
         # Transform self.atoms back to the primitive cell
         if self.parameters.method == 'dscf':
@@ -64,26 +65,29 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         w90_calcs = [c for c in self.calculations if isinstance(c, calculators.Wannier90Calculator)
                      and c.command.flags == ''][-len(self.projections):]
 
-        if self.calculator_parameters['ui'].do_smooth_interpolation:
-            wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kpoints.grid)
+        if self.calculator_parameters['ui'].do_smooth_interpolation and self._smooth_dft_ham_files is None:
+
             assert self.kpoints.grid is not None
+            wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kpoints.grid)
             wannier_workflow.kpoints.grid = [x * y for x, y in zip(self.kpoints.grid,
                                              self.calculator_parameters['ui'].smooth_int_factor)]
 
-            # Here, we allow for skipping of the smooth dft calcs (assuming they have been already run)
-            # This is achieved via the optional argument of from_scratch in run(), which
-            # overrides the value of wannier_workflow.from_scratch, as well as preventing the inheritance of
-            # self.from_scratch to wannier_workflow.from_scratch and back again after the subworkflow finishes
-            wannier_workflow.run(from_scratch=self._redo_smooth_dft)
+            wannier_workflow.proceed()
+            if wannier_workflow.status != Status.COMPLETED:
+                return
+
+            # Save the smooth DFT Hamiltonian files
+            self._smooth_dft_ham_files = wannier_workflow.outputs.hr_files
 
         process: UnfoldAndInterpolateProcess
-        spins: List[Optional[str]]
+        spins: List[Literal[None, "up", "down", "spinor"]]
         if self.parameters.spin_polarized:
             spins = ['up', 'down']
         else:
             spins = [None]
 
         assert self.bands is not None
+        processes = []
         for spin, band_filling in zip(spins, self.bands.filling):
             # Extract the centers and spreads corresponding to this particular spin
             centers = np.array([center for c, p in zip(w90_calcs, self.projections)
@@ -91,10 +95,8 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             spreads = np.array([spread for c, p in zip(w90_calcs, self.projections)
                                for spread in c.results['spreads'] if p.spin == spin])
 
-            for filled, filling in zip([True, False], ['occ', 'emp']):
-                presets = filling
-                if spin:
-                    presets += '_' + spin
+            for filled in [True, False]:
+                block_id = BlockID(filled=filled, spin=spin)
 
                 # Extract the centers and spreads that have this particular filling
                 if self.parameters.method == 'dscf':
@@ -110,15 +112,20 @@ class UnfoldAndInterpolateWorkflow(Workflow):
 
                 # Add the smooth DFT Hamiltonian file if relevant
                 if self.calculator_parameters['ui'].do_smooth_interpolation:
-                    dft_smooth_ham_file = wannier_workflow.outputs.hr_files[presets]
+                    assert self._smooth_dft_ham_files is not None
+                    dft_smooth_ham_file = self._smooth_dft_ham_files[block_id]
                 else:
                     dft_smooth_ham_file = None
 
-                process = self.new_ui_process(presets, centers=centers[mask], spreads=spreads[mask].tolist(),
+                process = self.new_ui_process(block_id, centers=centers[mask], spreads=spreads[mask].tolist(),
                                               dft_smooth_ham_file=dft_smooth_ham_file)
 
-                # Run the process
-                self.run_process(process)
+                processes.append(process)
+
+        # Run the processes
+        status = self.run_steps(processes)
+        if status != Status.COMPLETED:
+            return
 
         # Merge the bands
         if self.parameters.spin_polarized:
@@ -161,23 +168,16 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             merged_dos.e_skn += merged_bs.reference
 
         # Store the results
-        self.outputs = self.output_model(band_structure=merged_bs, dos=merged_dos)
+        self.outputs = self.output_model(band_structure=merged_bs, dos=merged_dos,
+                                         smooth_dft_ham_files=self._smooth_dft_ham_files)
 
-    def new_ui_process(self, presets: str, **kwargs) -> UnfoldAndInterpolateProcess:
-        valid_presets = ['occ', 'occ_up', 'occ_down', 'emp', 'emp_up', 'emp_down']
-        assert presets in valid_presets, \
-            'In UnfoldAndInterpolateWorkflow.new_ui_process() presets must be ' \
-            + '/'.join([f'"{s}"' for s in valid_presets]) + \
-            f', but you have tried to set it equal to {presets}'
+        self.status = Status.COMPLETED
 
-        preset_tuple: Tuple[str, str | None]
-        if '_' in presets:
-            preset_tuple = tuple(presets.split('_'))  # type: ignore
-        else:
-            preset_tuple = (presets, None)
+        return
 
-        kwargs['kc_ham_file'] = self._koopmans_ham_files[preset_tuple]
-        kwargs['dft_ham_file'] = self._dft_ham_files[preset_tuple]
+    def new_ui_process(self, block_id: BlockID, **kwargs) -> UnfoldAndInterpolateProcess:
+        kwargs['kc_ham_file'] = self._koopmans_ham_files[block_id]
+        kwargs['dft_ham_file'] = self._dft_ham_files[block_id]
 
         parameters = self.calculator_parameters['ui']
         parameters.kgrid = self.kpoints.grid
@@ -188,6 +188,6 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                                               plotting_parameters=self.plotting,
                                               **kwargs)
 
-        process.name += f'_{presets}'
+        process.name += f'_{block_id.label}'
 
         return process

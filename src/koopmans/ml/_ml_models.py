@@ -1,5 +1,6 @@
 import copy
 from abc import ABC, abstractmethod
+from functools import partial
 from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
@@ -10,7 +11,7 @@ from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 
 from koopmans.bands import Band
-from koopmans.utils import get_binary_content
+from koopmans.engines import Engine
 
 
 class WrappedEstimator(ABC):
@@ -107,7 +108,8 @@ def estimator_factory(estimator: str) -> WrappedEstimator:
 class AbstractMLModel(ABC):
 
     def __init__(self, estimator_type: str = 'ridge_regression', descriptor='orbital_density', is_trained: bool = False,
-                 estimator: WrappedEstimator | None = None, descriptor_from_band: Callable[[Band], np.ndarray] | None = None):
+                 estimator: WrappedEstimator | None = None, descriptor_from_band: Callable[[Band], np.ndarray] | None = None,
+                 engine: Engine | None = None):
         self.estimator_type = estimator_type
         self.estimator = estimator_factory(estimator_type) if estimator is None else estimator
         self.estimator.is_trained = is_trained
@@ -116,8 +118,11 @@ class AbstractMLModel(ABC):
             # MeanEstimator does not require a descriptor
             self.descriptor_from_band = dummy_from_band if descriptor_from_band is None else descriptor_from_band
         else:
-            self.descriptor_from_band = descriptor_from_band_factory(
-                descriptor) if descriptor_from_band is None else descriptor_from_band
+            if descriptor_from_band is None:
+                assert engine is not None
+                self.descriptor_from_band = descriptor_from_band_factory(descriptor, engine)
+            else:
+                self.descriptor_from_band = descriptor_from_band
         self.descriptor_type = descriptor
 
     @abstractmethod
@@ -169,9 +174,12 @@ class AbstractMLModel(ABC):
         return f'{self.__class__.__name__}({self._repr_fields()})'
 
 
-def power_spectrum_from_band(band: Band) -> np.ndarray:
+def power_spectrum_from_band(band: Band, engine: Engine) -> np.ndarray:
     assert band.power_spectrum is not None
-    return np.frombuffer(get_binary_content(*band.power_spectrum))
+    assert band.power_spectrum.parent_process is not None
+    binary_content = engine.read_file(band.power_spectrum, binary=True)
+    assert isinstance(binary_content, bytes)
+    return np.frombuffer(binary_content)
 
 
 def self_hartree_from_band(band: Band) -> np.ndarray:
@@ -182,9 +190,10 @@ def dummy_from_band(band: Band) -> np.ndarray:
     return np.array([np.nan])
 
 
-def descriptor_from_band_factory(descriptor: str) -> Callable[[Band], np.ndarray]:
+def descriptor_from_band_factory(descriptor: str, engine: Engine | None = None) -> Callable[[Band], np.ndarray]:
     if descriptor == 'orbital_density':
-        return power_spectrum_from_band
+        assert engine is not None
+        return partial(power_spectrum_from_band, engine=engine)
     elif descriptor == 'self_hartree':
         return self_hartree_from_band
     else:
@@ -252,12 +261,15 @@ class OccEmpMLModels(AbstractMLModel):
     def __init__(self, estimator_type='ridge_regression', descriptor='orbital_density', is_trained: bool = False,
                  X_train_occ: Optional[np.ndarray] = None, Y_train_occ: Optional[np.ndarray] = None,
                  X_train_emp: Optional[np.ndarray] = None, Y_train_emp: Optional[np.ndarray] = None,
-                 estimator_occ=None, estimator_emp=None, descriptor_from_band: Callable[[Band], np.ndarray] | None = None):
+                 estimator_occ=None, estimator_emp=None, descriptor_from_band: Callable[[Band], np.ndarray] | None = None,
+                 engine: Engine | None = None):
 
         self.model_occ = MLModel(estimator_type=estimator_type, descriptor=descriptor, is_trained=is_trained,
-                                 X_train=X_train_occ, Y_train=Y_train_occ, estimator=estimator_occ, descriptor_from_band=descriptor_from_band)
+                                 X_train=X_train_occ, Y_train=Y_train_occ, estimator=estimator_occ, descriptor_from_band=descriptor_from_band,
+                                 engine=engine)
         self.model_emp = MLModel(estimator_type=estimator_type, descriptor=descriptor, is_trained=is_trained,
-                                 X_train=X_train_emp, Y_train=Y_train_emp, estimator=estimator_emp, descriptor_from_band=descriptor_from_band)
+                                 X_train=X_train_emp, Y_train=Y_train_emp, estimator=estimator_emp, descriptor_from_band=descriptor_from_band,
+                                 engine=engine)
         self.estimator_type = estimator_type
         self.descriptor_type = descriptor
 

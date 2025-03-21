@@ -2,6 +2,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from koopmans.engines import LocalhostEngine
 from koopmans.processes import Process
 
 
@@ -33,5 +34,6 @@ class DummyProcess(Process):
 def test_process():
     process = DummyProcess(question="What is the meaning of life, the universe, and everything?")
     process.directory = Path()
+    process.engine = LocalhostEngine()
     process.run()
     assert process.outputs.answer == 42

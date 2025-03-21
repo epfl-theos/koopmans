@@ -1,18 +1,53 @@
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
+from pydantic import ConfigDict
 
-from ase import Atoms
-from ase.io.wannier90 import (list_to_formatted_str, num_wann_from_projections,
-                              proj_string_to_dict)
+from ase_koopmans import Atoms
+from ase_koopmans.io.wannier90 import (list_to_formatted_str,
+                                       num_wann_from_projections,
+                                       proj_string_to_dict)
+from pydantic import BaseModel, model_validator
 
 from koopmans import calculators
+from koopmans.utils import SpinOptions, SpinType
+
+
+class BlockID(BaseModel):
+
+    label: Optional[str] = None
+    filled: Optional[bool] = None
+    spin: SpinType = None
+    model_config = ConfigDict(frozen=True)
+
+    def __str__(self):
+        if self.label is None:
+            return ''
+        return f'{self.label}_{self.spin}' if self.spin else self.label
+
+    # Set label to 'occ' or 'emp' if filled is set but label is not
+    @model_validator(mode='before')
+    def set_label_from_filled(cls, data: Any):
+        if isinstance(data, dict):
+            if data.get('filled', None) is not None and data.get('label', None) is None:
+                spin = data.get('spin', None)
+                spin_label = '_spin_' + spin if spin is not None else ''
+                data['label'] = 'occ' + spin_label if data['filled'] else 'emp' + spin_label
+        return data
+
+    def filling(self):
+        if self.filled:
+            return 'occ'
+        elif self.filled is False:
+            return 'emp'
+        else:
+            raise ValueError(f'The filling of block {str(self)} is not known')
 
 
 class ProjectionBlock(object):
     # This simple object contains the projections, filling, and spin corresponding to a block of bands
     def __init__(self,
                  projections: List[Union[str, Dict[str, Any]]],
-                 spin: Optional[str] = None,
+                 spin: SpinType = None,
                  name: Optional[str] = None,
                  num_wann: Optional[int] = None,
                  num_bands: Optional[int] = None,
@@ -24,13 +59,20 @@ class ProjectionBlock(object):
             if isinstance(proj, str):
                 proj = proj_string_to_dict(proj)
             self.projections.append(proj)
-        self.spin = spin
-        self.name = name
+        self.id = BlockID(label=name, filled=None, spin=spin)
         self.num_wann = num_wann
         self.num_bands = num_bands
         self.include_bands = include_bands
         self.exclude_bands = exclude_bands
         self.w90_calc: calculators.Wannier90Calculator | None = None
+
+    @property
+    def spin(self):
+        return self.id.spin
+
+    @property
+    def name(self):
+        return self.id.label
 
     def __repr__(self) -> str:
         out = f'ProjectionBlock({[self.projections]}'
@@ -90,8 +132,8 @@ class ProjectionBlocks(object):
         self._blocks = blocks
         self._atoms = atoms
         # This BandBlocks object must keep track of how many bands we have not belonging to any block
-        self.exclude_bands: Dict[Optional[str], List[int]] = {None: [], 'up': [], 'down': []}
-        self.num_extra_bands: Dict[Optional[str], int] = {None: 0, 'up': 0, 'down': 0}
+        self.exclude_bands: Dict[Optional[str], List[int]] = {k: [] for k in SpinOptions}
+        self.num_extra_bands: Dict[Optional[str], int] = {k: 0 for k in SpinOptions}
         self._num_occ_bands: Dict[Optional[str], int] = {}
 
     def __repr__(self):
@@ -116,7 +158,7 @@ class ProjectionBlocks(object):
         return False
 
     def __getitem__(self, key):
-        return self._blocks[key]
+        return self.blocks[key]
 
     def __setitem__(self, key, value):
         self._blocks[key] = value
@@ -142,7 +184,7 @@ class ProjectionBlocks(object):
     @property
     def blocks(self):
         # Before returning all the blocks, add more global information such as exclude_bands
-        for spin in [None, 'up', 'down']:
+        for spin in SpinOptions:
             subset = self.get_subset(spin=spin)
             if len(subset) == 0:
                 continue
@@ -173,11 +215,9 @@ class ProjectionBlocks(object):
                 if len(to_exclude) > 0:
                     b.exclude_bands = list_to_formatted_str(to_exclude)
 
-                # Construct name
-                label = f'block_{iblock + 1}'
-                if spin:
-                    label = f'spin_{spin}_{label}'
-                b.name = label
+                # Construct the ID
+                spin_str = f'_spin_{spin}' if spin is not None else ''
+                b.id = BlockID(label=f'block_{iblock + 1}{spin_str}', spin=spin)
 
         return self._blocks
 
@@ -188,7 +228,7 @@ class ProjectionBlocks(object):
     @classmethod
     def fromlist(cls,
                  list_of_projections: List[List[Union[str, Dict[str, Any]]]],
-                 spins: List[Union[str, None]],
+                 spins: List[SpinType],
                  atoms: Atoms):
 
         if not all([isinstance(p, list) for p in list_of_projections]):
@@ -234,9 +274,9 @@ class ProjectionBlocks(object):
         return new_bandblock
 
     @property
-    def to_merge(self) -> Dict[str, List[ProjectionBlock]]:
+    def to_merge(self) -> Dict[BlockID, List[ProjectionBlock]]:
         # Group the blocks by their correspondence to occupied/empty bands, and by their spin
-        dct: Dict[str, List[ProjectionBlock]] = {}
+        dct: Dict[BlockID, List[ProjectionBlock]] = {}
         for block in self.blocks:
             try:
                 n_occ_bands = self.num_occ_bands[block.spin]
@@ -244,15 +284,14 @@ class ProjectionBlocks(object):
                 raise AssertionError(
                     'Initialize `ProjectionBlocks.num_occ_bands` before calling `ProjectionBlocks.to_merge()`')
             if max(block.include_bands) <= n_occ_bands:
-                label = 'occ'
+                filled = True
             elif min(block.include_bands) > n_occ_bands:
-                label = 'emp'
+                filled = False
             else:
                 raise ValueError('Block spans both occupied and empty manifolds')
-            if block.spin:
-                label += f'_{block.spin}'
-            if label in dct:
-                dct[label].append(block)
+            block_id = BlockID(filled=filled, spin=block.spin)
+            if block_id in dct:
+                dct[block_id].append(block)
             else:
-                dct[label] = [block]
+                dct[block_id] = [block]
         return dct
