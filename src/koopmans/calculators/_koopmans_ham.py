@@ -10,9 +10,9 @@ import os
 from typing import List, Optional
 
 import numpy as np
-from ase import Atoms
-from ase.calculators.espresso import KoopmansHam
-from ase.dft.kpoints import BandPath
+from ase_koopmans import Atoms
+from ase_koopmans.calculators.espresso import KoopmansHam
+from ase_koopmans.dft.kpoints import BandPath
 
 from koopmans import settings, utils
 from koopmans.commands import ParallelCommand
@@ -25,7 +25,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
     ext_in = '.khi'
     ext_out = '.kho'
 
-    def __init__(self, atoms: Atoms, alphas: Optional[List[int]] = None, *args, **kwargs):
+    def __init__(self, atoms: Atoms, alphas: Optional[List[float]] = None, *args, **kwargs):
         # Define the valid settings
         self.parameters = settings.KoopmansHamSettingsDict()
 
@@ -39,15 +39,10 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
         self.alphas = alphas
 
     def write_alphas(self):
-        # self.alphas is a list of alpha values indexed by spin index and then band index. Meanwhile, kcw.x takes a
-        # single file for the alphas (rather than splitting between filled/empty) and does not have two columns for
-        # spin up then spin down
-        assert self.alphas is not None, 'You have not provided screening parameters to this calculator'
-        if not len(self.alphas) == 1:
-            raise NotImplementedError('`KoopmansHamCalculator` yet to be implemented for spin-polarized systems')
-        [alphas] = self.alphas
-        filling = [True for _ in range(len(alphas))]
-        utils.write_alpha_file(self.directory, alphas, filling)
+        # self.alphas is a list of alpha values indexed by band index. Meanwhile, kcw.x takes a
+        # single file for the alphas (rather than splitting between filled/empty)
+        fake_filling = [True for _ in self.alphas]
+        utils.write_alpha_file(self, self.alphas, fake_filling)
 
     def _pre_calculate(self):
         super()._pre_calculate()

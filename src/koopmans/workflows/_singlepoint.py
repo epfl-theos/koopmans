@@ -10,13 +10,16 @@ Converted to a workflow object Nov 2020
 import os
 import shutil
 from pathlib import Path
+from typing import Dict, Generator, List, Optional
 
 import numpy as np
 
 from koopmans import utils
-from koopmans.calculators import ProjwfcCalculator
-from koopmans.files import FilePointer
-from koopmans.outputs import OutputModel
+from koopmans.calculators import KoopmansCPCalculator, ProjwfcCalculator
+from koopmans.files import File
+from koopmans.process_io import IOModel
+from koopmans.projections import BlockID
+from koopmans.status import Status
 
 from ._dft import DFTCPWorkflow, DFTPhWorkflow
 from ._koopmans_dfpt import KoopmansDFPTWorkflow
@@ -26,14 +29,14 @@ from ._workflow import Workflow
 load_results_from_output = True
 
 
-class SinglepointOutputs(OutputModel):
+class SinglepointOutputs(IOModel):
     '''
     Outputs for the SinglepointWorkflow
     '''
     pass
 
 
-class SinglepointWorkflow(Workflow):
+class SinglepointWorkflow(Workflow[SinglepointOutputs]):
 
     '''
     Examples
@@ -41,7 +44,7 @@ class SinglepointWorkflow(Workflow):
 
     Running a Koopmans calculation on ozone
 
-        >>> from ase.build import molecule
+        >>> from ase_koopmans.build import molecule
         >>> from koopmans.workflows import SinglepointWorkflow
         >>> ozone = molecule('O3', vacuum=5.0, pbc=False)
         >>> wf = SinglepointWorkflow(ozone, ecutwfc = 20.0)
@@ -49,7 +52,7 @@ class SinglepointWorkflow(Workflow):
 
     Running a Koopmans calculation on GaAs
 
-        >>> from ase.build import bulk
+        >>> from ase_koopmans.build import bulk
         >>> from koopmans.projections import ProjectionBlocks
         >>> from koopmans.kpoints import Kpoints
         >>> from koopmans.workflows import SinglepointWorkflow
@@ -75,30 +78,28 @@ class SinglepointWorkflow(Workflow):
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
         if self.parameters.eps_inf == 'auto':
             eps_workflow = DFTPhWorkflow.fromparent(self)
-            if self.parameters.from_scratch and Path('calculate_eps').exists():
-                shutil.rmtree('calculate_eps')
-            eps_workflow.run(subdirectory='calculate_eps')
+            eps_workflow.proceed()
+            if eps_workflow.status != Status.COMPLETED:
+                return
             self.parameters.eps_inf = np.trace(eps_workflow.calculations[-1].results['dielectric tensor']) / 3
 
         if self.parameters.method == 'dfpt':
             workflow = KoopmansDFPTWorkflow.fromparent(self)
-            workflow.run()
+            workflow.proceed()
+            if workflow.status != Status.COMPLETED:
+                return
 
         elif self.parameters.functional == 'all':
             # if 'all', create subdirectories and run
             functionals = ['ki', 'pkipz', 'kipz']
 
             if self.parameters.alpha_from_file:
-                utils.warn('Need to make sure alpharef files are copied over')
-                # utils.system_call('cp file_alpharef*.txt ki/')
+                raise NotImplementedError('Need to make sure alpharef files are copied over')
 
             ki_workflow = None
             for functional in functionals:
                 # For pKIPZ/KIPZ, use KI as a starting point
                 restart_from_old_ki = (functional == 'kipz')
-
-                # We only need to do the smooth interpolation the first time (i.e. for KI)
-                redo_smooth_dft = None if functional == 'ki' else False
 
                 # For pKIPZ should not be recalculated
                 if self.parameters.calculate_alpha:
@@ -107,17 +108,18 @@ class SinglepointWorkflow(Workflow):
                     calculate_alpha = self.parameters.calculate_alpha
 
                 # Create a KC workflow for this particular functional
+                variational_orbital_files: Optional[Dict[str, File]] = None
+                previous_cp_calc: Optional[KoopmansCPCalculator] = None
+                smooth_dft_ham_files: Optional[Dict[BlockID, File]] = None
                 if functional != 'ki':
                     assert ki_workflow is not None
                     variational_orbital_files = ki_workflow.outputs.variational_orbital_files
                     previous_cp_calc = ki_workflow.outputs.final_calc
-                else:
-                    variational_orbital_files = None
-                    previous_cp_calc = None
+                    smooth_dft_ham_files = ki_workflow.outputs.smooth_dft_ham_files
 
                 kc_workflow = KoopmansDSCFWorkflow.fromparent(self, functional=functional,
                                                               initial_variational_orbital_files=variational_orbital_files,
-                                                              redo_smooth_dft=redo_smooth_dft,
+                                                              smooth_dft_ham_files=smooth_dft_ham_files,
                                                               previous_cp_calc=previous_cp_calc,
                                                               calculate_alpha=calculate_alpha)
                 kc_workflow.name += ' ' + functional.upper().replace("PKIPZ", "pKIPZ")
@@ -131,13 +133,23 @@ class SinglepointWorkflow(Workflow):
                     kc_workflow.primitive_to_supercell()
 
                 # Run the workflow
-                kc_workflow.run(subdirectory=functional)
+                kc_workflow.proceed()
+                if kc_workflow.status != Status.COMPLETED:
+                    return
 
         else:
             # self.functional != all and self.method != 'dfpt'
             if self.parameters.functional in ['ki', 'pkipz', 'kipz']:
                 dscf_workflow = KoopmansDSCFWorkflow.fromparent(self)
-                dscf_workflow.run()
+                dscf_workflow.proceed()
+                if dscf_workflow.status != Status.COMPLETED:
+                    return
             else:
                 dft_workflow = DFTCPWorkflow.fromparent(self)
-                dft_workflow.run()
+                dft_workflow.proceed()
+                if dft_workflow.status != Status.COMPLETED:
+                    return
+
+        self.status = Status.COMPLETED
+
+        return

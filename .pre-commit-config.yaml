@@ -21,6 +21,8 @@ repos:
       - id: mypy
         files: src/koopmans/
         args: [--ignore-missing-imports]
+        additional_dependencies:
+          - types-PyYAML
 
   - repo: https://github.com/pre-commit/mirrors-autopep8
     rev: v2.0.4

@@ -8,26 +8,26 @@ import copy
 import json
 import os
 from datetime import datetime
-from pathlib import Path
 from time import time
 from typing import List, Optional, Tuple, Type, Union
 
 import numpy as np
-from ase import Atoms
-from ase.calculators.calculator import Calculator
-from ase.dft.dos import DOS
-from ase.geometry.cell import crystal_structure_from_cell
-from ase.spectrum.band_structure import BandStructure
+from ase_koopmans import Atoms
+from ase_koopmans.calculators.calculator import Calculator
+from ase_koopmans.dft.dos import DOS
+from ase_koopmans.geometry.cell import crystal_structure_from_cell
+from ase_koopmans.spectrum.band_structure import BandStructure
 from numpy.typing import ArrayLike, NDArray
 from pydantic import ConfigDict, Field
 
 from koopmans import calculators, utils
-from koopmans.files import FilePointer
+from koopmans.files import File
 from koopmans.kpoints import Kpoints, kpath_to_dict
+from koopmans.process_io import IOModel
 from koopmans.settings import (PlotSettingsDict,
                                UnfoldAndInterpolateSettingsDict)
 
-from .._process import IOModel, Process
+from .._process import Process
 from ._atoms import UIAtoms
 from ._utils import crys_to_cart, extract_hr, latt_vect
 
@@ -47,16 +47,16 @@ class UnfoldAndInterpolateInputs(IOModel):
     spreads: List[float] = \
         Field(..., description="spreads of Wannier functions (in Ang^2)")
 
-    kc_ham_file: FilePointer = \
+    kc_ham_file: File = \
         Field(..., description='The Koopmans Hamiltonian')
 
-    dft_ham_file: FilePointer = \
+    dft_ham_file: File = \
         Field(..., description='The DFT Hamiltonian')
 
-    dft_smooth_ham_file: Optional[FilePointer] = \
+    dft_smooth_ham_file: Optional[File] = \
         Field(default=None, description='The DFT Hamiltonian, evaluated on the smooth grid')
 
-    wf_phases_file: Optional[FilePointer] = \
+    wf_phases_file: Optional[File] = \
         Field(default=None, description='The file containing the phases of the Wannier functions')
 
     plotting_parameters: PlotSettingsDict = \
@@ -64,20 +64,21 @@ class UnfoldAndInterpolateInputs(IOModel):
 
 
 class UnfoldAndInterpolateOutputs(IOModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
-
     band_structure: BandStructure
     dos: Optional[DOS] = None
+    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
 
 
-class UnfoldAndInterpolateProcess(Process):
-    __slots__ = ['inputs', 'outputs', '_centers', '_spreads', '_Rvec', '_hr',
-                 '_hr_smooth', '_hr_coarse', '_phases', '_wRs', '_Rsmooth', '_hk']
+class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndInterpolateOutputs]):
+    __slots__ = Process.__slots__ + ['_centers', '_spreads', '_Rvec', '_hr',
+                                     '_hr_smooth', '_hr_coarse', '_phases', '_wRs', '_Rsmooth', '_hk']
 
     input_model = UnfoldAndInterpolateInputs
     output_model = UnfoldAndInterpolateOutputs
 
     def __init__(self, atoms: Atoms, centers, parameters, **kwargs):
+        # Avoid the original parameters object from being modified
+        parameters = copy.deepcopy(parameters)
 
         # Update the parameters field based on the centers and spreads objects
         num_wann = len(centers)
@@ -86,7 +87,7 @@ class UnfoldAndInterpolateProcess(Process):
             parameters.num_wann = num_wann // np.prod(parameters.kgrid)
         else:
             parameters.num_wann = num_wann
-            parameters.num_wann_sc = num_wann * np.prod(parameters.kgrid)
+            parameters.num_wann_sc = num_wann * int(np.prod(parameters.kgrid))
 
         # Convert atoms from an Atoms to a UIAtoms object
         ui_atoms = UIAtoms.fromatoms(atoms, supercell_matrix=np.diag(parameters.kgrid))
@@ -199,9 +200,11 @@ class UnfoldAndInterpolateProcess(Process):
                     self.inputs.parameters.num_wann_sc, self.inputs.parameters.num_wann)
 
             # The smooth Hamiltonian
+            if self.inputs.dft_smooth_ham_file is None:
+                raise ValueError('Smooth interpolation requested but no smooth DFT Hamiltonian file provided')
             hr_smooth, self._Rsmooth, self._wRs, nrpts = utils.read_wannier_hr_file(self.inputs.dft_smooth_ham_file)
             assert len(hr_smooth) == nrpts * \
-                self.inputs.parameters.num_wann**2, f'Wrong number of matrix elements for hr_smooth {len(self._hr_smooth)}'
+                self.inputs.parameters.num_wann**2, f'Wrong number of matrix elements for hr_smooth {len(hr_smooth)}'
             self._hr_smooth = np.array(hr_smooth, dtype=complex)
             self._hr_smooth = self._hr_smooth.reshape(
                 nrpts, self.inputs.parameters.num_wann, self.inputs.parameters.num_wann)
@@ -215,8 +218,9 @@ class UnfoldAndInterpolateProcess(Process):
         """
 
         try:
-            with open('wf_phases.dat', 'r') as ifile:
-                lines = ifile.readlines()
+            wf_phases_file = File(self, 'wf_phases.dat')
+            content = wf_phases_file.read_text()
+            lines = content.split('\n')
             self._phases = [float(l.split()[0]) + float(l.split()[1]) * 1j for l in lines]
         except FileNotFoundError:
             if self.inputs.parameters.w90_input_sc:
@@ -224,29 +228,23 @@ class UnfoldAndInterpolateProcess(Process):
             self._phases = []
         return
 
-    def write_results(self, directory: Optional[Path] = None) -> None:
+    def write_results(self) -> None:
         """
         write_results calls write_bands and write_dos if the DOS was calculated
         """
-        if directory is None:
-            directory = Path()
-
-        self.write_bands(directory)
+        self.write_bands()
 
         if self.inputs.parameters.do_dos:
-            self.write_dos(directory)
+            self.write_dos()
 
         return
 
-    def write_bands(self, directory=None) -> None:
+    def write_bands(self) -> None:
         """
         write_bands prints the interpolated bands, in the QE format, in a file called
                     'bands_interpolated.dat'.
                     (see PP/src/bands.f90 around line 574 for the linearized path)
         """
-
-        if directory is None:
-            directory = Path()
 
         kvec = []
         for kpt in self.inputs.parameters.kpath.kpts:
@@ -271,31 +269,30 @@ class UnfoldAndInterpolateProcess(Process):
             if bs.shape[0] == 2:
                 fname += f'_spin_{label}'
 
-            with open(f'{directory}/{fname}.dat', 'w') as ofile:
-                ofile.write('# Written at ' + datetime.now().isoformat(timespec='seconds'))
-
-                for energies in energies_spin.transpose():
-                    assert len(kx) == len(energies)
-                    for k, energy in zip(kx, energies):
-                        ofile.write(f'\n{k:16.8f}{energy:16.8f}')
-                    ofile.write('\n')
+            content = '# Written at ' + datetime.now().isoformat(timespec='seconds')
+            for energies in energies_spin.transpose():
+                assert len(kx) == len(energies)
+                for k, energy in zip(kx, energies):
+                    content += f'\n{k:16.8f}{energy:16.8f}'
+                content += '\n'
+            bs_file = File(self, f'{fname}.dat')
+            bs_file.write_text(content)
 
         return
 
-    def write_dos(self, directory=None) -> None:
+    def write_dos(self) -> None:
         """
         write_dos prints the DOS in a file called 'dos_interpolated.dat', in a format (E , DOS(E))
 
         """
-        if directory is None:
-            directory = self.directory
-
-        with open(f'{directory}/dos_interpolated.dat', 'w') as ofile:
-            ofile.write('# Written at ' + datetime.now().isoformat(timespec='seconds'))
-            dos = self.outputs.dos
-            for e, d in zip(dos.get_energies(), dos.get_dos()):
-                ofile.write('\n{:10.4f}{:12.6f}'.format(e, d))
-            ofile.write('\n')
+        content = '# Written at ' + datetime.now().isoformat(timespec='seconds')
+        dos = self.outputs.dos
+        assert dos is not None
+        for e, d in zip(dos.get_energies(), dos.get_dos()):
+            content += '\n{:10.4f}{:12.6f}'.format(e, d)
+        content += '\n'
+        dos_file = File(self, 'dos_interpolated.dat')
+        dos_file.write_text(content)
 
         return
 
@@ -305,33 +302,33 @@ class UnfoldAndInterpolateProcess(Process):
         never actually used in a standard calculation, but it is useful for debugging
         """
 
-        with open(f'{self.name}.json', 'w') as fd:
-            settings = copy.deepcopy(self.inputs.parameters.data)
+        settings = copy.deepcopy(self.inputs.parameters.data)
 
-            # Remove the kpoints information from the settings dict
-            kgrid = settings.pop('kgrid')
-            kpath = settings.pop('kpath')
+        # Remove the kpoints information from the settings dict
+        kgrid = settings.pop('kgrid')
+        kpath = settings.pop('kpath')
 
-            # Converting Paths to JSON-serialisable strings
-            for k in self.inputs.parameters.are_paths:
-                if k in settings:
-                    settings[k] = str(settings[k])
+        # Converting Paths to JSON-serialisable strings
+        for k in self.inputs.parameters.are_paths:
+            if k in settings:
+                settings[k] = str(settings[k])
 
-            # Store all the settings in one big dictionary
-            bigdct = {"workflow": {"task": "ui"}, "ui": settings}
+        # Store all the settings in one big dictionary
+        bigdct = {"workflow": {"task": "ui"}, "ui": settings}
 
-            # Provide the bandpath information in the form of a string
-            bigdct['kpoints'] = {'grid': kgrid, **kpath_to_dict(kpath)}
-            # The cell is stored elsewhere
-            bigdct['kpoints'].pop('cell')
+        # Provide the bandpath information in the form of a string
+        bigdct['kpoints'] = {'grid': kgrid, **kpath_to_dict(kpath)}
+        # The cell is stored elsewhere
+        bigdct['kpoints'].pop('cell')
 
-            # Provide the plot information
-            bigdct['plotting'] = {k: v for k, v in self.inputs.plotting_parameters.data.items()}
+        # Provide the plot information
+        bigdct['plotting'] = {k: v for k, v in self.inputs.plotting_parameters.data.items()}
 
-            # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
-            bigdct['atoms'] = {'cell_parameters': utils.construct_cell_parameters_block(atoms)}
+        # We also need to provide a cell so the explicit kpath can be reconstructed from the string alone
+        bigdct['atoms'] = {'cell_parameters': utils.construct_cell_parameters_block(atoms)}
 
-            json.dump(bigdct, fd, indent=2)
+        json_file = File(self, f'{self.name}_input.json')
+        json_file.write_text(json.dumps(bigdct, indent=2))
 
     def interpolate(self):
         """
@@ -484,11 +481,9 @@ class UnfoldAndInterpolateProcess(Process):
                     phase[ik, i] += np.exp(2j * np.pi * np.dot(kvect, Tvec[it]))
                 phase[ik, i] /= len(t_index)
 
-        phase = phase.reshape(len(self.inputs.parameters.kpath.kpts), self.inputs.parameters.num_wann, len(self._Rvec),
-                              self.inputs.parameters.num_wann)
-        phase = np.transpose(phase, axes=(0, 2, 3, 1))
-
-        return phase
+        phase_reshaped = phase.reshape(len(self.inputs.parameters.kpath.kpts), self.inputs.parameters.num_wann, len(self._Rvec),
+                                       self.inputs.parameters.num_wann)
+        return np.transpose(phase_reshaped, axes=(0, 2, 3, 1))
 
 
 def generate_dos(band_structure: BandStructure, plotting_parameters: PlotSettingsDict, spin_polarized=False) -> DOS:

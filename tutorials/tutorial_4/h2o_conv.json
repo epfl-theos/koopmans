@@ -2,10 +2,12 @@
     "workflow": {
         "functional": "dft",
         "task": "singlepoint",
-        "from_scratch": true,
         "converge": true,
         "fix_spin_contamination": false,
-        "pseudo_library": "sg15_v1.0"
+        "pseudo_library": "SG15/1.0/PBE/SR"
+    },
+    "engine": {
+        "from_scratch": true
     },
     "convergence": {
         "observable": "homo energy",

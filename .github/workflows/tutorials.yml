@@ -31,4 +31,4 @@ jobs:
               pip install -e .[test]
          - name: Test the tutorials
            run: |
-              pytest --ci tests/ -m tutorials
+              pytest -x --ci tests/ -m tutorials

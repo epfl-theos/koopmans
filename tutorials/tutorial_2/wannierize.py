@@ -11,4 +11,5 @@ for grid_size in [2, 4, 8]:
     wf.kpoints.grid = [grid_size, grid_size, grid_size]
 
     # Run the workflow
-    wf.run(subdirectory='{0}x{0}x{0}'.format(grid_size))
+    wf.directory = '{0}x{0}x{0}'.format(grid_size)
+    wf.run()

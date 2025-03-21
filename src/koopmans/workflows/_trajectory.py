@@ -6,59 +6,59 @@ A workflow for serially running the Koopmans DSCF workflow on multiple atomic co
 
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Generator, List, Optional
 
 import numpy as np
-from ase import Atoms, io
+from ase_koopmans import Atoms, io
 from sklearn.metrics import mean_absolute_error, r2_score
 
 from koopmans import calculators, utils
-from koopmans.outputs import OutputModel
+from koopmans.process_io import IOModel
+from koopmans.status import Status
 
-from ._koopmans_dscf import KoopmansDSCFOutputs
+from ._koopmans_dscf import KoopmansDSCFOutputs, KoopmansDSCFWorkflow
 from ._workflow import Workflow
 
 
-class TrajectoryOutputs(OutputModel):
+class TrajectoryOutputs(IOModel):
     snapshot_outputs: List[KoopmansDSCFOutputs]
 
 
-class TrajectoryWorkflow(Workflow):
+class TrajectoryWorkflow(Workflow[TrajectoryOutputs]):
 
-    output_model = TrajectoryOutputs  # type: ignore
-    outputs: TrajectoryOutputs
+    output_model = TrajectoryOutputs
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.parameters.task = 'trajectory'
 
-    def _run(self):
+    def _run(self) -> None:
         """
         Starts the KoopmansDSCF Workflow for each snapshot indicated in indices
         """
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
-        from koopmans.workflows import KoopmansDSCFWorkflow
 
-        outputs = []
-
+        workflows = []
         for i, snapshot in enumerate(self.snapshots):
             # Get the atomic positions for the current snapshot
             self.atoms.set_positions(snapshot.positions)
 
-            # after each snapshot we want to set the from_scratch_parameter to its original value
-            # To do so, we save it here since it might get set from False to True during the calculation
-            # of the snapshot
-            from_scratch = self.parameters.from_scratch
-
             # Initialize and run the DSCF workflow
             workflow = KoopmansDSCFWorkflow.fromparent(self)
             workflow.name += f' Snapshot {i+1} of {len(self.snapshots)}'
-            self.bands = workflow.bands  # reset the bands to the initial guesses
-            workflow.run()
+            workflows.append(workflow)
 
-            # Reset the from_scratch parameter to its original value
-            self.parameters.from_scratch = from_scratch
+        for w in workflows:
+            w.proceed(copy_outputs_to_parent=False)
 
-            outputs.append(workflow.outputs)
-        self.outputs = self.output_model(snapshot_outputs=outputs)
+        if not all([w.status == Status.COMPLETED for w in workflows]):
+            return
+
+        self.calculations += [c for w in workflows for c in w.calculations]
+        self.steps += [s for w in workflows for s in w.steps]
+
+        self.outputs = self.output_model(snapshot_outputs=[w.outputs for w in workflows])
+        self.status = Status.COMPLETED
+
+        return

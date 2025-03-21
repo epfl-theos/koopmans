@@ -6,24 +6,29 @@ Written by Edward Linscott Jan 2020
 Moved into utils Sep 2021
 
 """
+from __future__ import annotations
 
 import json
 import sys
 import textwrap
 from datetime import datetime
 from pathlib import Path
-from typing import IO, Any, Dict, List, Tuple, Union
+from typing import IO, TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
-from ase.atoms import Atoms
-from ase.io.espresso import label_to_symbol, label_to_tag
-from ase.units import Bohr
+from ase_koopmans.atoms import Atoms
+from ase_koopmans.io.espresso import label_to_symbol, label_to_tag
+from ase_koopmans.units import Bohr
 
 from koopmans.cell import (cell_follows_qe_conventions, cell_to_parameters,
                            parameters_to_cell)
 
-from ._os import HasDirectory, get_content
+if TYPE_CHECKING:
+    from koopmans.files import File
+    from koopmans.engines import Engine
+
+from ._os import HasDirectory
 
 
 def parse_dict(dct: Dict[str, Any]) -> Dict[str, Any]:
@@ -90,26 +95,28 @@ def construct_atomic_species_block(atoms: Atoms) -> Dict[str, Any]:
     return {'species': species}
 
 
-def write_alpha_file(directory: Path, alphas: List[float], filling: List[bool]):
+def write_alpha_file(parent_process: HasDirectory, alphas: List[float], filling: List[bool]):
+    from koopmans.files import File
+
     a_filled = [a for a, f in zip(alphas, filling) if f]
     a_empty = [a for a, f in zip(alphas, filling) if not f]
     for alphas, suffix in zip([a_filled, a_empty], ['', '_empty']):
-        with open(directory / f'file_alpharef{suffix}.txt', 'w') as fd:
-            fd.write('{}\n'.format(len(alphas)))
-            fd.writelines(['{} {} 1.0\n'.format(i + 1, a)
-                           for i, a in enumerate(alphas)])
+        assert isinstance(parent_process, HasDirectory)
+        dst_file = File(parent_process, f'file_alpharef{suffix}.txt')
+        content = f'{len(alphas)}\n'
+        content += ''.join([f'{i + 1} {a} 1.0\n' for i, a in enumerate(alphas)])
+        dst_file.write_text(content)
 
 
-def read_alpha_file(directory: Path) -> List[float]:
+def read_alpha_file(parent_process: HasDirectory) -> List[float]:
     alphas: List[float] = []
     for suffix in ['', '_empty']:
-        fname = directory / f'file_alpharef{suffix}.txt'
-        if not fname.is_file():
+        fname = File(parent_process, f'file_alpharef{suffix}.txt')
+        if not fname.exists():
             break
-        with open(fname, 'r') as fd:
-            flines = fd.readlines()
-            n_orbs = int(flines[0])
-            alphas += [float(line.split()[1]) for line in flines[1:n_orbs + 1]]
+        flines = fname.read_text().split('\n')
+        n_orbs = int(flines[0])
+        alphas += [float(line.split()[1]) for line in flines[1:n_orbs + 1]]
     return alphas
 
 
@@ -172,12 +179,33 @@ def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
     return
 
 
+print_indent = 0
 print_call_end = '\n'
 previous_indent = 0
 
 
-def indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n',
-                   flush: bool = False, initial_indent: str | None = None, subsequent_indent: str | None = None, wrap=True):
+def indented_print(text: str = '', indent: Optional[int] = None, style='body', parse_asterisks=True, flush=True, wrap=True, **kwargs: Any):
+    if sys.stdout.isatty():
+        if style == 'heading' and '**' not in text:
+            text = f'**{text}**'
+        if parse_asterisks:
+            while '**' in text:
+                text = text.replace('**', '\033[1m', 1).replace('**', '\033[0m', 1)
+            while '*' in text:
+                text = text.replace('*', '\033[3m', 1).replace('*', '\033[0m', 1)
+    global print_indent
+    indent = print_indent if indent is None else indent
+    if style == 'body':
+        _indented_print(text, indent=indent, flush=flush, wrap=wrap, **kwargs)
+    elif style == 'heading':
+        assert kwargs.get('end', '\n') == '\n'
+        _indented_print(text, indent=indent, flush=flush, wrap=wrap, **kwargs)
+    else:
+        raise ValueError(f'Invalid choice `{style}` for style; must be `heading`/`body`')
+
+
+def _indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n',
+                    flush: bool = False, initial_indent: str | None = None, subsequent_indent: str | None = None, wrap=True):
     global print_call_end
     global previous_indent
     if indent < 0:
@@ -221,7 +249,7 @@ def print_alert(kind, message, header=None, indent=-1, **kwargs):
         indented_print(message, indent=indent)
 
 
-def generate_wannier_hr_file_contents(ham: np.ndarray, rvect: List[List[int]], weights: List[int]) -> List[str]:
+def generate_wannier_hr_file_contents(ham: np.ndarray, rvect: List[List[int]], weights: List[int]) -> str:
 
     nrpts = len(rvect)
     num_wann = np.size(ham, -1)
@@ -241,10 +269,10 @@ def generate_wannier_hr_file_contents(ham: np.ndarray, rvect: List[List[int]], w
         flines += [f'{r[0]:5d}{r[1]:5d}{r[2]:5d}{j+1:5d}{i+1:5d}{val.real:12.6f}{val.imag:12.6f}' for i,
                    row in enumerate(ham_block) for j, val in enumerate(row)]
 
-    return flines
+    return "\n".join(flines) + '\n'
 
 
-def parse_wannier_hr_file_contents(lines: List[str]) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
+def parse_wannier_hr_file_contents(content: str) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
     """ Parse the contents of a Hamiltonian file
 
     Returns a tuple containing...
@@ -254,6 +282,7 @@ def parse_wannier_hr_file_contents(lines: List[str]) -> Tuple[np.ndarray, np.nda
         - the number of wannier functions
     """
 
+    lines = content.rstrip('\n').split('\n')
     if 'written on' in lines[0].lower():
         pass
     elif 'xml version' in lines[0]:
@@ -293,12 +322,12 @@ def parse_wannier_hr_file_contents(lines: List[str]) -> Tuple[np.ndarray, np.nda
     return hr_np, rvect_np, weights, nrpts
 
 
-def read_wannier_hr_file(src_calc_path: Tuple[HasDirectory, Path]) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
-    lines = get_content(*src_calc_path)
-    return parse_wannier_hr_file_contents(lines)
+def read_wannier_hr_file(src: File) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
+    return parse_wannier_hr_file_contents(src.read_text())
 
 
-def parse_wannier_u_file_contents(lines: List[str]) -> Tuple[npt.NDArray[np.complex128], npt.NDArray[np.float64], int]:
+def parse_wannier_u_file_contents(content: str) -> Tuple[npt.NDArray[np.complex128], npt.NDArray[np.float64], int]:
+    lines = content.split('\n')
 
     nk, m, n = [int(x) for x in lines[1].split()]
 
@@ -316,25 +345,26 @@ def parse_wannier_u_file_contents(lines: List[str]) -> Tuple[npt.NDArray[np.comp
     return umat, kpts, nk
 
 
-def generate_wannier_u_file_contents(umat: npt.NDArray[np.complex128], kpts: npt.NDArray[np.float64]) -> List[str]:
+def generate_wannier_u_file_contents(umat: npt.NDArray[np.complex128], kpts: npt.NDArray[np.float64]) -> str:
 
     flines = [f' Written on {datetime.now().isoformat(timespec="seconds")}']
     flines.append(''.join([f'{x:12d}' for x in umat.shape]))
 
     for kpt, umatk in zip(kpts, umat):
+        assert isinstance(kpt, np.ndarray)
         flines.append('')
         flines.append(''.join([f'{k:15.10f}' for k in kpt]))
         flines += [f'{c.real:15.10f}{c.imag:15.10f}' for c in umatk.flatten()]
 
-    return flines
+    return "\n".join(flines) + "\n"
 
 
-def parse_wannier_centers_file_contents(lines: List[str]) -> Tuple[List[List[float]], Atoms]:
-
+def parse_wannier_centers_file_contents(content: str) -> Tuple[List[List[float]], Atoms]:
     centers = []
     symbols = []
     positions = []
-    for line in lines[2:]:
+    lines = content.split('\n')
+    for line in lines[2:-1]:
         if line.startswith('X    '):
             centers.append([float(x) for x in line.split()[1:]])
         else:
@@ -343,7 +373,7 @@ def parse_wannier_centers_file_contents(lines: List[str]) -> Tuple[List[List[flo
     return centers, Atoms(symbols=symbols, positions=positions, pbc=True)
 
 
-def generate_wannier_centers_file_contents(centers: List[List[float]], atoms: Atoms) -> List[str]:
+def generate_wannier_centers_file_contents(centers: List[List[float]], atoms: Atoms) -> str:
     length = len(centers) + len(atoms)
 
     # Add the header
@@ -358,4 +388,4 @@ def generate_wannier_centers_file_contents(centers: List[List[float]], atoms: At
     for atom in atoms:
         flines.append(f'{atom.symbol: <5}' + ''.join([f'{x:16.8f}' for x in atom.position]))
 
-    return flines
+    return "\n".join(flines) + "\n"

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, List
 
 import numpy as np
-from ase.dft.kpoints import BandPath
+from ase_koopmans.dft.kpoints import BandPath
 
 from ._utils import Setting, SettingsDictWithChecks
 
@@ -55,7 +55,10 @@ valid_settings: List[Setting] = [
     Setting('do_dos',
             'if True, the density-of-states is interpolated along the input kpath. The DOS is written to a '
             'file called "dos_interpolated.dat"',
-            bool, True, (True, False))]
+            bool, True, (True, False)),
+    Setting('num_wann', '', int, None, None),
+    Setting('num_wann_sc', '', int, None, None),
+    Setting('w90_input_sc', '', bool, False, (True, False))]
 
 
 class UnfoldAndInterpolateSettingsDict(SettingsDictWithChecks):

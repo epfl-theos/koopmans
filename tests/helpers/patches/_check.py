@@ -5,10 +5,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 import numpy as np
-from ase.calculators.calculator import CalculationFailed
-from ase.dft.dos import DOS
-from ase.spectrum.band_structure import BandStructure
-from ase.spectrum.doscollection import GridDOSCollection
+from ase_koopmans.calculators.calculator import CalculationFailed
+from ase_koopmans.dft.dos import DOS
+from ase_koopmans.spectrum.band_structure import BandStructure
+from ase_koopmans.spectrum.doscollection import GridDOSCollection
 
 from koopmans import pseudopotentials, utils
 from koopmans.calculators import (Calc, EnvironCalculator,
@@ -17,7 +17,7 @@ from koopmans.calculators import (Calc, EnvironCalculator,
                                   ProjwfcCalculator, PW2WannierCalculator,
                                   PWCalculator, Wann2KCCalculator,
                                   Wann2KCPCalculator, Wannier90Calculator)
-from koopmans.files import FilePointer
+from koopmans.files import File
 from koopmans.io import read_pkl
 from koopmans.processes.bin2xml import Bin2XMLProcess
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
@@ -232,15 +232,19 @@ def wannier_generate_messages(self, benchmark: Calc) -> List[Dict[str, str]]:
 
 
 def compare_output(output, bench_output):
-    """Recursively compare the contents of any FilePointers or Paths within the output against the benchmark"""
-    if isinstance(output, (FilePointer, Path)):
+    """Recursively compare the contents of any Files or Paths within the output against the benchmark"""
+    if isinstance(output, (File, Path)):
         # Compare the file contents
         binary_formats = ['.npy', '.dat', '.xml']
-        if isinstance(output, FilePointer):
+        if isinstance(output, File):
             binary = output.name.suffix in binary_formats
             numpy = output.name.suffix in ['.npy']
-            bench_output_contents = bench_output.read(binary=binary, numpy=numpy)
-            output_contents = output.read(binary=binary, numpy=numpy)
+            if binary:
+                bench_output_contents = bench_output.read_bytes()
+                output_contents = output.read_bytes()
+            else:
+                bench_output_contents = bench_output.read_text()
+                output_contents = output.read_text()
         else:
             mode = 'rb' if output.suffix in binary_formats else 'r'
             with open(output, mode) as fd:
@@ -294,12 +298,6 @@ def patch_calculator(c, monkeypatch, results_for_qc, generate_messages_function)
 
                 if isinstance(ref_val, np.ndarray):
                     ref_val = ref_val.tolist()
-
-                if key == 'pseudo_dir':
-                    # If using the central pseudo directory, only compare the relative paths
-                    if pseudopotentials.pseudos_directory in val.parents:
-                        val = Path('koopmans/pseudopotentials') / val.relative_to(pseudopotentials.pseudos_directory)
-                        ref_val = Path(*ref_val.parts[-len(val.parts):])
 
                 if val != ref_val:
                     raise ValueError(f'Error in {self.prefix}: {key} differs ({val} != {ref_val})')

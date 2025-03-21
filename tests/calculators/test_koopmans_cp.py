@@ -11,6 +11,9 @@ from koopmans.calculators import KoopmansCPCalculator
 from koopmans.calculators._koopmans_cp import (allowed,
                                                convert_flat_alphas_for_kcp,
                                                good_fft)
+from koopmans.engines import LocalhostEngine
+from koopmans.files import LocalFile
+from koopmans.pseudopotentials import local_base_directory
 
 
 def test_convert_flat_alphas_for_kcp():
@@ -37,7 +40,9 @@ def test_read_write_ham_pkl(water, tmp_path):
 
     with utils.chdir(tmp_path):
         # Create a kcp calculator
-        calc = KoopmansCPCalculator(outdir='tmp', nspin=2, **water)
+        pseudo_library = water.pop('pseudo_library')
+        pseudo_dir = local_base_directory / pseudo_library
+        calc = KoopmansCPCalculator(outdir='tmp', nspin=2, **water, pseudo_dir=pseudo_dir)
         calc.directory = Path()
 
         # generate a random array for our "Hamiltonian", making sure to set the random seed in order to always
@@ -58,14 +63,17 @@ def test_read_ham(water, datadir, tmp_path):
 
     with utils.chdir(tmp_path):
         # Create a kcp calculator
-        calc = KoopmansCPCalculator(outdir='tmp', nspin=2, nelec=8, ndw=50, prefix='test_read_ham', **water)
+        pseudo_library = water.pop('pseudo_library')
+        pseudo_dir = local_base_directory / pseudo_library
+        calc = KoopmansCPCalculator(outdir='tmp', nspin=2, nelec=8, ndw=50, prefix='test_read_ham', **water, pseudo_dir=pseudo_dir)
         calc.directory = Path()
+        calc.engine = LocalhostEngine()
 
         # Copy over the XML Hamiltonian files
-        destdir = calc.write_directory / 'K00001'
+        destdir = calc.write_directory / 'K00001/'
         destdir.mkdir(parents=True)
-        for f in (datadir / 'kcp').glob('ham*'):
-            shutil.copy(f, destdir)
+        for f in LocalFile(datadir / 'kcp').glob('ham*'):
+            calc.engine.copy_file(f, destdir)
 
         # Read the XML Hamiltonian files (and in so doing, write them in pkl format)
         screened_lambda = calc.read_ham_files()

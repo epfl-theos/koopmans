@@ -8,8 +8,8 @@ Written by Edward Linscott Sep 2020
 
 import os
 
-from ase import Atoms
-from ase.calculators.espresso import PW2Wannier
+from ase_koopmans import Atoms
+from ase_koopmans.calculators.espresso import PW2Wannier
 
 from koopmans.commands import ParallelCommand
 from koopmans.settings import PW2WannierSettingsDict

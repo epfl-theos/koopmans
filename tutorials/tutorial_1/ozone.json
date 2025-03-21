@@ -3,9 +3,11 @@
     "functional": "ki",
     "method": "dscf",
     "init_orbitals": "kohn-sham",
-    "from_scratch": true,
     "alpha_numsteps": 1,
-    "pseudo_library": "sg15"
+    "pseudo_library": "SG15/1.2/PBE/SR"
+  },
+  "engine": {
+    "from_scratch": true
   },
   "atoms": {
     "cell_parameters": {

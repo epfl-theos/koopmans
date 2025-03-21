@@ -29,8 +29,8 @@ dependencies = [
     "typing>=3.6",
     "pybtex>=0.24",
     "spglib>=1.9",
-    "upf-to-json>=0.9.5",
-    "ase-koopmans==0.1.6",
+    "upf-tools>=0.1.9",
+    "ase-koopmans==0.1.8",
     "scikit-learn>=1.0",
     "deepdiff>=5.8.1",
     "pydantic>=2.7.0",
@@ -50,6 +50,9 @@ test = [
     "hypothesis>=6.0.0",
     "pytest>=5.4",
     "pytest-cov>=2.9",
+    "types-PyYAML==6.0.12.20241230",
+    "pytest-console-scripts==1.4.1",
+    "pytest-dependency==0.6.0",
 ]
 docs = [
     "sphinx>=3.0",

@@ -1,42 +1,41 @@
 """
 Processes used during the machine learning workflows
 """
+from functools import partial
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
+from pydantic import ConfigDict
 
 import numpy as np
-from ase.cell import Cell
-from pydantic import ConfigDict
+from ase_koopmans.cell import Cell
 
 from koopmans import ml, utils
 from koopmans.bands import Band
-from koopmans.files import FilePointer
+from koopmans.files import File
 
 from ._process import IOModel, Process
 
 
 class ExtractCoefficientsFromXMLInput(IOModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
     n_max: int
     l_max: int
     r_min: float
     r_max: float
     r_cut: float
     wannier_centers: List[List[float]]
-    total_density_xml: FilePointer
+    total_density_xml: File
     cell: Cell
-    orbital_densities_xml: List[FilePointer]
+    orbital_densities_xml: List[File]
     bands: List[Band]
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ExtractCoefficientsFromXMLOutput(IOModel):
+    precomputed_alphas: File
+    precomputed_betas: File
+    total_coefficients: List[File]
+    orbital_coefficients: List[File]
     model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    precomputed_alphas: FilePointer
-    precomputed_betas: FilePointer
-    total_coefficients: List[FilePointer]
-    orbital_coefficients: List[FilePointer]
 
 
 class ExtractCoefficientsFromXMLProcess(Process):
@@ -53,40 +52,47 @@ class ExtractCoefficientsFromXMLProcess(Process):
         alphas, betas = ml.precompute_parameters_of_radial_basis(self.inputs.n_max, self.inputs.l_max,
                                                                  self.inputs.r_min, self.inputs.r_max)
 
-        # Save the parameters to file
+        # Save the parameters to files
         suffix = '_'.join(str(x) for x in [self.inputs.n_max, self.inputs.l_max, self.inputs.r_min, self.inputs.r_max])
-        alpha_file = Path(f'alphas_{suffix}.npy')
-        beta_file = Path(f'betas_{suffix}.npy')
-        alpha_filepointer = FilePointer(self, alpha_file)
-        beta_filepointer = FilePointer(self, beta_file)
-        utils.write_binary_content(alpha_file, alphas.tobytes())
-        utils.write_binary_content(beta_file, betas.tobytes())
+        assert self.directory is not None
+
+        alpha_file = File(self, f'alphas_{suffix}.npy')
+        alpha_file.write_bytes(alphas.tobytes())
+
+        beta_file = File(self, f'betas_{suffix}.npy')
+        beta_file.write_bytes(betas.tobytes())
 
         # Compute the decomposition
         orbital_files, total_files = ml.compute_decomposition(
-            alpha_file=alpha_filepointer, beta_file=beta_filepointer, **self.inputs.dict())
+            alpha_file=alpha_file, beta_file=beta_file,
+            **self.inputs.dict())
 
-        self.outputs = ExtractCoefficientsFromXMLOutput(precomputed_alphas=alpha_filepointer,
-                                                        precomputed_betas=beta_filepointer,
-                                                        total_coefficients=[FilePointer(self, f) for f in total_files],
-                                                        orbital_coefficients=[FilePointer(self, f) for f in orbital_files])
+        # Write the files
+        for name, content in list(orbital_files.items()) + list(total_files.items()):
+            dst = File(self, name)
+            if isinstance(content, bytes):
+                dst.write_bytes(content)
+            else:
+                dst.write_text(content)
+
+        self.outputs = ExtractCoefficientsFromXMLOutput(precomputed_alphas=alpha_file,
+                                                        precomputed_betas=beta_file,
+                                                        total_coefficients=[File(self, f)
+                                                                            for f in total_files.keys()],
+                                                        orbital_coefficients=[File(self, f) for f in orbital_files.keys()])
 
 
 class ComputePowerSpectrumInput(IOModel):
     n_max: int
     l_max: int
-    orbital_coefficients: FilePointer
-    total_coefficients: FilePointer
-
-    class Config:
-        arbitrary_types_allowed = True
+    orbital_coefficients: File
+    total_coefficients: File
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ComputePowerSpectrumOutput(IOModel):
-    power_spectrum: FilePointer
-
-    class Config:
-        arbitrary_types_allowed = True
+    power_spectrum: File
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 def read_coeff_matrix(coeff_orb: np.ndarray, coeff_tot: np.ndarray, n_max: int, l_max: int) -> np.ndarray:
@@ -135,13 +141,16 @@ class ComputePowerSpectrumProcess(Process):
         """
 
         # Load the coefficients from file
-        coeff_orb = np.frombuffer(utils.get_binary_content(*self.inputs.orbital_coefficients))
-        coeff_tot = np.frombuffer(utils.get_binary_content(*self.inputs.total_coefficients))
+        coeff_orb = np.frombuffer(self.inputs.orbital_coefficients.read_bytes())
+        coeff_tot = np.frombuffer(self.inputs.total_coefficients.read_bytes())
         coeff_matrix = read_coeff_matrix(coeff_orb, coeff_tot, self.inputs.n_max, self.inputs.l_max)
 
         # Compute the power spectrum
         power_mat = compute_power_mat(coeff_matrix, self.inputs.n_max, self.inputs.l_max)
 
         # Write the power spectrum to file
-        utils.write_binary_content('power_spectrum.npy', power_mat.tobytes())
-        self.outputs = self.output_model(power_spectrum=FilePointer(self, 'power_spectrum.npy'))
+        power_spectrum_file = File(self, Path('power_spectrum.npy'))
+        power_spectrum_file.write_bytes(power_mat.tobytes())
+
+        # Populate self.outputs
+        self.outputs = self.output_model(power_spectrum=power_spectrum_file)

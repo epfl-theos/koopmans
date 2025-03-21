@@ -15,6 +15,17 @@ from ._wann2kc import Wann2KCCalculator
 from ._wann2kcp import Wann2KCPCalculator
 from ._wannier90 import Wannier90Calculator
 
+ImplementedCalc = (EnvironCalculator,
+                   KoopmansCPCalculator,
+                   KoopmansHamCalculator,
+                   KoopmansScreenCalculator,
+                   ProjwfcCalculator,
+                   PWCalculator,
+                   PW2WannierCalculator,
+                   Wann2KCPCalculator,
+                   Wannier90Calculator,
+                   Wann2KCCalculator)
+
 Calc = Union[EnvironCalculator,
              KoopmansCPCalculator,
              KoopmansHamCalculator,
@@ -25,6 +36,8 @@ Calc = Union[EnvironCalculator,
              Wann2KCPCalculator,
              Wannier90Calculator,
              Wann2KCCalculator]
+
+# To replace with Calc = Union[*ImplementedCalc] when Python 3.11 becomes the minimum requirement
 
 CalcType = Union[Type[EnvironCalculator],
                  Type[KoopmansCPCalculator],

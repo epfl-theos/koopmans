@@ -1,8 +1,8 @@
 from typing import Any, Dict, List
 
-from ase.io.espresso import w2kcw_keys
+from ase_koopmans.io.espresso import w2kcw_keys
 
-from ._utils import SettingsDict, kc_wann_defaults
+from ._utils import SettingsDict, kcw_defaults
 
 
 class Wann2KCSettingsDict(SettingsDict):
@@ -17,7 +17,7 @@ class Wann2KCSettingsDict(SettingsDict):
                 flattened_kwargs[k] = v
 
         super().__init__(valid=[k for block in w2kcw_keys.values() for k in block],
-                         defaults={'calculation': 'wann2kcw', **kc_wann_defaults},
+                         defaults={'calculation': 'wann2kcw', **kcw_defaults},
                          are_paths=['outdir', 'pseudo_dir'],
                          **flattened_kwargs)
 
