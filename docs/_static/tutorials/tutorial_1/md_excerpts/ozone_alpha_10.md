@@ -1,0 +1,4 @@
+- **Orbital 10**
+  - ✅ `01-dft_n+1_dummy` completed  
+  - ✅ `02-pz_print` completed  
+  - ✅ `03-dft_n+1` completed  

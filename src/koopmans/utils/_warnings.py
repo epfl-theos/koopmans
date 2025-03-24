@@ -8,9 +8,12 @@ Written by Edward Linscott May 2020
 
 
 import sys
+import textwrap
 import traceback
 import warnings
 from typing import Optional, TextIO, Type, Union
+
+from ._io import indented_print, print_alert
 
 
 class CalculatorNotConvergedWarning(UserWarning):
@@ -20,9 +23,10 @@ class CalculatorNotConvergedWarning(UserWarning):
 def _warning(message: Union[str, Warning], category: Type[Warning] = UserWarning, filename: str = '',
              lineno: int = -1, file: Optional[TextIO] = None, line: Optional[str] = None) -> None:
     '''
-    Monkey-patching warnings.warn
+    Monkey-patching warnings.warn, with added aesthetics
     '''
-    print(f'{category.__name__}: {message}')
+
+    print_alert('warning', str(message))
 
 
 def _warn_with_traceback(message: Union[str, Warning], category: Type[Warning] = UserWarning, filename: str = '',

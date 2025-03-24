@@ -44,7 +44,7 @@ class Command(object):
         if isinstance(value, str):
             if value.startswith(('srun', 'mpirun')):
                 raise ValueError(
-                    'You tried to set the command for the serial calculator {self.__class__.__name__} with an MPI call')
+                    'You tried to set the command for the serial calculator `{self.__class__.__name__}` with an MPI call')
             [path_plus_executable, self.suffix] = value.split(' ', 1)
             if '/' in path_plus_executable:
                 path, self.executable = path_plus_executable.rsplit('/', 1)
@@ -53,7 +53,7 @@ class Command(object):
                 self.executable = path_plus_executable
                 self.path = Path()
         else:
-            raise NotImplementedError(f'{self.__class__.__name__} must be set via a string')
+            raise NotImplementedError(f'`{self.__class__.__name__}` must be set via a string')
 
     def __repr__(self):
         return ' '.join([str(self.path / self.executable), self.flags, self.suffix]).replace('  ', ' ')
@@ -98,9 +98,6 @@ class ParallelCommand(Command):
         self.mpi_command: str = ''
         super().__init__(*args, **kwargs)
 
-    def __get__(self):
-        return self.mpi_command + ' ' + super().__get__()
-
     def __set__(self, value: str):
         if isinstance(value, str):
             default_mpi_command = os.environ.get('PARA_PREFIX', None)
@@ -118,7 +115,7 @@ class ParallelCommand(Command):
                         i_command = i + 1
                         break
                 if i_command is None:
-                    raise ValueError(f'Failed to parse {value}')
+                    raise ValueError(f'Failed to parse `{value}`')
 
                 self.mpi_command = ' '.join(splitval[:i_command])
                 rest_of_command = ' '.join(splitval[i_command:])
@@ -130,7 +127,7 @@ class ParallelCommand(Command):
                 rest_of_command = value
             super().__set__(rest_of_command)
         else:
-            raise NotImplementedError(f'{self.__class__.__name__} must be set via a string')
+            raise NotImplementedError(f'`{self.__class__.__name__}` must be set via a string')
 
     def __repr__(self) -> str:
         return self.mpi_command + ' ' + super().__repr__()

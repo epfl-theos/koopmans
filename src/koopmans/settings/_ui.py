@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, List
 
 import numpy as np
-from ase.dft.kpoints import BandPath
+from ase_koopmans.dft.kpoints import BandPath
 
 from ._utils import Setting, SettingsDictWithChecks
 
@@ -21,7 +21,7 @@ valid_settings: List[Setting] = [
     Setting('w90_seedname',
             'w90_seedname must be equal to the seedname used in the previous Wannier90 calculation. The code '
             'will look for a file called w90_seedname.wout',
-            Path, None, None),
+            Path, Path('wannier90'), None),
     Setting('w90_calc',
             'Specifies the type of PW/Wannier90 calculation preceding the koopmans calculation. If the latter '
             'is done in a supercell at Gamma then w90_calc must be equal to \'sc\', otherwise if it comes from '
@@ -55,7 +55,10 @@ valid_settings: List[Setting] = [
     Setting('do_dos',
             'if True, the density-of-states is interpolated along the input kpath. The DOS is written to a '
             'file called "dos_interpolated.dat"',
-            bool, True, (True, False))]
+            bool, True, (True, False)),
+    Setting('num_wann', '', int, None, None),
+    Setting('num_wann_sc', '', int, None, None),
+    Setting('w90_input_sc', '', bool, False, (True, False))]
 
 
 class UnfoldAndInterpolateSettingsDict(SettingsDictWithChecks):

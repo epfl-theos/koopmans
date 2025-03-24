@@ -6,10 +6,22 @@
 
 # -- Path setup --------------------------------------------------------------
 
+# isort: off
+import locale
+
+locale.setlocale(locale.LC_ALL, 'C.UTF-8')  # noqa
+# isort: on
+
 import os
 import sys
+from calendar import month_name
+from datetime import date
 
+import pybtex.plugin
 import sphinx_rtd_theme
+from pybtex.style.formatting.plain import Style as PlainStyle
+from pybtex.style.formatting.unsrt import Style as UnsrtStyle
+from pybtex.style.sorting import BaseSortingStyle
 from sphinx_pyproject import SphinxConfig
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -32,9 +44,9 @@ language = "en"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['recommonmark', 'sphinx.ext.mathjax', 'sphinx.ext.autosectionlabel',
+extensions = ['sphinx.ext.mathjax', 'sphinx.ext.autosectionlabel',
               'sphinxcontrib.bibtex', 'sphinx_toolbox.collapse', 'sphinx.ext.autodoc',
-              'numpydoc', 'sphinx.ext.autosummary']
+              'numpydoc', 'sphinx.ext.autosummary', 'myst_parser']
 bibtex_bibfiles = ['../src/koopmans/references.bib']
 autosectionlabel_prefix_document = True
 
@@ -66,5 +78,36 @@ master_doc = 'index'
 
 # -- Autodoc options ----------------------------------------------------------
 autodoc_typehints = 'none'
-autodoc_mock_imports = ['ase']
+autodoc_mock_imports = ['ase', 'pydantic']
 numpydoc_show_class_members = False
+
+# -- Chronological bibliography style -----------------------------------------
+
+
+class ChronoSortingStyle(BaseSortingStyle):
+    def sort(self, entries):
+        def get_date(entry):
+            month_lookup = list(month_name)
+            year = int(entry.fields['year'])
+            default_month = month_lookup[0]
+            month = month_lookup.index(entry.fields.get('month', default_month))
+            return date(year, month, 1)
+        return sorted(entries, key=get_date)
+
+
+class MyChronoStyle(UnsrtStyle):
+    def __init__(self, *args, **kwargs):
+        kwargs.update(sorting_style=ChronoSortingStyle, abbreviate_names=True)
+        return super().__init__(*args, **kwargs)
+
+
+pybtex.plugin.register_plugin('pybtex.style.formatting', 'chrono', MyChronoStyle)
+
+
+class MyAbbrevPlainStyle(PlainStyle):
+    def __init__(self, *args, **kwargs):
+        kwargs.update(abbreviate_names=True)
+        return super().__init__(*args, **kwargs)
+
+
+pybtex.plugin.register_plugin('pybtex.style.formatting', 'plainabbrev', MyAbbrevPlainStyle)

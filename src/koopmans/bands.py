@@ -4,15 +4,17 @@ from typing import Dict, List, Optional, Union
 import numpy as np
 import pandas as pd
 
+from koopmans.files import File
 from koopmans.utils import indented_print, warn
 
 
 class Band(object):
     def __init__(self, index: Optional[int] = None, spin: int = 0, filled: bool = True, group: Optional[int] = None,
-                 alpha: Optional[float] = None, error: Optional[float] = None,
+                 alpha: Optional[float] = None, error: Optional[float] = None, predicted_alpha: Optional[float] = None,
                  self_hartree: Optional[float] = None,
                  spread: Optional[float] = None,
-                 center: Optional[np.ndarray] = None) -> None:
+                 center: Optional[np.ndarray] = None,
+                 power_spectrum: Optional[File] = None) -> None:
         self.index = index
         self.spin = spin
         self.filled = filled
@@ -21,9 +23,11 @@ class Band(object):
         self.error_history: List[float] = []
         self.alpha = alpha
         self.error = error
+        self.predicted_alpha = predicted_alpha
         self.self_hartree = self_hartree
         self.spread = spread
         self.center = center
+        self.power_spectrum = power_spectrum
 
     @classmethod
     def fromdict(cls, dct):
@@ -39,6 +43,11 @@ class Band(object):
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
         return dct
+
+    def __eq__(self, other):
+        if not isinstance(other, Band):
+            return False
+        return self.__dict__ == other.__dict__
 
     def __repr__(self) -> str:
         info = f'Band(index={self.index}, spin={self.spin}, filled={self.filled}, group={self.group}'
@@ -80,7 +89,7 @@ class Bands(object):
             self.n_bands = [n_bands for _ in range(n_spin)]
         else:
             if len(n_bands) != n_spin:
-                raise ValueError(f'n_bands = {n_bands} should have length matching n_spin = {n_spin}')
+                raise ValueError(f'`n_bands = {n_bands}` should have length matching `n_spin = {n_spin}`')
             self.n_bands = n_bands
         self.n_spin = n_spin
         self.spin_polarized = spin_polarized
@@ -161,7 +170,7 @@ class Bands(object):
             f'array of length {len(array)}'
         for i, (subarray, n_bands) in enumerate(zip(array, self.n_bands)):
             assert len(subarray) == n_bands, f'Bands.{array_name}[{i}] must be length {n_bands} but you provided an ' \
-                f'array with length {len(subarray)}'
+                f'array with length {len(subarray)}. The file_alpharef files should reflect the number of states in the supercell.'
 
     @property
     def filling(self) -> List[List[bool]]:
@@ -315,6 +324,14 @@ class Bands(object):
         for b, v in zip(self, [v for subarray in value for v in subarray]):
             b.self_hartree = v
 
+    @property
+    def predicted_alphas(self) -> List[List[float]]:
+        return [[b.predicted_alpha for b in self if b.spin == i_spin] for i_spin in range(self.n_spin)]
+
+    @property
+    def power_spectrum(self) -> List[List[float]]:
+        return [b.power_spectrum for b in self]
+
     def update_attrib_with_history(self, name: str, value: Union[float, List[List[float]], np.ndarray, pd.DataFrame],
                                    group=None) -> None:
         '''
@@ -370,36 +387,37 @@ class Bands(object):
     def update_errors(self, value, group=None):
         self.update_attrib_with_history('error', value)
 
-    def _create_dataframe(self, attr) -> pd.DataFrame:
+    def _create_dataframe(self, attr, spin=None, only_to_solve=True) -> pd.DataFrame:
         # Generate a dataframe containing the requested attribute, sorting the bands first by index, then by spin
-        if self.spin_polarized:
-            columns = pd.MultiIndex.from_tuples([(f'spin {b.spin}', b.index) for b in self])
-            band_subset = sorted(self, key=lambda x: (x.spin, x.index))
-        else:
-            columns = [b.index for b in self.get(spin=0)]
-            band_subset = self.get(spin=0)
+        if self.spin_polarized and spin is None:
+            if only_to_solve:
+                blist = self.to_solve
+            else:
+                blist = self
 
-        # Create an array of values padded with NaNs
-        arr = np.array(list(itertools.zip_longest(*[getattr(b, attr) for b in band_subset], fillvalue=np.nan)))
+            columns = pd.MultiIndex.from_tuples([(f'spin {b.spin}', b.index) for b in blist])
+            band_subset = sorted(blist, key=lambda x: (x.spin, x.index))
+        else:
+            spin = 0 if spin is None else spin
+            columns = [b.index for b in self.get(spin=spin, to_solve=only_to_solve)]
+            band_subset = self.get(spin=spin, to_solve=only_to_solve)
+
+        if isinstance(getattr(band_subset[0], attr), list):
+            # Create an array of values padded with NaNs
+            arr = np.array(list(itertools.zip_longest(*[getattr(b, attr) for b in band_subset], fillvalue=np.nan)))
+        else:
+            arr = np.array([[getattr(b, attr) for b in band_subset]])
         if arr.size == 0:
             df = pd.DataFrame(columns=columns)
         else:
             df = pd.DataFrame(arr, columns=columns)
         return df
 
-    @property
-    def alpha_history(self) -> List[pd.DataFrame]:
-        return self._create_dataframe('alpha_history')
+    def alpha_history(self, spin=None) -> pd.DataFrame:
+        return self._create_dataframe('alpha_history', spin=spin)
 
-    @property
-    def error_history(self):
-        return self._create_dataframe('error_history')
+    def error_history(self, spin=None) -> pd.DataFrame:
+        return self._create_dataframe('error_history', spin=spin)
 
-    def print_history(self, indent: int = 0):
-        # Printing out a progress summary
-        indented_print(f'\nalpha', indent=indent)
-        indented_print(str(self.alpha_history), indent=indent)
-        if not self.error_history.empty:
-            indented_print(f'\nDelta E_i - epsilon_i (eV)', indent=indent)
-            indented_print(str(self.error_history), indent=indent)
-        indented_print('')
+    def predicted_alpha_history(self, spin=None) -> pd.DataFrame:
+        return self._create_dataframe('predicted_alpha', spin=spin)

@@ -11,9 +11,10 @@ import copy
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
-from ase.cell import Cell
-from ase.dft.kpoints import (BandPath, kpoint_convert, parse_path_string,
-                             resolve_kpt_path_string)
+from ase_koopmans.cell import Cell
+from ase_koopmans.dft.kpoints import (BandPath, kpoint_convert,
+                                      parse_path_string,
+                                      resolve_kpt_path_string)
 
 
 class Kpoints:
@@ -27,6 +28,9 @@ class Kpoints:
     offset : List[int]
         a list of three integers, either zero or one. If one, the regular k-point grid is offset by half a grid step
         in that dimension
+    offset_nscf : Union[List[Union[int, float]]], int, float]
+        a list of three numbers, within the interval (-1, 1].
+        It has the same meaning of offset, but it is applied only to the grid of PWnscf calculations. Additionally it allows to provide explicitly any fractional offset.
     path : ase.dft.kpoints.BandPath
         an ASE ``BandPath`` object specifying the k-path as defined by the special points of the Bravais
         lattice
@@ -36,10 +40,12 @@ class Kpoints:
 
     _grid: Optional[List[int]]
     _offset: Optional[List[int]]
+    _offset_nscf: Optional[Union[List[Union[int, float]], int, float]]
     _path: Optional[BandPath]
     gamma_only: bool
 
     def __init__(self, grid: Optional[List[int]] = [1, 1, 1], offset: Optional[List[int]] = [0, 0, 0],
+                 offset_nscf: Optional[Union[List[Union[int, float]], int, float]] = None,
                  path: Optional[Union[str, BandPath]] = None, gamma_only: bool = False, cell: Optional[Cell] = None,
                  density: float = 10.0):
         """
@@ -54,13 +60,15 @@ class Kpoints:
         self.gamma_only = gamma_only
 
         if gamma_only:
-            if grid:
-                raise ValueError(f'gamma_only = {gamma_only} and grid != None are incompatible')
+            if grid and not grid == [1, 1, 1]:
+                raise ValueError(f'`gamma_only = {gamma_only}` and `grid != None` are incompatible')
             self.grid = None
             self.offset = [0, 0, 0]
+            self.offset_nscf = None
         else:
             self.grid = grid
             self.offset = offset
+            self.offset_nscf = offset_nscf
 
         self.set_path(path, cell, density)
 
@@ -98,10 +106,32 @@ class Kpoints:
     def offset(self, value: Optional[List[int]]):
         if isinstance(value, list):
             if len(value) != 3:
-                raise ValueError('"offset" must be a list of three integers')
+                raise ValueError('`offset` must be a list of three integers')
             if any([x not in [0, 1] for x in value]):
-                raise ValueError('"offset" must only contain either 0 or 1s')
+                raise ValueError('`offset` must only contain either `0` or `1`s')
         self._offset = value
+
+    @property
+    def offset_nscf(self) -> Optional[Union[List[Union[int, float]], int, float]]:
+        return self._offset_nscf
+
+    @offset_nscf.setter
+    def offset_nscf(self, value: Optional[Union[List[Union[int, float]], int, float]]):
+        if isinstance(value, list):
+            if len(value) != 3:
+                raise ValueError('`offset` must be a list of three numbers')
+            if any([k <= -1 or k > 1 for k in value]):
+                raise ValueError('`offset_nscf` elements take values within (-1, 1]')
+            if all([k - int(k) == 0 for k in value]):
+                self._offset_nscf = [int(k) for k in value]
+            else:
+                self._offset_nscf = value
+        elif isinstance(value, (int, float)):
+            self._offset_nscf = int(value) if value - int(value) == 0 else value
+        elif value is None:
+            self._offset_nscf = value
+        else:
+            raise ValueError('`offset_nscf` must be a number or a list of three numbers')
 
     @property
     def path(self) -> Optional[BandPath]:
@@ -110,7 +140,7 @@ class Kpoints:
     @path.setter
     def path(self, value: Optional[BandPath]):
         if isinstance(value, str):
-            raise ValueError('To set Kpoints.path with a string, please use Kpoints.set_path()')
+            raise ValueError('To set `Kpoints.path` with a string, please use `Kpoints.set_path()`')
         self._path = value
 
     def set_path(self, path: Optional[Union[str, BandPath]], cell: Optional[Cell] = None, density: float = 10.0):
@@ -119,7 +149,7 @@ class Kpoints:
             # Convert the string to a BandPath object
             if cell is None:
                 raise ValueError(
-                    'To set the path of a Kpoints object with a string, please provide a value for "cell"')
+                    'To set the path of a `Kpoints` object with a string, please provide a value for `cell`')
             path = convert_kpath_str_to_bandpath(path, cell, density)
         self.path = path
 

@@ -13,8 +13,8 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
         settings = [
             Setting('task',
                     'Task to perform',
-                    str, 'singlepoint', ('singlepoint', 'convergence', 'wannierize', 'environ_dscf', 'ui',
-                                         'dft_bands', 'dft_eps', 'trajectory', 'convergence_ml')),
+                    str, 'singlepoint', ('singlepoint', 'convergence', 'wannierize', 'ui',
+                                         'dft_bands', 'dft_eps', 'trajectory')),
             Setting('functional',
                     'orbital-density-dependent-functional/density-functional to use',
                     str, 'ki', ('ki', 'kipz', 'pkipz', 'dft', 'all')),
@@ -88,13 +88,6 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'if True, uses the file_alpharef.txt from the base directory as a '
                     'starting guess',
                     bool, False, (True, False)),
-            Setting('from_scratch',
-                    'if True, will delete any preexisting workflow and start again; '
-                    'if False, will resume a workflow from where it was last up to',
-                    bool, True, (True, False)),
-            Setting('keep_tmpdirs',
-                    'If False, delete all of the temporary directories at the end of the calculation',
-                    bool, True, (True, False)),
             Setting('orbital_groups',
                     'a list of integers the same length as the total number of bands, '
                     'denoting which bands to assign the same screening parameter to',
@@ -108,16 +101,10 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     'when calculating alpha parameters, the code will group orbitals '
                     'together only if their spread is within this threshold',
                     float, None, None),
-            Setting('convergence_observable',
-                    'System observable of interest which we converge',
-                    str, 'total energy', None),
-            Setting('convergence_threshold',
-                    'Convergence threshold for the system observable of interest',
-                    (str, float), None, None),
-            Setting('convergence_parameters',
-                    'The observable of interest will be converged with respect to this/these '
-                    'simulation parameter(s)',
-                    (list, str), ['ecutwfc'], None),
+            Setting('converge',
+                    'If True, repeat the workflow increasing the convergence_parameters until the '
+                    'convergence_observable converges within the convergence_threshold',
+                    bool, False, (True, False)),
             Setting('dfpt_coarse_grid',
                     'The coarse k-point grid on which to perform the DFPT calculations',
                     list, None, None),
@@ -131,7 +118,7 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
         # Defer storing init_empty_orbitals...
         init_empty_orbitals = kwargs.pop('init_empty_orbitals', 'same')
 
-        super().__init__(settings=settings, physicals=['alpha_conv_thr', 'convergence_threshold'], **kwargs)
+        super().__init__(settings=settings, physicals=['alpha_conv_thr'], **kwargs)
 
         # ... until we are sure that init_orbitals has been defined
         self.init_empty_orbitals = init_empty_orbitals

@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any, Dict
 
-from ase.io.espresso import kcp_keys
+from ase_koopmans.io.espresso import kcp_keys
 
 from ._utils import IbravDict, SettingsDict
 

@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from ase.dft.kpoints import BandPath
+from ase_koopmans.dft.kpoints import BandPath
 from hypothesis import given, settings
 
 from koopmans.kpoints import Kpoints, dict_to_kpath, kpath_to_dict

@@ -1,9 +1,10 @@
 from typing import Any
 
 import numpy as np
-from ase.dft.kpoints import BandPath
-from ase.io.wannier90 import (construct_kpoint_path, formatted_str_to_list,
-                              proj_string_to_dict)
+from ase_koopmans.dft.kpoints import BandPath, monkhorst_pack
+from ase_koopmans.io.wannier90 import (construct_kpoint_path,
+                                       formatted_str_to_list,
+                                       proj_string_to_dict)
 
 from ._utils import SettingsDict
 
@@ -17,7 +18,8 @@ class Wannier90SettingsDict(SettingsDict):
                                 'bands_plot', 'mp_grid', 'kpoint_path', 'projections', 'write_hr',
                                 'write_u_matrices', 'write_xyz', 'wannier_plot', 'wannier_plot_list',
                                 'gamma_only', 'spin', 'use_ws_distance', 'translate_home_cell',
-                                'translation_centre_frac', 'auto_projections', 'dis_proj_max'],
+                                'translation_centre_frac', 'auto_projections', 'dis_proj_max',
+                                'write_tb'],
                          defaults={'num_iter': 10000, 'conv_tol': 1.e-10, 'conv_window': 5,
                                    'write_hr': True, 'guiding_centres': True, 'gamma_only': False,
                                    'auto_projections': False},
@@ -32,7 +34,7 @@ class Wannier90SettingsDict(SettingsDict):
 
     @property
     def _other_valid_keywords(self):
-        return ['kgrid', 'kpath']
+        return ['kgrid', 'koffset', 'kpath']
 
     def __setitem__(self, key: str, value: Any):
         if key == 'kgrid':
@@ -55,6 +57,16 @@ class Wannier90SettingsDict(SettingsDict):
             kpts /= value
             kpts[kpts >= 0.5] -= 1
             self.kpoints = kpts
+        elif key == 'koffset':
+            if self.mp_grid is None:
+                raise ValueError('Cannot offset the list of k-points if `kpoints` has not been defined yet. ' +
+                                 'Check that `kgrid` is provided before `koffset`')
+            if isinstance(value, int) or isinstance(value, list) and all([isinstance(k, int) for k in value]):
+                # For koffset = [1, 1, 1], PW shifts the k-grid by half a grid step
+                self.kpoints += np.array(value) / self.mp_grid / 2
+            else:
+                # For a generic non-integer offset, we apply it as it is
+                self.kpoints = monkhorst_pack(self.mp_grid) + np.array(value)
         elif key == 'kpath':
             # Wannier90 calls the kpath "kpoint_path'. Furthermore, in Wannier90 the length of this BandPath is
             # specified by bands_plot_num, so we must adjust the input accordingly
@@ -79,7 +91,7 @@ class Wannier90SettingsDict(SettingsDict):
                     assert isinstance(v, dict)
                     for k in v.keys():
                         if k not in ['site', 'csite', 'fsite', 'ang_mtm', 'zaxis', 'xaxis', 'radial', 'zona']:
-                            raise KeyError(f'Unrecognized key {k} in the w90 projections block')
+                            raise KeyError(f'Unrecognized key `{k}` in the w90 projections block')
                     value[i] = v
             if key == 'exclude_bands' and isinstance(value, str):
                 value = formatted_str_to_list(value)

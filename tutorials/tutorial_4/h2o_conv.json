@@ -1,16 +1,21 @@
 {
     "workflow": {
         "functional": "dft",
-        "task": "convergence",
-        "from_scratch": true,
-        "convergence_observable": "homo energy",
-        "convergence_threshold": "0.01 eV",
-        "convergence_parameters": [
-            "ecutwfc",
-            "cell_size"
-        ],
+        "task": "singlepoint",
+        "converge": true,
         "fix_spin_contamination": false,
-        "pseudo_library": "sg15_v1.0"
+        "pseudo_library": "SG15/1.0/PBE/SR"
+    },
+    "engine": {
+        "from_scratch": true
+    },
+    "convergence": {
+        "observable": "homo energy",
+        "threshold": "0.01 eV",
+        "variables": [
+            "ecutwfc",
+            "celldm1"
+        ]
     },
     "atoms": {
         "atomic_positions": {

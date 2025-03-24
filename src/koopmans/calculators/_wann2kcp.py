@@ -8,13 +8,13 @@ Written by Riccardo De Gennaro Mar 2022
 
 import os
 
-from ase import Atoms
-from ase.calculators.espresso import Wann2KCP
+from ase_koopmans import Atoms
+from ase_koopmans.calculators.espresso import Wann2KCP
 
 from koopmans.commands import ParallelCommand
 from koopmans.settings import Wann2KCPSettingsDict
 
-from ._utils import CalculatorABC, CalculatorExt
+from ._calculator import CalculatorABC, CalculatorExt
 
 
 class Wann2KCPCalculator(CalculatorExt, Wann2KCP, CalculatorABC):

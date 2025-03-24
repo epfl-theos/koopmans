@@ -8,13 +8,13 @@ Written by Edward Linscott Feb 2021
 
 import os
 
-from ase import Atoms
-from ase.calculators.espresso import Wann2KC
+from ase_koopmans import Atoms
+from ase_koopmans.calculators.espresso import Wann2KC
 
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.settings import Wann2KCSettingsDict
 
-from ._utils import CalculatorABC, KCWannCalculator
+from ._calculator import CalculatorABC, KCWannCalculator
 
 
 class Wann2KCCalculator(KCWannCalculator, Wann2KC, CalculatorABC):

@@ -11,16 +11,18 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np
-from ase import Atoms
-from ase.calculators.espresso import Projwfc
-from ase.spectrum.doscollection import GridDOSCollection
-from ase.spectrum.dosdata import GridDOSData
+from ase_koopmans import Atoms
+from ase_koopmans.calculators.espresso import Projwfc
+from ase_koopmans.spectrum.doscollection import GridDOSCollection
+from ase_koopmans.spectrum.dosdata import GridDOSData
+from upf_tools import UPFDict
 
 from koopmans import pseudopotentials
 from koopmans.commands import Command, ParallelCommand
+from koopmans.files import File
 from koopmans.settings import ProjwfcSettingsDict
 
-from ._utils import CalculatorABC, CalculatorExt
+from ._calculator import CalculatorABC, CalculatorExt
 
 
 class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
@@ -31,6 +33,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
     def __init__(self, atoms: Atoms, *args, **kwargs):
         # Define the valid settings
         self.parameters = ProjwfcSettingsDict()
+        self.parent_process = None
 
         # Initialize first using the ASE parent and then CalculatorExt
         Projwfc.__init__(self, atoms=atoms)
@@ -45,16 +48,19 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
 
         # These must be provided post-initialization (because we want to be allowed to initialize the calculator)
         # without providing these arguments
-        self.pseudopotentials: Optional[Dict[str, str]] = None
+        self.pseudopotentials: Optional[Dict[str, UPFDict]] = None
         self.pseudo_dir: Optional[Path] = None
         self.spin_polarized: Optional[bool] = None
 
-    def _calculate(self):
+    def _pre_calculate(self):
+        super()._pre_calculate()
         for attr in ['pseudopotentials', 'pseudo_dir', 'spin_polarized']:
             if not hasattr(self, attr):
-                raise ValueError(f'Please set {self.__class__.__name__}.{attr} before calling '
-                                 f'{self.__class__.__name__.calculate()}')
-        super()._calculate()
+                raise ValueError(f'Please set `{self.__class__.__name__}.{attr}` before calling '
+                                 f'`{self.__class__.__name__}calculate()`')
+
+    def _post_calculate(self):
+        super()._post_calculate()
         self.generate_dos()
 
     @property
@@ -63,7 +69,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         Generates a list of orbitals (e.g. 1s, 2s, 2p, ...) expected for each element in the system, based on the
         corresponding pseudopotential.
         """
-        return pseudopotentials.expected_subshells(self.atoms, self.pseudopotentials, self.pseudo_dir)
+        return pseudopotentials.expected_subshells(self.atoms, self.pseudopotentials)
 
     def generate_dos(self) -> GridDOSCollection:
         """
@@ -71,14 +77,16 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         """
         dos_list = []
         for atom in self.atoms:
-            filenames = sorted(self.directory.glob(self.parameters.filpdos + f'.pdos_atm#{atom.index+1}(*'))
+            parent_directory = File(self, Path())
+            filenames = sorted(parent_directory.glob(pattern=self.parameters.filpdos + f'.pdos_atm#{atom.index+1}(*'))
             # The filename does not encode the principal quantum number n. In order to recover this number, we compare
             # the reported angular momentum quantum number l against the list of expected orbitals, and infer n
             # assuming only that the file corresponding to nl will come before (n+1)l
-            orbitals = copy.copy(self._expected_orbitals[atom.symbol])
+            label = atom.symbol + str(atom.tag) if atom.tag > 0 else atom.symbol
+            orbitals = copy.copy(self._expected_orbitals[label])
             for filename in filenames:
                 # Infer l from the filename
-                subshell = filename.name[-2]
+                subshell = filename.name.name[-2]
                 # Find the orbital with matching l with the smallest n
                 orbital = [o for o in orbitals if o[-1] == subshell][0]
                 orbitals.remove(orbital)
@@ -89,22 +97,24 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         #  add pDOS to self.results
         self.results['dos'] = GridDOSCollection(dos_list)
 
-    def read_pdos(self, filename: Path, expected_subshell: str) -> List[GridDOSData]:
+    def read_pdos(self, filename: File, expected_subshell: str) -> List[GridDOSData]:
         """
         Function for reading a pDOS file
         """
 
         # Read the file contents
-        with open(filename, 'r') as fd:
-            flines = fd.readlines()
+        assert self.engine is not None
+        content = self.engine.read_file(filename)
+        assert isinstance(content, str)
+        flines = content.split('\n')
 
         # Parse important information from the filename
-        [_, index, symbol, _, _, subshell, _] = re.split(r"#|\(|\)", filename.name)
+        [_, index, symbol, _, _, subshell, _] = re.split(r"#|\(|\)", filename.name.name)
 
         # Compare against the expected subshell
         if subshell != expected_subshell[1]:
             raise ValueError(
-                f"Unexpected pdos file {filename.name}, a pdos file corresponding to {expected_subshell} was expected")
+                f"Unexpected pdos file `{filename.name.name}`, a pdos file corresponding to {expected_subshell} was expected")
 
         # Work out what orbitals will be contained within the pDOS file
         orbital_order = {"s": ["s"], "p": ["pz", "px", "py"], "d": ["dz2", "dxz", "dyz", "dx2-y2", "dxy"]}
@@ -117,7 +127,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         orbitals = [(o, spin) for o in orbital_order[subshell] for spin in spins]
 
         # Parse the rest of the file
-        data = np.array([l.split() for l in flines[1:]], dtype=float).transpose()
+        data = np.array([l.split() for l in flines[1:-1]], dtype=float).transpose()
         energy = data[0]
 
         # Looping over each pDOS in the file...

@@ -9,5 +9,6 @@ This section contains a brief introduction to Koopmans functionals.
     theory/ingredients
     theory/workflows
     theory/limitations
+    theory/related_methods
 
 For more details, refer to our various :ref:`publications <references:references>`.

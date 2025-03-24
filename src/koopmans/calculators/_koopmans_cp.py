@@ -14,20 +14,22 @@ import os
 import pickle
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
-from ase import Atoms
-from ase.calculators.espresso import Espresso_kcp
-from ase.io.espresso import cell_to_ibrav
+from ase_koopmans import Atoms
+from ase_koopmans.calculators.espresso import Espresso_kcp
+from ase_koopmans.io.espresso import cell_to_ibrav
 from pandas.core.series import Series
 from scipy.linalg import block_diag
 
 from koopmans import bands, pseudopotentials, settings, utils
 from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.commands import ParallelCommand
+from koopmans.files import File
 
-from ._utils import CalculatorABC, CalculatorCanEnforceSpinSym, CalculatorExt
+from ._calculator import (CalculatorABC, CalculatorCanEnforceSpinSym,
+                          CalculatorExt)
 
 
 def allowed(nr: int) -> bool:
@@ -63,7 +65,7 @@ def good_fft(nr: int) -> int:
     return nr
 
 
-def read_ham_file(filename: Path) -> np.ndarray[Any, np.dtype[np.cfloat]]:
+def read_ham_file(filename: Path) -> np.ndarray[Any, np.dtype[np.complex128]]:
     # Read a single hamiltonian XML file
     if not filename.exists():
         raise FileNotFoundError(f'{filename} does not exist')
@@ -77,7 +79,7 @@ def read_ham_file(filename: Path) -> np.ndarray[Any, np.dtype[np.cfloat]]:
     assert ham_xml.text is not None, f'{filename} is empty'
 
     ham_array = np.array([complex(*[float(x) for x in line.split(',')])
-                          for line in ham_xml.text.strip().split('\n')], dtype=np.cfloat) * utils.units.Hartree
+                          for line in ham_xml.text.strip().split('\n')], dtype=np.complex128) * utils.units.Hartree
 
     return ham_array.reshape((length, length))
 
@@ -89,6 +91,9 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
     def __init__(self, atoms: Atoms, alphas: Optional[List[List[float]]] = None,
                  filling: Optional[List[List[bool]]] = None, **kwargs):
+
+        self.parent_process = None
+
         # Define the valid parameters
         self.parameters = settings.KoopmansCPSettingsDict()
 
@@ -98,8 +103,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         # Add nelec, nelup, neldw if they are missing
         if 'nelec' not in self.parameters and 'pseudopotentials' in self.parameters:
-            self.parameters.nelec = pseudopotentials.nelec_from_pseudos(
-                self.atoms, self.parameters.pseudopotentials, self.parameters.pseudo_dir)
+            self.parameters.nelec = pseudopotentials.nelec_from_pseudos(self.atoms, self.parameters.pseudopotentials)
         if 'nelec' in self.parameters:
             if 'nelup' not in self.parameters:
                 self.parameters.nelup = self.parameters.nelec // 2
@@ -119,16 +123,19 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # koopmans.workflows._koopmans_dscf.py for more details)
         self.fixed_band: Optional[bands.Band] = None
 
-    def calculate(self):
-        # kcp.x imposes nelup >= neldw, so if we try to run a calcualtion with neldw > nelup, swap the spin channels
-        if self.parameters.nspin == 2:
-            spin_channels_are_swapped = self.parameters.nelup < self.parameters.neldw
-        else:
-            spin_channels_are_swapped = False
+        # Create a private attribute to keep track of whether the spin channels have been swapped
+        self._spin_channels_are_swapped: bool = False
 
-        # Swap the spin channels
-        if spin_channels_are_swapped:
-            self._swap_spin_channels()
+    def _pre_calculate(self):
+        # kcp.x imposes nelup >= neldw, so if we try to run a calcualtion with neldw > nelup, swap the spin channels
+        # This needs to happen before super()._pre_calculate() because this is when the linked files are fetched
+        if self.parameters.nspin == 2:
+            self._spin_channels_are_swapped = self.parameters.nelup < self.parameters.neldw
+            # Swap the spin channels if required
+            if self._spin_channels_are_swapped:
+                self._swap_spin_channels()
+
+        super()._pre_calculate()
 
         # Write out screening parameters to file
         if self.parameters.get('do_orbdep', False):
@@ -143,7 +150,9 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # Autogenerate the nr keywords
         self._autogenerate_nr()
 
-        super().calculate()
+    def _post_calculate(self):
+
+        super()._post_calculate()
 
         # Check spin-up and spin-down eigenvalues match
         if 'eigenvalues' in self.results and self.parameters.do_outerloop \
@@ -154,7 +163,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 utils.warn('Spin-up and spin-down eigenvalues differ substantially')
 
         # Swap the spin channels back
-        if spin_channels_are_swapped:
+        if self._spin_channels_are_swapped:
             self._swap_spin_channels()
 
     def _swap_spin_channels(self):
@@ -179,6 +188,28 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         self.parameters.nelup, self.parameters.neldw = self.parameters.neldw, self.parameters.nelup
         self.parameters.tot_magnetization *= -1
 
+        # Linked files
+
+        # First, recurse over the linked files and replace directories with their contents
+        new_files = {}
+        for key in list(self.linked_files.keys()):
+            dst_filepointer, sym, rsym, force = self.linked_files[key]
+            if dst_filepointer.is_dir():
+                self.linked_files.pop(key)
+                for subfile in dst_filepointer.rglob('*'):
+                    if subfile.is_dir():
+                        continue
+                    self.linked_files[str(subfile.name)] = (subfile, rsym, False, force)
+
+        # Now iterate over the linked files and swap any pairs of spin up/down files
+        for dst_file in self.linked_files:
+            if dst_file.endswith('1.dat'):
+                other_dst_file = dst_file.replace('1.dat', '2.dat')
+                if other_dst_file not in self.linked_files:
+                    raise FileNotFoundError(f'Expected {other_dst_file} to be linked to the {self.prefix} calculator')
+                # Switch the links
+                self.linked_files[dst_file], self.linked_files[other_dst_file] = self.linked_files[other_dst_file], self.linked_files[dst_file]
+
         # alphas and filling
         self.alphas = self.alphas[::-1]
         self.filling = self.filling[::-1]
@@ -190,23 +221,6 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             if key in self.results:
                 self.results[key] = self.results[key][::-1]
 
-        # Input and output files
-        for nd in [self.parameters.ndr, self.parameters.ndw]:
-            outdir = self.parameters.outdir / f'{self.parameters.prefix}_{nd}.save/K00001'
-
-            for fpath_1 in outdir.glob('*1.*'):
-                # Swap the two files around
-                fpath_tmp = fpath_1.parent / fpath_1.name.replace('1', 'tmp')
-                fpath_2 = fpath_1.parent / fpath_1.name.replace('1', '2')
-
-                if not fpath_2.exists():
-                    raise FileNotFoundError(
-                        'Error in {self.__class__.__name__}._swap_spin_channels: I expected {fpath_2} to exist')
-
-                fpath_1.replace(fpath_tmp)
-                fpath_2.replace(fpath_1)
-                fpath_tmp.replace(fpath_2)
-
     def _autogenerate_nr(self):
         '''
         For norm-conserving pseudopotentials the small box grid (nr1b, nr2b, nr3b) is needed in case the pseudo has
@@ -215,7 +229,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         has_nlcc = False
         for p in self.parameters.pseudopotentials.values():
-            upf = pseudopotentials.read_pseudo_file(self.parameters.pseudo_dir / p)
+            upf = pseudopotentials.read_pseudo_file(self.directory / self.parameters.pseudo_dir / p)
             if upf['header']['core_correction']:
                 has_nlcc = True
         if has_nlcc and (self.parameters.nr1b is None or self.parameters.nr2b is None or self.parameters.nr3b is None):
@@ -251,11 +265,11 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             self.parameters.nr2b = good_fft(nr2b)
             self.parameters.nr3b = good_fft(nr3b)
 
-            utils.warn('Small box parameters "nrb" not provided in input: these will be automatically set to safe '
+            utils.warn('Small box parameters `nrb` not provided in input: these will be automatically set to safe '
                        'default values. These values can probably be decreased, but this would require convergence '
-                       f'tests.\n   Estimated real mesh dimension (nr1, nr2, nr3) = {nr1} {nr2} {nr3} \n   Small box '
-                       f'mesh dimension (nr1b, nr2b, nr3b) = {self.parameters.nr1b} {self.parameters.nr2b} '
-                       f'{self.parameters.nr3b}\n')
+                       f'tests. Estimated real mesh dimension `(nr1, nr2, nr3) = {nr1} {nr2} {nr3}`. Small box '
+                       f'mesh dimension `(nr1b, nr2b, nr3b) = {self.parameters.nr1b} {self.parameters.nr2b} '
+                       f'{self.parameters.nr3b}`.')
 
     def is_complete(self) -> bool:
         return self.results.get('job_done', False)
@@ -263,7 +277,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
     def is_converged(self) -> bool:
         # Checks convergence of the calculation
         if 'conv_thr' not in self.parameters:
-            raise ValueError('Cannot check convergence when "conv_thr" is not set')
+            raise ValueError('Cannot check convergence when `conv_thr` is not set')
 
         if 'convergence' not in self.results:
             raise ValueError('Could not locate calculation details to check convergence')
@@ -286,7 +300,8 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
     def read_ham_xml_files(self, bare=False) -> List[np.ndarray]:
         # Reads all expected hamiltonian XML files
-        ham_dir = self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndw}.save/K00001'
+        ham_dir = self.directory / self.parameters.outdir / \
+            f'{self.parameters.prefix}_{self.parameters.ndw}.save/K00001'
         ham_matrix: List[np.ndarray] = []
 
         for ispin in range(1, self.parameters.nspin + 1):
@@ -333,6 +348,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return ham_matrix
 
     def _ham_pkl_file(self, bare: bool = False) -> Path:
+        assert self.directory is not None
         if bare:
             suffix = '.bare_ham.pkl'
         else:
@@ -371,7 +387,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
     @property
     def alphas(self) -> List[List[float]]:
         if not hasattr(self, '_alphas'):
-            raise AttributeError(f'{self}.alphas has not been initialized')
+            raise AttributeError(f'`{self}.alphas` has not been initialized')
         return self._alphas
 
     @alphas.setter
@@ -427,7 +443,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         flat_alphas = [a for sublist in self.alphas for a in sublist]
         flat_filling = [f for sublist in self.filling for f in sublist]
-        utils.write_alpha_file(self.directory, flat_alphas, flat_filling)
+        utils.write_alpha_file(self, flat_alphas, flat_filling)
 
     def read_alphas(self) -> List[List[float]]:
         '''
@@ -440,7 +456,8 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         if not self.parameters.do_orbdep or not self.parameters.odd_nkscalfact:
             return [[]]
 
-        flat_alphas = utils.read_alpha_file(self.directory)
+        assert self.directory is not None
+        flat_alphas = utils.read_alpha_file(self)
 
         assert isinstance(self.parameters, settings.KoopmansCPSettingsDict)
 
@@ -462,7 +479,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         elif kpt == 0:
             return self.results['eigenvalues'][spin]
         else:
-            raise ValueError(f'{self.__class__.__name__} does not have k-point-resolved KS eigenvalues')
+            raise ValueError(f'`{self.__class__.__name__}` does not have k-point-resolved KS eigenvalues')
 
     def get_fermi_level(self):
         return 0
@@ -483,7 +500,13 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return self.parameters.nbnd > nel
 
     def nspin1_dummy_calculator(self) -> KoopmansCPCalculator:
+        self.parent_process, parent_process = None, self.parent_process
+        self.linked_files, linked_files = {}, self.linked_files
         calc = copy.deepcopy(self)
+        calc.linked_files = linked_files
+        self.linked_files = linked_files
+        self.parent_process = parent_process
+        calc.parent_process = parent_process
         calc.prefix += '_nspin1_dummy'
         calc.parameters.do_outerloop = False
         calc.parameters.do_outerloop_empty = False
@@ -500,7 +523,13 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return calc
 
     def nspin1_calculator(self) -> KoopmansCPCalculator:
+        self.parent_process, parent_process = None, self.parent_process
+        self.linked_files, linked_files = {}, self.linked_files
         calc = copy.deepcopy(self)
+        calc.linked_files = linked_files
+        self.linked_files = linked_files
+        calc.parent_process = parent_process
+        self.parent_process = parent_process
         calc.prefix += '_nspin1'
         calc.parameters.nspin = 1
         calc.parameters.nelup = None
@@ -531,69 +560,62 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
     def from_scratch(self):
         return self.parameters.restart_mode == 'from_scratch'
 
-    def convert_wavefunction_2to1(self):
-        nspin2_tmpdir = self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndr}.save/K00001'
-        nspin1_tmpdir = self.parameters.outdir / f'{self.parameters.prefix}_98.save/K00001'
-
-        for directory in [nspin2_tmpdir, nspin1_tmpdir]:
-            if not directory.is_dir():
-                raise OSError(f'{directory} not found')
-
-        for wfile in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
-                      'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat', 'lambdam1.dat']:
-            if '1.' in wfile:
-                prefix, suffix = wfile.split('1.')
+    @property
+    def files_to_convert_with_spin2_to_spin1(self) -> Dict[str, List[File] | List[Path]]:
+        nspin_2_files = []
+        nspin_1_files = []
+        for f in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
+                  'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat', 'lambdam1.dat']:
+            if '1.' in f:
+                prefix, suffix = f.split('1.')
             else:
-                prefix, suffix = wfile.split('.')
+                prefix, suffix = f.split('.')
 
-            file_out = nspin1_tmpdir / wfile
-            file_in = nspin2_tmpdir / f'{prefix}1.{suffix}'
+            nspin_2_file = self.read_directory / 'K00001' / f'{prefix}1.{suffix}'
+            if nspin_2_file.exists():
+                nspin_2_files.append(nspin_2_file)
+                nspin_1_files.append(Path(f))
 
-            if file_in.is_file():
+        return {'spin_2_files': nspin_2_files, 'spin_1_files': nspin_1_files}
 
-                with open(file_in, 'rb') as fd:
-                    contents = fd.read()
+    @property
+    def files_to_convert_with_spin1_to_spin2(self):
 
-                contents = contents.replace(b'nk="2"', b'nk="1"')
-                contents = contents.replace(b'nspin="2"', b'nspin="1"')
+        nspin_1_files = []
+        nspin_2up_files = []
+        nspin_2dw_files = []
 
-                with open(file_out, 'wb') as fd:
-                    fd.write(contents)
+        for nspin_1_file in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
+                             'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat']:
 
-    def convert_wavefunction_1to2(self):
-        nspin1_tmpdir = self.parameters.outdir / f'{self.parameters.prefix}_98.save/K00001'
-        nspin2_tmpdir = self.parameters.outdir / f'{self.parameters.prefix}_99.save/K00001'
-
-        for directory in [nspin2_tmpdir, nspin1_tmpdir]:
-            if not directory.is_dir():
-                raise OSError(f'{directory} not found')
-
-        for wfile in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
-                      'eigenval.xml', 'evc_empty1.dat', 'lambda01.dat']:
-            if '1.' in wfile:
-                prefix, suffix = wfile.split('1.')
+            if '1.' in nspin_1_file:
+                prefix, suffix = nspin_1_file.split('1.')
             else:
-                prefix, suffix = wfile.split('.')
+                prefix, suffix = nspin_1_file.split('.')
 
-            file_in = nspin1_tmpdir / wfile
+            nspin_1_file = self.read_directory / 'K00001' / nspin_1_file
+            if nspin_1_file.exists():
+                nspin_1_files.append(nspin_1_file)
+                nspin_2up_files.append(f'{prefix}1.{suffix}')
+                nspin_2dw_files.append(f'{prefix}2.{suffix}')
 
-            if file_in.is_file():
-                with open(file_in, 'rb') as fd:
-                    contents = fd.read()
+        return {'spin_1_files': nspin_1_files,
+                'spin_2_up_files': nspin_2up_files,
+                'spin_2_down_files': nspin_2dw_files}
 
-                contents = contents.replace(b'nk="1"', b'nk="2"')
-                contents = contents.replace(b'nspin="1"', b'nspin="2"')
+    @property
+    def read_directory(self) -> File:
+        assert isinstance(self.parameters.outdir, Path)
+        assert self.parameters.ndr is not None
+        assert self.parameters.prefix is not None
+        return File(self, self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndr}.save')
 
-                file_out = nspin2_tmpdir / f'{prefix}1.{suffix}'
-                with open(file_out, 'wb') as fd:
-                    fd.write(contents)
-
-                contents = contents.replace(b'ik="1"', b'ik="2"')
-                contents = contents.replace(b'ispin="1"', b'ispin="2"')
-
-                file_out = nspin2_tmpdir / f'{prefix}2.{suffix}'
-                with open(file_out, 'wb') as fd:
-                    fd.write(contents)
+    @property
+    def write_directory(self) -> File:
+        assert isinstance(self.parameters.outdir, Path)
+        assert self.parameters.ndw is not None
+        assert self.parameters.prefix is not None
+        return File(self, self.parameters.outdir / f'{self.parameters.prefix}_{self.parameters.ndw}.save')
 
 
 def convert_flat_alphas_for_kcp(flat_alphas: List[float],

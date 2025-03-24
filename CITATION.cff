@@ -1,6 +1,6 @@
 authors:
-- affiliation: École Polytechnique Fédérale de Lausanne
-  email: edward.linscott@epfl.ch
+- affiliation: Paul Scherrer Institut
+  email: edward.linscott@psi.ch
   family-names: Linscott
   given-names: Edward
   orcid: https://orcid.org/0000-0002-4967-9873
@@ -18,7 +18,7 @@ authors:
   given-names: Nicola
   orcid: https://orcid.org/0000-0002-9764-0199
 cff-version: 1.2.0
-license: GPL-3.0
+license: GPL-2.0
 message: If you use this software, please cite it using the metadata from this file.
 preferred-citation:
   authors:
@@ -55,19 +55,20 @@ preferred-citation:
     given-names: Nicola
     orcid: https://orcid.org/0000-0002-9764-0199
   identifiers:
-  - description: DOI of the arXiv preprint
+  - description: DOI of the JCTC article
     type: doi
-    value: 10.48550/arXiv.2302.07759
+    value: 10.1021/acs.jctc.3c00652
   - description: The arXiv preprint
     type: other
-    value: https://arxiv.org/abs/2302.07759
-  journal: arXiv
-  status: preprint
-  title: 'koopmans: an open-source package for accurately and efficiently predicting
-    spectral properties with Koopmans functionals'
+    value: https://pubs.acs.org/doi/full/10.1021/acs.jctc.3c00652
+  issue: 20
+  journal: Journal of Chemical Theory and Computation
+  title: 'koopmans: An Open-Source Package for Accurately and Efficiently Predicting
+    Spectral Properties with Koopmans Functionals'
   type: article
+  volume: 19
   year: 2023
 repository-code: https://github.com/epfl-theos/koopmans/
 title: koopmans
 type: software
-version: 1.0.0rc1
+version: 1.1.0

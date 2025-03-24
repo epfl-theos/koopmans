@@ -9,17 +9,38 @@ Written by Edward Linscott Feb 2021
 
 import os
 from pathlib import Path
+from typing import Dict, Generator, List, Tuple
 
 import numpy as np
+from pydantic import ConfigDict
 
 from koopmans import calculators, utils
+from koopmans.files import File
+from koopmans.process_io import IOModel
+from koopmans.processes.merge_evc import MergeEVCProcess
+from koopmans.projections import BlockID, ProjectionBlock
+from koopmans.status import Status
 
 from ._workflow import Workflow
 
 
+class FoldToSupercellOutputs(IOModel):
+    kcp_files: Dict[str, File]
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
 class FoldToSupercellWorkflow(Workflow):
 
-    def _run(self):
+    output_model = FoldToSupercellOutputs  # type: ignore
+
+    def __init__(self, nscf_outdir: File, hr_files: Dict[str, File], wannier90_calculations, wannier90_pp_calculations, **kwargs):
+        super().__init__(**kwargs)
+        self._nscf_outdir = nscf_outdir
+        self._hr_files = hr_files
+        self._wannier90_calculations = wannier90_calculations
+        self._wannier90_pp_calculations = wannier90_pp_calculations
+
+    def _run(self) -> None:
         '''
 
         Wrapper for folding Wannier or Kohn-Sham functions from the primitive cell
@@ -27,59 +48,76 @@ class FoldToSupercellWorkflow(Workflow):
 
         '''
 
-        self.print('Folding to supercell', style='subheading')
-
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
-            with utils.chdir('wannier'):
-                # Loop over the various subblocks that we have wannierized separately
-                for block in self.projections:
-                    # Create the calculator
-                    calc_w2k = self.new_calculator('wann2kcp', spin_component=block.spin, wan_mode='wannier2kcp',
-                                                   directory=block.directory)
-                    calc_w2k.prefix = 'w2kcp'
+            # Loop over the various subblocks that we have wannierized separately
+            converted_files = {}
+            w2k_calcs = []
+            for w90_calc, w90_pp_calc, block in zip(self._wannier90_calculations, self._wannier90_pp_calculations, self.projections):
+                # Create the calculator
+                calc_w2k = self.new_calculator('wann2kcp', spin_component=block.spin, wan_mode='wannier2kcp')
+                calc_w2k.prefix = f'convert_{block.name}_to_supercell'
 
-                    # Checking that gamma_trick is consistent with gamma_only
-                    if calc_w2k.parameters.gamma_trick and not self.kpoints.gamma_only:
-                        calc_w2k.parameters.gamma_trick = False
-                    elif not calc_w2k.parameters.gamma_trick and self.kpoints.gamma_only:
-                        calc_w2k.parameters.gamma_trick = True
-                    else:
-                        pass
+                # Checking that gamma_trick is consistent with gamma_only
+                if calc_w2k.parameters.gamma_trick and not self.kpoints.gamma_only:
+                    calc_w2k.parameters.gamma_trick = False
+                elif not calc_w2k.parameters.gamma_trick and self.kpoints.gamma_only:
+                    calc_w2k.parameters.gamma_trick = True
+                else:
+                    pass
 
-                    # Run the calculator
-                    self.run_calculator(calc_w2k)
+                # Link the input files
+                calc_w2k.link(self._hr_files[block.id], symlink=True)
+                calc_w2k.link(self._nscf_outdir, calc_w2k.parameters.outdir, recursive_symlink=True)
+                calc_w2k.link(File(w90_pp_calc, w90_pp_calc.prefix + '.nnkp'),
+                              calc_w2k.parameters.seedname + '.nnkp', symlink=True)
+                calc_w2k.link(File(w90_calc, w90_calc.prefix + '.chk'),
+                              calc_w2k.parameters.seedname + '.chk', symlink=True)
+
+                w2k_calcs.append(calc_w2k)
+
+            # Run the calculators (possibly in parallel)
+            status = self.run_steps(w2k_calcs)
+            if status != Status.COMPLETED:
+                return
+
+            for block, calc_w2k in zip(self.projections, w2k_calcs):
 
                 if self.parameters.spin_polarized:
-                    spins = ['up', 'down']
+                    converted_files[block.id] = [File(calc_w2k, Path("evcw.dat"))]
                 else:
-                    spins = [None, None]
+                    converted_files[block.id] = [File(calc_w2k, Path("evcw1.dat")),
+                                                 File(calc_w2k, Path("evcw2.dat"))]
 
-                # Merging evcw files
-                for output_directory, subset in self.projections.to_merge.items():
-                    if len(subset) > 1:
-                        output_directory.mkdir(exist_ok=True)
-                        if self.parameters.spin_polarized:
-                            evc_fnames = ['evcw.dat']
+            # Merging evcw files
+            merged_files = {}
+            for merged_id, subset in self.projections.to_merge.items():
+                if len(subset) == 1:
+                    for f in converted_files[subset[0].id]:
+                        dest_file = _construct_dest_filename(f.name, merged_id)
+                        merged_files[dest_file] = f
+                else:
+                    if self.parameters.spin_polarized:
+                        evc_fnames = ['evcw.dat']
+                    else:
+                        evc_fnames = ['evcw1.dat', 'evcw2.dat']
+
+                    for evc_fname in evc_fnames:
+                        src_files = [f for s in subset for f in converted_files[s.id] if str(f.name) == evc_fname]
+                        merge_proc = MergeEVCProcess(kgrid=self.kpoints.grid,
+                                                     src_files=src_files, dest_filename=evc_fname)
+                        if merged_id.filled:
+                            tidy_label = 'occupied'
                         else:
-                            evc_fnames = ['evcw1.dat', 'evcw2.dat']
+                            tidy_label = 'empty'
+                        if merged_id.spin != None:
+                            tidy_label += f'_spin_{subset[0].spin}'
+                        merge_proc.name = 'merge_wavefunctions_for_' + tidy_label
+                        status = self.run_steps(merge_proc)
+                        if status != Status.COMPLETED:
+                            return
 
-                        for evc_fname in evc_fnames:
-                            command = ' '.join([f'merge_evc.x -nr {np.prod(self.kpoints.grid)}']
-                                               + [f'-i {b.directory}/{evc_fname}' for b in subset]
-                                               + [f'-o {output_directory}/{evc_fname}'])
-                            if 'occ' in output_directory.name:
-                                label = 'occupied'
-                            else:
-                                label = 'empty'
-                            if subset[0].spin:
-                                label += f' spin {subset[0].spin}'
-                            if self.parameters.from_scratch or not (output_directory / evc_fname).exists():
-                                self.parameters.from_scratch = True
-                                self.print(f'Merging the {label} band blocks... ', end='')
-                                utils.system_call(command)
-                                self.print('done')
-                            else:
-                                self.print(f'Not merging the {label} band blocks as this is already complete')
+                        dest_file = _construct_dest_filename(evc_fname, merged_id)
+                        merged_files[dest_file] = merge_proc.outputs.merged_file
 
         else:
             # Create the calculator
@@ -87,6 +125,30 @@ class FoldToSupercellWorkflow(Workflow):
             calc_w2k.prefix = 'ks2kcp'
 
             # Run the calculator
-            self.run_calculator(calc_w2k)
+            status = self.run_steps(calc_w2k)
+            if status != Status.COMPLETED:
+                return
+
+            raise NotImplementedError("Need to populate converted and merged file dictionaries")
+
+        self.outputs = self.output_model(kcp_files=merged_files)
+
+        self.status = Status.COMPLETED
 
         return
+
+
+def _construct_dest_filename(fname: str | Path, merged_id: BlockID) -> str:
+    fname = str(fname)
+    if fname[4] in ['1', '2']:
+        spin = int(fname[4])
+    elif merged_id.spin == 'up':
+        spin = 1
+    elif merged_id.spin == 'down':
+        spin = 2
+    else:
+        raise ValueError('Should not arrive here')
+    if merged_id.filled:
+        return f'evc_occupied{spin}.dat'
+    else:
+        return f'evc0_empty{spin}.dat'

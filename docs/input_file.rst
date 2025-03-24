@@ -128,7 +128,7 @@ These individual projections (either as dictionaries or as strings) must be prov
 
 We can achieve both of the above via the list-of-lists syntax. Consider the following example for the wannierization of bulk ZnO
 
-.. literalinclude:: ../tutorials/tutorial_3/zno.json
+.. literalinclude:: ../tutorials/tutorial_3/01-ki/zno.json
   :lines: 47-55
   :dedent:
 
@@ -147,6 +147,9 @@ See :ref:`here for a more detailed tutorial on projections <projections_blocks_e
 .. note::
   If disentanglement keywords such as ``dis_win_max`` are provided, these will only be used during the Wannierization of the final block of projections 
 
+.. note::
+  If running a spin-polarized calculation, you need to provide separately the spin-up and spin-down projections. You can specify this by splitting the ``w90`` block into an ``up`` and ``down`` subblocks, each containing the spin dependent ``projections``. See :ref:`here for an example of a spin-polarized set-up <tutorial_6>` 
+
 The pw2wannier subblock
 ~~~~~~~~~~~~~~~~~~~~~~~
 This subblock contains ``pw2wannier90.x`` keywords, in a single dictionary with no subdictionaries.
@@ -154,6 +157,12 @@ This subblock contains ``pw2wannier90.x`` keywords, in a single dictionary with 
 The kcp subblock
 ~~~~~~~~~~~~~~~~
 This subblock contains keywords specific to ``kcp.x``, a modified version of ``cp.x`` for performing Koopmans calculations. In addition to `the keywords associated with cp.x <https://www.quantum-espresso.org/Doc/INPUT_CP.html>`_ there are several new keywords associated with the Koopmans implementation in ``kcp.x``. Non-experts will never need to change these.
+
+
+The kcw subblock
+~~~~~~~~~~~~~~~~
+This subblock contains keywords specific to ``kcw.x`` (see the `list of valid kcw.x keywords <https://www.quantum-espresso.org/Doc/INPUT_KCW.html>`_). Non-experts will never need to change these keywords.
+
 
 The ui subblock
 ~~~~~~~~~~~~~~~
@@ -163,6 +172,15 @@ This subblock controls the unfolding and interpolation procedure for generating 
 
   List of valid keywords <input_file/ui_keywords>
 
+The convergence block
+^^^^^^^^^^^^^^^^^^^^^
+This block can be used to customize a convergence calculation.
+
+.. toctree::
+
+  List of valid keywords <input_file/convergence_keywords>
+
+See :ref:`here for a more detailed tutorial on performing convergence calculations <tutorials/tutorial_4:Tutorial 4: running convergence tests>`.
 
 The plotting block
 ^^^^^^^^^^^^^^^^^^

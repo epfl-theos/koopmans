@@ -7,44 +7,84 @@ Split off from workflow.py Oct 2020
 
 """
 
+import logging
 import shutil
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Generator, List, Mapping, Optional, Tuple
 
 import numpy as np
-from ase.dft import DOS
+from ase_koopmans.dft import DOS
+from pydantic import ConfigDict
 
-from koopmans import calculators, utils
+from koopmans import utils
 from koopmans.bands import Band, Bands
+from koopmans.calculators import (KoopmansCPCalculator, PWCalculator,
+                                  convert_flat_alphas_for_kcp)
+from koopmans.files import File
+from koopmans.process_io import IOModel
+from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
+                                            ConvertFilesFromSpin2To1)
+from koopmans.projections import BlockID
 from koopmans.settings import KoopmansCPSettingsDict
+from koopmans.status import Status
+from koopmans.utils import Spin
 
-from ._workflow import Workflow
+from ._folding import FoldToSupercellWorkflow
+from ._koopmans_cp_with_spin_swap import KoopmansCPWithSpinSwapWorkflow
+from ._ml import PowerSpectrumDecompositionWorkflow
+from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
+from ._wannierize import WannierizeWorkflow
+from ._workflow import Workflow, spin_symmetrize
+
+logger = logging.getLogger(__name__)
 
 
-class KoopmansDSCFWorkflow(Workflow):
+class KoopmansDSCFOutputs(IOModel):
+    '''
+    Outputs for the KoopmansDSCFWorkflow
+    '''
+    variational_orbital_files: Dict[str, File]
+    final_calc: KoopmansCPCalculator
+    wannier_hamiltonian_files: Dict[BlockID, File] | None = None
+    smooth_dft_ham_files: Dict[BlockID, File] | None = None
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def __init__(self, *args, redo_smooth_dft: Optional[bool] = None, restart_from_old_ki: bool = False, **kwargs) -> None:
+
+class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
+
+    output_model = KoopmansDSCFOutputs
+
+    def __init__(self, *args,
+                 initial_variational_orbital_files: Dict[str, File] | None = None,
+                 previous_cp_calc: KoopmansCPCalculator | None = None,
+                 smooth_dft_ham_files: Dict[BlockID, File] | None = None,
+                 precomputed_descriptors: List[File] | None = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         # The following two additional keywords allow for some tweaking of the workflow when running a singlepoint
         # workflow with functional == 'all'
 
-        # By default, we don't override self.parameters.from_scratch when we arrive at the higher-res DFT calculations.
-        # We change this flag to False for workflows where this is unnecessary (such as pKIPZ) to skip this step.
-        self._redo_smooth_dft = redo_smooth_dft
+        # If the higher-resolution DFT calculations have already been computed, the smooth DFT Hamiltonian can be provided
+        # via this keyword to avoid redoing these calculations unnecessarily
+        self._smooth_dft_ham_files = smooth_dft_ham_files
 
         # For the KIPZ calculation we restart from the old KI calculation
-        self._restart_from_old_ki = restart_from_old_ki
+        self._initial_variational_orbital_files = initial_variational_orbital_files
+
+        # For workflows where we have already performed initialization elsewhere, we can restart using that directory
+        self._previous_cp_calc = previous_cp_calc
+
+        # For workflows where we have previously computed descriptors, we can provide them here
+        self._precomputed_descriptors = precomputed_descriptors
 
         # If periodic, convert the kcp calculation into a Γ-only supercell calculation
         kcp_params = self.calculator_parameters['kcp']
         if all(self.atoms.pbc):
-            spins: List[Optional[str]]
             if self.parameters.spin_polarized:
-                spins = ['up', 'down']
+                spins = [Spin.UP, Spin.DOWN]
                 nelecs = [kcp_params.nelup, kcp_params.neldw]
             else:
-                spins = [None]
+                spins = [Spin.NONE]
                 nelecs = [kcp_params.nelec // 2]
 
             for spin, nelec in zip(spins, nelecs):
@@ -52,12 +92,12 @@ class KoopmansDSCFWorkflow(Workflow):
                 nbands_occ = nelec
                 if self.projections:
                     label = 'w90'
-                    if spin:
+                    if spin != Spin.NONE:
                         label += f'_{spin}'
                     nbands_excl = len(self.calculator_parameters[label].get('exclude_bands', []))
                     if nbands_excl > 0:
-                        raise ValueError('Excluding bands is incompatible with method == "dscf". Please provide '
-                                         'projections for every band and remove the "exclude_bands" Wannier90 keyword.')
+                        raise ValueError('Excluding bands is incompatible with `method == "dscf"`. Please provide '
+                                         'projections for every band and remove the `exclude_bands` `Wannier90` keyword.')
 
                     nwann = self.projections.num_wann(spin=spin)
 
@@ -67,7 +107,7 @@ class KoopmansDSCFWorkflow(Workflow):
                                          f' number of occupied bands = {nbands_occ}\n'
                                          f' number of Wannier functions = {nwann}\n'
                                          'This is incompatible with the subsequent Koopmans '
-                                         'calculation.\nPlease modify the wannier90 settings in order to wannierize '
+                                         'calculation.\nPlease modify the `Wannier90` settings in order to wannierize '
                                          'all of the occupied bands.')
 
                     nbands_emp = nwann - nbands_occ
@@ -80,13 +120,13 @@ class KoopmansDSCFWorkflow(Workflow):
                     if nbands_emp != 0:
                         kcp_params.nbnd = nbands_occ + nbands_emp
                 elif nbands_occ > kcp_params.nbnd:
-                    raise ValueError(f'The value you have provided for nbnd is less than the number of {spin_info}'
-                                     f'electrons. Please increase nbnd to at least {nbands_occ}')
+                    raise ValueError(f'The value you have provided for `nbnd` is less than the number of {spin_info}'
+                                     f'electrons. Please increase `nbnd` to at least {nbands_occ}')
                 elif kcp_params.nbnd != nbands_occ + nbands_emp:
                     raise ValueError(f'The number of {spin_info}empty states are inconsistent:\n'
                                      f' number of empty bands = {kcp_params.nbnd - nbands_occ}\n'
                                      f' number of empty Wannier functions = {nbands_emp}\n'
-                                     'If you have provided "nbnd" explicitly to the kcp calculator, check that it '
+                                     'If you have provided `nbnd` explicitly to the `kcp` calculator, check that it '
                                      'matches with the number of empty projections/bands in your system.')
 
             # Populating self.parameters.orbital_groups if needed
@@ -174,18 +214,19 @@ class KoopmansDSCFWorkflow(Workflow):
                 value = getattr(self.calculator_parameters[f'ui_{ui_kind}'], ui_keyword)
                 [default_value] = [s.default for s in self.calculator_parameters['ui'].settings if s.name == ui_keyword]
                 if value != default_value:
-                    raise ValueError(f'UI keyword {ui_keyword} has been set in the input file, but this will be '
+                    raise ValueError(f'UI keyword `{ui_keyword}` has been set in the input file, but this will be '
                                      'automatically set by the Koopmans workflow. Remove this keyword from the input '
                                      'file')
 
         # Check self.init_empty_orbitals
         if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
-            raise NotImplementedError(f'The combination init_orbitals = {self.parameters.init_orbitals} '
-                                      f'and init_empty_orbitals = {self.parameters.init_empty_orbitals} '
+            raise NotImplementedError(f'The combination `init_orbitals` = {self.parameters.init_orbitals} '
+                                      f'and `init_empty_orbitals` = {self.parameters.init_empty_orbitals} '
                                       'has not yet been implemented')
 
     def convert_kcp_to_supercell(self):
         # Multiply all extensive KCP settings by the appropriate prefactor
+        assert self.kpoints.grid is not None
         prefactor = np.prod(self.kpoints.grid)
         for attr in ['nelec', 'nelup', 'neldw', 'nbnd', 'conv_thr', 'esic_conv_thr', 'tot_charge', 'tot_magnetization']:
             value = getattr(self.calculator_parameters['kcp'], attr, None)
@@ -200,10 +241,10 @@ class KoopmansDSCFWorkflow(Workflow):
         to a nested list using convert_flat_alphas_for_kcp()
         '''
 
-        flat_alphas = utils.read_alpha_file(directory)
+        flat_alphas = utils.read_alpha_file(self)
         params = self.calculator_parameters['kcp']
         assert isinstance(params, KoopmansCPSettingsDict)
-        alphas = calculators.convert_flat_alphas_for_kcp(flat_alphas, params)
+        alphas = convert_flat_alphas_for_kcp(flat_alphas, params)
 
         if self.parameters.spin_polarized:
             raise NotImplementedError('Need to check implementation')
@@ -213,502 +254,470 @@ class KoopmansDSCFWorkflow(Workflow):
     def _run(self) -> None:
         '''
         This function runs a KI/pKIPZ/KIPZ workflow from start to finish
-
-        Running this function will generate several directories:
-            init/                 -- the density and manifold initialization calculations
-            calc_alpha/orbital_#/ -- calculations where we have fixed a particular orbital
-                                     in order to calculate alpha
-            final/                -- the final KI/KIPZ calculation
-            postproc/             -- the unfolding and interpolation of the final band structure
         '''
 
-        # Removing old directories
-        if self.parameters.from_scratch:
-            if not self._restart_from_old_ki:
-                # if self._restart_from_old_ki we don't want to delete the directory containing
-                # the KI calculation we're reading the manifold from, or the TMP files
-                utils.system_call('rm -r init 2>/dev/null', False)
-                utils.system_call(f'rm -r {self.calculator_parameters["kcp"].outdir} 2>/dev/null', False)
-            utils.system_call('rm -r calc_alpha 2>/dev/null', False)
-            utils.system_call('rm -r final 2>/dev/null', False)
-            if self._redo_smooth_dft in [None, True]:
-                utils.system_call('rm -r postproc 2>/dev/null', False)
+        init_wf: Optional[InitializationWorkflow] = None
+        if self._initial_variational_orbital_files is None:
+            init_wf = InitializationWorkflow.fromparent(self)
+            init_wf.proceed()
+            if init_wf.status != Status.COMPLETED:
+                return
+            self._initial_variational_orbital_files = init_wf.outputs.variational_orbital_files
+            initial_cp_calculation = init_wf.outputs.final_calc
+        else:
+            assert self._previous_cp_calc is not None
+            initial_cp_calculation = self._previous_cp_calc
 
-        self.print('Initialization of density and variational orbitals', style='heading')
-        self.perform_initialization()
+        self.primitive_to_supercell()
 
-        if self.parameters.from_scratch and not self._restart_from_old_ki \
-                and self.parameters.fix_spin_contamination \
-                and self.parameters.init_orbitals not in ['mlwfs', 'projwfs'] \
-                and not (all(self.atoms.pbc) and self.parameters.init_orbitals == 'kohn-sham'):
-            self.print('Copying the spin-up variational orbitals over to the spin-down channel')
-            calc = self.calculations[-1]
-            savedir = f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
-            utils.system_call(f'cp {savedir}/evc01.dat {savedir}/evc02.dat')
-
-            assert isinstance(calc, calculators.KoopmansCPCalculator)
-            if calc.has_empty_states():
-                utils.system_call(f'cp {savedir}/evc0_empty1.dat {savedir}/evc0_empty2.dat')
-
-        self.print('Calculating screening parameters', style='heading')
         if self.parameters.calculate_alpha:
-            self.perform_alpha_calculations()
+            screening_wf = CalculateScreeningViaDSCF.fromparent(self, initial_variational_orbital_files=self._initial_variational_orbital_files,
+                                                                initial_cp_calculation=initial_cp_calculation,
+                                                                precomputed_descriptors=self._precomputed_descriptors)
+            screening_wf.proceed()
+            if screening_wf.status != Status.COMPLETED:
+                return
+
+            # Store the files which will be needed for the final calculation
+            n_electron_restart_dir = screening_wf.outputs.n_electron_restart_dir
+
         else:
             self.print('Skipping calculation of screening parameters', end='')
-            if len(self.bands.alpha_history) == 0:
+            assert self.bands is not None
+            if len(self.bands.alpha_history()) == 0:
                 self.print('; reading values from file')
                 self.bands.alphas = self.read_alphas_from_file()
-            else:
-                self.print()
-            self.bands.print_history(indent=self.print_indent + 1)
+            print_alpha_history(self)
 
-        # Final calculation
-        self.print(f'Final {self.parameters.functional.upper().replace("PK","pK")} calculation', style='heading')
-        self.perform_final_calculations()
+            # In this case the final calculation will restart from the initialization calculations
+            if self._previous_cp_calc is None:
+                assert init_wf is not None
+                n_electron_restart_dir = init_wf.outputs.final_calc.write_directory
+            else:
+                n_electron_restart_dir = self._previous_cp_calc.write_directory
+
+        # Final calculations
+        if self.ml.test:
+            # If we are testing the model, we want to run both with and without the ML model
+            use_mls = [True, False]
+        elif self.ml.predict:
+            # Use the ML model
+            use_mls = [True]
+        else:
+            # Don't use the ML model
+            use_mls = [False]
+
+        for use_ml in use_mls:
+            if self.parameters.functional == 'pkipz':
+                if self._previous_cp_calc is None:
+                    final_calc_types = ['ki', 'pkipz']
+                else:
+                    final_calc_types = ['pkipz']
+            else:
+                assert isinstance(self.parameters.functional, str)
+                final_calc_types = [self.parameters.functional]
+
+            for final_calc_type in final_calc_types:
+
+                final_calc_type += '_final'
+
+                assert self.bands is not None
+                if use_ml:
+                    alphas = self.bands.predicted_alphas
+                else:
+                    alphas = self.bands.alphas
+
+                calc = internal_new_kcp_calculator(self, final_calc_type, write_hr=True, alphas=alphas)
+
+                if self.parameters.functional == 'ki' and self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
+                        and not self.parameters.calculate_alpha:
+                    calc.parameters.restart_from_wannier_pwscf = True
+
+                if use_ml:
+                    calc.prefix += '_ml'
+
+                calc.link(n_electron_restart_dir, calc.read_directory, recursive_symlink=True)
+                status = self.run_steps(calc)
+                if status != Status.COMPLETED:
+                    return
+
+        final_calc = calc
+        variational_orbital_files = {f: final_calc.read_directory / 'K00001' / f
+                                     for f in ['evc01.dat', 'evc02.dat', 'evc0_empty1.dat', 'evc0_empty2.dat']}
 
         # Postprocessing
+        smooth_dft_ham_files: Dict[BlockID, File] | None = None
         if all(self.atoms.pbc):
             if self.parameters.calculate_bands in [None, True] and self.projections and self.kpoints.path is not None:
                 # Calculate interpolated band structure and DOS with UI
-                from koopmans import workflows
-                self.print(f'\nPostprocessing', style='heading')
-                ui_workflow = workflows.UnfoldAndInterpolateWorkflow.fromparent(
-                    self, redo_smooth_dft=self._redo_smooth_dft)
-                ui_workflow.run(subdirectory='postproc')
+                final_koopmans_calc = self.calculations[-1]
+                koopmans_ham_files: Dict[BlockID, File]
+                if self.parameters.spin_polarized:
+                    koopmans_ham_files = {BlockID(filled=True, spin="up"): File(final_koopmans_calc, Path('ham_occ_1.dat')),
+                                          BlockID(filled=False, spin="up"): File(final_koopmans_calc, Path('ham_emp_1.dat')),
+                                          BlockID(filled=True, spin="down"): File(final_koopmans_calc, Path('ham_occ_2.dat')),
+                                          BlockID(filled=False, spin="down"): File(final_koopmans_calc, Path('ham_emp_2.dat'))}
+                else:
+                    koopmans_ham_files = {BlockID(filled=True): File(final_koopmans_calc, Path('ham_occ_1.dat')),
+                                          BlockID(filled=False): File(final_koopmans_calc, Path('ham_emp_1.dat'))}
+                assert init_wf is not None
+                dft_ham_files = init_wf.outputs.wannier_hamiltonian_files
+                ui_workflow = UnfoldAndInterpolateWorkflow.fromparent(
+                    self,
+                    koopmans_ham_files=koopmans_ham_files,
+                    dft_ham_files=dft_ham_files,
+                    smooth_dft_ham_files=self._smooth_dft_ham_files)
+                ui_workflow.proceed()
+                if ui_workflow.status != Status.COMPLETED:
+                    return
+                smooth_dft_ham_files = ui_workflow.outputs.smooth_dft_ham_files
             else:
                 # Generate the DOS only
                 dos = DOS(self.calculations[-1], width=self.plotting.degauss, npts=self.plotting.nstep + 1)
                 self.calculations[-1].results['dos'] = dos
 
-    def perform_initialization(self) -> None:
-        # Import these here so that if these have been monkey-patched, we get the monkey-patched version
-        from koopmans import workflows
+        self.outputs = self.output_model(variational_orbital_files=variational_orbital_files, final_calc=final_calc,
+                                         smooth_dft_ham_files=smooth_dft_ham_files)
 
-        # The final calculation during the initialization, regardless of the workflow settings, should write to ndw = 51
-        ndw_final = 51
-
-        if self._restart_from_old_ki:
-            self.print('Copying the density and orbitals from a pre-existing KI calculation')
-
-            # Read the .cpi file to work out the value for ndw
-            calc = calculators.KoopmansCPCalculator.fromfile('init/ki_init')
-
-            # Move the old save directory to correspond to ndw_final, using pz_innerloop_init to work out where the
-            # code will expect the tmp files to be
-            old_savedir = Path(calc.parameters.outdir) / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save'
-            savedir = Path(f'{self.new_kcp_calculator("pz_innerloop_init").parameters.outdir}') / \
-                f'{calc.parameters.prefix}_{ndw_final}.save'
-            if not old_savedir.is_dir():
-                raise ValueError(f'{old_savedir} does not exist; a previous '
-                                 'and complete KI calculation is required '
-                                 'to restart from an old KI calculation"')
-            if savedir.is_dir():
-                shutil.rmtree(savedir.as_posix())
-
-            # Use the chdir construct in order to create the directory savedir if it does not already exist and is
-            # nested
-            with utils.chdir(savedir):
-                utils.system_call(f'rsync -a {old_savedir}/ .')
-
-            # Check that the files defining the variational orbitals exist
-            savedir /= 'K00001'
-            files_to_check = [Path('init/ki_init.cpo'), savedir / 'evc01.dat', savedir / 'evc02.dat']
-
-            for ispin in range(2):
-                if calc.has_empty_states(ispin):
-                    files_to_check.append(savedir / f'evc0_empty{ispin + 1}.dat')
-
-            for fname in files_to_check:
-                if not fname.is_file():
-                    raise ValueError(f'Could not find {fname}')
-
-            if not calc.is_complete():
-                raise ValueError('init/ki_init.cpo is incomplete so cannot be used '
-                                 'to initialize the density and orbitals')
-
-            self.calculations.append(calc)
-
-        elif self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
-                (all(self.atoms.pbc) and self.parameters.init_orbitals == 'kohn-sham'):
-            # Wannier functions using pw.x, wannier90.x and pw2wannier90.x (pw.x only for Kohn-Sham states)
-            wannier_workflow = workflows.WannierizeWorkflow.fromparent(self)
-            if wannier_workflow.parameters.calculate_bands:
-                wannier_workflow.parameters.calculate_bands = \
-                    not self.calculator_parameters['ui'].do_smooth_interpolation
-
-            # Perform the wannierization workflow within the init directory
-            wannier_workflow.run(subdirectory='init')
-
-            # Now, convert the files over from w90 format to (k)cp format
-            fold_workflow = workflows.FoldToSupercellWorkflow.fromparent(self)
-
-            # Do this in the same directory as the wannierization
-            fold_workflow.run(subdirectory='init')
-
-            # Convert self.atoms to the supercell
-            self.primitive_to_supercell()
-
-            # We need a dummy calc before the real dft_init in order
-            # to copy the previously calculated Wannier functions
-            calc = self.new_kcp_calculator('dft_dummy')
-            calc.directory = Path('init')
-            self.run_calculator(calc, enforce_ss=False)
-
-            # DFT restarting from Wannier functions (after copying the Wannier functions)
-            calc = self.new_kcp_calculator('dft_init', restart_mode='restart',
-                                           restart_from_wannier_pwscf=True, do_outerloop=True, ndw=ndw_final)
-            calc.directory = Path('init')
-            restart_dir = Path(f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndr}.save/K00001')
-
-            for filling in ['occ', 'emp']:
-                for i_spin, spin in enumerate(['up', 'down']):
-                    # Skip if we don't have wannier functions to copy over
-                    if self.parameters.init_orbitals != 'kohn-sham':
-                        if self.parameters.spin_polarized:
-                            if self.bands.num(filled=(filling == 'occ'), spin=i_spin) == 0:
-                                continue
-                        else:
-                            if self.bands.num(filled=(filling == 'occ'), spin=None) == 0:
-                                continue
-
-                    if self.parameters.init_orbitals == 'kohn-sham':
-                        if filling == 'occ':
-                            evcw_file = Path(f'init/wannier/ks2kcp/evc_occupied{i_spin + 1}.dat')
-                        else:
-                            evcw_file = Path(f'init/wannier/ks2kcp/evc0_empty{i_spin + 1}.dat')
-                    elif self.parameters.spin_polarized:
-                        evcw_file = Path(f'init/wannier/{filling}_{spin}/evcw.dat')
-                    else:
-                        evcw_file = Path(f'init/wannier/{filling}/evcw{i_spin + 1}.dat')
-
-                    if filling == 'occ':
-                        dest_file = restart_dir / f'evc_occupied{i_spin + 1}.dat'
-                    else:
-                        dest_file = restart_dir / f'evc0_empty{i_spin + 1}.dat'
-                    if evcw_file.is_file():
-                        shutil.copy(evcw_file, dest_file)
-                    else:
-                        raise OSError(f'Could not find {evcw_file}')
-
-            self.run_calculator(calc, enforce_ss=False)
-
-            # Check the consistency between the PW and CP band gaps
-            pw_calc = [c for c in self.calculations if isinstance(
-                c, calculators.PWCalculator) and c.parameters.calculation == 'nscf'][-1]
-            pw_gap = pw_calc.results['lumo_energy'] - pw_calc.results['homo_energy']
-            cp_gap = calc.results['lumo_energy'] - calc.results['homo_energy']
-            if abs(pw_gap - cp_gap) > 2e-2 * pw_gap:
-                raise ValueError(f'PW and CP band gaps are not consistent: {pw_gap} {cp_gap}')
-
-            # The CP restarting from Wannier functions must be already converged
-            Eini = calc.results['convergence']['filled'][0]['Etot']
-            Efin = calc.results['energy']
-            if abs(Efin - Eini) > 1e-6 * abs(Efin):
-                raise ValueError(f'Too much difference between the initial and final CP energies: {Eini} {Efin}')
-
-            # Add to the outdir of dft_init a link to the files containing the Wannier functions
-            dst = Path(f'{calc.parameters.outdir}/{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001/')
-            for file in ['evc_occupied1.dat', 'evc_occupied2.dat', 'evc0_empty1.dat', 'evc0_empty2.dat']:
-                utils.symlink(f'{restart_dir}/{file}', dst, force=True)
-
-        elif self.parameters.functional in ['ki', 'pkipz']:
-            calc = self.new_kcp_calculator('dft_init')
-            calc.directory = Path('init')
-            self.run_calculator(calc, enforce_ss=self.parameters.fix_spin_contamination)
-
-            # Use the KS eigenfunctions as better guesses for the variational orbitals
-            self._overwrite_canonical_with_variational_orbitals(calc)
-
-            if self.parameters.init_orbitals == 'kohn-sham':
-                self._copy_most_recent_calc_to_ndw(ndw_final)
-            elif self.parameters.init_orbitals == 'pz':
-                calc = self.new_kcp_calculator('pz_innerloop_init', alphas=self.bands.alphas, ndw=ndw_final)
-                calc.directory = Path('init')
-                if self.calculations[-1].parameters.nelec == 2:
-                    # If we only have two electrons, then the filled manifold is trivially invariant under unitary
-                    # transformations. Furthermore, the PZ functional is invariant w.r.t. unitary rotations of the
-                    # empty states. Thus in this instance we can skip the initialization of the manifold entirely
-                    self.print('Skipping the optimisation of the variational orbitals since they are invariant under '
-                               'unitary transformations')
-                    self._copy_most_recent_calc_to_ndw(ndw_final)
-                else:
-                    self.run_calculator(calc)
-            else:
-                raise ValueError('Should not arrive here')
-
-        elif self.parameters.functional == 'kipz':
-            # DFT from scratch
-            calc = self.new_kcp_calculator('dft_init')
-            calc.directory = Path('init')
-            self.run_calculator(calc, enforce_ss=self.parameters.fix_spin_contamination)
-
-            if self.parameters.init_orbitals == 'kohn-sham':
-                # Initialize the density with DFT and use the KS eigenfunctions as guesses for the variational orbitals
-                self._overwrite_canonical_with_variational_orbitals(calc)
-                self._copy_most_recent_calc_to_ndw(ndw_final)
-            elif self.parameters.init_orbitals == 'pz':
-                # PZ from DFT (generating PZ density and PZ orbitals)
-                calc = self.new_kcp_calculator('pz_init', ndw=ndw_final)
-                calc.directory = Path('init')
-                self.run_calculator(calc)
-            else:
-                raise ValueError('Should not arrive here')
-
-        else:
-            raise ValueError("Should not arrive here; there must be an inconsistency between the above code and \
-                             workflow.valid_settings")
+        self.status = Status.COMPLETED
 
         return
 
-    def _copy_most_recent_calc_to_ndw(self, ndw):
-        calc = self.calculations[-1]
-        if calc.parameters.ndw != ndw:
-            assert calc.is_complete(), 'Cannot copy results of a previous calculation that is not itself complete'
-            save_prefix = f'{calc.parameters.outdir}/{calc.parameters.prefix}'
-            utils.system_call(f'cp -r {save_prefix}_{calc.parameters.ndw}.save {save_prefix}_{ndw}.save')
-
-    def _overwrite_canonical_with_variational_orbitals(self, calc: calculators.KoopmansCPCalculator) -> None:
+    def _overwrite_canonical_with_variational_orbitals(self, calc: KoopmansCPCalculator) -> None:
         self.print('Overwriting the variational orbitals with Kohn-Sham orbitals')
-        savedir = calc.parameters.outdir / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
+        savedir = calc.parameters.write_directory / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
         for ispin in range(2):
+            raise NotImplementedError('Need to replace this shutil call')
             shutil.copy(savedir / f'evc{ispin + 1}.dat', savedir / f'evc0{ispin + 1}.dat')
             if calc.has_empty_states(ispin):
                 shutil.copy(savedir / f'evc_empty{ispin + 1}.dat', savedir / f'evc0_empty{ispin + 1}.dat')
 
-    def perform_alpha_calculations(self) -> None:
-        # Set up directories
-        Path('calc_alpha').mkdir(exist_ok=True)
 
+class CalculateScreeningViaDSCFOutput(IOModel):
+    n_electron_restart_dir: File
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
+
+    output_model = CalculateScreeningViaDSCFOutput
+
+    def __init__(self, *args, initial_variational_orbital_files: Dict[str, Tuple[Workflow, str]],
+                 initial_cp_calculation: KoopmansCPCalculator,
+                 precomputed_descriptors: List[File] | None = None, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._initial_variational_orbital_files = initial_variational_orbital_files
+        self._initial_cp_calculation = initial_cp_calculation
+        self._precomputed_descriptors = precomputed_descriptors
+
+    def _run(self) -> None:
         converged = False
         i_sc = 0
 
-        alpha_indep_calcs: List[calculators.KoopmansCPCalculator] = []
+        alpha_indep_calcs: List[KoopmansCPCalculator] = []
 
+        variational_orbital_files = self._initial_variational_orbital_files
+        n_electron_calc = self._initial_cp_calculation
+        dummy_outdirs: Dict[Tuple[int, int], File | None] = {}
+
+        assert isinstance(self.parameters.alpha_numsteps, int)
         while not converged and i_sc < self.parameters.alpha_numsteps:
             i_sc += 1
 
-            # Setting up directories
-            iteration_directory = Path('calc_alpha')
-            outdir = self.calculator_parameters['kcp'].outdir.name
-            outdir = Path.cwd() / iteration_directory / outdir
+            iteration_wf = DeltaSCFIterationWorkflow.fromparent(self, variational_orbital_files=variational_orbital_files,
+                                                                previous_n_electron_calculation=n_electron_calc,
+                                                                precomputed_descriptors=self._precomputed_descriptors,
+                                                                dummy_outdirs=dummy_outdirs,
+                                                                i_sc=i_sc, alpha_indep_calcs=alpha_indep_calcs)
+            iteration_wf.name = f'Iteration {i_sc}'
 
-            if not outdir.is_dir():
-                outdir.mkdir()
+            if i_sc == 1:
 
-            if self.parameters.alpha_numsteps > 1:
-                self.print('SC iteration {}'.format(i_sc), style='subheading')
-                iteration_directory /= f'iteration_{i_sc}'
-                if not iteration_directory.is_dir():
-                    iteration_directory.mkdir()
+                # For the first iteration, the spin contamination has already been addressed during the initialization
+                iteration_wf.parameters.fix_spin_contamination = False
 
-            # Do a KI/KIPZ calculation with the updated alpha values
-            restart_from_wannier_pwscf = True if self.parameters.init_orbitals in [
-                'mlwfs', 'projwfs'] and not self._restart_from_old_ki and i_sc == 1 else None
-            if self.parameters.task in ['trajectory', 'convergence_ml'] and self.ml.input_data_for_ml_model == 'orbital_density':
-                print_real_space_density = True
-            else:
-                print_real_space_density = False
-            trial_calc = self.new_kcp_calculator(calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
+            iteration_wf.proceed()
+            if iteration_wf.status != Status.COMPLETED:
+                return
+
+            converged = iteration_wf.outputs.converged or self.ml.predict
+
+            assert self.bands is not None
+            if self.parameters.functional == 'ki' and self.bands.num(filled=False) == 0:
+                # For this case the screening parameters are guaranteed to converge instantly
+                if self.parameters.alpha_numsteps == 1:
+                    # Print the "converged" message rather than the "determined but not necessarily converged" message
+                    converged = True
+                else:
+                    # Do the subsequent loop
+                    utils.warn('The screening parameters for a KI calculation with no empty states will converge '
+                               'instantly; to save computational time set `alpha_numsteps == 1`')
+
+            parent = iteration_wf.outputs.n_electron_restart_dir.parent_process
+            assert isinstance(parent, KoopmansCPCalculator)
+            n_electron_calc = parent
+            dummy_outdirs = iteration_wf.outputs.dummy_outdirs
+            variational_orbital_files = {}
+
+        if not converged:
+            utils.warn('The screening parameters have been calculated but are not necessarily self-consistent. '
+                       'You may want to increase `alpha_numsteps` to obtain a more accurate result.')
+
+        self.outputs = CalculateScreeningViaDSCFOutput(
+            n_electron_restart_dir=iteration_wf.outputs.n_electron_restart_dir)
+
+        self.status = Status.COMPLETED
+
+        return
+
+
+class DeltaSCFIterationOutputs(IOModel):
+    converged: bool
+    n_electron_restart_dir: File
+    dummy_outdirs: Dict[Tuple[int, int], File | None]
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
+
+    output_model = DeltaSCFIterationOutputs
+
+    def __init__(self, *args, variational_orbital_files: Dict[str, File],
+                 previous_n_electron_calculation=KoopmansCPCalculator,
+                 dummy_outdirs: Dict[Tuple[int, int], File | None], i_sc: int,
+                 alpha_indep_calcs: List[KoopmansCPCalculator], precomputed_descriptors: List[File] | None, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._variational_orbital_files = variational_orbital_files
+        self._previous_n_electron_calculation = previous_n_electron_calculation
+        self._precomputed_descriptors = precomputed_descriptors
+        self._dummy_outdirs = dummy_outdirs
+        self._i_sc = i_sc
+        self._alpha_indep_calcs = alpha_indep_calcs
+
+        # Set a more instructive name
+        self.name = 'Iteration_' + str(i_sc)
+
+    def _run(self) -> None:
+        # Do a KI/KIPZ calculation with the updated alpha values
+        restart_from_wannier_pwscf = 'evc_occupied1.dat' in self._variational_orbital_files
+        if self.parameters.task in ['singlepoint', 'trajectory'] and self.ml.descriptor == 'orbital_density':
+            print_real_space_density = True
+        else:
+            print_real_space_density = False
+        assert self.bands is not None
+        trial_calc = internal_new_kcp_calculator(self, calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
                                                  print_real_space_density=print_real_space_density,
                                                  alphas=self.bands.alphas,
                                                  restart_from_wannier_pwscf=restart_from_wannier_pwscf)
-            trial_calc.directory = iteration_directory
 
-            if i_sc == 1:
-                if self.parameters.functional == 'kipz' and not all(self.atoms.pbc):
-                    # For the first KIPZ trial calculation, do the innerloop
-                    trial_calc.parameters.do_innerloop = True
-            else:
-                # For later SC loops, read in the matching calculation from the
-                # previous loop rather than the initialization calculations
-                trial_calc.parameters.ndr = trial_calc.parameters.ndw
+        # Link the temporary files from the previous calculation
+        previous_calc = self._previous_n_electron_calculation
+        assert isinstance(previous_calc, KoopmansCPCalculator)
+        trial_calc.link(previous_calc.write_directory, trial_calc.read_directory, recursive_symlink=True)
 
-            # Run the calculation and store the result. Note that we only need to continue
-            # enforcing the spin symmetry if the density will change
-            self.run_calculator(trial_calc, enforce_ss=self.parameters.fix_spin_contamination and i_sc > 1)
+        for filename, src_file in self._variational_orbital_files.items():
+            trial_calc.link(src_file, trial_calc.read_directory / 'K00001' / filename, symlink=True, overwrite=True)
 
-            alpha_dep_calcs = [trial_calc]
+        if self.parameters.functional == 'kipz' and not all(self.atoms.pbc):
+            # For the first KIPZ trial calculation, do the innerloop
+            trial_calc.parameters.do_innerloop = True
 
-            # Update the bands' self-Hartree and energies (assuming spin-symmetry)
-            self.bands.self_hartrees = trial_calc.results['orbital_data']['self-Hartree']
-
-            # Group the bands
-            self.bands.assign_groups(allow_reassignment=True)
-
-            skipped_orbitals = []
-            first_band_of_each_channel = [self.bands.get(spin=spin)[0] for spin in range(2)]
-
-            # Initialize the ML-model
-            if self.ml.use_ml:
-                from koopmans.workflows import MLFittingWorkflow
-                mlfit = MLFittingWorkflow.fromparent(self, calc_that_produced_orbital_densities=trial_calc)
-                mlfit.run()
-
-            # Loop over removing/adding an electron from/to each orbital
-            for band in self.bands:
-                # For a KI calculation with only filled bands, we don't have any further calculations to
-                # do, so in this case don't print any headings
-                print_headings = self.parameters.functional != 'ki' or not band.filled or i_sc == 1
-
-                if self.parameters.spin_polarized and band in first_band_of_each_channel:
-                    self.print(f'Spin {band.spin + 1}', style='subheading')
-
-                # Working out what to print for the orbital heading (grouping skipped bands together)
-                if band in self.bands.to_solve or band == self.bands.get(spin=band.spin)[-1]:
-                    if band not in self.bands.to_solve and (self.parameters.spin_polarized or band.spin == 0):
-                        skipped_orbitals.append(band.index)
-                    if len(skipped_orbitals) > 0:
-                        if len(skipped_orbitals) == 1:
-                            if print_headings:
-                                self.print(f'Orbital {skipped_orbitals[0]}', style='subheading')
-                        else:
-                            orb_range = f'{skipped_orbitals[0]}-{skipped_orbitals[-1]}'
-                            if print_headings:
-                                self.print(f'Orbitals {orb_range}', style='subheading')
-                        if print_headings:
-                            self.print(f'Skipping; will use the screening parameter of an equivalent orbital')
-                        skipped_orbitals = []
-                    if band not in self.bands.to_solve:
-                        continue
-                elif not self.parameters.spin_polarized and band.spin == 1:
-                    # In this case, skip over the bands entirely and don't include it in the printout about which
-                    # bands we've skipped
-                    continue
-                else:
-                    # Skip the bands which can copy the screening parameter from another
-                    # calculation in the same orbital group
-                    skipped_orbitals.append(band.index)
-                    continue
-                if print_headings:
-                    self.print(f'Orbital {band.index}', style='subheading')
-
-                # Set up directories
-                if self.parameters.spin_polarized:
-                    directory = Path(f'{iteration_directory}/spin_{band.spin + 1}/orbital_{band.index}')
-                    outdir_band = outdir / f'spin_{band.spin + 1}/orbital_{band.index}'
-                else:
-                    directory = Path(f'{iteration_directory}/orbital_{band.index}')
-                    outdir_band = outdir / f'orbital_{band.index}'
-                if not directory.is_dir():
-                    directory.mkdir(parents=True)
-
-                # Link tmp files from band-independent calculations
-                if not outdir_band.is_dir():
-                    outdir_band.mkdir(parents=True)
-
-                    utils.symlink(f'{trial_calc.parameters.outdir}/*.save', outdir_band)
-
-                # Don't repeat if this particular alpha_i was converged
-                if i_sc > 1 and abs(band.error) < self.parameters.alpha_conv_thr:
-                    for b in self.bands:
-                        if b == band or (band.group is not None and b.group == band.group):
-                            b.alpha = band.alpha
-                            b.error = band.error
-                    continue
-
-                # When we write/update the alpharef files in the work directory
-                # make sure to include the fixed band alpha in file_alpharef.txt
-                # rather than file_alpharef_empty.txt
-                if band.filled:
-                    index_empty_to_save = None
-                else:
-                    index_empty_to_save = band.index - self.bands.num(filled=True, spin=band.spin)
-                    if self.parameters.spin_polarized and band.spin == 1:
-                        index_empty_to_save += self.bands.num(filled=False, spin=0)
-
-                # Make ML-prediction and decide whether we want to use this prediction
-                if self.ml.use_ml:
-                    alpha_predicted = mlfit.predict(band)
-                    # Whether to use the ML-prediction
-                    use_prediction = mlfit.use_prediction()
-                if not self.ml.use_ml or not (use_prediction or self.ml.alphas_from_file):
-                    self.perform_fixed_band_calculations(band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save,
-                                                         outdir_band, directory, alpha_indep_calcs)
-
-                if self.ml.use_ml and use_prediction:
-                    alpha = alpha_predicted
-                    error = 0.0  # set the error for the predicted alphas to 0.0, because we don't want to make another
-                    # scf-step because of predicted alphas
-                else:
-                    if self.ml.use_ml and self.ml.alphas_from_file:
-                        # Dummy calculation to circumvent the fixed-band-calculation for debugging
-                        alpha, error = mlfit.get_alpha_from_file_for_debugging(band)
-                    else:
-                        # Calculate an updated alpha and a measure of the error
-                        # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
-                        # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
-
-                        calcs = [c for c in alpha_dep_calcs + alpha_indep_calcs if c.fixed_band == band]
-
-                        alpha, error = self.calculate_alpha_from_list_of_calcs(
-                            calcs, trial_calc, band, filled=band.filled)
-
-                        # Mixing
-                        alpha = self.parameters.alpha_mixing * alpha + (1 - self.parameters.alpha_mixing) * band.alpha
-
-                    warning_message = 'The computed screening parameter is {0}. Proceed with caution.'
-                    failure_message = 'The computed screening parameter is significantly {0}. This should not ' \
-                        'happen. Decrease alpha_mixing and/or change alpha_guess.'
-
-                    if alpha < -0.1:
-                        raise ValueError(failure_message.format('less than 0'))
-                    elif alpha < 0:
-                        utils.warn(warning_message.format('less than 0'))
-                    elif alpha > 1.1:
-                        raise ValueError(failure_message.format('greater than 1'))
-                    elif alpha > 1:
-                        utils.warn(warning_message.format('greater than 1'))
-
-                for b in self.bands:
-                    if b == band or (b.group is not None and b.group == band.group):
-                        b.alpha = alpha
-                        b.error = error
-
-                # add alpha to training data
-                if self.ml.use_ml and not use_prediction:
-                    mlfit.print_error_of_single_orbital(alpha_predicted, alpha, indent=self.print_indent+2)
-                    mlfit.add_training_data(band)
-                    # if the user wants to train on the fly, train the model after the calculation of each orbital
-                    if self.ml.train_on_the_fly:
-                        mlfit.train()
-
-            self.bands.print_history(indent=self.print_indent + 1)
-
-            converged = all([abs(b.error) < 1e-3 for b in self.bands])
-
-            if self.ml.use_ml and not any(mlfit.use_predictions):
-                # if the user don't wants to train on the fly, train the model at the end of each snapshot
-                if not self.ml.train_on_the_fly:
-                    mlfit.train()
-                # Print summary of all predictions
-                mlfit.print_error_of_all_orbitals(indent=self.print_indent + 1)
-
-        if self.parameters.functional == 'ki' and self.bands.num(filled=False) == 0:
-            # For this case the screening parameters are guaranteed to converge instantly
-            if self.parameters.alpha_numsteps == 1:
-                # Print the "converged" message rather than the "determined but not necessarily converged" message
-                converged = True
-            else:
-                # Do the subsequent loop
-                utils.warn('The screening parameters for a KI calculation with no empty states will converge '
-                           'instantly; to save computational time set alpha_numsteps == 1')
-        if converged:
-            self.print('Screening parameters have been converged')
+        # Run the calculation
+        if self.parameters.fix_spin_contamination:
+            status = spin_symmetrize(self, trial_calc)
+            if status != Status.COMPLETED:
+                return
         else:
-            self.print('Screening parameters have been determined but are not necessarily converged')
+            status = self.run_steps(trial_calc)
+            if status != Status.COMPLETED:
+                return
+        alpha_dep_calcs = [trial_calc]
 
-    def perform_fixed_band_calculations(self, band, trial_calc, i_sc, alpha_dep_calcs, index_empty_to_save, outdir_band, directory, alpha_indep_calcs) -> None:
+        # Update the bands' self-Hartree and energies (assuming spin-symmetry)
+        self.bands.self_hartrees = trial_calc.results['orbital_data']['self-Hartree']
+
+        # Group the bands
+        self.bands.assign_groups(allow_reassignment=True)
+
+        skipped_orbitals = []
+        first_band_of_each_channel = [self.bands.get(spin=spin)[0] for spin in range(2)]
+
+        # Calculate the power spectrum if required
+        if self.ml.descriptor == 'orbital_density' and (self.ml.train or self.ml.predict or self.ml.test) \
+                and self.ml.estimator != 'mean':
+            if self._precomputed_descriptors is None:
+                if self.ml.descriptor == 'orbital_density':
+                    psfit_workflow = PowerSpectrumDecompositionWorkflow.fromparent(
+                        self, calc_that_produced_orbital_densities=trial_calc)
+                    psfit_workflow.proceed()
+                    if psfit_workflow.status != Status.COMPLETED:
+                        return
+
+                    descriptors = psfit_workflow.outputs.descriptors
+            else:
+                descriptors = self._precomputed_descriptors
+            for band, power_spectrum in zip(self.bands.to_solve, descriptors):
+                band.power_spectrum = power_spectrum
+
+        # Loop over removing/adding an electron from/to each orbital
+        assert self.bands is not None
+        for band in self.bands:
+            # For a KI calculation with only filled bands, we don't have any further calculations to
+            # do, so in this case don't print any headings
+            print_headings = self.parameters.functional != 'ki' or not band.filled
+
+            # Working out what to print for the orbital heading (grouping skipped bands together)
+            if band in self.bands.to_solve or band == self.bands.get(spin=band.spin)[-1]:
+                if band not in self.bands.to_solve and (self.parameters.spin_polarized or band.spin == 0):
+                    skipped_orbitals.append(band.index)
+                if len(skipped_orbitals) > 0:
+                    skipped_orbitals = []
+                if band not in self.bands.to_solve:
+                    continue
+            elif not self.parameters.spin_polarized and band.spin == 1:
+                # In this case, skip over the bands entirely and don't include it in the printout about which
+                # bands we've skipped
+                continue
+            else:
+                # Skip the bands which can copy the screening parameter from another
+                # calculation in the same orbital group
+                skipped_orbitals.append(band.index)
+                continue
+
+            # Use the ML model to predict the screening parameters
+            if self.ml.predict or self.ml.test:
+                assert self.ml_model is not None
+                alpha_pred = self.ml_model.predict(band)
+            else:
+                alpha_pred = None
+
+            if self.ml.predict:
+                alpha = None
+                error = None
+            else:
+                # Calculate the screening parameters ab initio
+                assert isinstance(band.index, int)
+                dummy_outdir = self._dummy_outdirs.get((band.index, band.spin), None)
+                subwf = OrbitalDeltaSCFWorkflow.fromparent(
+                    self, band=band, trial_calc=trial_calc, dummy_outdir=dummy_outdir, i_sc=self._i_sc, alpha_indep_calcs=self._alpha_indep_calcs)
+                subwf.proceed()
+                if subwf.status != Status.COMPLETED:
+                    return
+                alpha = subwf.outputs.alpha
+                error = subwf.outputs.error
+                self._dummy_outdirs[(band.index, band.spin)] = subwf.outputs.dummy_outdir
+
+            for b in self.bands:
+                if b == band or (b.group is not None and b.group == band.group):
+                    if alpha:
+                        b.alpha = alpha
+                    if error:
+                        b.error = error
+                    if alpha_pred:
+                        b.predicted_alpha = alpha_pred
+
+            # add alpha to training data
+            if self.ml.train:
+                assert self.ml_model is not None
+                self.ml_model.add_training_data([band])
+                # if the user wants to train on the fly, train the model after the calculation of each orbital
+                if self.ml.train_on_the_fly:
+                    assert self.ml_model is not None
+                    self.ml_model.train()
+
+        if not self.steps_are_running():
+            # We only want to print the history if we are not waiting for the results of a calculation
+            print_alpha_history(self)
+
+        assert isinstance(self.ml.predict, bool)
+        converged = self.ml.predict or all([abs(b.error) < 1e-3 for b in self.bands])
+
+        if self.ml.train:
+            # if the user doesn't want to train on the fly, train the model at the end of each snapshot
+            if not self.ml.train_on_the_fly:
+                assert self.ml_model is not None
+                self.ml_model.train()
+
+        self.outputs = DeltaSCFIterationOutputs(converged=converged,
+                                                n_electron_restart_dir=trial_calc.write_directory,
+                                                dummy_outdirs=self._dummy_outdirs)
+
+        self.status = Status.COMPLETED
+
+
+class OrbitalDeltaSCFOutputs(IOModel):
+    alpha: float
+    error: float
+    dummy_outdir: File | None
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
+
+    output_model = OrbitalDeltaSCFOutputs
+
+    def __init__(self, band: Band, trial_calc: KoopmansCPCalculator,
+                 dummy_outdir: File | None, i_sc: int,
+                 alpha_indep_calcs: List[KoopmansCPCalculator],
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.band = band
+        self._trial_calc = trial_calc
+        self._dummy_outdir = dummy_outdir
+        self._i_sc = i_sc
+        self._alpha_indep_calcs = alpha_indep_calcs
+
+        # Set a more instructive name
+        self.name = 'Orbital ' + str(self.band.index)
+        if self.parameters.spin_polarized:
+            self.name += ' Spin ' + str(self.band.spin + 1)
+
+    def _run(self) -> None:
+
+        assert self.bands is not None
+
+        alpha_dep_calcs = [self._trial_calc]
+
+        # Don't repeat if this particular alpha_i was converged
+        if hasattr(self.band, 'error') and abs(self.band.error) < self.parameters.alpha_conv_thr:
+            assert self.band.alpha is not None
+            self.outputs = self.output_model(alpha=self.band.alpha, error=self.band.error,
+                                             dummy_outdir=self._dummy_outdir)
+            self.status = Status.COMPLETED
+            return
+
+        # When we write/update the alpharef files in the work directory
+        # make sure to include the fixed band alpha in file_alpharef.txt
+        # rather than file_alpharef_empty.txt
+        if self.band.filled:
+            index_empty_to_save = None
+        else:
+            index_empty_to_save = self.band.index - self.bands.num(filled=True, spin=self.band.spin)
+            if self.parameters.spin_polarized and self.band.spin == 1:
+                index_empty_to_save += self.bands.num(filled=False, spin=0)
+
         # Perform the fixed-band-dependent calculations
         if self.parameters.functional in ['ki', 'pkipz']:
-            if band.filled:
+            if self.band.filled:
                 calc_types = ['dft_n-1']
             else:
-                calc_types = ['pz_print', 'dft_n+1_dummy', 'dft_n+1']
+                if self._i_sc == 1:
+                    calc_types = ['dft_n+1_dummy', 'pz_print', 'dft_n+1']
+                else:
+                    assert self._dummy_outdir is not None
+                    calc_types = ['pz_print', 'dft_n+1']
         else:
-            if band.filled:
+            if self.band.filled:
                 calc_types = ['kipz_n-1']
             else:
-                calc_types = ['kipz_print', 'dft_n+1_dummy', 'kipz_n+1']
+                if self._i_sc == 1:
+                    calc_types = ['dft_n+1_dummy', 'kipz_print', 'kipz_n+1']
+                else:
+                    assert self._dummy_outdir is not None
+                    calc_types = ['kipz_print', 'kipz_n+1']
+
+        dummy_outdir = self._dummy_outdir
+        print_calc = None
 
         for calc_type in calc_types:
             if self.parameters.functional in ['ki', 'pkipz']:
@@ -716,15 +725,10 @@ class KoopmansDSCFWorkflow(Workflow):
                 #  - the KI calculations
                 #  - DFT calculations on empty variational orbitals
                 # We don't need to redo any of the others
-                if not trial_calc.has_empty_states() or band.filled:
-                    if i_sc > 1 and 'ki' not in calc_type:
+                if not self._trial_calc.has_empty_states() or self.band.filled:
+                    if self._i_sc > 1 and 'ki' not in calc_type:
+                        self.print('No further calculations are required to calculate this screening parameter')
                         continue
-            else:
-                # No need to repeat the dummy calculation; all other
-                # calculations are dependent on the screening parameters so
-                # will need updating at each step
-                if i_sc > 1 and calc_type == 'dft_n+1_dummy':
-                    continue
 
             if 'print' in calc_type:
                 # Note that the 'print' calculations for empty bands do not
@@ -733,39 +737,62 @@ class KoopmansDSCFWorkflow(Workflow):
                 # file_alpharef_empty.txt)
                 alphas = self.bands.alphas
                 filling = self.bands.filling
-            elif not band.filled:
+            elif not self.band.filled:
                 # In the case of empty orbitals, we gain an extra orbital in
                 # the spin-up channel, so we explicitly construct both spin
                 # channels for "alphas" and "filling"
                 alphas = self.bands.alphas
-                alphas[band.spin].append(alphas[band.spin][-1])
+                alphas[self.band.spin].append(alphas[self.band.spin][-1])
                 filling = self.bands.filling
-                filling[band.spin][band.index - 1] = True
-                filling[band.spin].append(False)
+                assert self.band.index is not None
+                filling[self.band.spin][self.band.index - 1] = True
+                filling[self.band.spin].append(False)
             else:
                 alphas = self.bands.alphas
                 filling = self.bands.filling
 
             # Work out the index of the band that is fixed (noting that we will be throwing away all empty
             # bands)
-            fixed_band = min(band.index, self.bands.num(filled=True, spin=band.spin) + 1)
-            if self.parameters.spin_polarized and band.spin == 1:
+            fixed_band = min(self.band.index, self.bands.num(filled=True, spin=self.band.spin) + 1)
+            if self.parameters.spin_polarized and self.band.spin == 1:
                 fixed_band += self.bands.num(filled=True, spin=0)
 
             # Set up calculator
-            calc = self.new_kcp_calculator(calc_type, alphas=alphas, filling=filling, fixed_band=fixed_band,
-                                           index_empty_to_save=index_empty_to_save, outdir=outdir_band,
-                                           add_to_spin_up=(band.spin == 0))
-            calc.directory = directory
+            calc = internal_new_kcp_calculator(self, calc_type, alphas=alphas, filling=filling, fixed_band=fixed_band,
+                                               index_empty_to_save=index_empty_to_save,
+                                               add_to_spin_up=(self.band.spin == 0))
+
+            if calc.parameters.ndr == self._trial_calc.parameters.ndw:
+                calc.link(self._trial_calc.write_directory, calc.read_directory,
+                          recursive_symlink=True)
+
+            if calc_type in ['dft_n+1', 'kipz_n+1']:
+                assert dummy_outdir is not None
+                calc.link(dummy_outdir, calc.parameters.outdir, recursive_symlink=True)
+                # Copying of evcfixed_empty.dat to evc_occupied.dat
+                assert print_calc is not None
+                for ispin in range(1, 3):
+                    calc.link(print_calc.write_directory / f'K00001/evcfixed_empty{ispin}.dat',
+                              calc.read_directory / f'K00001/evc_occupied{ispin}.dat', symlink=True, overwrite=True)
 
             # Run kcp.x
-            self.run_calculator(calc)
+            if calc.parameters.nelup < calc.parameters.neldw:
+                subwf = KoopmansCPWithSpinSwapWorkflow.fromparent(self, calc=calc)
+                subwf.proceed()
+                if subwf.status != Status.COMPLETED:
+                    return
+                if 'dummy' in calc_type:
+                    dummy_outdir = subwf.outputs.outdir
+            else:
+                self.run_steps(calc)
+                if 'dummy' in calc_type:
+                    dummy_outdir = File(calc, calc.parameters.outdir)
 
             # Store the band that we've perturbed as calc.fixed_band. Note that we can't use
             # calc.parameters.fixed_band to keep track of which band we held fixed, because for empty
             # orbitals, calc.parameters.fixed_band is always set to the LUMO but in reality we're fixing
             # the band corresponding # to index_empty_to_save from an earlier calculation
-            calc.fixed_band = band
+            calc.fixed_band = self.band
 
             # Store the result
             # We store the results in one of two lists: alpha_indep_calcs and
@@ -780,10 +807,10 @@ class KoopmansDSCFWorkflow(Workflow):
 
                     # The exception to this are KI calculations on empty states. When we update alpha, the
                     # empty manifold changes, which in turn affects the lambda values
-                    if trial_calc.has_empty_states() and not band.filled:
+                    if self._trial_calc.has_empty_states() and not self.band.filled:
                         alpha_dep_calcs.append(calc)
                     else:
-                        alpha_indep_calcs.append(calc)
+                        self._alpha_indep_calcs.append(calc)
                 else:
                     # For KIPZ, the DFT calculations are dependent on alpha via
                     # the definition of the variational orbitals. We only want to
@@ -791,284 +818,42 @@ class KoopmansDSCFWorkflow(Workflow):
 
                     alpha_dep_calcs.append(calc)
 
-            # Copying of evcfixed_empty.dat to evc_occupied.dat
+            # Storing the calculators to allow for the copying of evcfixed_empty.dat to evc_occupied.dat
             if calc_type in ['pz_print', 'kipz_print']:
-                evcempty_dir = outdir_band / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001/'
-            elif calc_type == 'dft_n+1_dummy':
-                evcocc_dir = outdir_band / f'{calc.parameters.prefix}_{calc.parameters.ndr}.save/K00001/'
-                for i_spin in range(1, 3):
-                    src = evcempty_dir / f'evcfixed_empty{i_spin}.dat'
-                    dest = evcocc_dir / f'evc_occupied{i_spin}.dat'
-                    if src.is_file():
-                        shutil.copy(src, dest)
-                    else:
-                        raise OSError(f'Could not find {src}')
+                print_calc = calc
 
-    def perform_final_calculations(self) -> None:
+        # Calculate an updated alpha and a measure of the error
+        # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
+        # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
 
-        directory = Path('final')
-        if not directory.is_dir():
-            directory.mkdir()
+        calcs = [c for c in alpha_dep_calcs + self._alpha_indep_calcs if c.fixed_band == self.band]
 
-        if self.parameters.functional == 'pkipz':
-            final_calc_types = ['ki', 'pkipz']
-        else:
-            final_calc_types = [self.parameters.functional]
+        alpha, error = self.calculate_alpha_from_list_of_calcs(
+            calcs, self._trial_calc, self.band, filled=self.band.filled)
 
-        for final_calc_type in final_calc_types:
+        # Mixing
+        alpha = self.parameters.alpha_mixing * alpha + (1 - self.parameters.alpha_mixing) * self.band.alpha
 
-            final_calc_type += '_final'
+        warning_message = 'The computed screening parameter is {0}. Proceed with caution.'
+        failure_message = 'The computed screening parameter is significantly {0}. This should not ' \
+            'happen. Decrease `alpha_mixing` and/or change `alpha_guess`.'
 
-            # For pKIPZ, the appropriate ndr can change but it is always ndw of the previous
-            # KI calculation
-            if final_calc_type == 'pkipz_final':
-                ndr = [c.parameters.ndw for c in self.calculations if c.prefix in [
-                    'ki', 'ki_final'] and hasattr(c.parameters, 'ndw')][-1]
-                calc = self.new_kcp_calculator(final_calc_type, ndr=ndr, write_hr=True)
-            else:
-                calc = self.new_kcp_calculator(final_calc_type, write_hr=True)
-                if self.parameters.functional == 'ki' and self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
-                        and not self.parameters.calculate_alpha:
-                    calc.parameters.restart_from_wannier_pwscf = True
+        if alpha < -0.1:
+            raise ValueError(failure_message.format('less than 0'))
+        elif alpha < 0:
+            utils.warn(warning_message.format('less than 0'))
+        elif alpha > 1.1:
+            raise ValueError(failure_message.format('greater than 1'))
+        elif alpha > 1:
+            utils.warn(warning_message.format('greater than 1'))
 
-            calc.directory = directory
+        self.outputs = self.output_model(alpha=alpha, error=error, dummy_outdir=dummy_outdir)
 
-            self.run_calculator(calc)
-
-    def new_kcp_calculator(self, calc_presets: str = 'dft_init',
-                           alphas: Optional[List[List[float]]] = None,
-                           filling: Optional[List[List[bool]]] = None,
-                           add_to_spin_up: bool = True,
-                           **kwargs) -> calculators.KoopmansCPCalculator:
-        """
-
-        Generates a new KCP calculator based on the self.calculator_parameters["kcp"]
-        parameters, modifying the appropriate settings to match the
-        chosen calc_presets, and altering any Quantum Espresso keywords
-        specified as kwargs
-
-        Arguments:
-
-            calc_presets
-                The set of preset values to use; must be one of the following strings:
-
-                Initialization
-                'dft_init'            DFT calculation from scratch
-                'pz_init'             PZ calculation starting from DFT restart
-                'pz_innerloop_init'   PZ calculation starting from DFT restart (innerloop only)
-                'dft_dummy'           DFT dummy calculation that generate store files
-                                      for a periodic calculation restarting from Wannier functions
-
-                Trial calculations
-                'ki'     KI calculation with N electrons and empty bands if specified
-                'kipz'   As above, but for KIPZ
-
-                For calculating alpha_i for filled orbitals.
-                'dft_n-1'       DFT calculation with N-1 electrons via fixed_state
-                'kipz_n-1'      KIPZ calculation with N-1 electrons via fixed_state
-
-                For calculating alpha_i for empty orbitals
-                'pz_print'         PZ calculation that generates evcfixed_empty.dat file
-                'kipz_print'       KIPZ calculation that generates evcfixed_empty.dat file
-                'dft_n+1_dummy'    DFT dummy calculation that generates store files of
-                                   the correct dimensions
-                'dft_n+1'          DFT calculation with N+1 electrons
-                'kipz_n+1'         KIPZ calculation with N+1 electrons
-
-                Note that when calculating alpha_i, all empty states (bar orbital_i if it is empty) are removed
-                and the convergence criteria are loosened
-
-                Final calculation
-                'ki_final'    Final KI calculation with N electrons and empty bands if specified
-                'kipz_final'  As above, but for KIPZ
-                'pkipz_final' A KIPZ calculation that leaves the manifold unchanged (for the
-                              purposes of performing KIPZ on top of the KI manifold)
-
-            alphas
-                an array of screening parameters
-
-           **kwargs accepts any Quantum Espresso keywords as an argument, and will
-                    apply these options to the returned ASE calculator
-
-        Returns: a new KCP calculator object
-
-        """
-
-        # By default, use the last row in the alpha table for the screening parameters
-        if alphas is None:
-            alphas = self.bands.alphas
-
-        # Generate a new kcp calculator copied from the master calculator
-        calc: calculators.KoopmansCPCalculator = self.new_calculator('kcp', alphas=alphas, filling=filling)
-
-        # Set up read/write indexes
-        if calc_presets in ['dft_init', 'dft_dummy']:
-            ndr = 50
-            ndw = 50
-        elif calc_presets in ['pz_init', 'pz_innerloop_init']:
-            ndr = 50
-            ndw = 51
-        elif calc_presets in ['ki', 'kipz']:
-            ndr = 51
-            ndw = 60
-        elif calc_presets in ['dft_n-1', 'kipz_n-1']:
-            ndr = 60
-            ndw = 63
-        elif calc_presets in ['pz_print', 'kipz_print']:
-            ndr = 60
-            ndw = 64
-        elif calc_presets == 'dft_n+1_dummy':
-            ndr = 65
-            ndw = 65
-        elif calc_presets in ['dft_n+1', 'kipz_n+1']:
-            ndr = 65
-            ndw = 68
-        elif calc_presets in ['ki_final', 'kipz_final']:
-            if self.parameters.calculate_alpha:
-                ndr = 60
-            else:
-                ndr = 51
-            ndw = 70
-        elif calc_presets in ['pkipz_final']:
-            ndr = 70
-            ndw = 71
-        else:
-            raise ValueError('Invalid calc_presets "{}"'.format(calc_presets))
-
-        # KCP options
-        # control
-        calc.prefix = calc_presets
-        calc.parameters.ndw = ndw
-        calc.parameters.ndr = ndr
-        if calc.prefix in ['dft_init', 'dft_dummy', 'dft_n+1_dummy']:
-            calc.parameters.restart_mode = 'from_scratch'
-        else:
-            calc.parameters.restart_mode = 'restart'
-
-        # system
-        if 'pz' in calc.prefix or 'ki' in calc.prefix:
-            calc.parameters.do_orbdep = True
-            calc.parameters.do_bare_eigs = True
-        else:
-            calc.parameters.do_orbdep = False
-        if calc.prefix in ['dft_init', 'pz_init', 'pz_innerloop_init', 'dft_dummy',
-                           'ki', 'kipz', 'pz_print', 'kipz_print', 'dft_n+1_dummy',
-                           'ki_final', 'kipz_final', 'pkipz_final']:
-            calc.parameters.fixed_state = False
-        else:
-            calc.parameters.fixed_state = True
-            if '-1' in calc.prefix:
-                calc.parameters.f_cutoff = 1e-5
-            else:
-                calc.parameters.f_cutoff = 1.0
-        if 'n+1' in calc.prefix:
-            calc.parameters.nelec += 1
-            if add_to_spin_up:
-                calc.parameters.nelup += 1
-            else:
-                calc.parameters.neldw += 1
-            if 'dummy' not in calc.prefix:
-                calc.parameters.restart_from_wannier_pwscf = True
-
-        # electrons
-        # For all calculations calculating alpha, remove the empty states and
-        # increase the energy thresholds
-        if not any([s in calc.prefix for s in ['init', 'print', 'final']]) and \
-           calc.prefix not in ['ki', 'kipz', 'dft_dummy']:
-            calc.parameters.nbnd = None
-            calc.parameters.conv_thr *= 100
-            calc.parameters.esic_conv_thr *= 100
-
-        # For the dft_dummy calculation, we don't need empty states because these will be overwritten by the w90
-        # wavefunctions
-        if calc.prefix == 'dft_dummy':
-            calc.parameters.nbnd = None
-
-        if all(self.atoms.pbc) and not any([s == calc.prefix for s in ['dft_init', 'dft_n-1', 'dft_n+1',
-                                                                       'kipz', 'kipz_n-1', 'kipz_n+1']]):
-            calc.parameters.do_outerloop = False
-            calc.parameters.do_innerloop = False
-        elif any([s in calc.prefix for s in ['frozen', 'dummy', 'print', 'innerloop']]) or calc.prefix == 'pkipz_final':
-            calc.parameters.do_outerloop = False
-            if calc.has_empty_states():
-                calc.parameters.do_outerloop_empty = False
-        elif calc.prefix in ['ki', 'ki_final']:
-            calc.parameters.do_outerloop = False
-            if calc.has_empty_states():
-                if self.parameters.init_empty_orbitals == 'pz':
-                    calc.parameters.do_outerloop_empty = True
-                else:
-                    calc.parameters.do_outerloop_empty = False
-        else:
-            calc.parameters.do_outerloop = True
-            if calc.has_empty_states():
-                calc.parameters.do_outerloop_empty = True
-
-        if calc.parameters.maxiter is None and calc.parameters.do_outerloop:
-            calc.parameters.maxiter = 300
-        if calc.parameters.empty_states_maxstep is None and calc.parameters.do_outerloop_empty:
-            calc.parameters.empty_states_maxstep = 300
-
-        # No empty states minimization in the solids workflow for the moment
-        if all(self.atoms.pbc) and calc.has_empty_states():
-            calc.parameters.do_outerloop_empty = False
-            calc.parameters.do_innerloop_empty = False
-
-        # nksic
-        if calc.parameters.do_orbdep:
-            calc.parameters.odd_nkscalfact = True
-            calc.parameters.odd_nkscalfact_empty = True
-        calc.parameters.do_innerloop_cg = True
-        if calc.prefix[:2] == 'pz' and 'print' not in calc.prefix:
-            calc.parameters.do_innerloop = True
-        else:
-            calc.parameters.do_innerloop = False
-        if calc.has_empty_states():
-            calc.parameters.do_innerloop_empty = False
-        if 'kipz' in calc.prefix:
-            calc.parameters.which_orbdep = 'nkipz'
-        elif 'pz' in calc.prefix:
-            calc.parameters.which_orbdep = 'pz'
-        elif 'ki' in calc.prefix:
-            calc.parameters.which_orbdep = 'nki'
-        if 'print' in calc.prefix:
-            calc.parameters.print_wfc_anion = True
-
-        if self.parameters.mt_correction:
-            calc.parameters.which_compensation = 'tcc'
-        else:
-            calc.parameters.which_compensation = 'none'
-
-        # If we are using frozen orbitals, we override the above logic and freeze the variational orbitals
-        # post-initialization
-        if self.parameters.frozen_orbitals and 'init' not in calc.prefix and not any([s == calc.prefix for s in
-                                                                                      ['dft_n-1', 'dft_n+1', 'kipz_n-1',
-                                                                                       'kipz_n+1']]):
-            calc.parameters.do_outerloop = False
-            calc.parameters.do_innerloop = False
-            if calc.has_empty_states():
-                calc.parameters.do_outerloop_empty = False
-                calc.parameters.do_innerloop_empty = False
-
-        # Handle any keywords provided by kwargs
-        # Note that since this is performed after the above logic this can (deliberately
-        # or accidentally) overwrite the above settings
-        calc.parameters.update(**kwargs)
-
-        # Sanity checking
-        if calc.parameters.print_wfc_anion and calc.parameters.index_empty_to_save is None:
-            raise ValueError('Error: print_wfc_anion is set to true but you have not selected '
-                             'an index_empty_to_save. Provide this as an argument to new_cp_calculator')
-
-        # don't print QC in some cases
-        if 'dummy' in calc.prefix or calc.prefix[-2:] == '+1':
-            calc.skip_qc = True
-
-        return calc
+        self.status = Status.COMPLETED
 
     def calculate_alpha_from_list_of_calcs(self,
-                                           calcs: List[calculators.KoopmansCPCalculator],
-                                           trial_calc: calculators.KoopmansCPCalculator,
+                                           calcs: List[KoopmansCPCalculator],
+                                           trial_calc: KoopmansCPCalculator,
                                            band: Band,
                                            filled: bool = True) -> Tuple[float, float]:
         '''
@@ -1162,3 +947,450 @@ class KoopmansDSCFWorkflow(Workflow):
         error = dE - lambda_a
 
         return alpha, error
+
+
+def internal_new_kcp_calculator(workflow,
+                                calc_presets: str = 'dft_init',
+                                alphas: Optional[List[List[float]]] = None,
+                                filling: Optional[List[List[bool]]] = None,
+                                add_to_spin_up: bool = True,
+                                **kwargs) -> KoopmansCPCalculator:
+    """
+
+    Generates a new KCP calculator based on the self.calculator_parameters["kcp"]
+    parameters, modifying the appropriate settings to match the
+    chosen calc_presets, and altering any Quantum Espresso keywords
+    specified as kwargs
+
+    Arguments:
+
+        calc_presets
+            The set of preset values to use; must be one of the following strings:
+
+            Initialization
+            'dft_init'            DFT calculation from scratch
+            'pz_init'             PZ calculation starting from DFT restart
+            'pz_innerloop_init'   PZ calculation starting from DFT restart (innerloop only)
+            'dft_dummy'           DFT dummy calculation that generate store files
+                                  for a periodic calculation restarting from Wannier functions
+
+            Trial calculations
+            'ki'     KI calculation with N electrons and empty bands if specified
+            'kipz'   As above, but for KIPZ
+
+            For calculating alpha_i for filled orbitals.
+            'dft_n-1'       DFT calculation with N-1 electrons via fixed_state
+            'kipz_n-1'      KIPZ calculation with N-1 electrons via fixed_state
+
+            For calculating alpha_i for empty orbitals
+            'pz_print'         PZ calculation that generates evcfixed_empty.dat file
+            'kipz_print'       KIPZ calculation that generates evcfixed_empty.dat file
+            'dft_n+1_dummy'    DFT dummy calculation that generates store files of
+                               the correct dimensions
+            'dft_n+1'          DFT calculation with N+1 electrons
+            'kipz_n+1'         KIPZ calculation with N+1 electrons
+
+            Note that when calculating alpha_i, all empty states (bar orbital_i if it is empty) are removed
+            and the convergence criteria are loosened
+
+            Final calculation
+            'ki_final'    Final KI calculation with N electrons and empty bands if specified
+            'kipz_final'  As above, but for KIPZ
+            'pkipz_final' A KIPZ calculation that leaves the manifold unchanged (for the
+                          purposes of performing KIPZ on top of the KI manifold)
+
+        alphas
+            an array of screening parameters
+
+       **kwargs accepts any Quantum Espresso keywords as an argument, and will
+                apply these options to the returned ASE calculator
+
+    Returns: a new KCP calculator object
+
+    """
+
+    # By default, use the last row in the alpha table for the screening parameters
+    if alphas is None:
+        alphas = workflow.bands.alphas
+
+    # Generate a new kcp calculator copied from the master calculator
+    calc: KoopmansCPCalculator = workflow.new_calculator('kcp', alphas=alphas, filling=filling)
+
+    # Set up read/write indexes
+    if calc_presets in ['dft_init', 'dft_dummy']:
+        ndr = 50
+        ndw = 50
+    elif calc_presets in ['pz_init', 'pz_innerloop_init']:
+        ndr = 50
+        ndw = 51
+    elif calc_presets in ['ki', 'kipz']:
+        ndr = 51
+        ndw = 60
+    elif calc_presets in ['dft_n-1', 'kipz_n-1']:
+        ndr = 60
+        ndw = 63
+    elif calc_presets in ['pz_print', 'kipz_print']:
+        ndr = 60
+        ndw = 64
+    elif calc_presets == 'dft_n+1_dummy':
+        ndr = 65
+        ndw = 65
+    elif calc_presets in ['dft_n+1', 'kipz_n+1']:
+        ndr = 65
+        ndw = 68
+    elif calc_presets in ['ki_final', 'kipz_final']:
+        if workflow.parameters.calculate_alpha:
+            ndr = 60
+        else:
+            ndr = 51
+        ndw = 70
+    elif calc_presets in ['pkipz_final']:
+        ndr = 70
+        ndw = 71
+    else:
+        raise ValueError('Invalid calc_presets "{}"'.format(calc_presets))
+
+    # KCP options
+    # control
+    calc.prefix = calc_presets
+    calc.parameters.ndw = ndw
+    calc.parameters.ndr = ndr
+    if calc.prefix in ['dft_init', 'dft_dummy', 'dft_n+1_dummy']:
+        calc.parameters.restart_mode = 'from_scratch'
+    else:
+        calc.parameters.restart_mode = 'restart'
+
+    # system
+    if 'pz' in calc.prefix or 'ki' in calc.prefix:
+        calc.parameters.do_orbdep = True
+        calc.parameters.do_bare_eigs = True
+    else:
+        calc.parameters.do_orbdep = False
+    if calc.prefix in ['dft_init', 'pz_init', 'pz_innerloop_init', 'dft_dummy',
+                       'ki', 'kipz', 'pz_print', 'kipz_print', 'dft_n+1_dummy',
+                       'ki_final', 'kipz_final', 'pkipz_final']:
+        calc.parameters.fixed_state = False
+    else:
+        calc.parameters.fixed_state = True
+        if '-1' in calc.prefix:
+            calc.parameters.f_cutoff = 1e-5
+        else:
+            calc.parameters.f_cutoff = 1.0
+    if 'n+1' in calc.prefix:
+        calc.parameters.nelec += 1
+        if add_to_spin_up:
+            calc.parameters.nelup += 1
+        else:
+            calc.parameters.neldw += 1
+        if 'dummy' not in calc.prefix:
+            calc.parameters.restart_from_wannier_pwscf = True
+
+    # electrons
+    # For all calculations calculating alpha, remove the empty states and
+    # increase the energy thresholds
+    if not any([s in calc.prefix for s in ['init', 'print', 'final']]) and \
+       calc.prefix not in ['ki', 'kipz', 'dft_dummy']:
+        calc.parameters.nbnd = None
+        calc.parameters.conv_thr *= 100
+        calc.parameters.esic_conv_thr *= 100
+
+    # For the dft_dummy calculation, we don't need empty states because these will be overwritten by the w90
+    # wavefunctions
+    if calc.prefix == 'dft_dummy':
+        calc.parameters.nbnd = None
+
+    if all(workflow.atoms.pbc) and not any([s == calc.prefix for s in ['dft_init', 'dft_n-1', 'dft_n+1',
+                                                                       'kipz', 'kipz_n-1', 'kipz_n+1']]):
+        calc.parameters.do_outerloop = False
+        calc.parameters.do_innerloop = False
+    elif any([s in calc.prefix for s in ['frozen', 'dummy', 'print', 'innerloop']]) or calc.prefix == 'pkipz_final':
+        calc.parameters.do_outerloop = False
+        if calc.has_empty_states():
+            calc.parameters.do_outerloop_empty = False
+    elif calc.prefix in ['ki', 'ki_final']:
+        calc.parameters.do_outerloop = False
+        if calc.has_empty_states():
+            if workflow.parameters.init_empty_orbitals == 'pz':
+                calc.parameters.do_outerloop_empty = True
+            else:
+                calc.parameters.do_outerloop_empty = False
+    else:
+        calc.parameters.do_outerloop = True
+        if calc.has_empty_states():
+            calc.parameters.do_outerloop_empty = True
+
+    if calc.parameters.maxiter is None and calc.parameters.do_outerloop:
+        calc.parameters.maxiter = 300
+    if calc.parameters.empty_states_maxstep is None and calc.parameters.do_outerloop_empty:
+        calc.parameters.empty_states_maxstep = 300
+
+    # No empty states minimization in the solids workflow for the moment
+    if all(workflow.atoms.pbc) and calc.has_empty_states():
+        calc.parameters.do_outerloop_empty = False
+        calc.parameters.do_innerloop_empty = False
+
+    # nksic
+    if calc.parameters.do_orbdep:
+        calc.parameters.odd_nkscalfact = True
+        calc.parameters.odd_nkscalfact_empty = True
+    calc.parameters.do_innerloop_cg = True
+    if calc.prefix[:2] == 'pz' and 'print' not in calc.prefix:
+        calc.parameters.do_innerloop = True
+    else:
+        calc.parameters.do_innerloop = False
+    if calc.has_empty_states():
+        calc.parameters.do_innerloop_empty = False
+    if 'kipz' in calc.prefix:
+        calc.parameters.which_orbdep = 'nkipz'
+    elif 'pz' in calc.prefix:
+        calc.parameters.which_orbdep = 'pz'
+    elif 'ki' in calc.prefix:
+        calc.parameters.which_orbdep = 'nki'
+    if 'print' in calc.prefix:
+        calc.parameters.print_wfc_anion = True
+
+    if workflow.parameters.mt_correction:
+        calc.parameters.which_compensation = 'tcc'
+    else:
+        calc.parameters.which_compensation = 'none'
+
+    # If we are using frozen orbitals, we override the above logic and freeze the variational orbitals
+    # post-initialization
+    if workflow.parameters.frozen_orbitals and 'init' not in calc.prefix and not any([s == calc.prefix for s in
+                                                                                      ['dft_n-1', 'dft_n+1', 'kipz_n-1',
+                                                                                       'kipz_n+1']]):
+        calc.parameters.do_outerloop = False
+        calc.parameters.do_innerloop = False
+        if calc.has_empty_states():
+            calc.parameters.do_outerloop_empty = False
+            calc.parameters.do_innerloop_empty = False
+
+    # Handle any keywords provided by kwargs
+    # Note that since this is performed after the above logic this can (deliberately
+    # or accidentally) overwrite the above settings
+    calc.parameters.update(**kwargs)
+
+    # Sanity checking
+    if calc.parameters.print_wfc_anion and calc.parameters.index_empty_to_save is None:
+        raise ValueError('`print_wfc_anion` is set to `True` but you have not selected '
+                         'an `index_empty_to_save`. Provide this as an argument to `new_cp_calculator`')
+
+    # don't print QC in some cases
+    if 'dummy' in calc.prefix or calc.prefix[-2:] == '+1':
+        calc.skip_qc = True
+
+    return calc
+
+
+class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
+
+    output_model = KoopmansDSCFOutputs
+
+    def _run(self) -> None:
+        wannier_hamiltonian_files: Dict[BlockID, File] | None = None
+
+        if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
+                (all(self.atoms.pbc) and self.parameters.init_orbitals == 'kohn-sham'):
+            # Wannier functions using pw.x, wannier90.x and pw2wannier90.x (pw.x only for Kohn-Sham states)
+            wannier_workflow = WannierizeWorkflow.fromparent(self)
+            if wannier_workflow.parameters.calculate_bands:
+                wannier_workflow.parameters.calculate_bands = \
+                    not self.calculator_parameters['ui'].do_smooth_interpolation
+
+            # Perform the wannierization workflow
+            wannier_workflow.proceed()
+            if wannier_workflow.status != Status.COMPLETED:
+                return
+
+            # Store the Hamitonian files
+            hr_file_keys: List[BlockID]
+            if self.parameters.spin_polarized:
+                hr_file_ids = [BlockID(filled=True, spin='up'),
+                               BlockID(filled=False, spin='up'),
+                               BlockID(filled=True, spin='down'),
+                               BlockID(filled=False, spin='down')]
+            else:
+                hr_file_ids = [BlockID(filled=True), BlockID(filled=False)]
+
+            wannier_hamiltonian_files = {}
+            for b_id in hr_file_ids:
+                hr_file = wannier_workflow.outputs.hr_files[b_id]
+                assert hr_file is not None
+                wannier_hamiltonian_files[b_id] = hr_file
+
+            # Convert the files over from w90 format to kcp format
+            nscf_calc = wannier_workflow.outputs.nscf_calculation
+            nscf_outdir = File(nscf_calc, nscf_calc.parameters.outdir)
+            fold_workflow = FoldToSupercellWorkflow.fromparent(self, nscf_outdir=nscf_outdir,
+                                                               hr_files=wannier_workflow.outputs.hr_files,
+                                                               wannier90_calculations=wannier_workflow.outputs.wannier90_calculations,
+                                                               wannier90_pp_calculations=wannier_workflow.outputs.preprocessing_calculations)
+            fold_workflow.proceed()
+            if fold_workflow.status != Status.COMPLETED:
+                return
+
+            # Convert self.atoms to the supercell
+            self.primitive_to_supercell()
+
+            # We need a dummy calc before the real dft_init in order
+            # to copy the previously calculated Wannier functions
+            dummy_calc = internal_new_kcp_calculator(self, 'dft_dummy')
+            status = self.run_steps(dummy_calc)
+            if status != Status.COMPLETED:
+                return
+
+            # DFT restarting from Wannier functions (after copying the Wannier functions)
+            calc = internal_new_kcp_calculator(self, 'dft_init', restart_mode='restart',
+                                               restart_from_wannier_pwscf=True, do_outerloop=True)
+            calc.link(File(dummy_calc, dummy_calc.parameters.outdir), calc.parameters.outdir)
+            for filename, f in fold_workflow.outputs.kcp_files.items():
+                calc.link(f, calc.read_directory / 'K00001' / filename, symlink=True)
+            status = self.run_steps(calc)
+            if status != Status.COMPLETED:
+                return
+
+            # Check the consistency between the PW and CP band gaps
+            pw_calc = [c for c in self.calculations if isinstance(
+                c, PWCalculator) and c.parameters.calculation == 'nscf'][-1]
+            pw_gap = pw_calc.results['lumo_energy'] - pw_calc.results['homo_energy']
+            cp_gap = calc.results['lumo_energy'] - calc.results['homo_energy']
+            if abs(pw_gap - cp_gap) > 2e-2 * pw_gap:
+                raise ValueError(f'PW and CP band gaps are not consistent: {pw_gap} {cp_gap}')
+
+            # The CP restarting from Wannier functions must be already converged
+            Eini = calc.results['convergence']['filled'][0]['Etot']
+            Efin = calc.results['energy']
+            if abs(Efin - Eini) > 1e-6 * abs(Efin):
+                raise ValueError(f'Too much difference between the initial and final CP energies: {Eini} {Efin}')
+
+        elif self.parameters.functional in ['ki', 'pkipz']:
+            calc_dft = internal_new_kcp_calculator(self, 'dft_init')
+            if self.parameters.fix_spin_contamination:
+                status = spin_symmetrize(self, calc_dft)
+                if status != Status.COMPLETED:
+                    return
+            else:
+                status = self.run_steps(calc_dft)
+                if status != Status.COMPLETED:
+                    return
+
+            if self.parameters.init_orbitals == 'kohn-sham':
+                calc = calc_dft
+            elif self.parameters.init_orbitals == 'pz':
+                if self.calculations[-1].parameters.nelec == 2:
+                    # If we only have two electrons, then the filled manifold is trivially invariant under unitary
+                    # transformations. Furthermore, the PZ functional is invariant w.r.t. unitary rotations of the
+                    # empty states. Thus in this instance we can skip the initialization of the manifold entirely
+                    self.print('Skipping the optimisation of the variational orbitals since they are invariant under '
+                               'unitary transformations')
+                else:
+                    assert self.bands is not None
+                    calc = internal_new_kcp_calculator(self, 'pz_innerloop_init', alphas=self.bands.alphas)
+
+                    # Use the KS eigenfunctions as initial guesses for the variational orbitals
+                    calc.link(File(calc_dft, calc_dft.parameters.outdir),
+                              calc.parameters.outdir, recursive_symlink=True)
+                    ndw_dir = calc_dft.write_directory / 'K00001'
+                    ndr_dir = calc.read_directory / 'K00001'
+                    calc.link(ndw_dir / 'evc1.dat', ndr_dir / 'evc01.dat', symlink=True, overwrite=True)
+                    calc.link(ndw_dir / 'evc2.dat', ndr_dir / 'evc02.dat', symlink=True, overwrite=True)
+                    status = self.run_steps(calc)
+                    if status != Status.COMPLETED:
+                        return
+            else:
+                raise ValueError('Should not arrive here')
+
+        elif self.parameters.functional == 'kipz':
+            # DFT from scratch
+            calc_dft = internal_new_kcp_calculator(self, 'dft_init')
+            if self.parameters.fix_spin_contamination:
+                status = spin_symmetrize(self, calc_dft)
+                if status != Status.COMPLETED:
+                    return
+            else:
+                status = self.run_steps(calc_dft)
+                if status != Status.COMPLETED:
+                    return
+
+            if self.parameters.init_orbitals == 'kohn-sham':
+                # Initialize the density with DFT and use the KS eigenfunctions as guesses for the variational orbitals
+                raise NotImplementedError()
+                # self._overwrite_canonical_with_variational_orbitals(calc)
+                # self._copy_most_recent_calc_to_ndw(ndw_final)
+            elif self.parameters.init_orbitals == 'pz':
+                # PZ from DFT (generating PZ density and PZ orbitals)
+                calc = internal_new_kcp_calculator(self, 'pz_init')
+                calc.link(calc_dft.write_directory, calc.read_directory, recursive_symlink=True)
+                status = self.run_steps(calc)
+                if status != Status.COMPLETED:
+                    return
+            else:
+                raise ValueError('Should not arrive here')
+
+        else:
+            raise ValueError("Should not arrive here; there must be an inconsistency between the above code and \
+                             `workflow.valid_settings`")
+
+        # Compiling a dictionary of the variational orbital files
+        variational_orbitals = {}
+        if self.parameters.init_orbitals == 'kohn-sham':
+            prefix = 'evc'
+        else:
+            prefix = 'evc0'
+        ndw_dir = calc.write_directory / 'K00001'
+        ndr_dir = calc.read_directory / 'K00001'
+        for ispin in range(1, 3):
+            if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
+                    (all(self.atoms.pbc) and self.parameters.init_orbitals == 'kohn-sham'):
+                variational_orbitals[f'evc_occupied{ispin}.dat'] = ndr_dir / f'evc_occupied{ispin}.dat'
+            else:
+                variational_orbitals[f'evc0{ispin}.dat'] = ndw_dir / f'{prefix}{ispin}.dat'
+            if calc.has_empty_states(ispin - 1):
+                variational_orbitals[f'evc0_empty{ispin}.dat'] = ndw_dir / f'{prefix}_empty{ispin}.dat'
+
+        # If fixing spin contamination, copy the spin-up variational orbitals to the spin-down channel
+        if self.parameters.fix_spin_contamination:
+            for spin_up_file in ['evc01.dat', 'evc0_empty1.dat', 'evc_occupied1.dat']:
+                if spin_up_file in variational_orbitals:
+                    variational_orbitals[spin_up_file.replace('1', '2')] = variational_orbitals[spin_up_file]
+
+        self.outputs = self.output_model(variational_orbital_files=variational_orbitals, final_calc=calc,
+                                         wannier_hamiltonian_files=wannier_hamiltonian_files)
+
+        self.status = Status.COMPLETED
+        return
+
+
+def print_alpha_history(wf: Workflow):
+    # Printing out a progress summary
+    assert wf.bands is not None
+    if not wf.ml.predict:
+        wf.print(f'\n**α**')
+        if wf.parameters.spin_polarized:
+            wf.print('\n**spin up**')
+            wf.print(wf.bands.alpha_history(spin=0).to_markdown(), wrap=False)
+            wf.print('\n**spin down**')
+            wf.print(wf.bands.alpha_history(spin=1).to_markdown(), wrap=False)
+        else:
+            wf.print(wf.bands.alpha_history().to_markdown(), wrap=False)
+
+    if None not in [b.predicted_alpha for b in wf.bands]:
+        wf.print(f'\n**predicted α**')
+        if wf.parameters.spin_polarized:
+            wf.print('\n**spin up**')
+            wf.print(wf.bands.predicted_alpha_history(spin=0).to_markdown(), wrap=False)
+            wf.print('\n**spin down**')
+            wf.print(wf.bands.predicted_alpha_history(spin=1).to_markdown(), wrap=False)
+        else:
+            wf.print(wf.bands.predicted_alpha_history().to_markdown(), wrap=False)
+
+    if not wf.bands.error_history().empty:
+        wf.print(f'\n**ΔE<sub>i</sub> - λ<sub>ii</sub> (eV)**')
+        if wf.parameters.spin_polarized:
+            wf.print('\n**spin up**')
+            wf.print(wf.bands.error_history(spin=0).to_markdown(), wrap=False)
+            wf.print('\n**spin down**')
+            wf.print(wf.bands.error_history(spin=1).to_markdown(), wrap=False)
+        else:
+            wf.print(wf.bands.error_history().to_markdown(), wrap=False)
+    wf.print('')

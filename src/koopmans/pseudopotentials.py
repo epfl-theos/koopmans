@@ -8,158 +8,62 @@ Split into a separate module Sep 2021
 
 """
 
-import json
-import os
 import re
-from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Dict, List, Optional, OrderedDict
 
-from ase import Atoms
-from upf_to_json import upf_to_json
+from ase_koopmans import Atoms
+from upf_tools import UPFDict
 from upf_tools.projectors import Projectors
 
-
-@dataclass
-class Pseudopotential:
-    name: str
-    element: str
-    path: Path
-    functional: str
-    library: str
-    kind: str
-    citations: List[str]
-    cutoff_wfc: Optional[float] = None
-    cutoff_rho: Optional[float] = None
+local_base_directory = (Path(__file__).parent / 'pseudopotentials').resolve()
+local_libraries = set([str(f.parent.relative_to(local_base_directory))
+                       for f in chain(local_base_directory.rglob('*.upf'),
+                                      local_base_directory.rglob('*.UPF'))])
 
 
-pseudos_directory = Path(__file__).parent / 'pseudopotentials'
-
-# A database containing all the available pseudopotentials
-pseudo_database: List[Pseudopotential] = []
-for pseudo_file in chain(pseudos_directory.rglob('*.UPF'), pseudos_directory.rglob('*.upf')):
-    name = pseudo_file.name
-    splitname = re.split(r'\.|_|-', name)[0]
-    element = splitname[0].upper() + splitname[1:].lower()
-    library = pseudo_file.parents[1].name
-    functional = pseudo_file.parent.name
-    citations: List[str] = []
-
-    kwargs = {}
-    if library.startswith('sssp'):
-        [json_name] = list(pseudo_file.parent.glob('*.json'))
-        metadata = json.load(open(json_name, 'r'))[element]
-        original_library = metadata['pseudopotential'].replace('SG15', 'sg15').replace('Dojo', 'pseudo_dojo')
-        if original_library.startswith('sg15') or original_library.startswith('pseudo_dojo'):
-            kind = 'norm-conserving'
-        elif original_library.startswith('GBRV') or original_library in ['031US', '100US', 'THEOS']:
-            kind = 'ultrasoft'
-        elif 'PAW' in original_library or original_library == 'Wentzcovitch':
-            kind = 'projector-augmented wave'
-        else:
-            raise ValueError(f'Unrecognized library {original_library}')
-        citations += ['Lejaeghere2016', 'Prandini2018']
-        for key in ['cutoff_wfc', 'cutoff_rho']:
-            kwargs[key] = metadata[key]
-    else:
-        original_library = library
-        if original_library.startswith('sg15') or original_library.startswith('pseudo_dojo'):
-            kind = 'norm-conserving'
-        else:
-            kind = 'unknown'
-
-    if original_library.startswith('sg15'):
+def pseudopotential_library_citations(library: str) -> List[str]:
+    citations = []
+    if library.startswith('SG15'):
         citations.append('Hamann2013')
         citations.append('Schlipf2015')
-        if 'relativistic' in original_library:
+        if 'FR' in library:
             citations.append('Scherpelz2016')
-    elif original_library.startswith('pseudo_dojo'):
+    elif library.startswith('PseudoDojo'):
         citations.append('Hamann2013')
         citations.append('vanSetten2018')
-
-    pseudo_database.append(Pseudopotential(name, element, pseudo_file.parent,
-                                           functional, library, kind, citations, **kwargs))
+    return citations
 
 
-def pseudos_library_directory(pseudo_library: str, base_functional: str) -> Path:
-    return pseudos_directory / pseudo_library / base_functional
+def element_from_pseudo_filename(filename: str) -> str:
+    splitname = re.split(r'\.|_|-', filename)[0]
+    element = splitname[0].upper() + splitname[1:].lower()
+    return element
 
 
-def fetch_pseudo(**kwargs: Any) -> Pseudopotential:
-    matches = [psp for psp in pseudo_database if all([getattr(psp, k) == v for k, v in kwargs.items()])]
-    request_str = ', '.join([f'{k} = {v}' for k, v in kwargs.items()])
-    if len(matches) == 0:
-        raise ValueError('Could not find a pseudopotential in the database matching ' + request_str)
-    elif len(matches) > 1:
-        raise ValueError('Found multiple pseudopotentials in the database matching ' + request_str)
-    else:
-        return matches[0]
-
-
-def read_pseudo_file(filename: Path) -> Dict[str, Any]:
+def read_pseudo_file(filename: Path) -> UPFDict:
     '''
 
     Reads in settings from a .upf file
 
     '''
 
-    with open(filename, 'r') as fd:
-        upf: Dict[str, Any] = upf_to_json(fd.read(), filename.name)
+    if not filename.exists():
+        raise FileNotFoundError(f'Could not find the pseudopotential file `{filename}`')
 
-    return upf['pseudo_potential']
+    upf = UPFDict.from_upf(filename)
 
-
-def get_pseudo_dir(pseudo_dir):
-    # Works out the pseudo directory (pseudo_dir is given precedence over $ESPRESSO_PSEUDO)
-    if pseudo_dir is None:
-        if 'ESPRESSO_PSEUDO' in os.environ:
-            pseudo_dir = Path(os.environ['ESPRESSO_PSEUDO'])
-        else:
-            pseudo_dir = Path.cwd()
-    elif isinstance(pseudo_dir, str):
-        pseudo_dir = Path(pseudo_dir)
-    return pseudo_dir
+    return upf
 
 
-def pseudo_contents(filename: str, pseudo_dir: Optional[Path] = None) -> Dict[str, Any]:
-    '''
-    Determines the valence of a pseudopotential
-    '''
-
-    return read_pseudo_file(get_pseudo_dir(pseudo_dir) / filename)
-
-
-def _quantity_from_pseudos(extract_function: Callable[[Dict[str, Any]], Any], atoms: Atoms, pseudopotentials: Dict[str, str],
-                           pseudo_dir: Optional[Path] = None) -> int:
-    '''
-    Determines the number of something in the system using information from pseudopotential files
-    extract_function needs to take the full UPF and returns the quantity of interest
-    '''
-
-    try:
-        value_dct = {at: extract_function(pseudo_contents(psp, pseudo_dir)) for at, psp in pseudopotentials.items()}
-    except KeyError:
-        raise KeyError(f'"{key}" is not present in the header of every pseudopotential')
-
-    if len(set(atoms.get_tags())) > 1:
-        labels = [s + str(t) if t > 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
-    else:
-        labels = atoms.symbols
-
-    values = [value_dct[l] for l in labels]
-    return sum(values)
-
-
-def nelec_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
-                       pseudo_dir: Optional[Path] = None) -> int:
+def nelec_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]) -> int:
     '''
     Determines the number of electrons in the system using information from pseudopotential files
     '''
 
-    def extract_z_valence(dct: Dict[str, Dict[str, Any]]) -> int:
-        return int(dct['header']['z_valence'])
-    return _quantity_from_pseudos(extract_z_valence, atoms, pseudopotentials, pseudo_dir)
+    raise NotImplementedError('Remove this')
+    # valences_dct = {key: int(value['header']['z_valence']) for key, value in pseudopotentials.items()}
 
 
 def nwfcs_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
@@ -168,14 +72,16 @@ def nwfcs_from_pseudos(atoms: Atoms, pseudopotentials: Dict[str, str],
     Determines the number of wfcs in the system using information from pseudopotential files
     '''
 
-    for psp in pseudopotentials.values():
-        if pseudo_contents(psp, pseudo_dir)['header']['number_of_wfc'] == 0:
-            raise ValueError(f'The pseudopotential {psp} does not contain wavefunctions')
+    raise NotImplementedError('This function is not yet implemented')
+    # for psp in pseudopotentials.values():
+    #     if pseudo_contents(psp, pseudo_dir)['header']['number_of_wfc'] == 0:
+    #         raise ValueError(f'The pseudopotential {psp} does not contain wavefunctions')
 
-    def extract_nwfc(dct: Dict[str, List[Dict[str, Any]]]) -> int:
-        return sum([2 * int(wfc['angular_momentum']) + 1 for wfc in dct['atomic_wave_functions']])
+    # def extract_nwfc(dct: Dict[str, List[Dict[str, Any]]]) -> int:
+    #     return sum([2 * int(wfc['angular_momentum']) + 1 for wfc in dct['atomic_wave_functions']])
 
-    return _quantity_from_pseudos(extract_nwfc, atoms, pseudopotentials, pseudo_dir)
+    # return _quantity_from_pseudos(extract_nwfc, atoms, pseudopotentials, pseudo_dir)
+
 
 def nwfcs_from_projectors(atoms: Atoms, pseudopotentials: Dict[str, str], projector_dir: Path) -> int:
     '''
@@ -203,36 +109,36 @@ def cutoffs_from_pseudos(atoms: Atoms, pseudo_dir_in: Optional[Path] = None) -> 
     located in the pseudopotential directory
     """
 
-    pseudo_dir = get_pseudo_dir(pseudo_dir_in)
+    raise NotImplementedError('This function is not yet implemented')
+    # pseudo_dir = get_pseudo_dir(pseudo_dir_in)
 
-    cutoff_database_file = pseudo_dir / 'cutoffs.json'
-    if not cutoff_database_file.exists():
-        return {}
+    # cutoff_database_file = pseudo_dir / 'cutoffs.json'
+    # if not cutoff_database_file.exists():
+    #     return {}
 
-    with open(cutoff_database_file, 'r') as fd:
-        cutoff_database = json.load(fd)
+    # with open(cutoff_database_file, 'r') as fd:
+    #     cutoff_database = json.load(fd)
 
-    cutoffs = {}
-    for symbol in atoms.symbols:
-        if symbol not in cutoff_database:
-            return {}
-        for k, v in cutoff_database[symbol].items():
-            if k not in cutoffs:
-                cutoffs[k] = v
-            elif cutoffs[k] < v:
-                cutoffs[k] = v
+    # cutoffs = {}
+    # for symbol in atoms.symbols:
+    #     if symbol not in cutoff_database:
+    #         return {}
+    #     for k, v in cutoff_database[symbol].items():
+    #         if k not in cutoffs:
+    #             cutoffs[k] = v
+    #         elif cutoffs[k] < v:
+    #             cutoffs[k] = v
 
-    return cutoffs
+    # return cutoffs
 
 
-def expected_subshells(atoms: Atoms, pseudopotentials: Dict[str, str],
-                       pseudo_dir: Optional[Path] = None) -> Dict[str, List[str]]:
+def expected_subshells(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]) -> Dict[str, List[str]]:
     """
     Determine which subshells will make up the valences of a set of pseudopotentials.
 
     Returns
     -------
-    Dict[str, List[str]]
+    OrderedDict[str, List[str]]
         a dict mapping element names to a corresponding list of suborbitals that *might* be in the pseudopotential
         valence (depending on how many bands are included)
 
@@ -243,14 +149,14 @@ def expected_subshells(atoms: Atoms, pseudopotentials: Dict[str, str],
 
     expected_orbitals = {}
     for atom in atoms:
-        if atom.symbol in expected_orbitals:
+        label = atom.symbol + str(atom.tag) if atom.tag > 0 else atom.symbol
+        if label in expected_orbitals:
             continue
-        pseudo_file = pseudopotentials[atom.symbol]
-        z_core = atom.number - pseudo_contents(pseudo_file, pseudo_dir)['header']['z_valence']
+        z_core = atom.number - int(pseudopotentials[label]['header']['z_valence'])
         if z_core in z_core_to_first_orbital:
             first_orbital = z_core_to_first_orbital[z_core]
         else:
-            raise ValueError(f'Failed to identify the subshells of the valence of {pseudo_file}')
+            raise ValueError(f'Failed to identify the subshells of the valence of `{pseudopotentials[label].filename}`')
         all_orbitals = list(z_core_to_first_orbital.values()) + ['5d', '6p', '6d']
-        expected_orbitals[atom.symbol] = sorted(all_orbitals[all_orbitals.index(first_orbital):])
+        expected_orbitals[label] = sorted(all_orbitals[all_orbitals.index(first_orbital):])
     return expected_orbitals

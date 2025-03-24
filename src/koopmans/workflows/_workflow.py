@@ -10,18 +10,19 @@ from __future__ import annotations
 
 import copy
 import json as json_ext
-import operator
+import logging
 import os
+import re
 import shutil
-import subprocess
+import sys
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from contextlib import contextmanager
-from functools import reduce
 from pathlib import Path
-from types import ModuleType
-from typing import (Any, Callable, Dict, Generator, List, Optional, Type,
-                    TypeVar, Union)
+from typing import (Any, Callable, Dict, Generator, Generic, List, Optional,
+                    Sequence, Tuple, Type, TypeVar, Union)
 
+import dill
 import numpy as np
 from numpy import typing as npt
 from pybtex.database import BibliographyData
@@ -31,37 +32,52 @@ import koopmans.mpl_config
 import matplotlib.pyplot as plt
 # isort: on
 
-import ase
-from ase import Atoms
-from ase.build.supercells import make_supercell
-from ase.calculators.calculator import CalculationFailed
-from ase.dft.dos import DOS
-from ase.dft.kpoints import BandPath
-from ase.io.espresso import contruct_kcp_namelist as construct_namelist
-from ase.spacegroup import symmetrize
-from ase.spectrum.band_structure import BandStructure
-from ase.spectrum.doscollection import GridDOSCollection
-from ase.spectrum.dosdata import GridDOSData
+from ase_koopmans import Atoms
+from ase_koopmans.build.supercells import make_supercell
+from ase_koopmans.calculators.calculator import CalculationFailed
+from ase_koopmans.dft.dos import DOS
+from ase_koopmans.dft.kpoints import BandPath
+from ase_koopmans.io import read as ase_read
+from ase_koopmans.io import write as ase_write
+from ase_koopmans.io.espresso import \
+    contruct_kcp_namelist as construct_namelist
+from ase_koopmans.spacegroup import symmetrize
+from ase_koopmans.spectrum.band_structure import BandStructure
+from ase_koopmans.spectrum.doscollection import GridDOSCollection
+from ase_koopmans.spectrum.dosdata import GridDOSData
+from upf_tools import UPFDict
 
 from koopmans import calculators, settings, utils
 from koopmans.bands import Bands
 from koopmans.cell import (cell_follows_qe_conventions, cell_to_parameters,
                            parameters_to_cell)
 from koopmans.commands import ParallelCommandWithPostfix
+from koopmans.engines import Engine, LocalhostEngine
+from koopmans.files import File, LocalFile, ParentProcessPlaceholder
 from koopmans.kpoints import Kpoints
-from koopmans.ml import MLModel
+from koopmans.ml import AbstractMLModel, MLModel, OccEmpMLModels
+from koopmans.process_io import IOModel
+from koopmans.processes import Process, ProcessProtocol
+from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
+                                            ConvertFilesFromSpin2To1)
 from koopmans.projections import ExplicitProjectionBlock, ProjectionBlocks
-from koopmans.pseudopotentials import (cutoffs_from_pseudos, fetch_pseudo,
-                                       nelec_from_pseudos, nwfcs_from_pseudos,
-                                       pseudo_contents, pseudo_database,
-                                       pseudos_library_directory, nwfcs_from_projectors)
+from koopmans.pseudopotentials import (cutoffs_from_pseudos,
+                                       element_from_pseudo_filename,
+                                       nelec_from_pseudos,
+                                       pseudopotential_library_citations)
 from koopmans.references import bib_data
+from koopmans.status import Status
+from koopmans.utils import Spin
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 W = TypeVar('W', bound='Workflow')
+OutputModel = TypeVar('OutputModel', bound=IOModel)
 
 
-class Workflow(ABC):
+logger = logging.getLogger(__name__)
+
+
+class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
     r'''
     Abstract base class that defines a Koopmans workflow
@@ -71,8 +87,8 @@ class Workflow(ABC):
 
     atoms : Atoms
         an ASE ``Atoms`` object defining the atomic positions, cell, etc
-    pseudopotentials : Dict[str, str]
-        a dictionary mapping atom labels to pseudopotential filenames
+    pseudopotentials : OrderedDict[str, UPFDict]
+        a dictionary mapping atom labels to pseudopotential objects
     kpoints : koopmans.kpoints.Kpoints
         a dataclass defining the k-point sampling and paths
     projections : ProjectionsBlocks
@@ -100,24 +116,54 @@ class Workflow(ABC):
     calculator_parameters: Dict[str, settings.SettingsDict]
     name: str
     kpoints: Kpoints
-    _pseudopotentials: Dict[str, str]
+    pseudopotentials: OrderedDict[str, UPFDict]
     pseudo_dir: Path
     projections: ProjectionBlocks
-    parent: Optional[Workflow]
-    _corresponding_taskname: str = ''
+    ml_model: Optional[AbstractMLModel]
+    snapshots: List[Atoms]
+    version: str
+    step_counter: int
+    print_indent: int
+    status: Status
+    engine: Engine | None
 
-    def __init__(self, atoms: Atoms,
-                 pseudopotentials: Dict[str, str] = {},
+    __slots__ = utils.HasDirectory.__slots__ + ['atoms', 'parameters', 'calculator_parameters', 'name', 'kpoints',
+                                                'pseudopotentials', 'projections', 'ml_model', 'snapshots',
+                                                'version', 'calculations', 'processes',
+                                                'steps', 'plotting', 'ml', '_bands', 'step_counter', 'print_indent',
+                                                'status', '_outputs']
+
+    def __init__(self,
+                 atoms: Atoms,
+                 engine: Engine,
+                 pseudopotentials: OrderedDict[str, UPFDict | str] = OrderedDict(),
                  kpoints: Optional[Kpoints] = None,
                  projections: Optional[ProjectionBlocks] = None,
-                 name: str = 'koopmans_workflow',
+                 name: Optional[str] = None,
                  parameters: Union[Dict[str, Any], settings.WorkflowSettingsDict] = {},
                  calculator_parameters: Optional[Union[Dict[str, Dict[str, Any]],
                                                        Dict[str, settings.SettingsDict]]] = None,
                  plotting: Union[Dict[str, Any], settings.PlotSettingsDict] = {},
                  ml: Union[Dict[str, Any], settings.MLSettingsDict] = {},
+                 ml_model: Optional[MLModel] = None,
+                 snapshots: Optional[List[Atoms]] = None,
                  autogenerate_settings: bool = True,
+                 version: Optional[str] = None,
+                 parent_process: Optional[Workflow] = None,
                  **kwargs: Dict[str, Any]):
+
+        self._outputs: OutputModel | None = None
+        self.step_counter = 0
+        self.print_indent = 0
+        self.status = Status.NOT_STARTED
+
+        # Initialize the HasDirectory information (parent_process, base_directory, directory)
+        base_directory = None if parent_process else Path.cwd()
+        directory = None if parent_process else Path()
+        super().__init__(parent_process=parent_process, base_directory=base_directory, directory=directory, engine=engine)
+        if self.engine is None:
+            raise ValueError(
+                'Please provide an engine -- without one, a Workflow cannot be initialized as it does not know e.g. how to load pseudopotentials')
 
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
@@ -125,20 +171,27 @@ class Workflow(ABC):
             if self.parameters.is_valid(key):
                 self.parameters[key] = value
         self.atoms: Atoms = atoms
-        self.name = name
+        self.snapshots = snapshots if snapshots is not None else [self.atoms]
+        if name:
+            self.name = name
+        else:
+            name_with_split_acroynms = re.sub(r'([a-z])([A-Z])', r'\1 \2',
+                                              self.__class__.__name__.replace('Workflow', ''))
+            self.name = re.sub(r'([A-Z])([A-Z][a-z])', r'\1 \2', name_with_split_acroynms)
         self.calculations: List[calculators.Calc] = []
-        self.silent = False
-        self.print_indent = 1
+        self.processes: List[Process] = []
+        self.steps: List = []
+        self._bands: Optional[Bands] = None
 
         if projections is None:
-            proj_list: List[List[str]]
-            spins: List[Optional[str]]
+            proj_list: List[List[Any]]
+            spins: List[Spin]
             if self.parameters.spin_polarized:
                 proj_list = [[], []]
-                spins = ['up', 'down']
+                spins = [Spin.UP, Spin.DOWN]
             else:
                 proj_list = [[]]
-                spins = [None]
+                spins = [Spin.NONE]
             self.projections = ProjectionBlocks.fromlist(proj_list, spins=spins, atoms=self.atoms)
         else:
             self.projections = projections
@@ -154,12 +207,25 @@ class Workflow(ABC):
                 self.ml[key] = value
 
         # Initialize the MLModel
-        if self.ml.use_ml:
+        if ml_model is not None:
+            self.ml_model = ml_model
+        elif self.ml.train:
+            assert isinstance(self.ml.estimator, str)
+            assert isinstance(self.ml.descriptor, str)
             if self.ml.occ_and_emp_together:
-                self.ml.ml_model = MLModel(self.ml.type_of_ml_model)
+                self.ml_model = MLModel(self.ml.estimator, self.ml.descriptor, engine=self.engine)
             else:
-                self.ml.ml_model_occ = MLModel(self.ml.type_of_ml_model)
-                self.ml.ml_model_emp = MLModel(self.ml.type_of_ml_model)
+                self.ml_model = OccEmpMLModels(self.ml.estimator, self.ml.descriptor, engine=self.engine)
+        elif self.ml.predict or self.ml.test:
+            if self.ml.model_file is None:
+                raise ValueError('Cannot initialize a Workflow with `ml.predict = True` without providing a model via '
+                                 'the `ml.model_file` setting or the `ml_model` argument')
+            with open(self.ml.model_file, 'rb') as f:
+                self.ml_model = dill.load(f)
+            assert isinstance(self.ml_model, AbstractMLModel)
+
+        else:
+            self.ml_model = None
 
         if all(self.atoms.pbc):
             self.atoms.wrap(pbc=True)
@@ -178,76 +244,84 @@ class Workflow(ABC):
         self.kpoints = kpoints
 
         # Pseudopotentials and pseudo_dir
-        if pseudopotentials:
-            self.pseudopotentials = pseudopotentials
+        if self.parameters.pseudo_library is None:
+            raise NotImplementedError()
+
+        if self.parameters.pseudo_library is None:
+            raise ValueError('No pseudopotential library was provided`')
+        elif pseudopotentials:
+            # Ensure pseudopotentials are converted to UPFDict objects
+            self.pseudopotentials = OrderedDict()
+            for symbol, pseudo_filename in sorted(pseudopotentials.items()):
+                if isinstance(pseudo_filename, str):
+                    self.pseudopotentials[symbol] = self.engine.get_pseudopotential(
+                        self.parameters.pseudo_library, filename=pseudo_filename)
+                elif isinstance(pseudo_filename, UPFDict):
+                    self.pseudopotentials[symbol] = pseudo_filename
+                else:
+                    raise ValueError(f'Invalid pseudopotential type: {pseudo_filename.__class__.__name__}')
         else:
-            if self.parameters.pseudo_library is None:
-                utils.warn(
-                    'Neither a pseudopotential library nor a list of pseudopotentials was provided; defaulting to '
-                    'sg15_v1.2')
-                self.parameters.pseudo_library = 'sg15_v1.2'
-            self.pseudopotentials = {}
-            for symbol, tag in set([(a.symbol, a.tag) for a in self.atoms]):
-                pseudo = fetch_pseudo(element=symbol, functional=self.parameters.base_functional,
-                                      library=self.parameters.pseudo_library)
-                if pseudo.kind == 'unknown':
-                    utils.warn(f'You are using an unrecognized pseudopotential {pseudo.name}. Please note that '
-                               'the current implementation of Koopmans functionals only supports norm-conserving '
-                               'pseudopotentials.')
-                elif pseudo.kind != 'norm-conserving':
+            self.pseudopotentials = OrderedDict()
+            for element, tag in sorted(set([(a.symbol, a.tag) for a in self.atoms])):
+                pseudo = self.engine.get_pseudopotential(library=self.parameters.pseudo_library, element=element)
+
+                pseudo_type = pseudo['header']['pseudo_type']
+                if pseudo_type != 'NC':
                     raise ValueError('Koopmans functionals only currently support norm-conserving pseudopotentials; '
-                                     f'{pseudo.name} is {pseudo.kind}')
-                if tag > 0:
-                    symbol += str(tag)
-                self.pseudopotentials[symbol] = pseudo.name
+                                     f'{pseudo.filename} is {pseudo_type}')
+
+                symbol = element + str(tag) if tag > 0 else element
+                self.pseudopotentials[symbol] = pseudo
 
         # Make sure calculator_parameters isn't missing any entries, and every entry corresponds to
         # settings.SettingsDict objects
         calculator_parameters = sanitize_calculator_parameters(calculator_parameters) if calculator_parameters \
             is not None else generate_default_calculator_parameters()
 
-        # Work out the pseudopotential directory. If using a pseudo_library this is straightforward, if not...
-        #  1. try to locating the directory as currently specified by the calculator
-        #  2. if that fails, check if $ESPRESSO_PSEUDO is set
-        #  3. if that fails, raise an error
-        if self.parameters.pseudo_directory is None:
-            if self.parameters.pseudo_library:
-                pseudo_dir = pseudos_library_directory(self.parameters.pseudo_library, self.parameters.base_functional)
-                for params in calculator_parameters.values():
-                    if params.get('pseudo_dir', pseudo_dir).resolve() != pseudo_dir:
-                        raise ValueError(
-                            '"pseudo_dir" and "pseudo_library" are conflicting; please do not provide "pseudo_dir"')
-            elif 'pseudo_dir' in calculator_parameters['kcp'] or 'pseudo_dir' in calculator_parameters['pw']:
-                pseudo_dir = calculator_parameters['kcp'].get(
-                    'pseudo_dir', calculator_parameters['pw'].get('pseudo_dir'))
-                assert isinstance(pseudo_dir, Path)
-            elif 'ESPRESSO_PSEUDO' in os.environ:
-                pseudo_dir = Path(os.environ['ESPRESSO_PSEUDO'])
-            else:
-                pseudo_dir = Path.cwd()
-
-            self.parameters.pseudo_directory = pseudo_dir.resolve()
+        # For any kwargs...
+        for key, value in kwargs.items():
+            match = False
+            # if they correspond to any valid calculator parameter, set it
+            for calc_params in calculator_parameters.values():
+                if calc_params.is_valid(key):
+                    calc_params[key] = value
+                    match = True
+            # if not a calculator, workflow, or plotting keyword, raise an error
+            if not match and not self.parameters.is_valid(key) and not self.plotting.is_valid(key) \
+                    and not self.ml.is_valid(key):
+                raise ValueError(f'`{key}` is not a valid setting')
 
         # Before saving the calculator_parameters, automatically generate some keywords and perform some sanity checks
         if self.parameters.task != 'ui' and autogenerate_settings:
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
-            kcp_params = calculator_parameters['kcp']
-            nelec = self.number_of_electrons(None, kcp_params)
-            nelup = self.number_of_electrons('up', kcp_params)
-            neldw = self.number_of_electrons('down', kcp_params)
-            tot_charge = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory) - nelec
-            tot_mag = nelup - neldw
+            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials)
+            tot_charge = calculator_parameters['pw'].get(
+                'tot_charge', calculator_parameters['kcp'].get('tot_charge', 0))
+            nelec -= tot_charge
+            tot_mag = calculator_parameters['pw'].get(
+                'tot_magnetization', calculator_parameters['kcp'].get('tot_charge', nelec % 2))
+            nelup = int(nelec / 2 + tot_mag / 2)
+            neldw = int(nelec / 2 - tot_mag / 2)
 
             # Setting up the magnetic moments
-            if 'starting_magnetization(1)' in calculator_parameters['kcp']:
-                labels = [s + str(t) if t > 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
-                starting_magmoms = {}
+            starting_mags = {k: v for k, v in calculator_parameters['kcp'].items(
+            ) if k.startswith('starting_magnetization')}
+            starting_mags.update(
+                {k: v for k, v in calculator_parameters['pw'].items() if k.startswith('starting_magnetization')})
+            if starting_mags:
+                labels = [a.symbol + str(a.tag) if a.tag > 0 else a.symbol for a in self.atoms]
+                starting_magmoms: Dict[str, float] = {}
                 for i, (l, p) in enumerate(self.pseudopotentials.items()):
-                    # ASE uses absolute values; QE uses the fraction of the valence
-                    frac_mag = calculator_parameters['kcp'].pop(f'starting_magnetization({i + 1})', 0.0)
-                    valence = pseudo_contents(p, self.parameters.pseudo_directory)['header']['z_valence']
-                    starting_magmoms[l] = frac_mag * valence
+                    mag = starting_mags.pop(f'starting_magnetization({i + 1})', 0.0)
+                    if abs(mag) < 1.0:
+                        # If |mag| < 1, QE interprets this as site magnetization *per valence electron*, whereas ASE
+                        # expects simply the site magnetization
+                        valence = p['header']['z_valence']
+                        starting_magmoms[l] = mag * valence
+                    else:
+                        # If |mag| >= 1, QE interprets this as site magnetization
+                        starting_magmoms[l] = mag
                 atoms.set_initial_magnetic_moments([starting_magmoms[l] for l in labels])
             elif tot_mag != 0:
                 atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
@@ -273,18 +347,14 @@ class Workflow(ABC):
 
             # Various checks for the wannier90 blocks
             if block.startswith('w90'):
-                # If we are spin-polarized, don't store the spin-independent w90 block
-                # Likewise, if we are not spin-polarized, don't store the spin-dependent w90 blocks
-                if self.parameters.spin_polarized is not ('up' in block or 'down' in block):
-                    continue
-                if 'projections' in params:
-                    raise ValueError(f'You have provided projection information in the calculator_parameters[{block}] '
-                                     f'argument to {self.__class__.__name__}. Please instead specify projections '
-                                     'via the "projections" argument')
+                if 'projections' in params or 'projections_blocks' in params:
+                    raise ValueError(f'You have provided projection information in the '
+                                     f'`calculator_parameters[{block}]` argument to `{self.__class__.__name__}`. '
+                                     'Please instead specify projections via the `projections` argument')
                 for kw in ['exclude_bands', 'num_wann', 'num_bands', 'projections']:
                     if kw in params:
-                        utils.warn(f'{kw} will be overwritten by the workflow; it is best to not specify this keyword '
-                                   'and to instead double-check the keyword in the various .win files '
+                        utils.warn(f'`{kw}` will be overwritten by the workflow; it is best to not specify this '
+                                   'keyword and to instead double-check the keyword in the various `.win` files '
                                    'generated by the workflow.')
 
             # Replace "nelec" as a unit with its numerical value, for any settings that are specified implicitly in
@@ -294,82 +364,38 @@ class Workflow(ABC):
             # Store the sanitized parameters
             self.calculator_parameters[block] = params
 
-        # If atoms has a calculator, overwrite the kpoints and pseudopotentials variables and then detach the calculator
+        # If atoms has a calculator, overwrite the kpoints and pseudopotentials variables and then detach the
+        # calculator
         if atoms.calc is not None:
-            utils.warn(f'You have initialized a {self.__class__.__name__} object with an atoms object that possesses '
-                       'a calculator. This calculator will be ignored.')
+            utils.warn(f'You have initialized a `{self.__class__.__name__}` object with an atoms object that '
+                       'possesses a calculator. This calculator will be ignored.')
             self.atoms.calc = None
-
-        # Initialize self.parent
-        self.parent: Optional[Workflow] = None
-
-        # For any kwargs...
-        for key, value in kwargs.items():
-            match = False
-            # if they correspond to any valid calculator parameter, set it
-            for calc_params in self.calculator_parameters.values():
-                if calc_params.is_valid(key):
-                    calc_params[key] = value
-                    match = True
-            # if not a calculator, workflow, or plotting keyword, raise an error
-            if not match and not self.parameters.is_valid(key) and not self.plotting.is_valid(key) and not self.ml.is_valid(key):
-                raise ValueError(f'{key} is not a valid setting')
-
-        # Generating self.projections if auto_projections is True
-        auto = [self.calculator_parameters[s].auto_projections for s in ['w90', 'w90_up', 'w90_down']]
-        if any(auto):
-            if self.parameters.spin_polarized:
-                spins = ['up', 'down']
-            else:
-                spins = [None]
-
-            if self.calculator_parameters['pw2wannier'].atom_proj_ext:
-                proj_dir = self.calculator_parameters['pw2wannier'].get('atom_proj_dir', self.parameters.pseudo_directory)
-                num_wann = [nwfcs_from_projectors(self.atoms, self.pseudopotentials, proj_dir)]
-            else:
-                num_wann = [nwfcs_from_pseudos(self.atoms, self.pseudopotentials,
-                                               self.parameters.pseudo_directory) for _ in spins]
-            self.projections = ProjectionBlocks.fromlist(num_wann, spins, self.atoms)
-
-            # Also override various pw2wannier and w90 settings
-            self.calculator_parameters['pw2wannier'].atom_proj = True
-            for spin in spins:
-                label = 'w90' if spin is None else f'w90_{spin}'
-                self.calculator_parameters[label].guiding_centres = False
-                if self.calculator_parameters[label].dis_proj_max is None:
-                    self.calculator_parameters[label].dis_proj_max = 0.95
 
         # Adding excluded_bands info to self.projections
         if self.projections:
-            for spin in ['up', 'down', None]:
+            for spin in Spin:
                 label = 'w90'
                 if spin:
                     label += f'_{spin}'
                 self.projections.exclude_bands[spin] = self.calculator_parameters[label].get('exclude_bands', [])
 
-        # Updating ibrav
-        if cell_follows_qe_conventions(self.atoms.cell):
-            params_dct = cell_to_parameters(self.atoms.cell)
-            for dct in self.calculator_parameters.values():
-                if dct.is_valid('ibrav'):
-                    dct.update(**params_dct)
-
-        # Providing cutoffs based on pseudos if they are not provided already
-        cutoffs = cutoffs_from_pseudos(self.atoms, self.parameters.pseudo_directory)
-        for params in self.calculator_parameters.values():
-            for k, v in cutoffs.items():
-                # Note that we check if 'ecutwfc' is not provided, because if ecutwfc is provided then ecutrho is
-                # (implicitly) provided too because its default is 4 * ecutwfc
-                if params.is_valid(k) and 'ecutwfc' not in params:
-                    utils.warn(f'{k} was not provided; it will be set based on tabulated cutoffs for the individual '
-                               'species. It is *strongly* recommended that you perform a proper convergence test for '
-                               'this parameter instead of relying on this default.')
-                    params[k] = v
+        # Version number (important when loading workflows from .kwf files)
+        from koopmans import __version__
+        self.version = version if version is not None else __version__
+        if self.version != __version__:
+            utils.warn(f'You are using version {__version__} of `koopmans`, but this workflow was generated with '
+                       f'version {self.version}. Proceed with caution.')
 
     def __eq__(self, other: Any):
-        if isinstance(other, Workflow):
-            return self.__dict__ == other.__dict__
-        return False
+        if self.__class__ != other.__class__:
+            return False
+        else:
+            for key in self.__slots__:
+                if key == 'engine':
+                    continue
+                if getattr(self, key) != getattr(other, key):
+                    return False
+        return True
 
     def __repr__(self):
         entries = []
@@ -387,40 +413,141 @@ class Workflow(ABC):
         entries.append(f'pseudopotentials={self.pseudopotentials}')
         return f'{self.__class__.__name__}(' + ',\n   '.join(entries) + ')'
 
-    def run(self, subdirectory: Optional[Union[str, Path]] = None, from_scratch: Optional[bool] = None) -> None:
+    @utils.HasDirectory.base_directory.setter  # type: ignore
+    def base_directory(self, value: Path):
+        old_base_directory = getattr(self, '_base_directory', None)
+
+        super(Workflow, Workflow).base_directory.__set__(self, value)
+
+        # If the pseudo_directory has been set, we need to update it too (because it is stored relative to
+        # base_directory). Note that during workflow initialization, we set base_directory prior to defining
+        # self.parameters (in which case we don't need to update pseudo_directory)
+        if hasattr(self, 'parameters') and self.parameters.pseudo_directory is not None \
+                and old_base_directory is not None:
+            abs_pseudo_dir = (old_base_directory / self.parameters.pseudo_directory).resolve()
+            assert abs_pseudo_dir.is_dir()
+            self.parameters.pseudo_directory = os.path.relpath(abs_pseudo_dir, self.base_directory)
+
+    def run(self):
         '''
         Run the workflow
         '''
-
         self.print_preamble()
+        attempts = 0
 
-        if not self.parent:
-            if self.parameters.from_scratch:
+        if not self.parent_process:
+            bf = '**' if sys.stdout.isatty() else ''
+            self.print(bf + self.name + bf)
+            self.print(bf + '-' * len(self.name) + bf)
+            if self.engine.from_scratch:
                 self._remove_tmpdirs()
             self._run_sanity_checks()
 
-        if self.parent:
-            with self._parent_context(subdirectory, from_scratch):
+        while self.status != Status.COMPLETED:
+            # Reset the step counter each time we reattempt the workflow
+            self.proceed()
+
+            attempts += 1
+            if attempts == 1000:
+                self.status = Status.FAILED
+                raise ValueError('Workflow failed to complete after 1000 attempts')
+
+            self.engine.update_statuses()
+
+        if not self.parent_process and self.status == Status.COMPLETED:
+            self._teardown()
+
+        self.status = Status.COMPLETED
+
+    def _pre_run(self):
+
+        self.step_counter = 0
+
+        if self.status == Status.NOT_STARTED:
+            self.status = Status.RUNNING
+
+    def proceed(self, subdirectory: Optional[str] = None, copy_outputs_to_parent: Optional[bool] = True):
+        '''
+        Proceed through the workflow until a step has status `RUNNING`
+
+        Typically, this will involve proceeding to the next step in the workflow which has not been run,
+        set it `RUNNING`, and then returning
+
+        Note, however, for some engines this function will execute the _entire_ workflow e.g. `localhost` workflows,
+        which, when requested to run a step in the workflow, will run that step and block the interpreter until the
+        step is completed. For such a workflow, the status of individual steps proceed immediately from `NOT_STARTED`
+        to `COMPLETE` and `proceed()` will not exit until all the steps in the workflow are `COMPLETED`.
+        '''
+
+        logger.info(f'Running workflow {self.name} ({self.__class__.__name__})')
+
+        self._pre_run()
+
+        if self.parent_process:
+            with self._parent_context(subdirectory, copy_outputs_to_parent):
                 self._run()
         else:
+            self.base_directory = Path.cwd().resolve()
+            if subdirectory:
+                self.directory = Path(subdirectory)
             self._run()
 
-        self.print_conclusion()
+        self._post_run()
+        logger.info(f'Exiting workflow {self.name} with status "{self.status.value}" ({self.__class__.__name__})')
 
-        if not self.parent:
-            self._teardown()
+    def _post_run(self):
+        assert self.engine is not None
+        self.engine.update_statuses()
 
     @abstractmethod
     def _run(self) -> None:
         ...
 
     @property
-    def pseudopotentials(self) -> Dict[str, str]:
-        return self._pseudopotentials
+    @abstractmethod
+    def output_model(self) -> Type[OutputModel]:
+        ...
 
-    @pseudopotentials.setter
-    def pseudopotentials(self, value: Dict[str, str]):
-        self._pseudopotentials = value
+    @property
+    def outputs(self) -> OutputModel:
+        if self._outputs is None:
+            raise ValueError('Process has no outputs because it has not been run yet')
+        return self._outputs
+
+    @outputs.setter
+    def outputs(self, value: OutputModel):
+        self._outputs = value
+
+    @classmethod
+    def from_other(cls: Type[W], other_wf: Workflow, **kwargs: Any) -> W:
+        '''
+        Creates a new workflow from another workflow, copying all settings and parameters
+        e.g.
+        >>> new_wf = Workflow.fromother(other_wf)
+        '''
+
+        parameters = copy.deepcopy(other_wf.parameters)
+
+        # Pass the pseudo_directory as an absolute path
+        if 'pseudo_directory' in parameters:
+            parameters['pseudo_directory'] = other_wf.base_directory / parameters['pseudo_directory']
+
+        for k in list(kwargs):
+            if parameters.is_valid(k):
+                parameters[k] = kwargs.pop(k)
+        kwargs.update(**dict(atoms=copy.deepcopy(other_wf.atoms),
+                             parameters=parameters,
+                             calculator_parameters=copy.deepcopy(other_wf.calculator_parameters),
+                             pseudopotentials=copy.copy(other_wf.pseudopotentials),
+                             kpoints=copy.deepcopy(other_wf.kpoints),
+                             projections=other_wf.projections,
+                             plotting=copy.deepcopy(other_wf.plotting),
+                             ml=copy.deepcopy(other_wf.ml),
+                             ml_model=other_wf.ml_model,
+                             engine=other_wf.engine,),
+                      )
+
+        return cls(**kwargs)
 
     @classmethod
     def fromparent(cls: Type[W], parent_wf: Workflow, **kwargs: Any) -> W:
@@ -429,24 +556,7 @@ class Workflow(ABC):
         e.g.
         >>> sub_wf = Workflow.fromparent(self)
         '''
-
-        parameters = copy.deepcopy(parent_wf.parameters)
-        parameter_kwargs = {k: v for k, v in kwargs.items() if parameters.is_valid(k)}
-        other_kwargs = {k: v for k, v in kwargs.items() if not parameters.is_valid(k)}
-        parameters.update(**parameter_kwargs)
-
-        child_wf = cls(atoms=copy.deepcopy(parent_wf.atoms),
-                       parameters=parameters,
-                       calculator_parameters=copy.deepcopy(parent_wf.calculator_parameters),
-                       name=copy.deepcopy(parent_wf.name),
-                       pseudopotentials=copy.deepcopy(parent_wf.pseudopotentials),
-                       kpoints=copy.deepcopy(parent_wf.kpoints),
-                       projections=copy.deepcopy(parent_wf.projections),
-                       plotting=copy.deepcopy(parent_wf.plotting),
-                       ml=copy.deepcopy(parent_wf.ml),
-                       **other_kwargs)
-        child_wf.parent = parent_wf
-        return child_wf
+        return cls.from_other(other_wf=parent_wf, parent_process=parent_wf, **kwargs)
 
     def _run_sanity_checks(self):
         # Check internal consistency of workflow settings
@@ -454,13 +564,13 @@ class Workflow(ABC):
             self.parameters.fix_spin_contamination = not self.parameters.spin_polarized
         else:
             if self.parameters.fix_spin_contamination and self.parameters.spin_polarized:
-                raise ValueError('fix_spin_contamination = True is incompatible with spin_polarized = True')
+                raise ValueError('`fix_spin_contamination = True` is incompatible with `spin_polarized = True`')
 
         if self.parameters.method == 'dfpt':
             if self.parameters.frozen_orbitals is None:
                 self.parameters.frozen_orbitals = True
             if not self.parameters.frozen_orbitals:
-                raise ValueError('"frozen_orbitals" must be equal to True when "method" is "dfpt"')
+                raise ValueError('`frozen_orbitals` must be equal to `True` when `method` is `dfpt`')
         else:
             if self.parameters.frozen_orbitals is None:
                 self.parameters.frozen_orbitals = False
@@ -494,8 +604,8 @@ class Workflow(ABC):
                                'caution for periodic systems')
 
                 if self.parameters.eps_inf is None:
-                    utils.warn('eps_inf missing in input; it will default to 1.0. Proceed with caution for periodic '
-                               'systems; consider setting eps_inf == "auto" to calculate it automatically.')
+                    utils.warn('`eps_inf` missing in input; it will default to 1.0. Proceed with caution for periodic '
+                               'systems; consider setting `eps_inf == "auto"` to calculate it automatically.')
                     self.parameters.eps_inf = 1.0
 
             if self.parameters.mt_correction is None:
@@ -506,11 +616,11 @@ class Workflow(ABC):
             # Check the value of eps_inf
             if self.parameters.eps_inf:
                 if isinstance(self.parameters.eps_inf, float) and self.parameters.eps_inf < 1.0:
-                    raise ValueError('eps_inf cannot be lower than 1.0')
+                    raise ValueError('`eps_inf` cannot be lower than 1.0')
 
             # Check symmetry of the system
             dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=False)
-            if dataset['number'] not in range(195, 231):
+            if dataset is None or dataset['number'] not in range(195, 231):
                 utils.warn('This system is not cubic and will therefore not have a uniform dielectric tensor. However, '
                            'the image-correction schemes that are currently implemented assume a uniform dielectric. '
                            'Proceed with caution')
@@ -533,6 +643,9 @@ class Workflow(ABC):
                            'caution')
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] and not self.parameters.task.startswith('dft'):
+            if len(self.projections) == 0:
+                raise ValueError(f'In order to use `init_orbitals={self.parameters.init_orbitals}`, projections must '
+                                 'be provided')
             spin_set = set([p.spin for p in self.projections])
 
             if len(self.projections) == 0:
@@ -554,104 +667,87 @@ class Workflow(ABC):
 
         # Check the consistency between self.kpoints.gamma_only and KCP's do_wf_cmplx
         if not self.kpoints.gamma_only and self.calculator_parameters['kcp'].do_wf_cmplx is False:
-            utils.warn('In KCP do_wf_cmplx = False is not consistent with gamma_only = False. '
-                       'Changing do_wf_cmplx to True')
+            utils.warn('`do_wf_cmplx = False` is not consistent with `gamma_only = False`. '
+                       'Changing `do_wf_cmplx` to `True`')
             self.calculator_parameters['kcp'].do_wf_cmplx = True
 
-        # Check pseudopotentials exist
-        if not os.path.isdir(self.parameters.pseudo_directory):
-            raise NotADirectoryError(
-                f'The pseudopotential directory you provided ({self.parameters.pseudo_directory}) does not exist')
-        if self.parameters.task != 'ui':
-            for pseudo in self.pseudopotentials.values():
-                if not (self.parameters.pseudo_directory / pseudo).exists():
-                    raise FileNotFoundError(f'{self.parameters.pseudo_directory / pseudo} does not exist. Please '
-                                            'double-check your pseudopotential settings')
-
         # Make sanity checks for the ML model
-        if self.ml.use_ml:
-            utils.warn("Predicting screening parameters with machine-learning is an experimental feature; proceed with caution")
-            if self.parameters.task not in ['trajectory', 'convergence_ml']:
+        if self.ml.predict or self.ml.train or self.ml.test:
+            utils.warn("Predicting screening parameters with machine-learning is an experimental feature; proceed with "
+                       "caution")
+            if self.ml_model is None:
+                raise ValueError("You have requested to train or predict with a machine-learning model, but no model "
+                                 "is attached to this workflow. Either set `ml:train` or `predict` to `True` when "
+                                 "initializing the workflow, or directly add a model to the workflow's `ml_model` "
+                                 "attribute")
+            if self.ml_model.estimator_type != self.ml.estimator:
+                utils.warn(f'The estimator type of the loaded ML model (`{self.ml_model.estimator_type}`) does not '
+                           f'match the estimator type specified in the Workflow settings (`{self.ml.estimator}`). '
+                           'Overriding...')
+                self.ml.estimator = self.ml_model.estimator_type
+            if self.ml_model.descriptor_type != self.ml.descriptor:
+                utils.warn(f'The descriptor type of the loaded ML model (`{self.ml_model.descriptor_type}`) does not '
+                           f'match the descriptor type specified in the Workflow settings (`{self.ml.descriptor}`). '
+                           'Overriding...')
+                self.ml.descriptor = self.ml_model.descriptor_type
+            if [self.ml.predict, self.ml.train, self.ml.test].count(True) > 1:
+                raise ValueError(
+                    'Training, testing, and using the ML model are mutually exclusive; change `ml:predict` '
+                    '/`ml:train`/`ml:test` so that at most one is `True`')
+            if self.parameters.task not in ['singlepoint', 'trajectory']:
                 raise NotImplementedError(
-                    f'Using the ML-prediction for the {self.parameter.task}-task has not yet been implemented.')
+                    f'Using the ML-prediction for the task `{self.parameters.task}` has not yet been implemented.')
             if self.parameters.method != 'dscf':
                 raise NotImplementedError(
-                    f"Using the ML-prediction for the {self.parameters.method}-method has not yet been implemented")
+                    f"Using the ML-prediction for the method `{self.parameters.method}` has not yet been implemented")
             if self.parameters.functional != 'ki':
                 raise NotImplementedError(
-                    f'Using the ML-prediction for the {self.parameters.functional}-functional has not yet been implemented.')
+                    f'Using the ML-prediction for the `{self.parameters.functional}` functional has not yet been '
+                    'implemented.')
             if self.parameters.init_orbitals != 'mlwfs':
                 raise NotImplementedError(
-                    f'Using the ML-prediction for {self.parameters.init_orbitals}-init orbitals has not yet been implemented.')
+                    f'Using the ML-prediction for `{self.parameters.init_orbitals}` initial orbitals has not yet been '
+                    'implemented.')
             if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
                 raise NotImplementedError(
-                    f'Using the ML-prediction for using different init orbitals for empty states than for occupied states has not yet been implemented.')
+                    'Using the ML-prediction for using different initial orbitals for empty states than for occupied '
+                    'states has not yet been implemented.')
             if self.parameters.spin_polarized:
-                utils.warn(f'Using the ML-prediction for spin-polarised systems has not yet been extensively tested.')
+                utils.warn('Using the ML-prediction for spin-polarised systems has not yet been extensively tested.')
             if not all(self.atoms.pbc):
-                utils.warn(f'Using the ML-prediction for non-periodic systems has not yet been extensively tested.')
+                utils.warn('Using the ML-prediction for non-periodic systems has not yet been extensively tested.')
             if self.parameters.orbital_groups:
                 utils.warn('Using orbital_groups has not yet been extensively tested.')
             if not np.all(self.atoms.cell.angles() == 90.0):
                 raise ValueError(f"The ML-workflow has only been implemented for simulation cells that have 90° angles")
 
-            if self.parameters.task is not 'convergence_ml':
-                assert isinstance(self.ml.n_max, int)
-                assert isinstance(self.ml.l_max, int)
-                assert isinstance(self.ml.r_min, float)
-                assert isinstance(self.ml.r_max, float)
-
-            # convert now each parameter to a list to be able to run the same checks irregardless of the task
-
-            def convert_to_list(param, type):
-                if isinstance(param, type):  # if param is an int or a float convert it for the checks to a list
-                    return [param]
-                else:  # if param is not an int or a float check that it is a list of ints / floats
-                    assert(isinstance(param, list))
-                    for value in param:
-                        assert(isinstance(value, type))
-                    return param
-
-            n_maxs = convert_to_list(self.ml.n_max, int)
-            l_maxs = convert_to_list(self.ml.l_max, int)
-            r_mins = convert_to_list(self.ml.r_min, float)
-            r_maxs = convert_to_list(self.ml.r_max, float)
-
-            # check that each n_max, l_max, r_max and r_min are greater or equal to 0 and that r_min is smaller than r_max
-            for n_max in n_maxs:
-                if not n_max > 0:
-                    raise ValueError(f"n_max has to be larger than zero. The provided value is n_max={n_max}")
-            for l_max in l_maxs:
-                if not l_max >= 0:
-                    raise ValueError(f"l_max has to be equal or larger than zero. The provided value is l_max={l_max}")
-            for r_min in r_mins:
-                if not r_min >= 0:
-                    raise ValueError(f"r_min has to be equal or larger than zero. The provided value is r_min={r_min}")
-                if r_min < 0.5:
-                    utils.warn(
-                        f"Small values of r_min (<0.5) can lead to problems in the construction of the radial basis. The provided value is r_min={r_min}.")
-            for r_max in r_maxs:
-                if not any(r_min < r_max for r_min in r_mins):
-                    raise ValueError(f"All provided values of r_min are larger or equal to r_max={r_max}.")
-
-            # for the convergence_ml task we want to have each parameter in a list form
-            if self.parameters.task == 'convergence_ml':
-
-                implemented_quantities_of_interest = ['alphas', 'evs']
-                self.ml.quantities_of_interest = convert_to_list(self.ml.quantities_of_interest, str)
-
-                for qoi in self.ml.quantities_of_interest:
-                    if qoi not in implemented_quantities_of_interest:
-                        raise NotImplementedError(
-                            "Performing the convergence_analysis w.r.t. {qoi} has not yet been implement.")
+            # check that each n_max, l_max, r_max and r_min are greater or equal to 0 and that r_min is smaller than
+            # r_max
+            assert isinstance(self.ml.n_max, int)
+            assert isinstance(self.ml.l_max, int)
+            assert isinstance(self.ml.r_max, float)
+            assert isinstance(self.ml.r_min, float)
+            if not self.ml.n_max > 0:
+                raise ValueError(f"`n_max` has to be larger than zero. The provided value is `n_max = {self.ml.n_max}`")
+            if not self.ml.l_max >= 0:
+                raise ValueError(
+                    f"`l_max` has to be equal or larger than zero. The provided value is `l_max = {self.ml.l_max}`")
+            if not self.ml.r_min >= 0:
+                raise ValueError(
+                    f"`r_min` has to be equal or larger than zero. The provided value is `r_min = {self.ml.r_min}`")
+            if self.ml.r_min < 0.5:
+                utils.warn(
+                    "Small values of `r_min` (<0.5) can lead to problems in the construction of the radial basis. "
+                    f"The provided value is `r_min = {self.ml.r_min}`.")
+            if not self.ml.r_min < self.ml.r_max:
+                raise ValueError(f"`r_min` is larger or equal to `r_max = {self.ml.r_max}`.")
 
     def new_calculator(self,
                        calc_type: str,
-                       directory: Optional[Path] = None,
                        kpts: Optional[Union[List[int], BandPath]] = None,
-                       **kwargs) -> T:  # type: ignore[type-var, misc]
+                       **kwargs) -> calculators.Calc:  # type: ignore[type-var, misc]
 
-        calc_class: Type[T]
+        calc_class: calculators.CalcType
 
         if calc_type == 'kcp':
             calc_class = calculators.KoopmansCPCalculator
@@ -663,13 +759,11 @@ class Workflow(ABC):
             calc_class = calculators.PW2WannierCalculator
         elif calc_type == 'wann2kcp':
             calc_class = calculators.Wann2KCPCalculator
-        elif calc_type.startswith('ui'):
-            calc_class = calculators.UnfoldAndInterpolateCalculator
-        elif calc_type == 'wann2kc':
+        elif calc_type == 'kcw_wannier':
             calc_class = calculators.Wann2KCCalculator
-        elif calc_type == 'kc_screen':
+        elif calc_type == 'kcw_screen':
             calc_class = calculators.KoopmansScreenCalculator
-        elif calc_type == 'kc_ham':
+        elif calc_type == 'kcw_ham':
             calc_class = calculators.KoopmansHamCalculator
         elif calc_type == 'ph':
             calc_class = calculators.PhCalculator
@@ -678,10 +772,10 @@ class Workflow(ABC):
         elif calc_type == 'wjl':
             calc_class = calculators.WannierJLCalculator
         else:
-            raise ValueError(f'Cound not find a calculator of type {calc_type}')
+            raise ValueError(f'Cound not find a calculator of type `{calc_type}`')
 
         # Merge calculator_parameters and kwargs, giving kwargs higher precedence
-        all_kwargs: Dict[str, Any] = {}
+        all_kwargs: Dict[str, Any] = {'parent_process': self}
         calculator_parameters = self.calculator_parameters[calc_type]
         all_kwargs.update(**calculator_parameters)
         all_kwargs.update(**kwargs)
@@ -692,7 +786,7 @@ class Workflow(ABC):
             all_kwargs['kpts'] = kpts if kpts is not None else self.kpoints.grid
 
         # Add further information to the calculator as required
-        for kw in ['pseudopotentials', 'pseudo_dir', 'gamma_only', 'kgrid', 'kpath', 'koffset', 'plotting']:
+        for kw in ['pseudopotentials', 'gamma_only', 'kgrid', 'kpath', 'koffset', 'plotting']:
             if kw not in all_kwargs and calculator_parameters.is_valid(kw):
                 val: Any
                 if kw == 'kgrid':
@@ -700,11 +794,15 @@ class Workflow(ABC):
                 elif kw == 'kpath':
                     val = self.kpoints.path
                 elif kw == 'koffset':
-                    val = self.kpoints.offset
+                    if (calc_class == calculators.PWCalculator and all_kwargs['calculation'] == 'nscf' or
+                            calc_class == calculators.Wannier90Calculator) and self.kpoints.offset_nscf is not None:
+                        val = self.kpoints.offset_nscf
+                    else:
+                        val = self.kpoints.offset
                 elif kw == 'gamma_only':
                     val = self.kpoints.gamma_only
-                elif kw == 'pseudo_dir':
-                    val = self.parameters.pseudo_directory
+                elif kw == 'pseudopotentials':
+                    val = OrderedDict(**{k: v.filename.name for k, v in self.pseudopotentials.items()})
                 else:
                     val = getattr(self, kw)
                 all_kwargs[kw] = val
@@ -712,9 +810,14 @@ class Workflow(ABC):
         # Create the calculator
         calc = calc_class(atoms=copy.deepcopy(self.atoms), **all_kwargs)
 
-        # Add the directory if provided
-        if directory is not None:
-            calc.directory = directory
+        # Link the pseudopotentials if relevant
+        if calculator_parameters.is_valid('pseudo_dir') or isinstance(calc, calculators.KoopmansHamCalculator):
+            for pseudo in self.pseudopotentials.values():
+                calc.link(LocalFile(pseudo.filename), Path('pseudopotentials') / pseudo.filename.name, symlink=True)
+            calc.parameters.pseudo_dir = 'pseudopotentials'
+
+        # Link the engine
+        calc.engine = self.engine
 
         return calc
 
@@ -751,233 +854,136 @@ class Workflow(ABC):
 
         self.atoms = self.atoms[mask]
 
-    def run_calculator(self, master_qe_calc: calculators.Calc, enforce_ss=False):
-        '''
-        Wrapper for run_calculator_single that manages the optional enforcing of spin symmetry
-        '''
+    def run_steps(self, steps: ProcessProtocol | Sequence[ProcessProtocol]) -> Status:
+        """Run a sequence of steps in the workflow
 
-        if enforce_ss:
-            if not isinstance(master_qe_calc, calculators.CalculatorCanEnforceSpinSym):
-                raise NotImplementedError(f'{master_qe_calc.__class__.__name__} cannot enforce spin symmetry')
+        Run either a step or sequence (i.e. list) of steps. If a list is provided, the steps must be able to be run
+        in parallel.
 
-            if not master_qe_calc.from_scratch:
-                # PBE with nspin=1 dummy
-                qe_calc = master_qe_calc.nspin1_dummy_calculator()
-                qe_calc.skip_qc = True
-                self.run_calculator_single(qe_calc)
-                # Copy over nspin=2 wavefunction to nspin=1 tmp directory (if it has not been done already)
-                if self.parameters.from_scratch:
-                    master_qe_calc.convert_wavefunction_2to1()
+        :param steps: The step or steps to run
+        :type steps: ProcessProtocol | Sequence[ProcessProtocol]
+        :return: The status of this set of steps
+        :rtype: Status
+        """
 
-            # PBE with nspin=1
-            qe_calc = master_qe_calc.nspin1_calculator()
-            self.run_calculator_single(qe_calc)
+        assert self.engine is not None
 
-            # PBE from scratch with nspin=2 (dummy run for creating files of appropriate size)
-            qe_calc = master_qe_calc.nspin2_dummy_calculator()
-            qe_calc.skip_qc = True
-            self.run_calculator_single(qe_calc)
+        # Convert steps to an immutable, covariant tuple
+        if isinstance(steps, ProcessProtocol):
+            steps = (steps,)
+        if not isinstance(steps, tuple):
+            steps = tuple(steps)
 
-            # Copy over nspin=1 wavefunction to nspin=2 tmp directory (if it has not been done already)
-            if self.parameters.from_scratch:
-                master_qe_calc.convert_wavefunction_1to2()
+        for step in steps:
+            step.parent_process = self
+            step.engine = self.engine
+            self.step_counter += 1
 
-            # PBE with nspin=2, reading in the spin-symmetric nspin=1 wavefunction
-            master_qe_calc.prepare_to_read_nspin1()
-            self.run_calculator_single(master_qe_calc)
+            # Check that calc.directory was not set
+            if step.directory_has_been_set():
+                raise ValueError(
+                    f'`{step.name}.directory` should not be set manually, but it was set to `{step.directory}`')
 
-        else:
+            assert self.directory is not None
+            step.directory = self.directory / f'{self.step_counter:02d}-{step.name}'
 
-            self.run_calculator_single(master_qe_calc)
-
-        return
-
-    def run_calculator_single(self, qe_calc: calculators.Calc):
-        # Runs qe_calc.calculate with additional checks
-
-        # If an output file already exists, check if the run completed successfully
-        verb = 'Running'
-        if not self.parameters.from_scratch:
-
-            calc_file = qe_calc.directory / qe_calc.prefix
-
-            if calc_file.with_suffix(qe_calc.ext_out).is_file():
-                verb = 'Rerunning'
-
-                is_complete = self.load_old_calculator(qe_calc)
-                if is_complete:
-                    if not self.silent:
-                        self.print(f'Not running {os.path.relpath(calc_file)} as it is already complete')
-
-                    # Check the convergence of the calculation
-                    qe_calc.check_convergence()
-
-                    if isinstance(qe_calc, calculators.ReturnsBandStructure):
-                        qe_calc.generate_band_structure()
-
-                    if isinstance(qe_calc, calculators.ProjwfcCalculator):
-                        qe_calc.generate_dos()
-
-                    if isinstance(qe_calc, calculators.PhCalculator):
-                        qe_calc.read_dynG()
-                    return
-
-        if not self.silent:
-            dir_str = os.path.relpath(qe_calc.directory) + '/'
-            self.print(f'{verb} {dir_str}{qe_calc.prefix}...', end='', flush=True)
-
-        # Update postfix if relevant
-        if self.parameters.npool:
-            if isinstance(qe_calc.command, ParallelCommandWithPostfix):
-                qe_calc.command.postfix = f'-npool {self.parameters.npool}'
-
-        try:
-            qe_calc.calculate()
-        except CalculationFailed:
-            self.print(' failed')
-            raise
-
-        if not self.silent:
-            self.print(' done')
-
-        # Store the calculator
-        self.calculations.append(qe_calc)
-
-        # If we reached here, all future calculations should be performed from scratch
-        self.parameters.from_scratch = True
-
-        return
-
-    def load_old_calculator(self, qe_calc: calculators.Calc) -> bool:
-        # This is a separate function so that it can be monkeypatched by the test suite
-        try:
-            old_calc = qe_calc.__class__.fromfile(qe_calc.directory / qe_calc.prefix)
-        except FileNotFoundError:
-            return False
-
-        if old_calc.is_complete():
-            # If it is complete, load the results
-            qe_calc.results = old_calc.results
-
-            # Load kpts if relevant
-            if hasattr(old_calc, 'kpts'):
-                qe_calc.kpts = old_calc.kpts
-
-            # Load bandstructure if present, too
-            if isinstance(qe_calc, calculators.UnfoldAndInterpolateCalculator):
-                qe_calc.read_bands()
-                # If the band structure file does not exist, we must re-run
-                if 'band structure' not in qe_calc.results:
-                    return False
-
-            self.calculations.append(qe_calc)
-
-        return old_calc.is_complete()
-
-    def print(self, text: str = '', style: str = 'body', **kwargs: Any):
-        if style == 'body':
-            utils.indented_print(str(text), self.print_indent + 1, **kwargs)
-        else:
-            if style == 'heading':
-                underline = '='
-            elif style == 'subheading':
-                underline = '-'
+            status = self.engine.get_status(step)
+            if status == Status.NOT_STARTED:
+                # Run the step
+                logger.info(f'Submitting {step.directory} ({step.__class__.__name__})')
+                self.engine.run(step)
             else:
-                raise ValueError(f'Invalid choice "{style}" for style; must be heading/subheading/body')
-            assert kwargs.get('end', '\n') == '\n'
-            utils.indented_print()
-            utils.indented_print(str(text), self.print_indent, **kwargs)
-            utils.indented_print(underline * len(text), self.print_indent, **kwargs)
+                logger.info(f'Step {step.name} is already {status}')
+
+        for step in steps:
+            if self.engine.get_status(step) == Status.COMPLETED:
+                # Load the results of the step
+                logger.info(f'Loading the results for {step.directory} ({step.__class__.__name__})')
+                self.engine.load_results(step)
+
+                # Store the results of the step
+                for step in steps:
+                    if step not in self.steps:
+                        self.steps.append(step)
+                    if isinstance(step, calculators.ImplementedCalc) and step not in self.calculations:
+                        self.calculations.append(step)
+                        # Ensure we inherit any modifications made to the atoms object
+                        if step.atoms != self.atoms:
+                            self.atoms = step.atoms
+                    elif isinstance(step, Process) and step not in self.processes:
+                        self.processes.append(step)
+
+        # If any of the steps are running, return RUNNING
+        for step in steps:
+            if self.engine.get_status(step) == Status.RUNNING:
+                return Status.RUNNING
+        # Otherwise, return COMPLETED
+        return Status.COMPLETED
+
+    def steps_are_running(self) -> bool:
+        assert self.engine is not None
+        for step in self.steps:
+            if self.engine.get_status(step) == Status.RUNNING:
+                return True
+        return False
 
     @contextmanager
-    def _parent_context(self, subdirectory: Optional[Union[str, Path]] = None,
-                        from_scratch: Optional[bool] = None) -> Generator[None, None, None]:
+    def _parent_context(self, subdirectory: Optional[str] = None,
+                        copy_outputs_to_parent: Optional[bool] = True) -> Generator[None, None, None]:
         '''
-        Context for calling self._run(), within which self inherits relevant information from self.parent, runs, and
+        Context for calling self._run(), within which self inherits relevant information from self.parent_process, runs, and
         then passes back relevant information to self.parent
         '''
 
-        assert self.parent is not None
-
-        # Automatically pass along the name of the overall workflow
-        if self.name is None:
-            self.name = self.parent.name
+        assert isinstance(self.parent_process, Workflow)
 
         # Increase the indent level
-        self.print_indent = self.parent.print_indent + 1
+        self.print_indent = self.parent_process.print_indent + 2
 
         # Ensure altering self.calculator_parameters won't affect self.parent.calculator_parameters
-        if self.calculator_parameters is self.parent.calculator_parameters:
-            self.calculator_parameters = copy.deepcopy(self.parent.calculator_parameters)
+        if self.calculator_parameters is self.parent_process.calculator_parameters:
+            self.calculator_parameters = copy.deepcopy(self.parent_process.calculator_parameters)
 
-        # Setting from_scratch to a non-None value will override the value of subworkflow.from_scratch...
-        if from_scratch is None:
-            self.parameters.from_scratch = self.parent.parameters.from_scratch
-        else:
-            self.parameters.from_scratch = from_scratch
+        # Copy the lists of calculations, processes, and steps
+        self.calculations = [c for c in self.parent_process.calculations]
+        self.processes = [p for p in self.parent_process.processes]
+        self.steps = [s for s in self.parent_process.steps]
 
-        # Link the list of calculations
-        self.calculations = self.parent.calculations
-
-        # Link the ML_Model
-        if self.ml.use_ml:
-            if self.parent.ml.occ_and_emp_together:
-                self.ml.ml_model = self.parent.ml.ml_model
-            else:
-                self.ml.ml_model_occ = self.parent.ml.ml_model_occ
-                self.ml.ml_model_emp = self.parent.ml.ml_model_emp
+        # Store the current length of the lists so we can tell how many calculations are new
+        n_steps = len(self.steps)
+        n_calculations = len(self.calculations)
+        n_processes = len(self.processes)
 
         # Link the bands
-        if hasattr(self.parent, 'bands'):
-            self.bands = copy.deepcopy(self.parent.bands)
-            # Only include the most recent screening parameter and wipe the error history
-            for b in self.bands:
-                if len(b.alpha_history) > 0:
-                    b.alpha_history = [b.alpha]
-                b.error_history = []
-
-        try:
-            if subdirectory is not None:
-                # Ensure subdirectory is a Path
-                subdirectory = Path(subdirectory)
-                # Update directories
-                for key in self.calculator_parameters.keys():
-                    params = self.calculator_parameters[key]
-                    for setting in params.are_paths:
-                        if setting == 'pseudo_dir':
-                            continue
-                        path = getattr(params, setting, None)
-                        if path is not None and Path.cwd() in path.parents:
-                            new_path = subdirectory.resolve() / os.path.relpath(path)
-                            setattr(params, setting, new_path)
-
-                # Run the workflow
-                with utils.chdir(subdirectory):
-                    yield
+        if self.parent_process.bands is not None:
+            if copy_outputs_to_parent:
+                self.bands = self.parent_process.bands
             else:
-                yield
+                self.bands = copy.deepcopy(self.parent_process.bands)
+
+        # Prepend the step counter to the subdirectory name
+        subdirectory_str = self.name.replace(' ', '-').lower() if subdirectory is None else subdirectory
+        self.parent_process.step_counter += 1
+        subdirectory_path = Path(f'{self.parent_process.step_counter:02}-{subdirectory_str}')
+        assert self.parent_process.directory is not None
+        self.directory = self.parent_process.directory / subdirectory_path
+        try:
+            # Run the workflow
+            yield
         finally:
-            # ... and will prevent inheritance of from_scratch
-            if from_scratch is None:
-                self.parent.parameters.from_scratch = self.parameters.from_scratch
+            if copy_outputs_to_parent:
+                # Updating the lists of calculations, processes, and steps
+                self.parent_process.calculations += self.calculations[n_calculations:]
+                self.parent_process.processes += self.processes[n_processes:]
+                self.parent_process.steps += self.steps[n_steps:]
 
-            # Copy back over the bands
-            if hasattr(self, 'bands'):
-                if hasattr(self.parent, 'bands'):
-                    # Add the alpha and error history if the length of the bands match
-                    if len(self.parent.bands) == len(self.bands):
-                        for b, b_sub in zip(self.parent.bands, self.bands):
-                            b.alpha_history += b_sub.alpha_history[1:]
-                            b.error_history += b_sub.error_history
-                            b.self_hartree = b_sub.self_hartree
-                            b.spread = b_sub.spread
-                            b.center = b_sub.center
-                else:
-                    # Copy the entire bands object
-                    self.parent.bands = self.bands
+                if self.status == Status.COMPLETED:
+                    if self.bands is not None and self.parent_process.bands is None:
+                        # Copy the entire bands object
+                        self.parent_process.bands = self.bands
 
-            # Make sure any updates to the projections are passed along
-            self.parent.projections = self.projections
+    def print(self, *args, **kwargs):
+        utils.indented_print(*args, **kwargs)
 
     def todict(self):
         # Shallow copy
@@ -990,10 +996,16 @@ class Workflow(ABC):
 
     @classmethod
     def fromdict(cls, dct: Dict[str, Any], **kwargs) -> Workflow:
+
+        # Remove __koopmans_name/module__ if present (won't happen if the encoder was used, but will happen if
+        # todict and fromdict are used directly)
+        dct.pop('__koopmans_name__', None)
+        dct.pop('__koopmans_module__', None)
+
         wf = cls(atoms=dct.pop('atoms'),
                  parameters=dct.pop('parameters'),
                  calculator_parameters=dct.pop('calculator_parameters'),
-                 pseudopotentials=dct.pop('_pseudopotentials'),
+                 pseudopotentials=dct.pop('pseudopotentials'),
                  kpoints=dct.pop('kpoints'),
                  projections=dct.pop('projections'),
                  autogenerate_settings=False,
@@ -1005,9 +1017,7 @@ class Workflow(ABC):
         return wf
 
     @property
-    def bands(self):
-        if not hasattr(self, '_bands'):
-            raise AttributeError('Bands have not been initialized')
+    def bands(self) -> Bands | None:
         return self._bands
 
     @bands.setter
@@ -1016,30 +1026,28 @@ class Workflow(ABC):
         self._bands = value
 
     @classmethod
-    def fromjson(cls, fname: str, override: Dict[str, Any] = {}):
+    def fromjson(cls, fname: str, override: Dict[str, Any] = {}, **kwargs):
 
         with open(fname, 'r') as fd:
             bigdct = json_ext.loads(fd.read())
-        wf = cls._fromjsondct(bigdct, override)
+        wf = cls._fromjsondct(bigdct, override, **kwargs)
 
         # Define the name of the workflow using the name of the json file
         wf.name = fname.replace('.json', '')
+
         return wf
 
     @classmethod
-    def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}):
-
+    def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}, **kwargs):
         # Override all keywords provided explicitly
         utils.update_nested_dict(bigdct, override)
-
-        kwargs: Dict[str, Any] = {}
 
         # Loading atoms object
         atoms_dict = bigdct.pop('atoms', None)
         if atoms_dict:
-            atoms = read_atoms_dict(utils.parse_dict(atoms_dict))
+            atoms, snapshots = read_atoms_dict(utils.parse_dict(atoms_dict))
         else:
-            raise ValueError('Please provide an "atoms" block in the json input file')
+            raise ValueError('Please provide an `atoms` block in the json input file')
 
         # Loading plot settings
         kwargs['plotting'] = settings.PlotSettingsDict(**utils.parse_dict(bigdct.pop('plotting', {})))
@@ -1083,15 +1091,15 @@ class Workflow(ABC):
                     # Duplicate the UI block
                     calcdict[f'ui_{key}'] = calcdict['ui']
 
-        # Third, flatten the kc_wann subdicts
-        kc_wann_blocks = calcdict.pop('kc_wann', {'kc_ham': {}, 'kc_screen': {}, 'wann2kc': {}})
-        calcdict.update(**kc_wann_blocks)
+        # Third, flatten the kcw subdicts
+        kcw_blocks = calcdict.pop('kcw', {'ham': {}, 'screen': {}, 'wannier': {}})
+        calcdict.update(**{'kcw_' + k: v for k, v in kcw_blocks.items()})
 
         # Finally, generate a SettingsDict for every single kind of calculator, regardless of whether or not there was
         # a corresponding block in the json file
         calculator_parameters = {}
         w90_block_projs: List = []
-        w90_block_spins: List[Union[str, None]] = []
+        w90_block_spins: List[Spin] = []
         for block, settings_class in settings_classes.items():
             # Read the block and add the resulting calculator to the calcs_dct
             dct = calcdict.pop(block, {})
@@ -1101,11 +1109,11 @@ class Workflow(ABC):
                     # In this case, the sc_dim keyword is redundant
                     if kpts.grid != dct['sc_dim']:
                         raise ValueError(
-                            'sc_dim in the UI block should match the kpoints provided in the kpoints block')
+                            '`sc_dim` in the `ui` block should match the kpoints provided in the `kpoints` block')
                     dct.pop('sc_dim')
                 if 'kpath' in dct and kpts.path is not None:
                     if kpts.path != dct['kpath']:
-                        raise ValueError('kpath in the UI block should match that provided in the kpoints block')
+                        raise ValueError('`kpath` in the `ui` block should match that provided in the `kpoints` block')
                     dct.pop('kpath')
             elif block.startswith('w90'):
                 # If we are spin-polarized, don't store the spin-independent w90 block
@@ -1115,11 +1123,11 @@ class Workflow(ABC):
                 projs = dct.pop('projections', [[]])
                 w90_block_projs += projs
                 if 'up' in block:
-                    w90_block_spins += ['up' for _ in range(len(projs))]
+                    w90_block_spins += [Spin.UP for _ in range(len(projs))]
                 elif 'down' in block:
-                    w90_block_spins += ['down' for _ in range(len(projs))]
+                    w90_block_spins += [Spin.DOWN for _ in range(len(projs))]
                 else:
-                    w90_block_spins += [None for _ in range(len(projs))]
+                    w90_block_spins += [Spin.NONE for _ in range(len(projs))]
 
             calculator_parameters[block] = settings_class(**dct)
 
@@ -1129,29 +1137,47 @@ class Workflow(ABC):
 
         kwargs['pseudopotentials'] = bigdct.pop('pseudopotentials', {})
 
+        # Convergence
+        if parameters.converge:
+            conv_block = settings.ConvergenceSettingsDict(**bigdct.pop('convergence', {}))
+
+        # Engine
+        if 'engine' not in kwargs:
+            engine_parameters = settings.EngineSettingsDict(**bigdct.pop('engine', {}))
+            kwargs['engine'] = LocalhostEngine(**engine_parameters)
+        else:
+            engine_parameters = bigdct.pop('engine', {})
+            for k, v in engine_parameters.items():
+                setattr(kwargs['engine'], k, v)
+
         # Check for unexpected blocks
         for block in bigdct:
-            raise ValueError(f'Unrecognized block "{block}" in the json input file')
+            raise ValueError(f'Unrecognized block `{block}` in the json input file')
 
         # Create the workflow. Note that any keywords provided in the calculator_parameters (i.e. whatever is left in
         # calcdict) are provided as kwargs
-        return cls(atoms, parameters=parameters, kpoints=kpts, calculator_parameters=calculator_parameters, **kwargs,
-                   **calcdict)
+        wf = cls(atoms, snapshots=snapshots, parameters=parameters, kpoints=kpts,
+                 calculator_parameters=calculator_parameters, **kwargs, **calcdict)
 
-    def print_header(self):
-        print(header())
+        if parameters.converge:
+            # Wrap the workflow in a convergence outer loop
+            from koopmans.workflows import ConvergenceWorkflowFactory
+            return ConvergenceWorkflowFactory(wf, **conv_block)
+        else:
+            return wf
 
     def print_bib(self):
         relevant_references = BibliographyData()
 
         def add_ref(bibkey: str, note: str):
             if bibkey not in bib_data.entries:
-                raise ValueError(f'Could not find bibliography entry for {bibkey}')
+                raise ValueError(f'Could not find bibliography entry for `{bibkey}`')
             else:
                 entry = bib_data.entries[bibkey]
                 entry.fields['note'] = note
                 relevant_references.add_entry(bibkey, entry)
 
+        add_ref('Linscott2023', 'Introduces the koopmans code')
         if self.parameters.functional in ['ki', 'kipz', 'pkipz', 'all']:
             add_ref('Dabo2010', 'One of the founding Koopmans functionals papers')
             add_ref('Borghi2014', 'One of the founding Koopmans functionals papers')
@@ -1169,37 +1195,21 @@ class Workflow(ABC):
             else:
                 add_ref('Borghi2015', 'Describes the algorithms underpinning the kcp.x code')
 
-            psp_lib = self.parameters.pseudo_library
-            if psp_lib is not None:
-                psp_subset = [p for p in pseudo_database if p.functional == self.parameters.base_functional
-                              and p.library == psp_lib]
-                citations = set([c for psp in psp_subset for c in psp.citations if psp.element in self.atoms.symbols])
+            for citation in pseudopotential_library_citations(self.parameters.pseudo_library):
+                add_ref(
+                    citation, f'Citation for the {self.parameters.pseudo_library.replace("_", " ")} pseudopotential library')
 
-                for citation in citations:
-                    add_ref(citation, f'Citation for the {psp_lib.replace("_", " ")} pseudopotential library')
-
-        print(f'\n Please cite the papers listed in {self.name}.bib in work involving this calculation')
+        utils.print_alert(
+            'note', f'Please cite the papers listed in `{self.name}.bib` in work involving this calculation')
         relevant_references.to_file(self.name + '.bib')
 
     def print_preamble(self):
-        if self.parent:
+        if self.parent_process:
             return
 
-        self.print_header()
+        self.print(header())
 
         self.print_bib()
-
-    def print_conclusion(self):
-        from koopmans.io import write
-
-        if self.parent:
-            return
-
-        # Save workflow to file
-        write(self, self.name + '.kwf')
-
-        # Print farewell message
-        print('\n Workflow complete')
 
     def toinputjson(self) -> Dict[str, Dict[str, Any]]:
 
@@ -1207,8 +1217,9 @@ class Workflow(ABC):
 
         bigdct['workflow'] = {}
 
-        if self._corresponding_taskname:
-            self.parameters.task = self._corresponding_taskname
+        raise ValueError('Reintroduce the following code?')
+        # if self._corresponding_taskname:
+        #     self.parameters.task = self._corresponding_taskname
 
         # "workflow" block (not printing any values that match the defaults except for core keywords)
         for k, v in self.parameters.items():
@@ -1235,18 +1246,23 @@ class Workflow(ABC):
         bigdct['atoms']['cell_parameters'] = utils.construct_cell_parameters_block(self.atoms)
 
         # atomic positions
-        if len(set(self.atoms.get_tags())) > 1:
-            labels = [s + str(t) if t > 0 else s for s, t in zip(self.atoms.symbols, self.atoms.get_tags())]
+        if len(self.snapshots) > 1:
+            snapshots_file = 'snapshots.xyz'
+            ase_write(snapshots_file, self.snapshots)
+            bigdct['atoms']['atomic_positions'] = {'snapshots': snapshots_file}
         else:
-            labels = self.atoms.symbols
-        if ibrav == 0:
-            bigdct['atoms']['atomic_positions'] = {'positions': [
-                [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_positions())],
-                'units': 'angstrom'}
-        else:
-            bigdct['atoms']['atomic_positions'] = {'positions': [
-                [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_scaled_positions())],
-                'units': 'crystal'}
+            if len(set(self.atoms.get_tags())) > 1:
+                labels = [s + str(t) if t > 0 else s for s, t in zip(self.atoms.symbols, self.atoms.get_tags())]
+            else:
+                labels = self.atoms.symbols
+            if ibrav == 0:
+                bigdct['atoms']['atomic_positions'] = {'positions': [
+                    [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_positions())],
+                    'units': 'angstrom'}
+            else:
+                bigdct['atoms']['atomic_positions'] = {'positions': [
+                    [label] + [str(x) for x in pos] for label, pos in zip(labels, self.atoms.get_scaled_positions())],
+                    'units': 'crystal'}
 
         # k-points
         bigdct['kpoints'] = self.kpoints.tojson()
@@ -1282,7 +1298,7 @@ class Workflow(ABC):
                         calcdct[code][key] = {k: v for k, v in dict(
                             block).items() if v is not None}
 
-            elif code in ['pw2wannier', 'wann2kc', 'kc_screen', 'kc_ham', 'projwfc', 'wann2kcp', 'ph']:
+            elif code in ['pw2wannier', 'kcw_wannier', 'kcw_screen', 'kcw_ham', 'projwfc', 'wann2kcp', 'ph']:
                 calcdct[code] = params_dict
             elif code.startswith('ui_'):
                 calcdct['ui'][code.split('_')[-1]] = params_dict
@@ -1308,9 +1324,9 @@ class Workflow(ABC):
                     calcdct['w90'].update(**proj_kwarg)
             else:
                 raise NotImplementedError(
-                    f'Writing of {params.__class__.__name__} with write_json is not yet implemented')
+                    f'Writing of `{params.__class__.__name__}` with `write_json` is not yet implemented')
 
-        other_blocks: Dict[str, Any] = {'plotting': self.plotting}
+        other_blocks: Dict[str, Any] = {'plotting': self.plotting, 'ml': self.ml}
         for key, params in other_blocks.items():
             dct: Dict[str, Any] = {k: v for k, v in params.items() if params.defaults.get(k, None) != v}
             if dct:
@@ -1339,9 +1355,10 @@ class Workflow(ABC):
         if isinstance(bs, BandStructure):
             bs = [bs]
         if isinstance(bsplot_kwargs, dict):
-            bsplot_kwargs = [bsplot_kwargs]
+            bsplot_kwargs = [bsplot_kwargs for _ in bs]
         if len(bs) != len(bsplot_kwargs):
-            raise ValueError('The "bs" and "bsplot_kwargs" arguments to plot_bandstructure() should be the same length')
+            raise ValueError('The `bs` and `bsplot_kwargs` arguments to `plot_bandstructure()` should be the same '
+                             'length')
         spins: List[Optional[str]]
         if isinstance(dos, DOS):
             if self.parameters.spin_polarized:
@@ -1424,12 +1441,11 @@ class Workflow(ABC):
             plt.subplots_adjust(right=0.85, wspace=0.05)
 
         # Saving the figure to file (as png and also in editable form)
-        workflow_name = self.__class__.__name__.lower()
-        for s in ['workflow', 'mock', 'benchgen', 'stumbling', 'check']:
-            workflow_name = workflow_name.replace(s, '')
-        filename = filename if filename is not None else f'{self.name}_{workflow_name}_bandstructure'
+        workflow_name = self.name
+        workflow_name = workflow_name.replace('workflow', '').replace(' ', '_')
+        filename = filename if filename is not None else f'{workflow_name}_bandstructure'
         legends = [ax.get_legend() for ax in axes if ax.get_legend() is not None]
-        utils.savefig(fname=filename + '.png', bbox_extra_artists=legends, bbox_inches='tight')
+        utils.savefig(fname=f'{self.directory}/{filename}.png', bbox_extra_artists=legends, bbox_inches='tight')
 
         # Close the figure
         plt.close()
@@ -1439,29 +1455,41 @@ class Workflow(ABC):
         Removes tmpdirs
         '''
 
-        all_outdirs = [calc.parameters.get('outdir', None) for calc in self.calculations]
-        outdirs = set([o.resolve() for o in all_outdirs if o is not None and o.resolve().exists()])
-        for outdir in outdirs:
-            shutil.rmtree(outdir)
+        for calc in self.calculations:
+            if calc.parameters.get('outdir', None) is None:
+                continue
+            outdir = File(calc, calc.parameters.outdir)
+            if outdir.exists():
+                outdir.unlink()
 
     def _teardown(self):
         '''
         Performs final tasks before the workflow completes
         '''
 
+        from koopmans.io import write
+
+        assert self.status == Status.COMPLETED
+
+        # Save workflow to file
+        write(self, self.name + '.pkl')
+
+        # Save the ML model to a separate file
+        if self.ml.train:
+            assert self.ml_model is not None
+            write(self.ml_model, self.name + '_ml_model.pkl')
+
         # Removing tmpdirs
-        if not self.parameters.keep_tmpdirs:
+        if not self.engine.keep_tmpdirs:
             self._remove_tmpdirs()
 
-    def number_of_electrons(self, spin: Optional[str] = None, params: Optional[Union[dict, settings.SettingsDict]] = None) -> int:
+    def number_of_electrons(self, spin: Spin = Spin.NONE, params: Optional[Union[dict, settings.SettingsDict]] = None) -> int:
         # Return the number of electrons in a particular spin channel
-        nelec_tot = nelec_from_pseudos(self.atoms, self.pseudopotentials, self.parameters.pseudo_directory)
+        nelec_tot = nelec_from_pseudos(self.atoms, self.pseudopotentials)
         if params is None:
             params = self.calculator_parameters['pw']
-        nelec = nelec_tot - params.get('tot_charge', 0)
-        if spin is None:
-            nelec = nelec_tot
-        else:
+        if self.parameters.spin_polarized:
+            nelec = nelec_tot - params.get('tot_charge', 0)
             if spin == 'up':
                 nelec += params.get('tot_magnetization', nelec % 2)
             else:
@@ -1470,53 +1498,50 @@ class Workflow(ABC):
         return nelec
 
 
-def header():
-    from koopmans import __version__
-
-    header = [r"  _",
-              r" | | _____   ___  _ __  _ __ ___   __ _ _ __  ___",
-              r" | |/ / _ \ / _ \| '_ \| '_ ` _ \ / _` | '_ \/ __|",
-              r" |   < (_) | (_) | |_) | | | | | | (_| | | | \__ \ ",
-              r" |_|\_\___/ \___/| .__/|_| |_| |_|\__,_|_| |_|___/",
-              f"                 |_|",
-              "",
-              " Koopmans spectral functional calculations with Quantum ESPRESSO",
-              "",
-              f" version {__version__}",
-              "",
-              " Written by Edward Linscott, Riccardo De Gennaro, and Nicola Colonna"]
-    return '\n'.join(header)
-
-
-def read_atoms_dict(dct: Dict[str, Any]):
+def read_atoms_dict(dct: Dict[str, Any]) -> Tuple[Atoms, List[Atoms]]:
     '''
     Reads the "atoms" block
     '''
 
-    atoms = Atoms()
+    subdct: Dict[str, Any]
+    if 'snapshots' in dct.get('atomic_positions', {}):
+        subdct = dct.pop('atomic_positions')
+        snapshots = ase_read(subdct['snapshots'], index=':')
 
-    readers: Dict[str, Callable] = {'cell_parameters': utils.read_cell_parameters,
-                                    'atomic_positions': utils.read_atomic_positions}
+        atoms = snapshots[0]
 
-    for key, reader in readers.items():
-        subdct: Dict[str, Any] = dct.pop(key, {})
-        if subdct:
-            reader(atoms, subdct)
-        else:
-            raise ValueError(f'Please provide "{key}" in the atoms block')
+        # If cell parameters are manually provided, override what is provided in the xyz file
+        if 'cell_parameters' in dct:
+            utils.read_cell_parameters(atoms, dct['cell_parameters'])
+            for s in snapshots[1:]:
+                s.cell = atoms.cell
+                s.pbc = atoms.pbc
+    else:
+        atoms = Atoms()
+        snapshots = None
 
-    for block in dct:
-        raise ValueError(f'Unrecognized subblock atoms: "{block}"')
+        readers: Dict[str, Callable] = {'cell_parameters': utils.read_cell_parameters,
+                                        'atomic_positions': utils.read_atomic_positions}
 
-    return atoms
+        for key, reader in readers.items():
+            subdct = dct.pop(key, {})
+            if subdct:
+                reader(atoms, subdct)
+            else:
+                raise ValueError(f'Please provide `{key}` in the `atoms` block')
+
+        for block in dct:
+            raise ValueError(f'Unrecognized subblock `atoms: {block}`')
+
+    return atoms, snapshots
 
 
 def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]:
     # Dictionary to be used as the default value for 'calculator_parameters' when initializing a workflow
     # We create this dynamically in order for the .directory attributes to make sense
     return {'kcp': settings.KoopmansCPSettingsDict(),
-            'kc_ham': settings.KoopmansHamSettingsDict(),
-            'kc_screen': settings.KoopmansScreenSettingsDict(),
+            'kcw_ham': settings.KoopmansHamSettingsDict(),
+            'kcw_screen': settings.KoopmansScreenSettingsDict(),
             'ph': settings.PhSettingsDict(),
             'projwfc': settings.ProjwfcSettingsDict(),
             'pw': settings.PWSettingsDict(),
@@ -1525,7 +1550,7 @@ def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]
             'ui': settings.UnfoldAndInterpolateSettingsDict(),
             'ui_occ': settings.UnfoldAndInterpolateSettingsDict(),
             'ui_emp': settings.UnfoldAndInterpolateSettingsDict(),
-            'wann2kc': settings.Wann2KCSettingsDict(),
+            'kcw_wannier': settings.Wann2KCSettingsDict(),
             'w90': settings.Wannier90SettingsDict(),
             'w90_up': settings.Wannier90SettingsDict(),
             'w90_down': settings.Wannier90SettingsDict(),
@@ -1535,9 +1560,9 @@ def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]
 
 # Define which function to use to read each block
 settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
-                    'kc_ham': settings.KoopmansHamSettingsDict,
-                    'kc_screen': settings.KoopmansScreenSettingsDict,
-                    'wann2kc': settings.Wann2KCSettingsDict,
+                    'kcw_ham': settings.KoopmansHamSettingsDict,
+                    'kcw_screen': settings.KoopmansScreenSettingsDict,
+                    'kcw_wannier': settings.Wann2KCSettingsDict,
                     'ph': settings.PhSettingsDict,
                     'projwfc': settings.ProjwfcSettingsDict,
                     'pw': settings.PWSettingsDict,
@@ -1568,6 +1593,109 @@ def sanitize_calculator_parameters(dct_in: Union[Dict[str, Dict], Dict[str, sett
     for k in dct_in.keys():
         if k not in settings_classes:
             raise ValueError(
-                f'Unrecognized calculator_parameters entry "{k}": valid options are '
-                + '/'.join(settings_classes.keys()))
+                f'Unrecognized calculator_parameters entry `{k}`: valid options are `'
+                + '`/`'.join(settings_classes.keys()) + '`')
     return dct_out
+
+
+def header():
+    from koopmans import __version__
+
+    bf = '**' if sys.stdout.isatty() else ''
+
+    header = ["",
+              bf + "koopmans" + bf,
+              bf + "========" + bf,
+              "",
+              "*Koopmans spectral functional calculations with `Quantum ESPRESSO`*",
+              "",
+              f"📦 **Version:** {__version__}  ",
+              "🧑 **Authors:** Edward Linscott, Nicola Colonna, Riccardo De Gennaro, Ngoc Linh Nguyen, Giovanni "
+              "Borghi, Andrea Ferretti, Ismaila Dabo, and Nicola Marzari  ",
+              "📚 **Documentation:** https://koopmans-functionals.org  ",
+              "❓ **Support:** https://groups.google.com/g/koopmans-users  ",
+              "🐛 **Report a bug:** https://github.com/epfl-theos/koopmans/issues/new"
+              ]
+
+    return '\n'.join(header)
+
+
+def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
+    """
+    Generate a series of calculators that will be equivalent to the original master_calc
+    but switching back and forth between nspin=1 and nspin=2 calculations to fix spin contamination
+    """
+
+    if not isinstance(master_calc, calculators.CalculatorCanEnforceSpinSym):
+        raise NotImplementedError(f'`{master_calc.__class__.__name__}` cannot enforce spin symmetry')
+
+    # nspin=1
+    calc_nspin1 = master_calc.nspin1_calculator()
+
+    if not master_calc.from_scratch:
+        # Locate the preceeding nspin=2 calculation from which the calculation is configured to read
+        # (and from which we will fetch the nspin=2 wavefunctions)
+        ndr_directory = str(master_calc.read_directory)
+        if ndr_directory not in master_calc.linked_files.keys():
+            raise ValueError('This calculator needs to be linked to a previous `nspin=2` calculation before '
+                             '`run_calculator` is called')
+        prev_calc_nspin2 = master_calc.linked_files[ndr_directory][0].parent_process
+        if not isinstance(prev_calc_nspin2, calculators.KoopmansCPCalculator):
+            raise ValueError(
+                'Unexpected calculator type linked during the procedure for fixing spin contamination')
+
+        # Wipe the linked files (except for globally-linked files)
+        master_calc.linked_files = {k: v for k, v in master_calc.linked_files.items(
+        ) if isinstance(v[0].parent_process, ParentProcessPlaceholder)}
+        calc_nspin1.linked_files = {k: v for k, v in calc_nspin1.linked_files.items(
+        ) if isinstance(v[0].parent_process, ParentProcessPlaceholder)}
+
+        # nspin=1 dummy
+        calc_nspin1_dummy = master_calc.nspin1_dummy_calculator()
+        calc_nspin1_dummy.skip_qc = True
+        status = wf.run_steps(calc_nspin1_dummy)
+        if status != Status.COMPLETED:
+            return status
+
+        calc_nspin1.link(File(calc_nspin1_dummy, calc_nspin1_dummy.parameters.outdir),
+                         calc_nspin1.parameters.outdir)
+
+        # Copy over nspin=2 wavefunction to nspin=1 tmp directory
+        process2to1 = ConvertFilesFromSpin2To1(name=None,
+                                               **prev_calc_nspin2.files_to_convert_with_spin2_to_spin1)
+        status = wf.run_steps(process2to1)
+        if status != Status.COMPLETED:
+            return status
+
+        # Linking converted files to the nspin=1 calculation
+        for f in process2to1.outputs.generated_files:
+            dst_dir = calc_nspin1.parameters.outdir / \
+                f'{calc_nspin1.parameters.prefix}_{calc_nspin1.parameters.ndr}.save/K00001'
+            calc_nspin1.link(f, dst_dir / f.name, symlink=True, overwrite=True)
+
+    status = wf.run_steps(calc_nspin1)
+    if status != Status.COMPLETED:
+        return status
+
+    # nspin=2 from scratch (dummy run for creating files of appropriate size)
+    calc_nspin2_dummy = master_calc.nspin2_dummy_calculator()
+    calc_nspin2_dummy.skip_qc = True
+    status = wf.run_steps(calc_nspin2_dummy)
+    if status != Status.COMPLETED:
+        return status
+    master_calc.link(File(calc_nspin2_dummy, calc_nspin2_dummy.parameters.outdir), master_calc.parameters.outdir)
+
+    # Copy over nspin=1 wavefunction to nspin=2 tmp directory
+    process1to2 = ConvertFilesFromSpin1To2(**calc_nspin1.files_to_convert_with_spin1_to_spin2)
+    status = wf.run_steps(process1to2)
+    if status != Status.COMPLETED:
+        return status
+
+    # nspin=2, reading in the spin-symmetric nspin=1 wavefunction
+    master_calc.prepare_to_read_nspin1()
+    for f in process1to2.outputs.generated_files:
+        dst_dir = master_calc.parameters.outdir / \
+            f'{master_calc.parameters.prefix}_{master_calc.parameters.ndr}.save/K00001'
+        master_calc.link(f, dst_dir / f.name, symlink=True, overwrite=True)
+    status = wf.run_steps(master_calc)
+    return status

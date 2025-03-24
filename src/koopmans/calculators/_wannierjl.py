@@ -15,7 +15,7 @@ from koopmans.commands import Command
 from koopmans.settings import WannierJLSettingsDict
 from koopmans.utils import CalculatorNotConvergedWarning, warn
 
-from ._utils import CalculatorABC, CalculatorExt
+from ._calculator import CalculatorABC, CalculatorExt
 
 
 class WannierJLCalculator(CalculatorExt, WannierJL, CalculatorABC):
@@ -31,7 +31,8 @@ class WannierJLCalculator(CalculatorExt, WannierJL, CalculatorABC):
         CalculatorExt.__init__(self, *args, **kwargs)
 
         # Set up the command for running this calculator
-        self.command = Command(os.environ.get('ASE_WANNIERJL_COMMAND', self.command))
+        if not isinstance(self.command, Command):
+            self.command = Command(str(os.environ.get('ASE_WANNIERJL_COMMAND', self.command)))
 
     def is_converged(self):
         return True

@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 import numpy as np
-from ase import Atoms
+from ase_koopmans import Atoms
 
 
 def write_xsf(filename: Path, atoms: Atoms, arrays: List[np.ndarray], nr_xml: Tuple[int, int, int]):
@@ -17,7 +17,7 @@ def write_xsf(filename: Path, atoms: Atoms, arrays: List[np.ndarray], nr_xml: Tu
         for k in range(nr_xml[2]):
             for j in range(nr_xml[1]):
                 for i in range(nr_xml[0]):
-                    array_xsf[k, j, i] = array[k % (nr_xml[2]-1), j % (nr_xml[1]-1), i % (nr_xml[0]-1)]
+                    array_xsf[k, j, i] = array[k % (nr_xml[2] - 1), j % (nr_xml[1] - 1), i % (nr_xml[0] - 1)]
         arrays_xsf.append(array_xsf)
 
     cell_parameters = atoms.get_cell()
@@ -28,7 +28,7 @@ def write_xsf(filename: Path, atoms: Atoms, arrays: List[np.ndarray], nr_xml: Tu
         out.write('CRYSTAL\n\n')
         out.write('PRIMVEC\n\n')
         for vec in cell_parameters:
-            out.write("\t" + " ".join([f"{x:13.10f}" for x in vec]))
+            out.write("\t" + " ".join([f"{x:13.10f}" for x in vec]) + " \n")
         out.write('PRIMCOORD\n')
         out.write(f"\t{len(symbols)}\t1\n")
         for symbol, pos in zip(symbols, positions):
