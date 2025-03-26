@@ -57,6 +57,10 @@ class File:
             yield parent
             parent = parent.parent
 
+    @property
+    def suffix(self) -> str:
+        return self.name.suffix
+
     def copy_to(self, dst: File, exist_ok=False):
         assert self._engine is not None
         logger.info(f'Copying {self.aspath()} to {dst.aspath()}')

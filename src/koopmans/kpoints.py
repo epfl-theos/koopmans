@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 from ase_koopmans.cell import Cell
 from ase_koopmans.dft.kpoints import (BandPath, kpoint_convert,
+                                      parse_path_string,
                                       resolve_kpt_path_string)
 
 
@@ -93,6 +94,8 @@ class Kpoints:
         if value is not None:
             if len(value) != 3:
                 raise ValueError('`grid` must be a list of three integers')
+        if isinstance(value, np.ndarray):
+            value = value.astype(int).tolist()
         self._grid = value
 
     @property
@@ -200,7 +203,12 @@ class Kpoints:
 
 
 def convert_kpath_str_to_bandpath(path: str, cell: Cell, density: Optional[float] = None) -> BandPath:
-    special_points: Dict[str, np.ndarray] = cell.bandpath().special_points
+    special_points: Dict[str, np.ndarray] = cell.bandpath(eps=1e-10).special_points
+    special_points_on_path = set([x for y in parse_path_string(path) for x in y])
+    for sp in special_points_on_path:
+        if sp not in special_points.keys():
+            raise KeyError(
+                f'The path provided to convert_kpath_str_to_bandpath contains a special point ({sp}) that is not in the set of special points for this cell ({", ".join(special_points.keys())})')
     bp = BandPath(cell=cell, path=path, special_points=special_points)
     if len(path) > 1:
         bp = bp.interpolate(density=density)

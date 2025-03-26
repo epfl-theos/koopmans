@@ -156,13 +156,33 @@ def cell_to_parameters(cell: Cell) -> CellParams:
     lat: BravaisLattice = cell.get_bravais_lattice()
     new_cell = lat.tocell()
 
-    if abs(cell.volume - new_cell.volume) > 1e-6:
+    if abs(cell.volume/new_cell.volume - 1) > 1e-3:
         raise ValueError('You have provided a cell that appears not to be Niggli-reduced.\n'
                          'Try running\n'
                          '```\n cell.get_bravais_lattice().tocell()\n```\n'
                          'within python to obtain a reduced cell')
+
+    return lat_to_parameters(lat)
+
+
+def lat_to_parameters(lat: BravaisLattice) -> CellParams:
+    '''
+    Identifies a cell in the language of Quantum ESPRESSO
+
+    Parameters
+    ----------
+    lat : BravaisLattice
+        an ASE `BravaisLattice`
+
+    Returns
+    -------
+    CellParams
+        a typed dictionary containing the ibrav and celldms
+
+    '''
+
     celldms: Dict[int, float] = {}
-    [A, B, C, _, _, gamma] = new_cell.cellpar(radians=True)
+    [A, B, C, _, _, gamma] = lat.tocell().cellpar(radians=True)
     a: float
     b: float
     c: float

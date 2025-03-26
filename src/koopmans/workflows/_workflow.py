@@ -58,13 +58,13 @@ from koopmans.process_io import IOModel
 from koopmans.processes import Process, ProcessProtocol
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
-from koopmans.projections import ProjectionBlocks
+from koopmans.projections import ExplicitProjectionBlock, ProjectionBlocks
 from koopmans.pseudopotentials import (element_from_pseudo_filename,
-                                       nelec_from_pseudos,
+                                       nelec_from_pseudos, nwfcs_from_pseudos,
                                        pseudopotential_library_citations)
 from koopmans.references import bib_data
 from koopmans.status import Status
-from koopmans.utils import SpinType
+from koopmans.utils import Spin
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 W = TypeVar('W', bound='Workflow')
@@ -181,15 +181,16 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         self._bands: Optional[Bands] = None
 
         if projections is None:
-            proj_list: List[List[Any]]
-            spins: List[SpinType]
+            proj_list: List[List[str]]
+            spins: List[Spin]
             if self.parameters.spin_polarized:
                 proj_list = [[], []]
-                spins = ['up', 'down']
+                spins = [Spin.UP, Spin.DOWN]
             else:
                 proj_list = [[]]
-                spins = [None]
-            self.projections = ProjectionBlocks.fromlist(proj_list, spins=spins, atoms=self.atoms)
+                spins = [Spin.NONE]
+            raise NotImplementedError('Need to re-implement this now that ProjectionBlocks has been redefined')
+            # self.projections = ProjectionBlocks.fromlist(proj_list, spins=spins, atoms=self.atoms)
         else:
             self.projections = projections
 
@@ -231,7 +232,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         if all(self.atoms.pbc):
             # By default, use ASE's default bandpath for this cell (see
             # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
-            default_path = self.atoms.cell.bandpath().path
+            default_path = self.atoms.cell.bandpath(eps=1e-10).path
         else:
             default_path = 'G'
         if kpoints is None:
@@ -292,14 +293,12 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         if self.parameters.task != 'ui' and autogenerate_settings:
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
-            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials)
-            tot_charge = calculator_parameters['pw'].get(
-                'tot_charge', calculator_parameters['kcp'].get('tot_charge', 0))
-            nelec -= tot_charge
-            tot_mag = calculator_parameters['pw'].get(
-                'tot_magnetization', calculator_parameters['kcp'].get('tot_charge', nelec % 2))
-            nelup = int(nelec / 2 + tot_mag / 2)
-            neldw = int(nelec / 2 - tot_mag / 2)
+            kcp_params = calculator_parameters['kcp']
+            nelec = self.number_of_electrons(Spin.NONE, kcp_params)
+            nelup = self.number_of_electrons(Spin.UP, kcp_params)
+            neldw = self.number_of_electrons(Spin.DOWN, kcp_params)
+            tot_charge = nelec_from_pseudos(self.atoms, self.pseudopotentials) - nelec
+            tot_mag = nelup - neldw
 
             # Setting up the magnetic moments
             starting_mags = {k: v for k, v in calculator_parameters['kcp'].items(
@@ -324,7 +323,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
 
             # Work out the number of bands
-            nbnd = calculator_parameters['kcp'].get('nbnd', nelec // 2 + nelec % 2)
+            nbnd = calculator_parameters.get('pw', calculator_parameters['kcp']).get('nbnd', nelec // 2 + nelec % 2)
             generated_keywords = {'nelec': nelec, 'tot_charge': tot_charge, 'tot_magnetization': tot_mag,
                                   'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd}
         else:
@@ -335,7 +334,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         for block, params in calculator_parameters.items():
             # Apply auto-generated keywords
             for k, v in generated_keywords.items():
-                # Skipping nbnd for kcp -- it is valid according to ASE but it is not yet properly implemented
+                # Skipping nbnd for kcp; if necessary it will be generated later
                 if k == 'nbnd' and block == 'kcp':
                     continue
                 if k in params.valid and k not in params:
@@ -343,7 +342,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
             # Various checks for the wannier90 blocks
             if block.startswith('w90'):
-                if 'projections' in params or 'projections_blocks' in params:
+                if 'projections' in params:
                     raise ValueError(f'You have provided projection information in the '
                                      f'`calculator_parameters[{block}]` argument to `{self.__class__.__name__}`. '
                                      'Please instead specify projections via the `projections` argument')
@@ -367,11 +366,36 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                        'possesses a calculator. This calculator will be ignored.')
             self.atoms.calc = None
 
+        # Generating self.projections if auto_projections is True
+        auto = [self.calculator_parameters[s].auto_projections for s in ['w90', 'w90_up', 'w90_down']]
+        if any(auto):
+            if self.parameters.spin_polarized:
+                spins = [Spin.UP, Spin.DOWN]
+            else:
+                spins = [Spin.NONE]
+
+            if self.calculator_parameters['pw2wannier'].atom_proj_ext:
+                proj_dir = self.calculator_parameters['pw2wannier'].get(
+                    'atom_proj_dir', self.parameters.pseudo_directory)
+                raise NotImplementedError('Need to re-implement this')
+                # num_wann = [nwfcs_from_projectors(self.atoms, self.pseudopotentials) for _ in spins]
+            else:
+                num_wann = [nwfcs_from_pseudos(self.atoms, self.pseudopotentials) for _ in spins]
+            self.projections = ProjectionBlocks.from_block_lengths(num_wann, spins, self.atoms)
+
+            # Also override various pw2wannier and w90 settings
+            self.calculator_parameters['pw2wannier'].atom_proj = True
+            for spin in spins:
+                label = 'w90' if spin == Spin.NONE else f'w90_{spin.value}'
+                self.calculator_parameters[label].guiding_centres = False
+                if self.calculator_parameters[label].dis_proj_max is None:
+                    self.calculator_parameters[label].dis_proj_max = 0.95
+
         # Adding excluded_bands info to self.projections
         if self.projections:
-            for spin in ['up', 'down', None]:
+            for spin in Spin:
                 label = 'w90'
-                if spin:
+                if spin != Spin.NONE:
                     label += f'_{spin}'
                 self.projections.exclude_bands[spin] = self.calculator_parameters[label].get('exclude_bands', [])
 
@@ -648,7 +672,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                     raise ValueError('This calculation is spin-polarized; please provide spin-up and spin-down '
                                      'projections')
             else:
-                if spin_set != {None}:
+                if spin_set != {Spin.NONE}:
                     raise ValueError('This calculation is not spin-polarized; please do not provide spin-indexed '
                                      'projections')
 
@@ -756,6 +780,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             calc_class = calculators.PhCalculator
         elif calc_type == 'projwfc':
             calc_class = calculators.ProjwfcCalculator
+        elif calc_type == 'wjl':
+            calc_class = calculators.WannierJLCalculator
         else:
             raise ValueError(f'Cound not find a calculator of type `{calc_type}`')
 
@@ -1084,7 +1110,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         # a corresponding block in the json file
         calculator_parameters = {}
         w90_block_projs: List = []
-        w90_block_spins: List[SpinType] = []
+        w90_block_spins: List[Spin] = []
         for block, settings_class in settings_classes.items():
             # Read the block and add the resulting calculator to the calcs_dct
             dct = calcdict.pop(block, {})
@@ -1108,11 +1134,11 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 projs = dct.pop('projections', [[]])
                 w90_block_projs += projs
                 if 'up' in block:
-                    w90_block_spins += ['up' for _ in range(len(projs))]
+                    w90_block_spins += [Spin.UP for _ in range(len(projs))]
                 elif 'down' in block:
-                    w90_block_spins += ['down' for _ in range(len(projs))]
+                    w90_block_spins += [Spin.DOWN for _ in range(len(projs))]
                 else:
-                    w90_block_spins += [None for _ in range(len(projs))]
+                    w90_block_spins += [Spin.NONE for _ in range(len(projs))]
 
             calculator_parameters[block] = settings_class(**dct)
 
@@ -1285,10 +1311,10 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 calcdct['ui'].update(**params_dict)
             elif code.startswith('w90'):
                 if '_' in code:
-                    spin = code.split('_')[1]
+                    [spin] = [s for s in Spin if s.value == code.split('_')[1]]
                     calcdct['w90'][spin] = params_dict
                 else:
-                    spin = None
+                    spin = Spin.NONE
                     calcdct['w90'] = params_dict
                 projections = self.projections.get_subset(spin)
                 if projections:
@@ -1461,19 +1487,20 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         if not self.engine.keep_tmpdirs:
             self._remove_tmpdirs()
 
-    def number_of_electrons(self, spin: Optional[str] = None) -> int:
+    def number_of_electrons(self, spin: Spin = Spin.NONE, params: Optional[settings.SettingsDict] = None) -> int:
         # Return the number of electrons in a particular spin channel
         nelec_tot = nelec_from_pseudos(self.atoms, self.pseudopotentials)
-        pw_params = self.calculator_parameters['pw']
+        if params is None:
+            params = self.calculator_parameters['pw']
+        nelec = nelec_tot - params.get('tot_charge', 0)
         if self.parameters.spin_polarized:
-            nelec = nelec_tot - pw_params.get('tot_charge', 0)
-            if spin == 'up':
-                nelec += pw_params.tot_magnetization
+            if spin == Spin.UP:
+                nelec += params.tot_magnetization
+            elif spin == Spin.DOWN:
+                nelec -= params.tot_magnetization
             else:
-                nelec -= pw_params.tot_magnetization
+                raise ValueError('When spin-polarized, `spin` must be either `Spin.UP` or `Spin.DOWN`')
             nelec = int(nelec // 2)
-        else:
-            nelec = nelec_tot
         return nelec
 
 
@@ -1530,6 +1557,7 @@ def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]
             'ui_occ': settings.UnfoldAndInterpolateSettingsDict(),
             'ui_emp': settings.UnfoldAndInterpolateSettingsDict(),
             'kcw_wannier': settings.Wann2KCSettingsDict(),
+            'wjl': settings.WannierJLSettingsDict(),
             'w90': settings.Wannier90SettingsDict(),
             'w90_up': settings.Wannier90SettingsDict(),
             'w90_down': settings.Wannier90SettingsDict(),
@@ -1549,6 +1577,7 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'ui': settings.UnfoldAndInterpolateSettingsDict,
                     'ui_occ': settings.UnfoldAndInterpolateSettingsDict,
                     'ui_emp': settings.UnfoldAndInterpolateSettingsDict,
+                    'wjl': settings.WannierJLSettingsDict,
                     'w90': settings.Wannier90SettingsDict,
                     'w90_up': settings.Wannier90SettingsDict,
                     'w90_down': settings.Wannier90SettingsDict,

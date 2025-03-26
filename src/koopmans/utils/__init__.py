@@ -21,7 +21,7 @@ from ._io import (construct_atomic_positions_block,
 from ._misc import flatten, update_nested_dict
 from ._os import (HasDirectory, chdir, chdir_logic, copy_file, find_executable,
                   set_env, symlink, symlink_tree, system_call)
-from ._spin import SpinOptions, SpinType
+from ._spin import Spin
 from ._units import units
 from ._warnings import CalculatorNotConvergedWarning, warn
 from ._xml import read_xml_array, read_xml_nr

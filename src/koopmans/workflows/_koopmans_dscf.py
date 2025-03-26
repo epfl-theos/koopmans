@@ -27,6 +27,7 @@ from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
 from koopmans.projections import BlockID
 from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.status import Status
+from koopmans.utils import Spin
 
 from ._folding import FoldToSupercellWorkflow
 from ._koopmans_cp_with_spin_swap import KoopmansCPWithSpinSwapWorkflow
@@ -79,12 +80,11 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
         # If periodic, convert the kcp calculation into a Γ-only supercell calculation
         kcp_params = self.calculator_parameters['kcp']
         if all(self.atoms.pbc):
-            spins: List[Optional[str]]
             if self.parameters.spin_polarized:
-                spins = ['up', 'down']
+                spins = [Spin.UP, Spin.DOWN]
                 nelecs = [kcp_params.nelup, kcp_params.neldw]
             else:
-                spins = [None]
+                spins = [Spin.NONE]
                 nelecs = [kcp_params.nelec // 2]
 
             for spin, nelec in zip(spins, nelecs):
@@ -92,7 +92,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
                 nbands_occ = nelec
                 if self.projections:
                     label = 'w90'
-                    if spin:
+                    if spin != Spin.NONE:
                         label += f'_{spin}'
                     nbands_excl = len(self.calculator_parameters[label].get('exclude_bands', []))
                     if nbands_excl > 0:
