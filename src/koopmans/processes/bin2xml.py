@@ -1,8 +1,7 @@
 from pathlib import Path
-from typing import List
+
 from pydantic import ConfigDict
 
-from koopmans import utils
 from koopmans.commands import Command
 from koopmans.files import File
 from koopmans.process_io import IOModel
@@ -36,7 +35,7 @@ class Bin2XMLProcess(CommandLineTool):
 
     @property
     def command(self):
-        return Command(executable='bin2xml.x', suffix=f'input.dat output.xml')
+        return Command(executable='bin2xml.x', suffix='input.dat output.xml')
 
     def _set_outputs(self):
         xml_filepointer = File(self, Path("output.xml"))

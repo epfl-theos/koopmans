@@ -1,19 +1,13 @@
-
-
-"""
-
-Workflow module for performing a single DFT calculation with either kcp.x or pw.x
-
-Written by Edward Linscott Oct 2020
-
-"""
+"""Workflows for performing simple DFT calculations with either kcp.x or pw.x."""
 
 import copy
-import shutil
 from pathlib import Path
-from typing import Generator, List, TypeVar
+from typing import TypeVar
 
-from koopmans import calculators, pseudopotentials, utils
+from ase_koopmans.spectrum.band_structure import BandStructure
+from ase_koopmans.spectrum.doscollection import DOSCollection
+
+from koopmans import calculators, utils
 from koopmans.files import File
 from koopmans.process_io import IOModel
 from koopmans.status import Status
@@ -23,22 +17,28 @@ from ._workflow import Workflow, spin_symmetrize
 T = TypeVar('T', bound='calculators.CalculatorExt')
 OutputModel = TypeVar('OutputModel', bound=IOModel)
 
+
 class DFTWorkflow(Workflow[OutputModel]):
+    """Basic template for a DFT workflow."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.parameters.functional = 'dft'
 
 
 class DFTCPOutput(IOModel):
+    """Output model for the DFTCPWorkflow."""
+
     pass
 
 
 class DFTCPWorkflow(DFTWorkflow[DFTCPOutput]):
+    """Basic workflow for performing an SCF DFT calculation with kcp.x."""
 
     output_model = DFTCPOutput
 
     def _run(self) -> None:
-
+        """Run the workflow."""
         calc = self.new_calculator('kcp')
         assert isinstance(calc, calculators.KoopmansCPCalculator)
 
@@ -71,15 +71,18 @@ class DFTCPWorkflow(DFTWorkflow[DFTCPOutput]):
 
 
 class DFTPWOutput(IOModel):
+    """Output model for the DFTPWWorkflow."""
+
     pass
 
 
 class DFTPWWorkflow(DFTWorkflow[DFTPWOutput]):
+    """Basic workflow for performing an SCF DFT calculation with pw.x."""
 
     output_model = DFTPWOutput
 
     def _run(self) -> None:
-
+        """Run the workflow."""
         # Create the calculator
         calc = self.new_calculator('pw')
 
@@ -97,17 +100,18 @@ class DFTPWWorkflow(DFTWorkflow[DFTPWOutput]):
 
 
 class DFTPhOutput(IOModel):
+    """Output model for the DFTPhWorkflow."""
+
     pass
 
 
 class DFTPhWorkflow(Workflow[DFTPhOutput]):
+    """Workflow for calculating the dielectric tensor using ph.x."""
 
     output_model = DFTPhOutput
 
     def _run(self) -> None:
-
-        self.print('Calculate the dielectric tensor', style='heading')
-
+        """Run the workflow."""
         calc_scf = self.new_calculator('pw', nbnd=None)
         calc_scf.prefix = 'scf'
         status = self.run_steps(calc_scf)
@@ -126,10 +130,16 @@ class DFTPhWorkflow(Workflow[DFTPhOutput]):
 
 
 class DFTBandsOutput(IOModel):
-    pass
+    """Output model for the DFTBandsWorkflow."""
+
+    band_structure: BandStructure
+    dos: DOSCollection | None
+
+    model_config = {'arbitrary_types_allowed': True}
 
 
-class DFTBandsWorkflow(DFTWorkflow):
+class DFTBandsWorkflow(DFTWorkflow[DFTBandsOutput]):
+    """Workflow for calculating the band structure and projected density of states using pw.x."""
 
     output_model = DFTBandsOutput
 
@@ -189,12 +199,15 @@ class DFTBandsWorkflow(DFTWorkflow):
             filename = f'{self.name}_{workflow_name}_dos'
             dos.plot(filename=filename)
 
+        self.outputs = self.output_model(band_structure=bs, dos=dos)
+
         self.status = Status.COMPLETED
 
     def new_calculator(self,
                        calc_type: str,
                        *args,
                        **kwargs) -> T:   # type: ignore[type-var, misc]
+        """Create a new calculator."""
         calc: T = super().new_calculator(calc_type, *args, **kwargs)
         if calc_type == 'projwfc':
             assert isinstance(calc, calculators.ProjwfcCalculator)

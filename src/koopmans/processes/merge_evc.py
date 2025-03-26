@@ -1,12 +1,9 @@
-from pathlib import Path
 from typing import List
-from pydantic import ConfigDict
 
 import numpy as np
+from pydantic import ConfigDict
 
 from koopmans.files import File
-from koopmans.kpoints import Kpoints
-from koopmans.projections import ProjectionBlock
 
 from ._commandlinetool import CommandLineTool
 from ._process import IOModel

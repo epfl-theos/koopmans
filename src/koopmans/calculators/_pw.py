@@ -1,10 +1,4 @@
-"""
-
-pw calculator module for koopmans
-
-Written by Edward Linscott Sep 2020
-
-"""
+"""pw calculator module for koopmans."""
 
 import os
 
@@ -15,7 +9,6 @@ from ase_koopmans.dft.kpoints import BandPath
 
 from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.commands import Command, ParallelCommandWithPostfix
-from koopmans.pseudopotentials import nelec_from_pseudos
 from koopmans.settings import PWSettingsDict
 
 from ._calculator import CalculatorABC, CalculatorExt, ReturnsBandStructure
@@ -84,7 +77,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
 
         # Fetch the total number of electrons in the system
         nelec = self.results['nelec']
-        
+
         # Determine the number of occupied bands in each spin channel
         if self.parameters.nspin == 1:
             n_occs = [int(nelec // 2)]

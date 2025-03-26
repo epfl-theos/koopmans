@@ -1,12 +1,10 @@
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
-from pydantic import ConfigDict
 
 from ase_koopmans import Atoms
 from ase_koopmans.io.wannier90 import (list_to_formatted_str,
                                        num_wann_from_projections,
                                        proj_string_to_dict)
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from koopmans import calculators
 from koopmans.utils import SpinOptions, SpinType

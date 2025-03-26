@@ -1,15 +1,14 @@
 """
 Processes used during the machine learning workflows
 """
-from functools import partial
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
-from pydantic import ConfigDict
+from typing import List
 
 import numpy as np
 from ase_koopmans.cell import Cell
+from pydantic import ConfigDict
 
-from koopmans import ml, utils
+from koopmans import ml
 from koopmans.bands import Band
 from koopmans.files import File
 
@@ -75,11 +74,12 @@ class ExtractCoefficientsFromXMLProcess(Process):
             else:
                 dst.write_text(content)
 
+        total_coefficients = [File(self, f) for f in total_files.keys()]
+        orbital_coefficients = [File(self, f) for f in orbital_files.keys()]
         self.outputs = ExtractCoefficientsFromXMLOutput(precomputed_alphas=alpha_file,
                                                         precomputed_betas=beta_file,
-                                                        total_coefficients=[File(self, f)
-                                                                            for f in total_files.keys()],
-                                                        orbital_coefficients=[File(self, f) for f in orbital_files.keys()])
+                                                        total_coefficients=total_coefficients,
+                                                        orbital_coefficients=orbital_coefficients)
 
 
 class ComputePowerSpectrumInput(IOModel):
@@ -124,7 +124,7 @@ def compute_power_mat(coeff_matrix: np.ndarray, n_max: int, l_max: int) -> np.nd
             for n1 in range(n_max):
                 for n2 in range(n1, n_max):
                     for l in range(l_max+1):
-                        sum_current = sum(coeff_matrix[i1, n1, l, m]*coeff_matrix[i2, n2, l, m] for m in range(2*l+1))
+                        sum_current = sum(coeff_matrix[i1, n1, l, m]*coeff_matrix[i2, n2, l, m] for m in range(2*l + 1))
                         power.append(sum_current)
     return np.array(power)
 

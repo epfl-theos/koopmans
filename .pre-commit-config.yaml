@@ -30,3 +30,11 @@ repos:
     - id: autopep8
       args: [--max-line-length=120, -i]
 
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.1.2
+    hooks:
+    - id: flake8
+      additional_dependencies:
+        - flake8-pyproject
+        - flake8-docstrings
+        - flake8-warnings
