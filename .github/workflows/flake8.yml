@@ -22,4 +22,4 @@ jobs:
       - name: flake8 Lint
         uses: py-actions/flake8@v2
         with:
-            plugins: "flake8-pyproject flake8-docstrings flake8-warnings"
+            plugins: "flake8-pyproject flake8-docstrings flake8-warnings flake8-builtins"

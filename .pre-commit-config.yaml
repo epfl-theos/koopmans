@@ -38,3 +38,4 @@ repos:
         - flake8-pyproject
         - flake8-docstrings
         - flake8-warnings
+        - flake8-builtins
