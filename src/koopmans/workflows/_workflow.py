@@ -393,7 +393,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
         # Adding excluded_bands info to self.projections
         if self.projections:
-            for spin in Spin:
+            for spin in [Spin.UP, Spin.DOWN, Spin.NONE]:
                 label = 'w90'
                 if spin != Spin.NONE:
                     label += f'_{spin}'

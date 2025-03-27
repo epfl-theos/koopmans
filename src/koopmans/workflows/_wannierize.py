@@ -37,6 +37,8 @@ from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         merge_wannier_centers_file_contents,
                                         merge_wannier_hr_file_contents,
                                         merge_wannier_u_file_contents)
+from koopmans.processes.wjl import (WannierJLCheckNNKPProcess,
+                                    WannierJLGenerateCubicNNKPProcess)
 from koopmans.projections import BlockID, ProjectionBlock
 from koopmans.pseudopotentials import nelec_from_pseudos, read_pseudo_file
 from koopmans.status import Status
@@ -561,6 +563,21 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeBlockOutput]):
         if wf.status != Status.COMPLETED:
             return
 
+        # Check that the .nnkp file has the bvectors needed by the parallel transport algorithm
+        # For some oblique cells this is not the case by default and we need to construct a cubic .nnkp file
+        check_nnkp_process = WannierJLCheckNNKPProcess()
+        status = self.run_steps(check_nnkp_process)
+        if status != Status.COMPLETED:
+            return
+
+        # Create a cubic nnkp
+        w90_input_file = File(wf.outputs.wannier90_calculation, wf.outputs.wannier90_calculation.prefix + '.win')
+        if check_nnkp_process.outputs.missing_bvectors:
+            generate_nnkp_process = WannierJLGenerateCubicNNKPProcess(wannier_input_file=w90_input_file)
+            status = self.run_steps(generate_nnkp_process)
+            if status != Status.COMPLETED:
+                return
+
         # Determine how to split the blocks
         new_blocks = self.block.split(self.groups)
 
@@ -570,7 +587,6 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeBlockOutput]):
         calc_wjl.prefix = 'split'
 
         # Providing the files that `wjl`` expects
-        w90_input_file = File(wf.outputs.wannier90_calculation, wf.outputs.wannier90_calculation.prefix + '.win')
         w90_chk_file = File(wf.outputs.wannier90_calculation, wf.outputs.wannier90_calculation.prefix + '.chk')
         for f in [w90_input_file, w90_chk_file, wf.outputs.mmn_file, wf.outputs.amn_file, wf.outputs.eig_file]:
             assert f is not None

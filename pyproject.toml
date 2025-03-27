@@ -64,6 +64,9 @@ docs = [
     "numpydoc>=1.4.0",
     "sphinx-pyproject>=0.1.0",
 ]
+julia = [
+    "juliacall"
+]
 
 [project.scripts]
 koopmans = "koopmans.cli.main:main"
