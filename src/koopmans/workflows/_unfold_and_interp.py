@@ -1,7 +1,4 @@
-"""
-
-Workflow module for koopmans, containing the workflow for unfolding and interpolating
-results from the supercell to generate a bandstructure
+"""Workflow for unfolding and interpolating results from the supercell to generate a bandstructure.
 
 For the moment the code works only with cubic, tetragonal and orthorhombic systems.
 
@@ -9,7 +6,7 @@ Originally written by Riccardo De Gennaro as the standalone 'unfolding and inter
 Integrated within koopmans by Edward Linscott Jan 2021
 """
 
-from typing import Dict, Generator, List, Literal, Optional, Tuple
+from typing import Dict, List, Literal, Optional
 
 import numpy as np
 from ase_koopmans.dft.dos import DOS
@@ -28,6 +25,8 @@ from ._workflow import Workflow
 
 
 class UnfoldAndInterpolateOutput(IOModel):
+    """Output model for the `UnfoldAndInterpolateWorkflow`."""
+
     band_structure: BandStructure
     dos: Optional[DOS]
     smooth_dft_ham_files: Optional[Dict[BlockID, File]]
@@ -35,6 +34,7 @@ class UnfoldAndInterpolateOutput(IOModel):
 
 
 class UnfoldAndInterpolateWorkflow(Workflow):
+    """Workflow for converting a Γ-only set of eigenvalues for a supercell into a primitive-cell band structure."""
 
     output_model = UnfoldAndInterpolateOutput  # type: ignore
 
@@ -47,16 +47,14 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         self._smooth_dft_ham_files = smooth_dft_ham_files
 
     def _run(self) -> None:
-        '''
+        """Perform an Unfolding and Interpolation workflow.
 
-        Wrapper for the whole unfolding and interpolation workflow, consisting of:
+        This involves...
         - a smooth WannierizeWorkflow (if required)
         - an UnfoldAndInterpolateProcess for occ states
         - an UnfoldAndInterpolateProcess for emp states
         - an UnfoldAndInterpolateProcess to merge occ and emp results
-
-        '''
-
+        """
         # Transform self.atoms back to the primitive cell
         if self.parameters.method == 'dscf':
             self.supercell_to_primitive()
@@ -176,6 +174,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         return
 
     def new_ui_process(self, block_id: BlockID, **kwargs) -> UnfoldAndInterpolateProcess:
+        """Create a new `UnfoldAndInterpolateProcess`."""
         kwargs['kc_ham_file'] = self._koopmans_ham_files[block_id]
         kwargs['dft_ham_file'] = self._dft_ham_files[block_id]
 

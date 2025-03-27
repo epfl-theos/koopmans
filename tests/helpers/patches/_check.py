@@ -1,6 +1,5 @@
 import itertools
 import json
-from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
@@ -10,7 +9,7 @@ from ase_koopmans.dft.dos import DOS
 from ase_koopmans.spectrum.band_structure import BandStructure
 from ase_koopmans.spectrum.doscollection import GridDOSCollection
 
-from koopmans import pseudopotentials, utils
+from koopmans import utils
 from koopmans.calculators import (Calc, EnvironCalculator,
                                   KoopmansCPCalculator, KoopmansHamCalculator,
                                   KoopmansScreenCalculator, PhCalculator,
@@ -38,8 +37,7 @@ tolerances = {'alphas': (2e-3, 2e-5),
 
 
 def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str, str]]:
-    # Compare the calculated result to the reference result
-
+    """Compare the result of a calculation to a reference result."""
     # Sanitize the input and fetch the corresponding tolerances
     if isinstance(result, BandStructure):
         result = result.energies
@@ -121,11 +119,8 @@ def compare(result: Any, ref_result: Any, result_name: str) -> Optional[Dict[str
     return None
 
 
-def calcname(self: Calc) -> str:
-    raise NotImplementedError()
-
-
 def generate_messages(self, benchmark: Calc, results_for_qc: List[str]) -> List[Dict[str, str]]:
+    """Generate a list of messages that describe the differences between the calculation and the benchmark."""
     messages: List[Dict[str, str]] = []
 
     # Loop through results that require checking
@@ -133,7 +128,7 @@ def generate_messages(self, benchmark: Calc, results_for_qc: List[str]) -> List[
         # Only inspect results listed in self.results_for_qc
         if result_name not in results_for_qc:
             continue
-        assert result_name in self.results, f'Error in {calcname(self)}: {result_name} is missing'
+        assert result_name in self.results, f'Error in {self.name}: {result_name} is missing'
         result = self.results[result_name]
 
         # Check the result against the benchmark
@@ -146,10 +141,11 @@ def generate_messages(self, benchmark: Calc, results_for_qc: List[str]) -> List[
 
 
 def print_messages(self, messages: List[Dict[str, str]]) -> None:
+    """Print messages that describe the differences between the results of a calculation and the benchmark."""
     # Warn for warnings:
     warnings = [f'  {m["message"]}' for m in messages if m['kind'] == 'warning']
     if len(warnings) > 0:
-        message = f'Minor disagreements with benchmark detected for {calcname(self)}\n' + '\n'.join(warnings)
+        message = f'Minor disagreements with benchmark detected for {self.name}\n' + '\n'.join(warnings)
         if len(warnings) == 1:
             message = message.replace('disagreements', 'disagreement')
         utils.warn(message)
@@ -157,7 +153,7 @@ def print_messages(self, messages: List[Dict[str, str]]) -> None:
     # Raise errors for errors:
     errors = [f'  {m["message"]}' for m in messages if m['kind'] == 'error']
     if len(errors) > 0:
-        message = f'Major disagreements with benchmark detected for {calcname(self)}\n' + '\n'.join(errors)
+        message = f'Major disagreements with benchmark detected for {self.name}\n' + '\n'.join(errors)
         if len(errors) == 1:
             message = message.replace('disagreements', 'disagreement')
 
@@ -165,6 +161,7 @@ def print_messages(self, messages: List[Dict[str, str]]) -> None:
 
 
 def load_benchmark(self) -> Calc:
+    """Load the benchmark for a calculation."""
     with utils.chdir(self.directory):  # type: ignore[attr-defined]
         # By moving into the directory where the calculation was run, we ensure when we read in the settings that
         # paths are interpreted relative to this particular working directory
@@ -173,6 +170,7 @@ def load_benchmark(self) -> Calc:
 
 
 def centers_spreads_allclose(center0, spread0, center1, spread1, tol):
+    """Check if two sets of centers and spreads are close to each other."""
     if abs(spread0 - spread1) > tol:
         return False
     for x in itertools.product([0, 1, -1], repeat=3):
@@ -182,9 +180,12 @@ def centers_spreads_allclose(center0, spread0, center1, spread1, tol):
 
 
 def wannier_generate_messages(self, benchmark: Calc) -> List[Dict[str, str]]:
-    # For a Wannier90 calculator, we don't want to check the contents of self.results key-by-key. Instead, we want
-    # to check if the same wannier functions have been found, accounting for permutations and for periodic images
+    """Generate helpful messages for the Wannier90 calculator.
 
+    For a Wannier90 calculator, we don't want to check the contents of self.results key-by-key. Instead, we want
+    to check if the same wannier functions have been found, accounting for permutations and for periodic images
+
+    """
     messages: List[Dict[str, str]] = []
 
     for key in ['centers', 'spreads']:
@@ -199,11 +200,9 @@ def wannier_generate_messages(self, benchmark: Calc) -> List[Dict[str, str]]:
     ref_centers = self.atoms.cell.scaled_positions(np.array(benchmark.results['centers'])) % 1
 
     for i, (ref_center, ref_spread) in enumerate(zip(ref_centers, benchmark.results['spreads'])):
-        ref_result = np.append(ref_center, ref_spread)
         match = False
         rough_match = False
         for j, (center, spread) in enumerate(zip(centers, self.results['spreads'])):
-            result = np.append(center, spread)
             if centers_spreads_allclose(center, spread, ref_center, ref_spread, tolerances['centersandspreads'][0]):
                 match = True
                 break
@@ -232,13 +231,12 @@ def wannier_generate_messages(self, benchmark: Calc) -> List[Dict[str, str]]:
 
 
 def compare_output(output, bench_output):
-    """Recursively compare the contents of any Files or Paths within the output against the benchmark"""
+    """Recursively compare the contents of any Files or Paths within the output against the benchmark."""
     if isinstance(output, (File, Path)):
         # Compare the file contents
         binary_formats = ['.npy', '.dat', '.xml']
         if isinstance(output, File):
             binary = output.name.suffix in binary_formats
-            numpy = output.name.suffix in ['.npy']
             if binary:
                 bench_output_contents = bench_output.read_bytes()
                 output_contents = output.read_bytes()
@@ -253,10 +251,11 @@ def compare_output(output, bench_output):
                 bench_output_contents = fd.read()
 
         if isinstance(output_contents, np.ndarray):
-            assert np.all(output_contents ==
-                          bench_output_contents), f'Contents of {output} differs from the benchmark'
+            assert np.all(output_contents == bench_output_contents), \
+                f'Contents of {output} differs from the benchmark'
         else:
-            assert output_contents == bench_output_contents, f'Contents of {output} differs from the benchmark'
+            assert output_contents == bench_output_contents, \
+                f'Contents of {output} differs from the benchmark'
     elif isinstance(output, dict):
         # Recurse over the dictionary
         for k, v in output.items():
@@ -270,12 +269,12 @@ def compare_output(output, bench_output):
 
 
 def patch_calculator(c, monkeypatch, results_for_qc, generate_messages_function):
+    """Patch a calculator."""
     unpatched_pre_calculate = c._pre_calculate
     unpatched_post_calculate = c._post_calculate
 
     def _pre_calculate(self):
-        """Before running the calculation, check the settings are the same"""
-
+        """Check the settings are the same before running the calculation."""
         # Perform the pre_calculate first, as sometimes this function modifies the input parameters
         unpatched_pre_calculate(self)
 
@@ -309,6 +308,7 @@ def patch_calculator(c, monkeypatch, results_for_qc, generate_messages_function)
         # TODO
 
     def _post_calculate(self, generate_messages_function=generate_messages):
+        """Patch the post_calculate method to check the results against the benchmark."""
         # Perform the post_calculate first, as sometimes this function adds extra entries to self.results
         unpatched_post_calculate(self)
 
@@ -329,16 +329,18 @@ def patch_calculator(c, monkeypatch, results_for_qc, generate_messages_function)
 
         for output_file in metadata['output_files']:
             assert (self.directory
-                    / output_file).exists(), f'Error in {calcname(self)}: {output_file} was not generated'
+                    / output_file).exists(), f'Error in {self.name}: {output_file} was not generated'
 
     monkeypatch.setattr(c, '_pre_calculate', _pre_calculate)
     monkeypatch.setattr(c, '_post_calculate', _post_calculate)
 
 
 def patch_process(p, monkeypatch):
+    """Patch a process."""
     unpatched_run = p._run
 
     def _run(self):
+        """Run the process and additionally check the results against the benchmark."""
         # Load the benchmark
         bench_process = read_pkl(benchmark_filename(self), base_directory=self.base_directory)
 
@@ -361,20 +363,7 @@ def patch_process(p, monkeypatch):
 
 
 def monkeypatch_check(monkeypatch):
-    from koopmans.calculators import (EnvironCalculator, KoopmansCPCalculator,
-                                      KoopmansHamCalculator,
-                                      KoopmansScreenCalculator, PhCalculator,
-                                      ProjwfcCalculator, PW2WannierCalculator,
-                                      PWCalculator, Wann2KCCalculator,
-                                      Wann2KCPCalculator, Wannier90Calculator)
-    from koopmans.processes.bin2xml import Bin2XMLProcess
-    from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
-                                                ConvertFilesFromSpin2To1)
-    from koopmans.processes.power_spectrum import (
-        ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
-    from koopmans.processes.ui import UnfoldAndInterpolateProcess
-    from koopmans.processes.wannier import ExtendProcess, MergeProcess
-
+    """Monkeypatch all the calculators and processes to check their results against the benchmarks."""
     # Calculators
     results_for_qc = {KoopmansCPCalculator: ['energy', 'homo_energy', 'lumo_energy'],
                       PhCalculator: ['dielectric tensor'],

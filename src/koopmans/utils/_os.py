@@ -256,6 +256,7 @@ class HasDirectory:
 
     @property
     def absolute_directory(self) -> Path | None:
+        """Return the absolute path of the directory"""
         if self.directory is None:
             return None
         if self.base_directory is None:
@@ -263,4 +264,5 @@ class HasDirectory:
         return self.base_directory / self.directory
 
     def directory_has_been_set(self) -> bool:
+        """Check if the directory has been set"""
         return self._directory is not None

@@ -1,12 +1,5 @@
-"""
+"""The workflow for performing KI and KIPZ calculations with kcw.x."""
 
-Workflow module for koopmans, containing the workflow for performing KI and KIPZ calculations with KC_WANN
-
-Written by Edward Linscott Feb 2021
-
-"""
-
-import shutil
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -28,10 +21,13 @@ from ._workflow import Workflow
 
 
 class KoopmansDFPTOutputs(IOModel):
+    """Pydantic model for the outputs of a `KoopmansDFPTWorkflow`."""
+
     pass
 
 
 class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
+    """Workflow for calculating the screening parameters of a system using DFPT."""
 
     output_model = KoopmansDFPTOutputs  # type: ignore
 
@@ -95,7 +91,8 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                             params.assume_isolated = 'm-t'
                         if params.assume_isolated not in ['martyna-tuckerman', 'm-t', 'mt']:
                             raise ValueError(
-                                f'`assume_isolated = {params.assume_isolated}` is incompatible with `mt_correction = True`')
+                                f'`assume_isolated = {params.assume_isolated}` is incompatible with '
+                                '`mt_correction = True`')
 
         # Initialize the bands
         tols: Dict[str, float] = {}
@@ -156,10 +153,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
         self._scf_kgrid = scf_kgrid
 
     def _run(self):
-        '''
-        This function runs the workflow from start to finish
-        '''
-
+        """Run the workflow."""
         if self.parameters.dfpt_coarse_grid is not None:
             coarse_wf = self.__class__.fromparent(
                 self, scf_kgrid=self.kpoints.grid)
@@ -208,7 +202,8 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
 
                 # Empty blocks might also have a disentanglement file than we need to copy
                 if wf_workflow.outputs.u_dis_files[block_id] is not None:
-                    wannier_files_to_link_by_spin[-1]['wannier90_emp_u_dis.mat'] = wf_workflow.outputs.u_dis_files[block_id]
+                    wannier_files_to_link_by_spin[-1]['wannier90_emp_u_dis.mat'] = \
+                        wf_workflow.outputs.u_dis_files[block_id]
 
         else:
             # Run PW
@@ -250,7 +245,9 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
 
         # Calculate screening parameters
         screen_wfs = []
-        for spin_component, wannier_files_to_link, wann2kc_calc in zip(spin_components, wannier_files_to_link_by_spin, wann2kc_calcs):
+        for spin_component, wannier_files_to_link, wann2kc_calc in zip(spin_components,
+                                                                       wannier_files_to_link_by_spin,
+                                                                       wann2kc_calcs):
             spin_suffix = f'_spin_{spin_component}' if self.parameters.spin_polarized else ''
             if self.parameters.calculate_alpha:
                 if self.parameters.dfpt_coarse_grid is None:
@@ -273,14 +270,21 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
 
         # Calculate the Hamiltonian
         kc_ham_calcs = []
-        for spin_component, wannier_files_to_link, wann2kc_calc in zip(spin_components, wannier_files_to_link_by_spin, wann2kc_calcs):
+        for spin_component, wannier_files_to_link, wann2kc_calc in zip(spin_components, wannier_files_to_link_by_spin,
+                                                                       wann2kc_calcs):
             spin_suffix = f'_spin_{spin_component}' if self.parameters.spin_polarized else ''
             if self._perform_ham_calc:
                 kc_ham_calc = self.new_calculator('kcw_ham', kpts=self.kpoints.path, spin_component=spin_component)
-                kc_ham_calc.link(File(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.save')),
-                                 kc_ham_calc.parameters.outdir / (kc_ham_calc.parameters.prefix + '.save'), symlink=True)
-                kc_ham_calc.link(File(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.xml')),
-                                 kc_ham_calc.parameters.outdir / (kc_ham_calc.parameters.prefix + '.xml'), symlink=True)
+                kc_ham_calc.link(
+                    File(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.save')),
+                    kc_ham_calc.parameters.outdir / (kc_ham_calc.parameters.prefix + '.save'),
+                    symlink=True
+                )
+                kc_ham_calc.link(
+                    File(wann2kc_calc, wann2kc_calc.parameters.outdir / (wann2kc_calc.parameters.prefix + '.xml')),
+                    kc_ham_calc.parameters.outdir / (kc_ham_calc.parameters.prefix + '.xml'),
+                    symlink=True
+                )
                 kc_ham_calc.link(File(wann2kc_calc, wann2kc_calc.parameters.outdir / 'kcw'),
                                  kc_ham_calc.parameters.outdir / 'kcw', recursive_symlink=True)
                 for dst, f in wannier_files_to_link.items():
@@ -299,13 +303,23 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
 
                 # Assemble the Hamiltonian files required by the UI workflow
                 if self.parameters.spin_polarized:
-                    koopmans_ham_files = {BlockID(filled=True, spin="up"): File(kc_ham_calc, f'{kc_ham_calcs[0].parameters.prefix}.kcw_hr_occ.dat'),
-                                          BlockID(filled=False, spin="up"): File(kc_ham_calc, f'{kc_ham_calcs[0].parameters.prefix}.kcw_hr_emp.dat'),
-                                          BlockID(filled=True, spin="down"): File(kc_ham_calc, f'{kc_ham_calcs[1].parameters.prefix}.kcw_hr_occ.dat'),
-                                          BlockID(filled=False, spin="down"): File(kc_ham_calc, f'{kc_ham_calcs[1].parameters.prefix}.kcw_hr_emp.dat')}
+                    koopmans_ham_files = {
+                        BlockID(filled=True, spin="up"): File(kc_ham_calc,
+                                                              f'{kc_ham_calcs[0].parameters.prefix}.kcw_hr_occ.dat'),
+                        BlockID(filled=False, spin="up"): File(kc_ham_calc,
+                                                               f'{kc_ham_calcs[0].parameters.prefix}.kcw_hr_emp.dat'),
+                        BlockID(filled=True, spin="down"): File(kc_ham_calc,
+                                                                f'{kc_ham_calcs[1].parameters.prefix}.kcw_hr_occ.dat'),
+                        BlockID(filled=False, spin="down"): File(kc_ham_calc,
+                                                                 f'{kc_ham_calcs[1].parameters.prefix}.kcw_hr_emp.dat')
+                    }
                 else:
-                    koopmans_ham_files = {BlockID(filled=True): File(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_occ.dat'),
-                                          BlockID(filled=False): File(kc_ham_calc, f'{kc_ham_calc.parameters.prefix}.kcw_hr_emp.dat')}
+                    koopmans_ham_files = {
+                        BlockID(filled=True): File(kc_ham_calc,
+                                                   f'{kc_ham_calc.parameters.prefix}.kcw_hr_occ.dat'),
+                        BlockID(filled=False): File(kc_ham_calc,
+                                                    f'{kc_ham_calc.parameters.prefix}.kcw_hr_emp.dat')
+                    }
                 if not dft_ham_files:
                     raise ValueError(
                         'The DFT Hamiltonian files have not been generated but are required for the UI workflow')
@@ -324,6 +338,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
         return
 
     def plot_bandstructure(self):
+        """Plot the band structure."""
         if not all(self.atoms.pbc):
             return
 
@@ -344,14 +359,18 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
         super().plot_bandstructure(bs_to_plot)
 
     def new_calculator(self, calc_presets, **kwargs):
+        """Create a new calculator for the workflow."""
         return internal_new_calculator(self, calc_presets, **kwargs)
 
 
 class ComputeScreeningViaDFPTOutputs(IOModel):
+    """Pydantic model for the outputs of the `ComputeScreeningViaDFPTWorkflow`."""
+
     pass
 
 
 class ComputeScreeningViaDFPTWorkflow(Workflow[ComputeScreeningViaDFPTOutputs]):
+    """Workflow that computes the screening parameters of a system using DFPT."""
 
     output_model = ComputeScreeningViaDFPTOutputs
 
@@ -408,6 +427,7 @@ class ComputeScreeningViaDFPTWorkflow(Workflow[ComputeScreeningViaDFPTOutputs]):
         return
 
     def new_calculator(self, calc_type: str, *args, **kwargs):
+        """Create a new calculator for the workflow."""
         assert calc_type == 'kcw_screen', 'Only the "kcw_screen" calculator is supported in DFPTScreeningWorkflow'
 
         calc = internal_new_calculator(self, calc_type, *args, **kwargs)
@@ -428,6 +448,7 @@ class ComputeScreeningViaDFPTWorkflow(Workflow[ComputeScreeningViaDFPTOutputs]):
 
 
 def internal_new_calculator(workflow, calc_presets, **kwargs):
+    """Create a new calculator for the workflow."""
     if calc_presets not in ['kcw_ham', 'kcw_screen', 'kcw_wannier']:
         raise ValueError(
             f'Invalid choice `calc_presets={calc_presets}` in `{workflow.__class__.__name__}.new_calculator()`')
@@ -459,11 +480,9 @@ def internal_new_calculator(workflow, calc_presets, **kwargs):
     if all(workflow.atoms.pbc):
         if workflow.parameters.spin_polarized:
             if calc.parameters.spin_component == 1:
-                ntot = workflow.projections.num_wann(spin='up')
                 nocc = workflow.calculator_parameters['kcp'].nelup
                 nemp = workflow.projections.num_wann(spin='up') - nocc
             else:
-                ntot = workflow.projections.num_wann(spin='down')
                 nocc = workflow.calculator_parameters['kcp'].neldw
                 nemp = workflow.projections.num_wann(spin='down') - nocc
         else:

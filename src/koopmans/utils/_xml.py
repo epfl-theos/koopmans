@@ -1,3 +1,5 @@
+"""Utilities for reading xml files."""
+
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import List
@@ -6,6 +8,7 @@ import numpy as np
 
 
 def _load_xml_element(xml_file: Path, string: str) -> ET.Element:
+    """Load an xml element from a file."""
     with open(xml_file, 'r') as fd:
         tree = ET.parse(fd)
     root = tree.getroot()
@@ -15,6 +18,7 @@ def _load_xml_element(xml_file: Path, string: str) -> ET.Element:
 
 
 def _get_nr(element: ET.Element) -> List[int]:
+    """Extract the grid dimension from an xml element."""
     # Extract the grid dimension
     info = element.find('INFO')
     assert isinstance(info, ET.Element)
@@ -27,10 +31,7 @@ def _get_nr(element: ET.Element) -> List[int]:
 
 
 def read_xml_nr(xml_file: Path, string: str = 'EFFECTIVE-POTENTIAL') -> List[int]:
-    """
-    Loads the dimensions of an array from an xml file
-    """
-
+    """Load the dimensions of an array from an xml file."""
     branch = _load_xml_element(xml_file, string)
     return _get_nr(branch)
 
@@ -38,8 +39,7 @@ def read_xml_nr(xml_file: Path, string: str = 'EFFECTIVE-POTENTIAL') -> List[int
 def read_xml_array(
     xml_file: Path, norm_const: float, string: str = 'EFFECTIVE-POTENTIAL', retain_final_element: bool = False
 ) -> np.ndarray:
-    """
-    Loads an array from an xml file.
+    """Load an array from an xml file.
 
     :param xml_file: The xml file to read from
     :param norm_const: The normalization constant to multiply the array with (in our case 1/((Bohr radii)^3)
@@ -50,7 +50,6 @@ def read_xml_array(
 
     :return: The array
     """
-
     # Load the branch of the xml tree
     branch = _load_xml_element(xml_file, string)
 
@@ -68,7 +67,7 @@ def read_xml_array(
         rho_tmp = np.array(text.split('\n')[1:-1], dtype=float)
         for j in range(nr_xml[1]):
             for i in range(nr_xml[0]):
-                array_xml[k, j, i] = rho_tmp[(j % (nr_xml[1] - 1))*(nr_xml[0] - 1) + (i % (nr_xml[0] - 1))]
+                array_xml[k, j, i] = rho_tmp[(j % (nr_xml[1] - 1)) * (nr_xml[0] - 1) + (i % (nr_xml[0] - 1))]
     array_xml *= norm_const
 
     if retain_final_element:

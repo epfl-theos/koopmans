@@ -6,10 +6,7 @@ from ase_koopmans import Atoms
 
 
 def write_xsf(filename: Path, atoms: Atoms, arrays: List[np.ndarray], nr_xml: Tuple[int, int, int]):
-    """
-    Writes a quantity defined on the real space grid to a xsf file, which can be plotted with xcrysden
-    """
-
+    """Write a quantity defined on the real space grid to a xsf file, which can be plotted with xcrysden."""
     # Convert the arrays to xsf-format, where the last row at for each axis is identical to the first
     arrays_xsf: List[np.ndarray] = []
     for array in arrays:

@@ -1,16 +1,18 @@
+"""Testing `koopmans.calculators.ph`."""
+
 import shutil
 from pathlib import Path
 
 import numpy as np
-import pytest
+import pytest  # noqa: F401
 
 from koopmans import utils, workflows
-from koopmans.engines.localhost import LocalhostEngine
 from koopmans.io import read_pkl, write_pkl
 from tests.helpers.patches import benchmark_filename
 
 
 def test_read_dynG(tio2, tmp_path, datadir, pytestconfig):
+    """Test reading dynG files."""
     with utils.chdir(tmp_path):
         # Create a ph calculator to match the one that was used to generate the dynG file
         wf = workflows.DFTPhWorkflow(

@@ -1,12 +1,13 @@
-import pytest
+import pytest  # noqa
 
 from ._benchmark import monkeypatch_bench
 from ._check import monkeypatch_check
 from ._mock import monkeypatch_mock
-from ._utils import benchmark_filename
+from ._utils import benchmark_filename  # noqa: F401
 
 
 def monkeypatch_stumble(monkeypatch):
+    """Patch the workflows to stumble."""
     from ._stumble import (StumblingConvergenceWorkflow,
                            StumblingDeltaSCFWorkflow, StumblingDFTCPWorkflow,
                            StumblingDFTPhWorkflow, StumblingDFTPWWorkflow,
@@ -37,6 +38,7 @@ def monkeypatch_stumble(monkeypatch):
 
 @pytest.fixture
 def tutorial_patch(monkeypatch, pytestconfig):
+    """Patch the tutorials according to the user's request."""
     # For the tutorials...
     if pytestconfig.getoption('generate_benchmark'):
         # when generating benchmarks, use BenchCalcs
@@ -51,6 +53,7 @@ def tutorial_patch(monkeypatch, pytestconfig):
 
 @pytest.fixture
 def workflow_patch(monkeypatch, pytestconfig):
+    """Patch the workflows according to the user's request."""
     # For tests involving the workflow...
     if pytestconfig.getoption('generate_benchmark'):
         # when generating benchmarks, use BenchCalcs
@@ -65,6 +68,7 @@ def workflow_patch(monkeypatch, pytestconfig):
 
 @pytest.fixture
 def check_patch(monkeypatch, pytestconfig):
+    """Patch any calculations that involve python routines only according to the users's request."""
     # For calculations that involve python routines only (such as Processes)...
     if pytestconfig.getoption('generate_benchmark'):
         # when generating benchmarks, use BenchCalcs
@@ -79,6 +83,7 @@ def check_patch(monkeypatch, pytestconfig):
 
 @pytest.fixture
 def espresso_patch(monkeypatch, pytestconfig):
+    """Patch the espresso calculations according to the user's request."""
     # For tests involving Quantum ESPRESSO...
     if pytestconfig.getoption('generate_benchmark'):
         # when generating benchmarks, use BenchCalcs

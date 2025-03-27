@@ -1,3 +1,1 @@
-"""
-Test module for koopmans
-"""
+"""Testing for `koopmans`."""
