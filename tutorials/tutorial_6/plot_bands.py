@@ -1,3 +1,5 @@
+"""Plot the band structure of CrI3."""
+
 import matplotlib.pyplot as plt
 
 from koopmans.io import read

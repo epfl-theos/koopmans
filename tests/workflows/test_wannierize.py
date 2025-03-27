@@ -1,14 +1,13 @@
-from pathlib import Path
+"""Tests for the Wannierize workflow."""
 
-import numpy as np
-import pytest
+import pytest  # noqa
 
 from koopmans import workflows
-from koopmans.kpoints import Kpoints
 from koopmans.utils import chdir
 
 
 def test_wannierize_tio2(tio2, tmp_path, sys2file, workflow_patch):
+    """Test the Wannierize workflow on TiO2."""
     with chdir(tmp_path):
         parameters = {
             "init_orbitals": "mlwfs",

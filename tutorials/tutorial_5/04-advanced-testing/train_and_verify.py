@@ -1,3 +1,5 @@
+"""Test the performance of the ML model as a function of the number of snapshots used for training."""
+
 import copy
 
 import matplotlib.pyplot as plt
@@ -55,10 +57,12 @@ for i_snapshot in range(n_train, n_total):
 
     for i_train, model in enumerate(models):
         # Create a Koopmans DSCF workflow, linking the outputs of the initialization workflow
-        ml_wf = KoopmansDSCFWorkflow.from_other(ab_initio_wf,
-                                                initial_variational_orbital_files=init_wf.outputs.variational_orbital_files,
-                                                previous_cp_calc=init_wf.outputs.final_calc,
-                                                precomputed_descriptors=descriptors)
+        ml_wf = KoopmansDSCFWorkflow.from_other(
+            ab_initio_wf,
+            initial_variational_orbital_files=init_wf.outputs.variational_orbital_files,
+            previous_cp_calc=init_wf.outputs.final_calc,
+            precomputed_descriptors=descriptors
+        )
         ml_wf.bands = copy.deepcopy(ab_initio_wf.bands)
 
         # Attach the model that we want to test to the workflow

@@ -1,3 +1,5 @@
+"""Modify the pre-saved figure of the band structure of silicon."""
+
 import pickle
 
 import matplotlib.pyplot as plt

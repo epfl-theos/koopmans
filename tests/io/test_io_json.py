@@ -1,8 +1,4 @@
-'''
-
-Tests for koopmans.io._json
-
-'''
+"""Tests for koopmans.io._json."""
 
 from ase_koopmans.build import molecule
 
@@ -13,6 +9,7 @@ from koopmans.workflows import SinglepointWorkflow, TrajectoryWorkflow
 
 
 def test_write_then_read_json(tmpdir):
+    """Test writing and reading a SinglepointWorkflow to and from a json file."""
     with utils.chdir(tmpdir):
         atoms = molecule('H2O', vacuum=10, tags=['0', '1', '1'])
         workflow_out = SinglepointWorkflow(atoms, engine=LocalhostEngine(), parameters={
@@ -23,11 +20,14 @@ def test_write_then_read_json(tmpdir):
 
 
 def test_write_then_read_trajectory_json(tmpdir):
+    """Test writing and reading a TrajectoryWorkflow to and from a json file."""
     with utils.chdir(tmpdir):
         atoms = molecule('H2O', vacuum=10, tags=['0', '1', '1'])
-        snapshots = 2*[atoms]
+        snapshots = 2 * [atoms]
         workflow_out = TrajectoryWorkflow(
-            atoms, engine=LocalhostEngine(), snapshots=snapshots, parameters={'task': 'trajectory', 'pseudo_library': 'SG15/1.2/PBE/SR'}, name='test')
+            atoms, engine=LocalhostEngine(), snapshots=snapshots,
+            parameters={'task': 'trajectory', 'pseudo_library': 'SG15/1.2/PBE/SR'}, name='test'
+        )
 
         write(workflow_out, 'test.json')
         workflow_in = read('test.json')

@@ -1,3 +1,5 @@
+"""Plot the band structore of ZnO, modifying the pre-saved plot file."""
+
 import pickle
 
 import matplotlib.pyplot as plt

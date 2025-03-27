@@ -1,7 +1,6 @@
-import shutil
+"""Wannierize the band structure of bulk silicon for three different k-point grids."""
 
 from koopmans.io import read
-from koopmans.utils import chdir
 
 for grid_size in [2, 4, 8]:
     # Read the input file

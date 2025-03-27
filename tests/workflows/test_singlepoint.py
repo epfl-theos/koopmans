@@ -1,9 +1,10 @@
+"""Tests of the Singlepoint workflow."""
+
 import copy
 
 import pytest
 
 from koopmans import workflows
-from koopmans.io import write
 from koopmans.kpoints import Kpoints
 from koopmans.projections import BlockID, ProjectionBlocks
 from koopmans.utils import chdir
@@ -11,9 +12,7 @@ from koopmans.utils import chdir
 
 @pytest.mark.espresso
 def test_singlepoint_h2o_ki_dscf_explicit(water, espresso_patch, tmp_path, sys2file):
-    '''
-    Test of H2O calculation of water that explicitly calls Quantum ESPRESSO
-    '''
+    """Test of H2O calculation of water that explicitly calls Quantum ESPRESSO."""
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'alpha_numsteps': 1,
@@ -24,6 +23,7 @@ def test_singlepoint_h2o_ki_dscf_explicit(water, espresso_patch, tmp_path, sys2f
 
 
 def test_singlepoint_h2o_all_dscf(water, workflow_patch, tmp_path, sys2file):
+    """Test the Singlepoint workflow for KI, pKIPZ, and KIPZ DSCF calculations on H2O."""
     with chdir(tmp_path):
         parameters = {'functional': 'all',
                       'alpha_numsteps': 2,
@@ -35,6 +35,7 @@ def test_singlepoint_h2o_all_dscf(water, workflow_patch, tmp_path, sys2file):
 
 @pytest.mark.parametrize('spin_polarized', [True, False])
 def test_singlepoint_si_ki_dscf(spin_polarized, silicon, workflow_patch, tmp_path, sys2file):
+    """Test the Singlepoint workflow for a KI (DSCF) calculation on Si for spin-polarized and non-spin polarized."""
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'method': 'dscf',
@@ -62,6 +63,7 @@ def test_singlepoint_si_ki_dscf(spin_polarized, silicon, workflow_patch, tmp_pat
 
 @pytest.mark.espresso
 def test_singlepoint_si_ki_dfpt_explicit(silicon, espresso_patch, tmp_path, sys2file):
+    """Test the Singlepoint workflow for a KI (DFPT) calculation on Si (run explicitly with Quantum ESPRESSO)."""
     with chdir(tmp_path):
 
         parameters = {'functional': 'ki',
@@ -76,6 +78,7 @@ def test_singlepoint_si_ki_dfpt_explicit(silicon, espresso_patch, tmp_path, sys2
 
 
 def test_singlepoint_si_ki_dfpt(silicon, workflow_patch, tmp_path, sys2file):
+    """Test the Singlepoint workflow for a KI (DFPT) calculation on Si."""
     with chdir(tmp_path):
 
         parameters = {'functional': 'ki',
@@ -90,6 +93,7 @@ def test_singlepoint_si_ki_dfpt(silicon, workflow_patch, tmp_path, sys2file):
 
 
 def test_singlepoint_ozone_ki_dfpt(ozone, workflow_patch, tmp_path, sys2file):
+    """Test the Singlepoint workflow for a KI (DFPT) calculation on O3."""
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'method': 'dfpt',
@@ -104,14 +108,15 @@ def test_singlepoint_ozone_ki_dfpt(ozone, workflow_patch, tmp_path, sys2file):
 
 @pytest.mark.espresso
 def test_singlepoint_gaas_wan2odd(gaas, espresso_patch, tmp_path, sys2file):
+    """Test the Singlepoint workflow for a KI (DSCF) calculation on GaAs."""
     with chdir(tmp_path):
         parameters = {'functional': 'ki',
                       'method': 'dscf',
                       'calculate_alpha': False,
                       'init_orbitals': 'mlwfs',
                       'npool': 1,
-                      'pseudo_library': 'sg15_v1.0',
                       'calculate_bands': True
                       }
+        gaas['pseudo_library'] = 'SG15/1.0/PBE/SR'
         wf = workflows.SinglepointWorkflow(parameters=parameters, kgrid=[2, 2, 2], **gaas)
         wf.run()
