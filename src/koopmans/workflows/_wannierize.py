@@ -573,10 +573,32 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeBlockOutput]):
         # Create a cubic nnkp
         w90_input_file = File(wf.outputs.wannier90_calculation, wf.outputs.wannier90_calculation.prefix + '.win')
         if check_nnkp_process.outputs.missing_bvectors:
+            # The .nnkp file is missing some b-vectors that wjl will require to perform the parallel transport, so
+            # we must regenerate it
             generate_nnkp_process = WannierJLGenerateCubicNNKPProcess(wannier_input_file=w90_input_file)
             status = self.run_steps(generate_nnkp_process)
             if status != Status.COMPLETED:
                 return
+
+            calc_p2w: calculators.PW2WannierCalculator = self.new_calculator(
+                'pw2wannier', spin_component=self.block.spin)
+            calc_p2w.prefix = 'pw2wannier90-cubic'
+            calc_p2w.link(self.pw_outdir, calc_p2w.parameters.outdir, symlink=True)
+            calc_p2w.link(generate_nnkp_process.outputs.nnkp_file, calc_p2w.parameters.seedname + '.nnkp')
+            status = self.run_steps(calc_p2w)
+            if status != Status.COMPLETED:
+                return
+            amn_file = File(calc_p2w, calc_p2w.parameters.seedname + '.amn')
+            eig_file = File(calc_p2w, calc_p2w.parameters.seedname + '.eig')
+            mmn_file = File(calc_p2w, calc_p2w.parameters.seedname + '.mmn')
+        else:
+            # The files from the original Wannierization should be sufficient for wjl to perform the parallel transport
+            assert wf.outputs.amn_file is not None
+            amn_file = wf.outputs.amn_file
+            assert wf.outputs.eig_file is not None
+            eig_file = wf.outputs.eig_file
+            assert wf.outputs.mmn_file is not None
+            mmn_file = wf.outputs.mmn_file
 
         # Determine how to split the blocks
         new_blocks = self.block.split(self.groups)
@@ -588,7 +610,7 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeBlockOutput]):
 
         # Providing the files that `wjl`` expects
         w90_chk_file = File(wf.outputs.wannier90_calculation, wf.outputs.wannier90_calculation.prefix + '.chk')
-        for f in [w90_input_file, w90_chk_file, wf.outputs.mmn_file, wf.outputs.amn_file, wf.outputs.eig_file]:
+        for f in [w90_input_file, w90_chk_file, mmn_file, amn_file, eig_file]:
             assert f is not None
             calc_wjl.link(f, calc_wjl.prefix + f.suffix, symlink=True)
 

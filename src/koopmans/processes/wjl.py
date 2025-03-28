@@ -1,5 +1,6 @@
 """Processes for calling WannierJL."""
 
+import juliapkg
 from juliacall import Main as jl
 from pydantic import ConfigDict
 
@@ -48,7 +49,7 @@ class WannierJLGenerateCubicNNKPInput(IOModel):
 
 
 class WannierJLGenerateCubicNNKPOutput(IOModel):
-    wannier_nnkp_file: File
+    nnkp_file: File
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -60,6 +61,8 @@ class WannierJLGenerateCubicNNKPProcess(Process[WannierJLGenerateCubicNNKPInput,
 
     def _run(self):
         # Load the Wannier julia module
+        juliapkg.add("Wannier", uuid="2b19380a-1f7e-4d7d-b1b8-8aa60b3321c9", rev="bvec_cubic")
+        juliapkg.resolve()
         jl.seval("using Wannier")
 
         # Parse the Wannier input file
@@ -75,4 +78,4 @@ class WannierJLGenerateCubicNNKPProcess(Process[WannierJLGenerateCubicNNKPInput,
         nnkp_file = File(self, 'cubic.nnkp')
         jl.write_nnkp(str(nnkp_file), kstencil, win.num_wann)
 
-        self.outputs = self.output_model(wannier_nnkp_file=nnkp_file)
+        self.outputs = self.output_model(nnkp_file=nnkp_file)
