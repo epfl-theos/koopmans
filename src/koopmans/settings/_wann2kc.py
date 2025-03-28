@@ -6,6 +6,8 @@ from ._utils import SettingsDict, kcw_defaults
 
 
 class Wann2KCSettingsDict(SettingsDict):
+    """Settings for a wann2kcw calculator."""
+
     def __init__(self, **kwargs) -> None:
 
         # Get rid of any nested kwargs

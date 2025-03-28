@@ -1,14 +1,9 @@
-'''
+"""utility functions for koopmans"""
 
-utils module for koopmans
-
-Written by Edward Linscott May 2020
-
-'''
+# flake8: noqa: F401
 
 from ._figures import savefig
 from ._io import (construct_atomic_positions_block,
-                  construct_atomic_species_block,
                   construct_cell_parameters_block,
                   generate_wannier_centers_file_contents,
                   generate_wannier_hr_file_contents,

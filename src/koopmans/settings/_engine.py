@@ -2,6 +2,7 @@ from ._utils import Setting, SettingsDictWithChecks
 
 
 class EngineSettingsDict(SettingsDictWithChecks):
+    """Settings for the engine configuration."""
 
     def __init__(self, **kwargs) -> None:
         settings = [

@@ -7,6 +7,8 @@ from ._utils import IbravDict, SettingsDict
 
 
 class KoopmansCPSettingsDict(IbravDict, SettingsDict):
+    """Settings for a Quantum ESPRESSO kcp.x calculation."""
+
     def __init__(self, **kwargs) -> None:
         defaults = {'calculation': 'cp',
                     'outdir': Path('./TMP-CP/'),
@@ -57,7 +59,7 @@ class KoopmansCPSettingsDict(IbravDict, SettingsDict):
         return ['pseudopotentials']
 
     def is_valid(self, name):
-        # Allow for keywords such as ion_radius(i) where i is some arbitrary index
+        """Check if a keyword is valid, allowing for keywords such as ion_radius(i) where i is some arbitrary index."""
         if 'celldm' in name:
             return super().is_valid(name)
         else:

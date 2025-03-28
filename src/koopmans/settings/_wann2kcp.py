@@ -2,6 +2,8 @@ from ._utils import SettingsDict
 
 
 class Wann2KCPSettingsDict(SettingsDict):
+    """Settings for a wann2kcp calculator."""
+
     def __init__(self, **kwargs) -> None:
         super().__init__(valid=['outdir', 'prefix', 'seedname', 'wan_mode', 'spin_component',
                                 'gamma_trick', 'print_rho', 'wannier_plot', 'wannier_plot_list'],

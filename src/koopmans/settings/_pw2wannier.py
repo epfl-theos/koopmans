@@ -2,6 +2,8 @@ from ._utils import SettingsDict
 
 
 class PW2WannierSettingsDict(SettingsDict):
+    """Settings for a pw2wannier calculator."""
+
     def __init__(self, **kwargs) -> None:
         super().__init__(valid=['outdir', 'prefix', 'seedname', 'write_mmn',
                                 'write_amn', 'write_uHu', 'uHu_formatted',
