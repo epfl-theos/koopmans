@@ -33,7 +33,7 @@ def write_xsf(filename: Path, atoms: Atoms, arrays: List[np.ndarray], nr_xml: Tu
         out.write('BEGIN_BLOCK_DATAGRID_3D\n')
         out.write("\t" + 'Datagrid_written_by_koopmans\n')
         for i, array_xsf in enumerate(arrays_xsf):
-            out.write(f'\tBEGIN_DATAGRID_3D_#{i+1}\n')
+            out.write(f'\tBEGIN_DATAGRID_3D_#{i + 1}\n')
             out.write(f"\t\t{nr_xml[0]}\t{nr_xml[1]}\t{nr_xml[2]}\t\n")
             out.write("\t\t0.0\t0.0\t0.0\t\n")  # origin of the data grid
             for vec in cell_parameters:

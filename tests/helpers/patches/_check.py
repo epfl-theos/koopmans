@@ -218,12 +218,12 @@ def wannier_generate_messages(self, benchmark: Calc) -> List[Dict[str, str]]:
         if match:
             pass
         elif rough_match:
-            message = f'Wannier function #{i+1}, with center = {ref_center_str} and spread = {ref_spread:.5f} ' \
-                      f'does not precisely match the benchmark Wannier function #{j+1}, with center = ' \
+            message = f'Wannier function #{i + 1}, with center = {ref_center_str} and spread = {ref_spread:.5f} ' \
+                      f'does not precisely match the benchmark Wannier function #{j + 1}, with center = ' \
                       f'{match_center_str} and spread = {match_spread:.5f}'
             messages.append({'kind': 'warning', 'message': message})
         else:
-            message = f'Wannier function #{i+1}, with center = {ref_center_str} and spread = {ref_spread:.5f} ' \
+            message = f'Wannier function #{i + 1}, with center = {ref_center_str} and spread = {ref_spread:.5f} ' \
                 'not found'
             messages.append({'kind': 'error', 'message': message})
 

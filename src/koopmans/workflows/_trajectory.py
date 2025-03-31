@@ -33,7 +33,7 @@ class TrajectoryWorkflow(Workflow[TrajectoryOutputs]):
 
             # Initialize and run the DSCF workflow
             workflow = KoopmansDSCFWorkflow.fromparent(self)
-            workflow.name += f' Snapshot {i+1} of {len(self.snapshots)}'
+            workflow.name += f' Snapshot {i + 1} of {len(self.snapshots)}'
             workflows.append(workflow)
 
         for w in workflows:

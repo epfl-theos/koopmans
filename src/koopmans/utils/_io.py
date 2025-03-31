@@ -158,8 +158,8 @@ def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
     return
 
 
-print_indent = 0
 print_call_end = '\n'
+print_indent = 0
 previous_indent = 0
 
 
@@ -250,7 +250,7 @@ def generate_wannier_hr_file_contents(ham: np.ndarray, rvect: List[List[int]], w
         flines.append(''.join([f'{x:5d}' for x in weights[pos:pos + ints_per_line]]))
 
     for r, ham_block in zip(rvect, ham):
-        flines += [f'{r[0]:5d}{r[1]:5d}{r[2]:5d}{j+1:5d}{i+1:5d}{val.real:12.6f}{val.imag:12.6f}' for i,
+        flines += [f'{r[0]:5d}{r[1]:5d}{r[2]:5d}{j + 1:5d}{i + 1:5d}{val.real:12.6f}{val.imag:12.6f}' for i,
                    row in enumerate(ham_block) for j, val in enumerate(row)]
 
     return "\n".join(flines) + '\n'

@@ -25,6 +25,6 @@ class KoopmansScreenSettingsDict(SettingsDict):
             assert isinstance(value, list)
             assert len(value) == 3
             for i, x in enumerate(value):
-                self.__setitem__(f'mp{i+1}', x)
+                self.__setitem__(f'mp{i + 1}', x)
         else:
             return super().__setitem__(key, value)

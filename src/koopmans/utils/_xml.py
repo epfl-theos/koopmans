@@ -24,7 +24,7 @@ def _get_nr(element: ET.Element) -> List[int]:
     assert isinstance(info, ET.Element)
     nr = []
     for i in range(3):
-        nr_str = info.get(f'nr{i+1}')
+        nr_str = info.get(f'nr{i + 1}')
         assert isinstance(nr_str, str)
         nr.append(int(nr_str) + 1)
     return nr
