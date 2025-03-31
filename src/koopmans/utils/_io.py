@@ -22,6 +22,10 @@ if TYPE_CHECKING:
 
 from ._os import HasDirectory
 
+print_call_end = '\n'
+print_indent = 0
+previous_indent = 0
+
 
 def parse_dict(dct: Dict[str, Any]) -> Dict[str, Any]:
     """Read in a dict, formatting the values appropriately if they are not already."""
@@ -158,11 +162,6 @@ def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
     return
 
 
-print_call_end = '\n'
-print_indent = 0
-previous_indent = 0
-
-
 def indented_print(text: str = '', indent: Optional[int] = None, style='body', parse_asterisks=True,
                    flush=True, wrap=True, **kwargs: Any):
     """Print text with indentation and optional wrapping following a particular "style"."""
@@ -174,8 +173,7 @@ def indented_print(text: str = '', indent: Optional[int] = None, style='body', p
                 text = text.replace('**', '\033[1m', 1).replace('**', '\033[0m', 1)
             while '*' in text:
                 text = text.replace('*', '\033[3m', 1).replace('*', '\033[0m', 1)
-    global print_indent
-    indent = print_indent if indent is None else indent
+    indent = 0 if indent is None else indent
     if style == 'body':
         _indented_print(text, indent=indent, flush=flush, wrap=wrap, **kwargs)
     elif style == 'heading':
@@ -189,8 +187,7 @@ def _indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = 
                     flush: bool = False, initial_indent: str | None = None, subsequent_indent: str | None = None,
                     wrap=True):
     """Print text with indentation and optional wrapping."""
-    global print_call_end
-    global previous_indent
+    global previous_indent, print_call_end
     if indent < 0:
         indent = previous_indent
     for substring in text.split('\n'):
@@ -210,7 +207,6 @@ def _indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = 
 
 def print_alert(kind, message, header=None, indent=-1, **kwargs):
     """Print an alert message with a specific kind following markdown Github alerts."""
-    global previous_indent
     allowed_kinds = {'note': "ℹ️ ", 'tip': "💡", 'important': "❕", 'warning': "🚨", 'caution': "❗"}
     if kind not in allowed_kinds:
         raise ValueError('`kind` must be one of ' + '/'.join(allowed_kinds.keys()))
