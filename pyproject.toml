@@ -74,6 +74,7 @@ koopmans = "koopmans.cli.main:main"
       "D107",
       "W503",
       "E741",
+      "A005",
    ]
    per-file-ignores = """
       tutorials/**/*.py: E402
