@@ -1,26 +1,17 @@
-"""
-Utilities module for the UI calculator
-
-Originally written by Riccardo De Gennaro as part of the standalone 'unfolding and interpolate' code
-Integrated within koopmans by Edward Linscott Jan 2021
-
-"""
-
-from typing import List, TypeVar, Union
+"""Utilities for the UI calculator."""
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 
 
 def crys_to_cart(vec: NDArray[np.float64], trmat: NDArray[np.float64], typ: int) -> NDArray[np.float64]:
-    """
-    Function to transform the numpy array vec (or a list/array of numpy arrays) from
-    crystal to cartesian (in alat units), or viceversa, as it is done in QE: typ=+1
-    for crystal-to-cartesian, typ=-1 for cartesian-to-crystal.
+    """Transform the numpy array vec from crystal to cartesian (in alat units), or vice versa.
+
+    Follows the transformation as done in Quantum ESPRESSO:
+    typ=+1 for crystal-to-cartesian, typ=-1 for cartesian-to-crystal.
     For a real space vector trmat in input must be at if typ=+1 and bvec if typ=-1.
     For a k-space vector trmat in input must be bg if typ=+1 and avec if typ=-1.
     """
-
     if typ == +1:
         # crystal-to-cartesian conversion
         vec_tr = np.dot(vec, trmat)
@@ -35,14 +26,13 @@ def crys_to_cart(vec: NDArray[np.float64], trmat: NDArray[np.float64], typ: int)
 
 def extract_hr(hr: NDArray[np.complex128], rvect: NDArray[np.int_],
                nr1: int, nr2: int, nr3: int) -> NDArray[np.complex128]:
-    """
-    Function to select the Wannier Hamiltonian only on the primitive cell R-vectors.
+    """Select the Wannier Hamiltonian only on the primitive cell R-vectors.
+
     The Hamiltonian coming from a Wannier90 calculation with k-points is indeed
     defined on the Wigner-Seitz lattice vectors. In the case smooth=True, all the
     matrix elements corresponding to R-vectors exceeding the boundaries of the
     original supercell are ignored.
     """
-
     Rvec = latt_vect(nr1, nr2, nr3)
     rgrid = [nr1, nr2, nr3]
     hr_new: list[NDArray[np.complex128]] = []
@@ -63,10 +53,9 @@ def extract_hr(hr: NDArray[np.complex128], rvect: NDArray[np.int_],
 
 
 def latt_vect(nr1: int, nr2: int, nr3: int) -> NDArray[np.int_]:
-    """
-    Function for generating lattice vectors {R} of the primitive cell
-    commensurate to the supercell. The R-vectors are given in crystal units.
-    """
+    """Generate lattice vectors {R} of the primitive cell commensurate to the supercell.
 
+    The R-vectors are given in crystal units.
+    """
     Rvec = [[i, j, k] for i in range(nr1) for j in range(nr2) for k in range(nr3)]
     return np.array(Rvec)

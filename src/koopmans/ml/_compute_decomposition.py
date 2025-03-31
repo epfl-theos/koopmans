@@ -1,10 +1,9 @@
 from functools import partial
-from pathlib import Path
 from typing import Callable, Dict, List, Tuple
 from xml.etree import ElementTree as ET
 
 import numpy as np
-from ase_koopmans import Atoms, units
+from ase_koopmans import units
 from ase_koopmans.cell import Cell
 from numpy.linalg import norm
 
@@ -24,35 +23,31 @@ SphericalBasisFunctions = Callable[[np.ndarray, np.ndarray, int, int], np.ndarra
 def precompute_basis_function(radial_basis_functions: RadialBasisFunctions,
                               spherical_basis_functions: SphericalBasisFunctions,
                               r_cartesian: np.ndarray, r_spherical: np.ndarray, n_max: int, l_max: int) -> np.ndarray:
-    """
-    Precomputes the total basis function (radial_basis_function*spherical_basis_function) for each point on the
-    integration domain.
-    """
-
+    """Precompute the total basis (radial_basis_function*spherical_basis_function) over the integration domain."""
     # Define the vector containing the values of the spherical basis function for each grid point for each pair of
     # (n,l).
-    Y_array_all = np.zeros((np.shape(r_cartesian)[:3] + (l_max+1, 2*l_max+1)))
-    for l in range(l_max+1):
-        for i, m in enumerate(range(-l, l+1)):
+    Y_array_all = np.zeros((np.shape(r_cartesian)[:3] + (l_max + 1, 2 * l_max + 1)))
+    for l in range(l_max + 1):
+        for i, m in enumerate(range(-l, l + 1)):
             Y_array_all[:, :, :, l, i] = spherical_basis_functions(
                 r_spherical[:, :, :, 1], r_spherical[:, :, :, 2], l, m)
 
     # Define the vector containing the values of the radial basis function for each grid point for each pair of (l,m).
-    g_array_all = np.zeros((np.shape(r_cartesian)[:3] + (n_max, l_max+1)))
+    g_array_all = np.zeros((np.shape(r_cartesian)[:3] + (n_max, l_max + 1)))
     for n in range(n_max):
-        for l in range(l_max+1):
+        for l in range(l_max + 1):
             g_array_all[:, :, :, n, l] = radial_basis_functions(r_spherical[:, :, :, 0], n, n_max, l)
 
     # Compute the vector containing the values of the total basis function for each grid point for each pair of (n,l,m)
     # All values corresponding to different values for m are stored in the last axis of total_basis_function_array
-    number_of_l_elements = sum(2*l+1 for l in range(0, l_max+1))
-    total_basis_function_array = np.zeros((np.shape(r_cartesian)[:3] + (n_max*number_of_l_elements,)))
+    number_of_l_elements = sum(2 * l + 1 for l in range(0, l_max + 1))
+    total_basis_function_array = np.zeros((np.shape(r_cartesian)[:3] + (n_max * number_of_l_elements,)))
     idx = 0
     for n in range(n_max):
-        for l in range(l_max+1):
-            total_basis_function_array[:, :, :, idx:(
-                idx+2*l+1)] = np.expand_dims(g_array_all[:, :, :, n, l], axis=3)*Y_array_all[:, :, :, l, 0:2*l+1]
-            idx += 2*l+1
+        for l in range(l_max + 1):
+            total_basis_function_array[:, :, :, idx:(idx + 2 * l + 1)] = \
+                np.expand_dims(g_array_all[:, :, :, n, l], axis=3) * Y_array_all[:, :, :, l, 0:2 * l + 1]
+            idx += 2 * l + 1
 
     return total_basis_function_array
 
@@ -61,10 +56,7 @@ def precompute_basis_function(radial_basis_functions: RadialBasisFunctions,
 # of the integration domain
 
 def get_index(r: np.ndarray, vec: np.ndarray) -> Tuple[int, int, int]:
-    """
-    Returns the index of the array r that is closest to vec.
-    """
-
+    """Return the index of the array r that is closest to vec."""
     norms = norm(r - vec, axis=3)
     idx_tmp = np.unravel_index(np.argmin(norms), np.shape(r)[:-1])
     idx = (int(idx_tmp[0]), int(idx_tmp[1]), int(idx_tmp[2]))
@@ -72,26 +64,26 @@ def get_index(r: np.ndarray, vec: np.ndarray) -> Tuple[int, int, int]:
 
 
 def generate_integration_box(r: np.ndarray, r_cut: float) -> Tuple[Tuple[int, int, int], np.ndarray]:
-    """
-    Defines the cartesian coordinates of the new integration domain.
+    """Define the cartesian coordinates of the new integration domain.
 
     This new integration domain is cubic, has the same grid spacing (dx,dy,dz) as the original grid
     but the mesh-size can be smaller (depending) on the cutoff value r_cut.
     """
-
     z = r[:, 0, 0, 0]
     y = r[0, :, 0, 1]
     x = r[0, 0, :, 2]
-    dz = z[1]-z[0]
-    dy = y[1]-y[0]
-    dx = x[1]-x[0]
+    dz = z[1] - z[0]
+    dy = y[1] - y[0]
+    dx = x[1] - x[0]
 
     nr_new_integration_domain: Tuple[int, int, int] = (
-        min(int(r_cut/dx), len(x)//2-1), min(int(r_cut/dy), len(y)//2-1), min(int(r_cut/dz), len(z)//2-1))
+        min(int(r_cut / dx), len(x) // 2 - 1),
+        min(int(r_cut / dy), len(y) // 2 - 1),
+        min(int(r_cut / dz), len(z) // 2 - 1))
 
-    z_ = dz*np.arange(-nr_new_integration_domain[2], nr_new_integration_domain[2]+1)
-    y_ = dy*np.arange(-nr_new_integration_domain[1], nr_new_integration_domain[1]+1)
-    x_ = dx*np.arange(-nr_new_integration_domain[0], nr_new_integration_domain[0]+1)
+    z_ = dz * np.arange(-nr_new_integration_domain[2], nr_new_integration_domain[2] + 1)
+    y_ = dy * np.arange(-nr_new_integration_domain[1], nr_new_integration_domain[1] + 1)
+    x_ = dx * np.arange(-nr_new_integration_domain[0], nr_new_integration_domain[0] + 1)
     r_new = np.zeros((2 * nr_new_integration_domain[2] + 1,
                       2 * nr_new_integration_domain[1] + 1,
                       2 * nr_new_integration_domain[0] + 1, 3))
@@ -105,11 +97,7 @@ def generate_integration_box(r: np.ndarray, r_cut: float) -> Tuple[Tuple[int, in
 
 def translate_to_new_integration_domain(f: np.ndarray, wfc_center_index: Tuple[int, int, int],
                                         nr_new_integration_domain: Tuple[int, int, int]) -> np.ndarray:
-    """
-    Rolls the array f, such that it is centered around wfc_center_index and brings it into the same shape as the new
-    integration domain.
-    """
-
+    """Roll the array f so it is centered around wfc_center_index and has the same shape as the integration domain."""
     f_rolled = np.roll(f, (-(wfc_center_index[0] - nr_new_integration_domain[2]),
                            -(wfc_center_index[1] - nr_new_integration_domain[1]),
                            -(wfc_center_index[2] - nr_new_integration_domain[0])),
@@ -124,15 +112,12 @@ def translate_to_new_integration_domain(f: np.ndarray, wfc_center_index: Tuple[i
 
 def get_coefficients(rho: np.ndarray, rho_total: np.ndarray, r_cartesian: np.ndarray,
                      total_basis_function_array: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Computes the expansion coefficients of rho and rho_total wrt the basis defined in total_basis_function_array.
-    """
-
+    """Compute the expansion coefficients of rho and rho_total wrt the basis defined in total_basis_function_array."""
     rho_tmp = np.expand_dims(rho, axis=3)
     rho_total_tmp = np.expand_dims(rho_total, axis=3)
 
-    integrand_rho = rho_tmp*total_basis_function_array
-    integrand_rho_total = rho_total_tmp*total_basis_function_array
+    integrand_rho = rho_tmp * total_basis_function_array
+    integrand_rho_total = rho_total_tmp * total_basis_function_array
 
     coefficients = compute_3d_integral_naive(integrand_rho, r_cartesian).flatten()
 
@@ -145,12 +130,9 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
                           total_density_xml: File, orbital_densities_xml: List[File],
                           bands: List[Band], cell: Cell, wannier_centers: np.ndarray, alpha_file: File,
                           beta_file: File) -> Tuple[Dict[str, bytes], Dict[str, bytes]]:
-    """
-    Computes the expansion coefficients of the total and orbital densities.
-    """
-
+    """Compute the expansion coefficients of the total and orbital densities."""
     # Define the normalisation constant for densities
-    norm_const = 1/(units.Bohr)**3
+    norm_const = 1 / (units.Bohr)**3
 
     # Load the grid dimensions nr_xml from charge-density-file
     raw_filecontents = total_density_xml.read_text()
@@ -159,7 +141,7 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
     assert xml_charge_density is not None
     xml_info = xml_charge_density.find('INFO')
     assert xml_info is not None
-    nr_xml = tuple([int(x) + 1 for x in [xml_info.get(f'nr{i+1}') for i in range(3)] if x is not None])
+    nr_xml = tuple([int(x) + 1 for x in [xml_info.get(f'nr{i + 1}') for i in range(3)] if x is not None])
     assert len(nr_xml) == 3
 
     # load the lattice parameters
@@ -167,14 +149,14 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
 
     # Define the cartesian grid
     r_xsf = np.zeros((nr_xml[2], nr_xml[1], nr_xml[0], 3), dtype=float)
-    r = np.zeros((nr_xml[2]-1, nr_xml[1]-1, nr_xml[0]-1, 3), dtype=float)
+    r = np.zeros((nr_xml[2] - 1, nr_xml[1] - 1, nr_xml[0] - 1, 3), dtype=float)
     for k in range(nr_xml[2]):
         for j in range(nr_xml[1]):
             for i in range(nr_xml[0]):
                 r_xsf[k, j, i, :] = np.multiply(
-                    np.array([float(k % (nr_xml[2] - 1))/(nr_xml[2] - 1),
-                              float(j % (nr_xml[1] - 1))/(nr_xml[1] - 1),
-                              float(i % (nr_xml[0] - 1))/(nr_xml[0] - 1)]), lat_vecs)
+                    np.array([float(k % (nr_xml[2] - 1)) / (nr_xml[2] - 1),
+                              float(j % (nr_xml[1] - 1)) / (nr_xml[1] - 1),
+                              float(i % (nr_xml[0] - 1)) / (nr_xml[0] - 1)]), lat_vecs)
     r[:, :, :, :] = r_xsf[:-1, :-1, :-1, :]
 
     # Define an alternative grid which is used to perform the integrations. This can be identical or smaller as the
@@ -186,8 +168,8 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
     r_spherical = cart2sph_array(r_cartesian)
 
     # Define our radial basis functions, which are partially parameterized by precomputed vectors
-    alphas = np.frombuffer(alpha_file.read_bytes()).reshape((n_max, l_max+1))
-    betas = np.frombuffer(beta_file.read_bytes()).reshape((n_max, n_max, l_max+1))
+    alphas = np.frombuffer(alpha_file.read_bytes()).reshape((n_max, l_max + 1))
+    betas = np.frombuffer(beta_file.read_bytes()).reshape((n_max, n_max, l_max + 1))
     radial_basis_functions: RadialBasisFunctions = partial(g_basis, betas=betas, alphas=alphas)
 
     # Compute R_nl Y_lm for each point on the integration domain
@@ -225,7 +207,7 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
         # Bring the the density to the same integration domain as the precomputed basis, centered around the orbital's
         # center, making sure that the center is in within the unit cell
         assert band.index is not None
-        wfc_center_tmp = wannier_centers[band.index-1]
+        wfc_center_tmp = wannier_centers[band.index - 1]
         wfc_center = np.array([wfc_center_tmp[2] % lat_vecs[0], wfc_center_tmp[1] %
                                lat_vecs[1], wfc_center_tmp[0] % lat_vecs[2]])
         center_index = get_index(r, wfc_center)
@@ -249,8 +231,7 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
 def parse_xml_array(
     xml_root: ET.Element, nr: Tuple[int, int, int], norm_const: float, retain_final_element: bool = False
 ) -> np.ndarray:
-    """
-    Loads an array from an xml file.
+    """Load an array from an xml file.
 
     :param xml_root: The xml root containing the array
     :param norm_const: The normalization constant to multiply the array with (in our case 1/((Bohr radii)^3)
@@ -261,7 +242,6 @@ def parse_xml_array(
 
     :return: The array
     """
-
     # Extract the array
     array_xml = np.zeros((nr[2], nr[1], nr[0]), dtype=float)
 
@@ -274,7 +254,7 @@ def parse_xml_array(
         rho_tmp = np.array(text.split(), dtype=float)
         for j in range(nr[1]):
             for i in range(nr[0]):
-                array_xml[k, j, i] = rho_tmp[(j % (nr[1] - 1))*(nr[0] - 1) + (i % (nr[0] - 1))]
+                array_xml[k, j, i] = rho_tmp[(j % (nr[1] - 1)) * (nr[0] - 1) + (i % (nr[0] - 1))]
     array_xml *= norm_const
 
     if retain_final_element:

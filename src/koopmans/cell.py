@@ -1,5 +1,7 @@
+"""Functions and classes to augment ASE's `Cell` class."""
+
 import copy
-from typing import Dict, TypedDict, Union
+from typing import Dict, TypedDict
 
 import numpy as np
 from ase_koopmans.cell import Cell
@@ -10,13 +12,14 @@ from ase_koopmans.units import Bohr
 
 
 class CellParams(TypedDict):
+    """A class for representing cell parameters using the Quantum ESPRESSO conventions."""
+
     ibrav: int
     celldms: Dict[int, float]
 
 
 def parameters_to_cell(ibrav: int, celldms: Dict[int, float]) -> Cell:
-    '''
-    Converts QE cell parameters to the corresponding ASE `Cell` object.
+    """Convert QE cell parameters to the corresponding ASE `Cell` object.
 
     N.B. `parameters_to_cell` and `cell_to_parameters` are not idempotent for ibravs 12 to 14 because
     ASE's Bravais lattice detection is not reliable
@@ -32,9 +35,7 @@ def parameters_to_cell(ibrav: int, celldms: Dict[int, float]) -> Cell:
     -------
     Cell
         An ASE `Cell` object corresponding to the provided ibrav and celldms
-
-    '''
-
+    """
     if not isinstance(celldms, dict):
         raise ValueError('Please provide `celldms` as a dictionary e.g. `celldms = {"1": 10.0, "3": 0.75}`')
 
@@ -136,8 +137,7 @@ def parameters_to_cell(ibrav: int, celldms: Dict[int, float]) -> Cell:
 
 
 def cell_to_parameters(cell: Cell) -> CellParams:
-    '''
-    Identifies a cell in the language of Quantum ESPRESSO
+    """Identify a cell in the language of Quantum ESPRESSO.
 
     Parameters
     ----------
@@ -148,9 +148,7 @@ def cell_to_parameters(cell: Cell) -> CellParams:
     -------
     CellParams
         a typed dictionary containing the ibrav and celldms
-
-    '''
-
+    """
     # By regenerating the cell we ensure we are always working with the Niggli-reduced lattice
     # Beware: ASE's get_bravais_lattice().tocell() are not idempotent, because tocell() imposes AFlow conventions
     lat: BravaisLattice = cell.get_bravais_lattice()
@@ -264,5 +262,6 @@ def cell_to_parameters(cell: Cell) -> CellParams:
 
 
 def cell_follows_qe_conventions(cell: Cell) -> bool:
+    """Return True if the ASE cell follows Quantum ESPRESSO conventions."""
     qe_cell = parameters_to_cell(**cell_to_parameters(cell))  # type: ignore
     return np.allclose(cell, qe_cell)

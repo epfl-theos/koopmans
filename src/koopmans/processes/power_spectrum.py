@@ -1,6 +1,4 @@
-"""
-Processes used during the machine learning workflows
-"""
+"""Processes used during the machine learning workflows."""
 from pathlib import Path
 from typing import List
 
@@ -16,6 +14,8 @@ from ._process import IOModel, Process
 
 
 class ExtractCoefficientsFromXMLInput(IOModel):
+    """Input model for the `ExtractCoefficientsFromXMLProcess`."""
+
     n_max: int
     l_max: int
     r_min: float
@@ -30,6 +30,8 @@ class ExtractCoefficientsFromXMLInput(IOModel):
 
 
 class ExtractCoefficientsFromXMLOutput(IOModel):
+    """Output model for the `ExtractCoefficientsFromXMLProcess`."""
+
     precomputed_alphas: File
     precomputed_betas: File
     total_coefficients: List[File]
@@ -38,15 +40,12 @@ class ExtractCoefficientsFromXMLOutput(IOModel):
 
 
 class ExtractCoefficientsFromXMLProcess(Process):
+    """Process that decomposes an orbital into radial basis functions and spherical harmonics."""
 
     input_model = ExtractCoefficientsFromXMLInput
     output_model = ExtractCoefficientsFromXMLOutput
 
     def _run(self):
-        """
-        Performs the decomposition into radial basis functions and spherical harmonics
-        """
-
         # Precompute the parameters of the radial basis functions
         alphas, betas = ml.precompute_parameters_of_radial_basis(self.inputs.n_max, self.inputs.l_max,
                                                                  self.inputs.r_min, self.inputs.r_max)
@@ -83,6 +82,8 @@ class ExtractCoefficientsFromXMLProcess(Process):
 
 
 class ComputePowerSpectrumInput(IOModel):
+    """Input model for the `ComputePowerSpectrumProcess`."""
+
     n_max: int
     l_max: int
     orbital_coefficients: File
@@ -91,15 +92,14 @@ class ComputePowerSpectrumInput(IOModel):
 
 
 class ComputePowerSpectrumOutput(IOModel):
+    """Output model for the `ComputePowerSpectrumProcess`."""
+
     power_spectrum: File
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 def read_coeff_matrix(coeff_orb: np.ndarray, coeff_tot: np.ndarray, n_max: int, l_max: int) -> np.ndarray:
-    """
-    Reads the flat coefficient vector into a matrix with the correct dimensions.
-    """
-
+    """Read flat coefficient vector into a matrix with the correct dimensions."""
     coeff_matrix = np.zeros((2, n_max, l_max + 1, 2 * l_max + 1), dtype=float)
     idx = 0
     for n in range(n_max):
@@ -112,34 +112,36 @@ def read_coeff_matrix(coeff_orb: np.ndarray, coeff_tot: np.ndarray, n_max: int, 
 
 
 def compute_power_mat(coeff_matrix: np.ndarray, n_max: int, l_max: int) -> np.ndarray:
-    """
-    Computes the power_spectrum from the coefficient matrices.
-    """
+    """Compute the power_spectrum from the coefficient matrices.
 
-    # Note that we only store the inequivalent entries and hence the second for-loops of each elements iterate only over
-    # the indices that are equal or larger than the corresponding index from the first for-loop.
+    Note that we only store the inequivalent entries and hence the second for-loops of each elements iterate only over
+    the indices that are equal or larger than the corresponding index from the first for-loop.
+    """
     power = []
     for i1, _ in enumerate(['orb', 'tot']):
         for i2 in range(i1, 2):
             for n1 in range(n_max):
                 for n2 in range(n1, n_max):
-                    for l in range(l_max+1):
-                        sum_current = sum(coeff_matrix[i1, n1, l, m]*coeff_matrix[i2, n2, l, m] for m in range(2*l + 1))
+                    for l in range(l_max + 1):
+                        sum_current = sum(
+                            coeff_matrix[i1, n1, l, m] * coeff_matrix[i2, n2, l, m] for m in range(2 * l + 1)
+                        )
                         power.append(sum_current)
     return np.array(power)
 
 
 class ComputePowerSpectrumProcess(Process):
+    """Process for computing the power spectrum of an orbital.
+
+    Loads the coefficient vectors corresponding to the orbital and to the total density, computes the corresponding
+    power spectrum and saves it to file.
+    """
 
     input_model = ComputePowerSpectrumInput
     output_model = ComputePowerSpectrumOutput
 
     def _run(self):
-        """
-        Loads the coefficient vectors corresponding to the orbital and to the total density, computes the corresponding
-        power spectrum and saves it to file.
-        """
-
+        """Run the process."""
         # Load the coefficients from file
         coeff_orb = np.frombuffer(self.inputs.orbital_coefficients.read_bytes())
         coeff_tot = np.frombuffer(self.inputs.total_coefficients.read_bytes())

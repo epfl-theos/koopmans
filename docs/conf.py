@@ -85,7 +85,10 @@ numpydoc_show_class_members = False
 
 
 class ChronoSortingStyle(BaseSortingStyle):
+    """A sorting style for pybtex that sorts by date."""
+
     def sort(self, entries):
+        """Sort the entries by date."""
         def get_date(entry):
             month_lookup = list(month_name)
             year = int(entry.fields['year'])
@@ -96,6 +99,8 @@ class ChronoSortingStyle(BaseSortingStyle):
 
 
 class MyChronoStyle(UnsrtStyle):
+    """A bibliography style for pybtex that does not sort its entries."""
+
     def __init__(self, *args, **kwargs):
         kwargs.update(sorting_style=ChronoSortingStyle, abbreviate_names=True)
         return super().__init__(*args, **kwargs)
@@ -105,6 +110,8 @@ pybtex.plugin.register_plugin('pybtex.style.formatting', 'chrono', MyChronoStyle
 
 
 class MyAbbrevPlainStyle(PlainStyle):
+    """A plain style for pybtex that abbreviates names."""
+
     def __init__(self, *args, **kwargs):
         kwargs.update(abbreviate_names=True)
         return super().__init__(*args, **kwargs)

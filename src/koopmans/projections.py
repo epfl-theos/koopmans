@@ -1,3 +1,5 @@
+"""Classes that define blocks of bands."""
+
 from typing import Any, Dict, List, Optional, Union
 
 from ase_koopmans import Atoms
@@ -11,6 +13,7 @@ from koopmans.utils import SpinOptions, SpinType
 
 
 class BlockID(BaseModel):
+    """The ID of a block of bands, which includes a label, filling, and spin."""
 
     label: Optional[str] = None
     filled: Optional[bool] = None
@@ -25,6 +28,7 @@ class BlockID(BaseModel):
     # Set label to 'occ' or 'emp' if filled is set but label is not
     @model_validator(mode='before')
     def set_label_from_filled(cls, data: Any):
+        """Construct a label (if it is not provided) from the filling and spin arguments."""
         if isinstance(data, dict):
             if data.get('filled', None) is not None and data.get('label', None) is None:
                 spin = data.get('spin', None)
@@ -33,6 +37,7 @@ class BlockID(BaseModel):
         return data
 
     def filling(self):
+        """Return a string indicating whether the block is occupied or empty."""
         if self.filled:
             return 'occ'
         elif self.filled is False:
@@ -42,7 +47,8 @@ class BlockID(BaseModel):
 
 
 class ProjectionBlock(object):
-    # This simple object contains the projections, filling, and spin corresponding to a block of bands
+    """A class that contains the projections, filling, and spin corresponding to a block of bands."""
+
     def __init__(self,
                  projections: List[Union[str, Dict[str, Any]]],
                  spin: SpinType = None,
@@ -66,10 +72,12 @@ class ProjectionBlock(object):
 
     @property
     def spin(self):
+        """Return the spin of the block."""
         return self.id.spin
 
     @property
     def name(self):
+        """Return the name of the block."""
         return self.id.label
 
     def __repr__(self) -> str:
@@ -92,6 +100,7 @@ class ProjectionBlock(object):
         return False
 
     def todict(self) -> dict:
+        """Convert a ProjectionBlock object to a dictionary."""
         dct = {k: v for k, v in self.__dict__.items()}
         dct.pop('w90_calc')
         dct['__koopmans_name__'] = self.__class__.__name__
@@ -100,7 +109,7 @@ class ProjectionBlock(object):
 
     @property
     def w90_kwargs(self) -> Dict[str, Any]:
-        # Returns the keywords to provide when constructing a new calculator corresponding to this block
+        """Return the `Wannier90` keywords to provide when constructing a new calculator corresponding to this block."""
         kwargs = {}
         for key in ['projections', 'num_wann', 'num_bands', 'exclude_bands']:
             val = getattr(self, key, None)
@@ -114,13 +123,15 @@ class ProjectionBlock(object):
 
     @classmethod
     def fromdict(cls, dct):
+        """Construct a ProjectionBlock object from a dictionary."""
         return cls(**dct)
 
 
 class ProjectionBlocks(object):
-    """
-    This object is a collection of blocks of projections. In addition to the projections blocks themselves, it also
-    stores system-wide properties such as how many extra conduction bands we have.
+    """A collection of blocks of projections.
+
+    In addition to the projections blocks themselves, it also stores system-wide properties such as how many extra
+    conduction bands we have.
 
     Whenever a user queries self.blocks (e.g. when they iterate over this object) it will first propagate these
     system-wide properties down to the individual ProjectionBlock objects. See self.blocks() for more details.
@@ -162,7 +173,7 @@ class ProjectionBlocks(object):
         self._blocks[key] = value
 
     def divisions(self, spin: Optional[str]) -> List[int]:
-        # This algorithm works out the size of individual "blocks" in the set of bands
+        """Work out the size of individual "blocks" in the set of bands."""
         divs: List[int] = []
         excl_bands = set(self.exclude_bands[spin])
         for block in self.get_subset(spin):
@@ -181,7 +192,7 @@ class ProjectionBlocks(object):
 
     @property
     def blocks(self):
-        # Before returning all the blocks, add more global information such as exclude_bands
+        """Return all blocks of projections, with additional global information added to each block."""
         for spin in SpinOptions:
             subset = self.get_subset(spin=spin)
             if len(subset) == 0:
@@ -228,7 +239,7 @@ class ProjectionBlocks(object):
                  list_of_projections: List[List[Union[str, Dict[str, Any]]]],
                  spins: List[SpinType],
                  atoms: Atoms):
-
+        """Construct a ProjectionBlocks object from a list of projections."""
         if not all([isinstance(p, list) for p in list_of_projections]):
             raise ValueError('`list_of_projections` must be a list of lists')
         blocks: List[ProjectionBlock] = []
@@ -237,12 +248,15 @@ class ProjectionBlocks(object):
         return cls(blocks, atoms)
 
     def get_subset(self, spin: Optional[str] = 'both') -> List[ProjectionBlock]:
+        """Return all blocks with a particular spin."""
         return [b for b in self._blocks if (spin == 'both' or b.spin == spin)]
 
     def num_wann(self, spin: Optional[str] = 'both') -> int:
+        """Return the number of Wannier functions in the entire system."""
         return sum([num_wann_from_projections(b.projections, self._atoms) for b in self.get_subset(spin)])
 
     def num_bands(self, spin: Optional[str] = None) -> int:
+        """Return the number of bands in the entire system."""
         nbands = self.num_wann(spin)
         nbands += len(self.exclude_bands[spin])
         nbands += self.num_extra_bands[spin]
@@ -250,6 +264,7 @@ class ProjectionBlocks(object):
 
     @property
     def num_occ_bands(self):
+        """The number of occupied bands in the entire system."""
         return self._num_occ_bands
 
     @num_occ_bands.setter
@@ -257,6 +272,7 @@ class ProjectionBlocks(object):
         self._num_occ_bands = value
 
     def todict(self) -> dict:
+        """Convert a ProjectionBlocks object to a dictionary."""
         dct: Dict[str, Any] = {k: v for k, v in self.__dict__.items()}
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
@@ -264,6 +280,7 @@ class ProjectionBlocks(object):
 
     @classmethod
     def fromdict(cls, dct):
+        """Convert a dictionary to a ProjectionBlocks object."""
         new_bandblock = cls(dct.pop('_blocks'), dct.pop('_atoms'))
         for k, v in dct.items():
             if not hasattr(new_bandblock, k):
@@ -273,7 +290,10 @@ class ProjectionBlocks(object):
 
     @property
     def to_merge(self) -> Dict[BlockID, List[ProjectionBlock]]:
-        # Group the blocks by their correspondence to occupied/empty bands, and by their spin
+        """Determine the sets of blocks that should be merged with one another.
+
+        Group the blocks by their correspondence to occupied/empty bands, and by their spin
+        """
         dct: Dict[BlockID, List[ProjectionBlock]] = {}
         for block in self.blocks:
             try:

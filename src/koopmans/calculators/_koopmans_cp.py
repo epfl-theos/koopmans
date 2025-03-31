@@ -1,10 +1,4 @@
-"""
-
-kcp calculator module for koopmans
-
-Written by Edward Linscott Sep 2020
-
-"""
+"""kcp calculator module for koopmans."""
 
 from __future__ import annotations
 
@@ -19,7 +13,6 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 from ase_koopmans import Atoms
 from ase_koopmans.calculators.espresso import Espresso_kcp
-from ase_koopmans.io.espresso import cell_to_ibrav
 from pandas.core.series import Series
 from scipy.linalg import block_diag
 
@@ -33,7 +26,7 @@ from ._calculator import (CalculatorABC, CalculatorCanEnforceSpinSym,
 
 
 def allowed(nr: int) -> bool:
-    # define whether i is a good fft grid number
+    """Return whether i is a good fft grid number."""
     if nr < 1:
         return False
     mr = nr
@@ -56,7 +49,7 @@ def allowed(nr: int) -> bool:
 
 
 def good_fft(nr: int) -> int:
-    # Return good grid dimension (optimal for the FFT)
+    """Return good grid dimension (optimal for the FFT)."""
     nfftx = 2049
     new = nr
     while allowed(new) is False and (new <= nfftx):
@@ -66,7 +59,7 @@ def good_fft(nr: int) -> int:
 
 
 def read_ham_file(filename: Path) -> np.ndarray[Any, np.dtype[np.complex128]]:
-    # Read a single hamiltonian XML file
+    """Read a single hamiltonian XML file."""
     if not filename.exists():
         raise FileExistsError(f'`{filename}` does not exist')
 
@@ -85,7 +78,8 @@ def read_ham_file(filename: Path) -> np.ndarray[Any, np.dtype[np.complex128]]:
 
 
 class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_kcp, CalculatorABC):
-    # Subclass of CalculatorExt for performing calculations with kcp.x
+    """Subclass of CalculatorExt for performing calculations with kcp.x."""
+
     ext_in = '.cpi'
     ext_out = '.cpo'
 
@@ -191,7 +185,6 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # Linked files
 
         # First, recurse over the linked files and replace directories with their contents
-        new_files = {}
         for key in list(self.linked_files.keys()):
             dst_filepointer, sym, rsym, force = self.linked_files[key]
             if dst_filepointer.is_dir():
@@ -208,7 +201,8 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 if other_dst_file not in self.linked_files:
                     raise FileNotFoundError(f'Expected {other_dst_file} to be linked to the {self.prefix} calculator')
                 # Switch the links
-                self.linked_files[dst_file], self.linked_files[other_dst_file] = self.linked_files[other_dst_file], self.linked_files[dst_file]
+                self.linked_files[dst_file], self.linked_files[other_dst_file] = self.linked_files[other_dst_file], \
+                    self.linked_files[dst_file]
 
         # alphas and filling
         self.alphas = self.alphas[::-1]
@@ -222,11 +216,11 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 self.results[key] = self.results[key][::-1]
 
     def _autogenerate_nr(self):
-        '''
+        """Autogenerate the nr parameters.
+
         For norm-conserving pseudopotentials the small box grid (nr1b, nr2b, nr3b) is needed in case the pseudo has
         non-linear core corrections. This function automatically defines this small box using a conservative guess.
-        '''
-
+        """
         has_nlcc = False
         for p in self.parameters.pseudopotentials.values():
             upf = pseudopotentials.read_pseudo_file(self.directory / self.parameters.pseudo_dir / p)
@@ -272,10 +266,11 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                        f'{self.parameters.nr3b}`.')
 
     def is_complete(self) -> bool:
+        """Check if the calculation is complete."""
         return self.results.get('job_done', False)
 
     def is_converged(self) -> bool:
-        # Checks convergence of the calculation
+        """Check the convergence of the calculation."""
         if 'conv_thr' not in self.parameters:
             raise ValueError('Cannot check convergence when `conv_thr` is not set')
 
@@ -299,7 +294,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return all(converged)
 
     def read_ham_xml_files(self, bare=False) -> List[np.ndarray]:
-        # Reads all expected hamiltonian XML files
+        """Read all the expected Hamiltonian XML files."""
         ham_dir = self.directory / self.parameters.outdir / \
             f'{self.parameters.prefix}_{self.parameters.ndw}.save/K00001'
         ham_matrix: List[np.ndarray] = []
@@ -348,6 +343,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return ham_matrix
 
     def _ham_pkl_file(self, bare: bool = False) -> Path:
+        """Return the path to the pickle file containing the Hamiltonian."""
         assert self.directory is not None
         if bare:
             suffix = '.bare_ham.pkl'
@@ -356,19 +352,23 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return self.directory / (self.prefix + suffix)
 
     def read_ham_pkl_files(self, bare: bool = False) -> List[np.ndarray]:
+        """Read the Hamiltonian from pickle files."""
         with open(self._ham_pkl_file(bare), 'rb') as fd:
             ham_matrix = pickle.load(fd)
         return ham_matrix
 
     def write_ham_pkl_files(self, ham_matrix: List[np.ndarray], bare: bool = False) -> None:
+        """Write the Hamiltonian to pickle files."""
         with open(self._ham_pkl_file(bare), 'wb') as fd:
             pickle.dump(ham_matrix, fd)
 
     def read_ham_files(self, bare: bool = False) -> List[np.ndarray]:
-        # While the hamiltonian information is stored in xml files inside the outdir of the corresponding calculations,
-        # we want a workflow to be able to be reconstructed even if these outdirs have been deleted. This means that we
-        # need to store the contents of these xml files elsewhere. We do these as python-readable pickle files
+        """Read the hamiltonian files from the calculation.
 
+        While the hamiltonian information is stored in xml files inside the outdir of the corresponding calculations,
+        we want a workflow to be able to be reconstructed even if these outdirs have been deleted. This means that we
+        need to store the contents of these xml files elsewhere. We do these as python-readable pickle files
+        """
         if self._ham_pkl_file(bare).exists():
             ham_matrix = self.read_ham_pkl_files(bare)
         else:
@@ -378,6 +378,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return ham_matrix
 
     def read_results(self):
+        """Read the results of the calculation from the output file."""
         super().read_results()
 
         self.results['lambda'] = self.read_ham_files()
@@ -386,6 +387,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
     @property
     def alphas(self) -> List[List[float]]:
+        """Return the screening parameters for the calculation."""
         if not hasattr(self, '_alphas'):
             raise AttributeError(f'`{self}.alphas` has not been initialized')
         return self._alphas
@@ -403,9 +405,12 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
     @property
     def filling(self) -> List[List[bool]]:
-        # Filling is indexed by [i_spin, i_orbital]
-        # Filling is written in this way such that we can calculate it automatically,
-        # but if it is explicitly set then we will always use that value instead
+        """Return the filling of each orbital the calculation.
+
+        Filling is indexed by [i_spin, i_orbital]
+        Filling is written in this way such that we can calculate it automatically,
+        but if it is explicitly set then we will always use that value instead
+        """
         if not hasattr(self, '_filling'):
             filling = []
 
@@ -433,11 +438,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         self._filling = val
 
     def write_alphas(self):
-        '''
-        Generates file_alpharef.txt and file_alpharef_empty.txt
-
-        '''
-
+        """Generate file_alpharef.txt and file_alpharef_empty.txt."""
         if not self.parameters.do_orbdep or not self.parameters.odd_nkscalfact:
             return
 
@@ -446,13 +447,11 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         utils.write_alpha_file(self, flat_alphas, flat_filling)
 
     def read_alphas(self) -> List[List[float]]:
-        '''
-        Reads in file_alpharef.txt and file_alpharef_empty.txt from this calculation's directory
+        """Read in file_alpharef.txt and file_alpharef_empty.txt from this calculation's directory.
 
         Output:
            alphas -- a list of alpha values (1 per orbital)
-        '''
-
+        """
         if not self.parameters.do_orbdep or not self.parameters.odd_nkscalfact:
             return [[]]
 
@@ -463,14 +462,20 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         return convert_flat_alphas_for_kcp(flat_alphas, self.parameters)
 
-    # The following functions enable DOS generation via ase.dft.dos.DOS(<KoopmansCPCalculator object>)
     def get_k_point_weights(self):
+        """Return the k-point weights for the calculation.
+
+        This is a dummy function because it is assumed we have the Gamma-point only. We need to define this function
+        to enable the DOS generation via ase.dft.dos.DOS(<KoopmansCPCalculator object>).
+        """
         return [1]
 
     def get_number_of_spins(self):
+        """Return the number of spins in the calculation."""
         return 1
 
     def get_eigenvalues(self, kpt=None, spin=0):
+        """Return the eigenvalues of the calculation."""
         if 'eigenvalues' not in self.results:
             raise ValueError('You must first perform a calculation before you try to access the KS eigenvalues')
 
@@ -482,9 +487,11 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             raise ValueError(f'`{self.__class__.__name__}` does not have k-point-resolved KS eigenvalues')
 
     def get_fermi_level(self):
+        """Return the Fermi level."""
         return 0
 
     def has_empty_states(self, spin: Optional[int] = None) -> bool:
+        """Return True if the calculation has empty states."""
         if 'nbnd' not in self.parameters:
             return False
         if self.parameters.nspin == 1:
@@ -500,6 +507,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return self.parameters.nbnd > nel
 
     def nspin1_dummy_calculator(self) -> KoopmansCPCalculator:
+        """Create a copy of the calculator that is set up to run a dummy nspin=1 calculation."""
         self.parent_process, parent_process = None, self.parent_process
         self.linked_files, linked_files = {}, self.linked_files
         calc = copy.deepcopy(self)
@@ -523,6 +531,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return calc
 
     def nspin1_calculator(self) -> KoopmansCPCalculator:
+        """Create a copy of the calculator that is set up to run a nspin=1 calculation."""
         self.parent_process, parent_process = None, self.parent_process
         self.linked_files, linked_files = {}, self.linked_files
         calc = copy.deepcopy(self)
@@ -543,6 +552,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return calc
 
     def nspin2_dummy_calculator(self) -> KoopmansCPCalculator:
+        """Create a copy of the calculator that is set up to run a nspin=2 calculation from scratch."""
         calc = copy.deepcopy(self)
         calc.prefix += '_nspin2_dummy'
         calc.parameters.restart_mode = 'from_scratch'
@@ -552,16 +562,19 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return calc
 
     def prepare_to_read_nspin1(self):
+        """Set up the calculation to read from a nspin=1 calculation."""
         self.prefix += '_nspin2'
         self.parameters.restart_mode = 'restart'
         self.parameters.ndr = 99
 
     @property
     def from_scratch(self):
+        """Return True if the calculation is running from scratch."""
         return self.parameters.restart_mode == 'from_scratch'
 
     @property
     def files_to_convert_with_spin2_to_spin1(self) -> Dict[str, List[File] | List[Path]]:
+        """Return a list of files that need to be converted when going from spin 2 to spin 1."""
         nspin_2_files = []
         nspin_1_files = []
         for f in ['evc0.dat', 'evc0_empty1.dat', 'evcm.dat', 'evc.dat', 'evcm.dat', 'hamiltonian.xml',
@@ -580,7 +593,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
     @property
     def files_to_convert_with_spin1_to_spin2(self):
-
+        """Return a list of files that need to be converted when going from spin 1 to spin 2."""
         nspin_1_files = []
         nspin_2up_files = []
         nspin_2dw_files = []
@@ -605,6 +618,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
     @property
     def read_directory(self) -> File:
+        """Return the directory where the calculation reads from."""
         assert isinstance(self.parameters.outdir, Path)
         assert self.parameters.ndr is not None
         assert self.parameters.prefix is not None
@@ -612,6 +626,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
     @property
     def write_directory(self) -> File:
+        """Return the directory where the calculation writes to."""
         assert isinstance(self.parameters.outdir, Path)
         assert self.parameters.ndw is not None
         assert self.parameters.prefix is not None
@@ -620,8 +635,11 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
 def convert_flat_alphas_for_kcp(flat_alphas: List[float],
                                 parameters: settings.KoopmansCPSettingsDict) -> List[List[float]]:
-    # Read alpha file returns a flat list ordered by filled spin up, filled spin down, empty spin up, empty spin down
-    # Here we reorder this into a nested list indexed by [i_spin][i_orbital]
+    """Convert a flat list of alpha values into a nested list indexed by [i_spin][i_orbital].
+
+    Read alpha file returns a flat list ordered by filled spin up, filled spin down, empty spin up, empty spin down
+    Here we reorder this into a nested list indexed by [i_spin][i_orbital]"
+    """
     if parameters.nspin == 2:
         nbnd = len(flat_alphas) // 2
         nelec = parameters.nelec if parameters.nelec else parameters.nelup + parameters.neldw

@@ -1,9 +1,10 @@
+"""Processes for manipulating files associated with `kcp.x`."""
+
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
 from pydantic import ConfigDict
 
-from koopmans import utils
 from koopmans.files import File
 from koopmans.process_io import IOModel
 
@@ -11,17 +12,23 @@ from ._process import Process
 
 
 class ConvertFilesFromSpin2To1InputModel(IOModel):
+    """Input model for a `ConvertFilesFromSpin2To1` process."""
+
     spin_2_files: List[File]
     spin_1_files: List[Path]
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ConvertFilesOutputModel(IOModel):
+    """Output model for a `ConvertFilesFromSpinXtoY` process."""
+
     generated_files: List[File]
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ConvertFilesFromSpin2To1(Process[ConvertFilesFromSpin2To1InputModel, ConvertFilesOutputModel]):
+    """Process for converting files from spin 2 to spin 1."""
+
     input_model = ConvertFilesFromSpin2To1InputModel  # type: ignore
     output_model = ConvertFilesOutputModel  # type: ignore
 
@@ -42,6 +49,8 @@ class ConvertFilesFromSpin2To1(Process[ConvertFilesFromSpin2To1InputModel, Conve
 
 
 class ConvertFilesFromSpin1To2InputModel(IOModel):
+    """Input model for a `ConvertFilesFromSpin1To2` process."""
+
     spin_1_files: List[File]
     spin_2_up_files: List[Path]
     spin_2_down_files: List[Path]
@@ -49,6 +58,7 @@ class ConvertFilesFromSpin1To2InputModel(IOModel):
 
 
 class ConvertFilesFromSpin1To2(Process[ConvertFilesFromSpin1To2InputModel, ConvertFilesOutputModel]):
+    """Process for converting files from spin 1 to spin 2."""
 
     input_model = ConvertFilesFromSpin1To2InputModel
     output_model = ConvertFilesOutputModel
@@ -65,7 +75,8 @@ class ConvertFilesFromSpin1To2(Process[ConvertFilesFromSpin1To2InputModel, Conve
                 # Prevent writing to an absolute path because this means that the process can affect files
                 # outside of its working directory
                 raise ValueError(
-                    f'{self.__class__.__name__} is attempting to write to a file outside of its working directory; this is not allowed')
+                    f'{self.__class__.__name__} is attempting to write to a file outside of its working directory; '
+                    'this is not allowed')
 
             contents = spin_1_file.read_bytes()
 
@@ -87,16 +98,21 @@ class ConvertFilesFromSpin1To2(Process[ConvertFilesFromSpin1To2InputModel, Conve
 
 
 class SwapSpinFilesInputModel(IOModel):
+    """Input model for a `SwapSpinFilesProcess`."""
+
     read_directory: File
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class SwapSpinFilesOutputModel(IOModel):
+    """Output model for a `SwapSpinFilesProcess`."""
+
     write_directory: File
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class SwapSpinFilesProcess(Process[SwapSpinFilesInputModel, SwapSpinFilesOutputModel]):
+    """Process for swapping the spin-up and spin-down files in a directory."""
 
     input_model = SwapSpinFilesInputModel
     output_model = SwapSpinFilesOutputModel

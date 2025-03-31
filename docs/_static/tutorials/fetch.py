@@ -2,6 +2,10 @@ from shutil import copy
 
 
 def extract(filename_in, filename_out, start=0, end=None, heading=None):
+    """Extract a block of text from a markdown file and write it to a new file.
+
+    Used to copy the outputs of the tutorials to the documentation.
+    """
     with open(filename_in) as fd:
         flines = fd.readlines()
 

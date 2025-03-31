@@ -1,6 +1,6 @@
 from glob import glob
 from pathlib import Path
-from typing import List, Type, Union
+from typing import List, Union
 
 from koopmans.calculators import (Calc, CalcType, KoopmansCPCalculator,
                                   KoopmansHamCalculator,
@@ -11,7 +11,7 @@ from koopmans.calculators import (Calc, CalcType, KoopmansCPCalculator,
 
 
 def read_calculator(filenames: Union[Path, List[Path]]) -> Calc:
-
+    """Read a calculator from file(s), with the behavior depending on the file extension."""
     # Interpreting the filenames argument
     if not isinstance(filenames, list):
         filenames = [filenames]

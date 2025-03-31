@@ -1,9 +1,3 @@
-"""
-Unfolding & interpolating calculator for koopmans
+"""Unfolding & interpolating process for koopmans."""
 
-Originally written by Riccardo De Gennaro as the standalone 'unfolding and interpolate' code
-Integrated within koopmans by Edward Linscott Jan 2021
-
-"""
-
-from ._process import UnfoldAndInterpolateProcess, generate_dos
+from ._process import UnfoldAndInterpolateProcess, generate_dos  # noqa: F401

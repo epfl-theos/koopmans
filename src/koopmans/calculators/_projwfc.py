@@ -1,8 +1,4 @@
-"""
-
-projwfc.x calculator module for koopmans
-
-"""
+"""projwfc.x calculator module for koopmans."""
 
 import copy
 import os
@@ -26,7 +22,8 @@ from ._calculator import CalculatorABC, CalculatorExt
 
 
 class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
-    # Subclass of CalculatorExt for performing calculations with projwfc.x
+    """Subclass of CalculatorExt for performing calculations with projwfc.x."""
+
     ext_in = '.pri'
     ext_out = '.pro'
 
@@ -65,16 +62,14 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
 
     @property
     def _expected_orbitals(self):
-        """
-        Generates a list of orbitals (e.g. 1s, 2s, 2p, ...) expected for each element in the system, based on the
-        corresponding pseudopotential.
+        """Generate a list of orbitals (e.g. 1s, 2s, 2p, ...) expected for each element in the system.
+
+        This information can be found in the corresponding pseudopotential.
         """
         return pseudopotentials.expected_subshells(self.atoms, self.pseudopotentials)
 
     def generate_dos(self) -> GridDOSCollection:
-        """
-        Parse all of the pdos files and add these densities of state to self.results
-        """
+        """Parse all of the pdos files and add these densities of state to self.results."""
         dos_list = []
         for atom in self.atoms:
             parent_directory = File(self, Path())
@@ -98,10 +93,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         self.results['dos'] = GridDOSCollection(dos_list)
 
     def read_pdos(self, filename: File, expected_subshell: str) -> List[GridDOSData]:
-        """
-        Function for reading a pDOS file
-        """
-
+        """Read a pDOS file."""
         # Read the file contents
         assert self.engine is not None
         content = self.engine.read_file(filename)
@@ -114,7 +106,8 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         # Compare against the expected subshell
         if subshell != expected_subshell[1]:
             raise ValueError(
-                f"Unexpected pdos file `{filename.name.name}`, a pdos file corresponding to {expected_subshell} was expected")
+                f"Unexpected pdos file `{filename.name.name}`, a pdos file corresponding to {expected_subshell} "
+                "was expected")
 
         # Work out what orbitals will be contained within the pDOS file
         orbital_order = {"s": ["s"], "p": ["pz", "px", "py"], "d": ["dz2", "dxz", "dyz", "dx2-y2", "dxy"]}
@@ -146,7 +139,9 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         return dos_list
 
     def is_complete(self):
+        """Return True if the calculation is complete."""
         return self.results['job done']
 
     def is_converged(self):
+        """Return True; a projwfc calculation is always converged."""
         return True
