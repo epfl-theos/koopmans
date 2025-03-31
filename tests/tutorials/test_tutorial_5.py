@@ -31,7 +31,8 @@ def test_predict(tutorial_patch, tmpdir, pytestconfig, sys2file):
 def test_predict_plot(tutorial_patch, tmpdir, pytestconfig, sys2file):
     """Test the prediction plot."""
     with chdir(tutorial_dir / '02-predict'):
-        exec(open('plot.py').read())
+        local_ns = {}
+        exec(open('plot.py').read(), globals(), local_ns)
 
 
 @pytest.mark.tutorials
