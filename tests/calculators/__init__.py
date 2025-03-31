@@ -1,3 +1,1 @@
-"""
-Tests for koopmans.calculators
-"""
+"""Tests for `koopmans.calculators`."""

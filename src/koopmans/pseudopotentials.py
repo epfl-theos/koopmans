@@ -1,12 +1,4 @@
-"""
-
-Module containing functions relating to pseudopotentials
-
-Written by Edward Linscott Jan 2020
-Moved into _utils Aug 2021
-Split into a separate module Sep 2021
-
-"""
+"""Module containing functions relating to pseudopotentials."""
 
 import re
 from itertools import chain
@@ -23,6 +15,7 @@ local_libraries = set([str(f.parent.relative_to(local_base_directory))
 
 
 def pseudopotential_library_citations(library: str) -> List[str]:
+    """Determine the appropriate citations for a pseudopotential library."""
     citations = []
     if library.startswith('SG15'):
         citations.append('Hamann2013')
@@ -36,18 +29,14 @@ def pseudopotential_library_citations(library: str) -> List[str]:
 
 
 def element_from_pseudo_filename(filename: str) -> str:
+    """Extract the element name from a pseudopotential filename."""
     splitname = re.split(r'\.|_|-', filename)[0]
     element = splitname[0].upper() + splitname[1:].lower()
     return element
 
 
 def read_pseudo_file(filename: Path) -> UPFDict:
-    '''
-
-    Reads in settings from a .upf file
-
-    '''
-
+    """Read in settings from a .upf file."""
     if not filename.exists():
         raise FileNotFoundError(f'Could not find the pseudopotential file `{filename}`')
 
@@ -57,10 +46,7 @@ def read_pseudo_file(filename: Path) -> UPFDict:
 
 
 def nelec_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]) -> int:
-    '''
-    Determines the number of electrons in the system using information from pseudopotential files
-    '''
-
+    """Determine the number of electrons in the system using information from pseudopotential files."""
     valences_dct = {key: int(value['header']['z_valence']) for key, value in pseudopotentials.items()}
 
     if len(set(atoms.get_tags())) > 1:
@@ -68,22 +54,19 @@ def nelec_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]
     else:
         labels = atoms.symbols
 
-    valences = [valences_dct[l] for l in labels]
+    valences = [valences_dct[label] for label in labels]
     return sum(valences)
 
 
 def expected_subshells(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]) -> Dict[str, List[str]]:
-    """
-    Determine which subshells will make up the valences of a set of pseudopotentials.
+    """Determine which subshells will make up the valences of a set of pseudopotentials.
 
     Returns
     -------
     OrderedDict[str, List[str]]
         a dict mapping element names to a corresponding list of suborbitals that *might* be in the pseudopotential
         valence (depending on how many bands are included)
-
     """
-
     z_core_to_first_orbital = {0: '1s', 2: '2s', 4: '2p', 10: '3s', 12: '3p', 18: '3d', 28: '4s', 30: '4p',
                                36: '4d', 46: '4f', 60: '5s', 62: '5p', 68: '6s'}
 

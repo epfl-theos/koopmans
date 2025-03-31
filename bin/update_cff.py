@@ -1,3 +1,4 @@
+"""Update the version in the CFF file."""
 import sys
 
 import yaml

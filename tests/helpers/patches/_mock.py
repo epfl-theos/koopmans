@@ -1,7 +1,8 @@
+"""Monkeypatch `koopmans` so that calculations aren't run, and instead their results are fetched from a database."""
+
 import json
 import os
 import shutil
-from abc import ABC
 from pathlib import Path
 from typing import Union
 
@@ -16,19 +17,20 @@ from ._utils import (benchmark_filename, metadata_filename,
 
 
 def atoms_eq(self, other):
-    # Patching the Atoms class to compare positions and cell with np.allclose rather than strict equality
+    """Patch the Atoms class to compare positions and cell with np.allclose rather than strict equality."""
     if not isinstance(other, Atoms):
         return False
     a = self.arrays
     b = other.arrays
-    return (len(self) == len(other) and
-            np.allclose(a['positions'], b['positions']) and
-            (a['numbers'] == b['numbers']).all() and
-            np.allclose(self.cell, other.cell) and
-            (self.pbc == other.pbc).all())
+    return (len(self) == len(other)
+            and np.allclose(a['positions'], b['positions'])
+            and (a['numbers'] == b['numbers']).all()
+            and np.allclose(self.cell, other.cell)
+            and (self.pbc == other.pbc).all())
 
 
 def write_mock_file(filename: Union[Path, str], written_by: str):
+    """Write a mock file with metadata."""
     filename = Path(filename)
     with chdir(filename.parent):
         with open(filename.name, 'w') as fd:
@@ -38,6 +40,7 @@ def write_mock_file(filename: Union[Path, str], written_by: str):
 
 
 def mock_calculator__calculate(self):
+    """Look up the results of a calculator from the database rather than running it."""
     # Write the input file
     self.write_input(self.atoms)
 
@@ -116,19 +119,22 @@ def mock_calculator__calculate(self):
 
 
 def mock_calculator_is_complete(self):
+    """Check that an output file exists."""
     return (self.directory / f'{self.prefix}{self.ext_out}').is_file()
 
 
 def mock_calculator_check_code_is_installed(self):
+    """Make sure that a MockCalc does not attempt to check if the code is installed."""
     pass
 
 
 def mock_calculator_read_results(self) -> None:
+    """Make sure that a MockCalc does not attempt to read results."""
     raise AssertionError('A MockCalc should not attempt to read results')
 
 
 def patch_generate_dos(calc_class, monkeypatch):
-    # Patch the generate_dos method to first copy the DOS files from the benchmark directory to the test directory
+    """Mock the generate_dos method of a calculator to copy the DOS files from the benchmark directory."""
     original_generate_dos = calc_class.generate_dos
 
     def generate_dos(self):
@@ -141,6 +147,7 @@ def patch_generate_dos(calc_class, monkeypatch):
 
 
 def mock_process_run(self):
+    """Mock the run method of a process."""
     # Load the inputs from file
     bench_process = read_pkl(benchmark_filename(self), base_directory=self.base_directory)
     assert self.inputs == bench_process.inputs
@@ -156,6 +163,7 @@ def mock_process_run(self):
 
 
 def monkeypatch_mock(monkeypatch):
+    """Monkeypatch the calculators and processes to use mock versions that obtain results from the database."""
     from koopmans.calculators import (EnvironCalculator, KoopmansCPCalculator,
                                       KoopmansHamCalculator,
                                       KoopmansScreenCalculator, PhCalculator,

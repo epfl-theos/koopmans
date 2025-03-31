@@ -1,7 +1,4 @@
-"""
-Settings module for plotting
-
-"""
+"""Settings module for plotting."""
 
 from typing import List
 
@@ -23,6 +20,7 @@ valid_settings: List[Setting] = [
 
 
 class PlotSettingsDict(SettingsDictWithChecks):
+    """Settings for plotting."""
 
     def __init__(self, **kwargs):
         super().__init__(settings=valid_settings, **kwargs)

@@ -1,3 +1,5 @@
+"""Parse the .pkl output of a koopmans workflow."""
+
 from koopmans import io
 
 # Load the workflow object

@@ -1,3 +1,1 @@
-"""
-Tests for koopmans.workflows
-"""
+"""Tests for the different Workflow subclasses."""

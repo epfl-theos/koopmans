@@ -1,10 +1,4 @@
-"""
-
-I/O of json input file for koopmans
-
-Written by Edward Linscott Jan 2020
-
-"""
+"""I/O of json input file for koopmans."""
 
 import json as json_ext
 from pathlib import Path
@@ -15,14 +9,10 @@ from koopmans.settings import WorkflowSettingsDict
 
 
 def read_json(fd: TextIO, override: Dict[str, Any] = {}, **kwargs):
-    '''
-
-    Reads in settings listed in JSON file
+    """Read in settings listed in JSON file.
 
     Values in the JSON file can be overridden by values provided in the override argument
-
-    '''
-
+    """
     bigdct = json_ext.loads(fd.read())
 
     # Override all keywords provided explicitly
@@ -49,12 +39,7 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}, **kwargs):
 
 
 def write_json(workflow: workflows.Workflow, filename: Path):
-    '''
-
-    Writes out settings to a JSON file
-
-    '''
-
+    """Write out settings to a JSON file."""
     fd = open(filename, 'w')
 
     json_ext.dump(workflow.toinputjson(), fd, indent=2)

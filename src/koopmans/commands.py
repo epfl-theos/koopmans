@@ -1,8 +1,4 @@
-"""
-Defines a smart "command" class in place of storing these simply as strings
-
-Written by Edward Linscott, Feb 2021
-"""
+"""Defines a "Command" class in place of storing these simply as strings."""
 
 from __future__ import annotations
 
@@ -12,8 +8,8 @@ from typing import Optional, Union
 
 
 class Command(object):
-    """
-    A more flexible class for storing commands
+    """A class for storing commands.
+
     It has the attributes...
         Command.path
         Command.executable
@@ -44,7 +40,8 @@ class Command(object):
         if isinstance(value, str):
             if value.startswith(('srun', 'mpirun')):
                 raise ValueError(
-                    'You tried to set the command for the serial calculator `{self.__class__.__name__}` with an MPI call')
+                    f'You tried to set the command for the serial calculator `{self.__class__.__name__} '
+                    'with an MPI call')
             [path_plus_executable, self.suffix] = value.split(' ', 1)
             if '/' in path_plus_executable:
                 path, self.executable = path_plus_executable.rsplit('/', 1)
@@ -60,6 +57,7 @@ class Command(object):
 
     @property
     def path(self) -> Path:
+        """The path of the executable."""
         return self._path
 
     @path.setter
@@ -68,6 +66,7 @@ class Command(object):
 
     @property
     def flags(self) -> str:
+        """Return any flags that should be passed to the executable."""
         return self._flags
 
     @flags.setter
@@ -75,6 +74,7 @@ class Command(object):
         self._flags = value
 
     def todict(self):
+        """Convert the Command object to a dictionary."""
         dct = self.__dict__.copy()
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
@@ -82,6 +82,7 @@ class Command(object):
 
     @classmethod
     def fromdict(cls, dct):
+        """Construct a Command object from a dictionary."""
         command = cls(**{k.lstrip('_'): v for k, v in dct.items()})
         return command
 
@@ -90,9 +91,7 @@ class Command(object):
 
 
 class ParallelCommand(Command):
-    """
-    An extension to the Command class for mpi-parallelized executables
-    """
+    """An extension to the Command class for mpi-parallelized executables."""
 
     def __init__(self, *args, **kwargs) -> None:
         self.mpi_command: str = ''
@@ -134,12 +133,11 @@ class ParallelCommand(Command):
 
 
 class ParallelCommandWithPostfix(ParallelCommand):
-    """
-    An extension to the Parallel Command class that supports Quantum ESPRESSO's $PARA_POSTFIX
-    """
+    """An extension to the Parallel Command class that supports Quantum ESPRESSO's $PARA_POSTFIX."""
 
     @property
     def flags(self) -> str:
+        """Return any flags that should be passed to the executable."""
         return (self.postfix + ' ' + self._flags).strip()
 
     @flags.setter

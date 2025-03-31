@@ -1,4 +1,5 @@
-from pathlib import Path
+
+# flake8: noqa: F401
 
 import pytest
 
@@ -12,6 +13,7 @@ from .helpers.systems import gaas, ozone, silicon, tio2, water, water_snapshots
 
 
 def pytest_addoption(parser):
+    """Add options to the pytest command line."""
     parser.addoption("--ci", action="store_true", default=False,
                      help="Run only those tests that do not require an installation of Quantum ESPRESSO")
     parser.addoption("--generate_benchmark", action="store_true", default=False, help="Generate new benchmark files")

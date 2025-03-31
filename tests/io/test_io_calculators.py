@@ -1,8 +1,4 @@
-'''
-
-Tests for koopmans.io._calculators
-
-'''
+"""Tests for `koopmans.io._calculators`."""
 
 import pytest
 
@@ -27,6 +23,7 @@ example_files = {KoopmansCPCalculator: 'kcp/ki_final',
 
 @pytest.mark.parametrize('calc_class,files', example_files.items())
 def test_read_calculator(calc_class, files, datadir):
+    """Test reading calculator files."""
     if isinstance(files, str):
         path = datadir / files
     else:

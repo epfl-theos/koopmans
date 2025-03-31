@@ -1,3 +1,1 @@
-"""
-Various utilities for supporting the test suite
-"""
+"""Various utilities for supporting the test suite."""

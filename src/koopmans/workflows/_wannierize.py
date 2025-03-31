@@ -1,4 +1,4 @@
-"""
+"""Wannierize workflow module for koopmans.
 
 Workflow module for koopmans, containing the workflow for generating maximally localized
 Wannier functions (MLWFs), using the Wannier90 code
@@ -8,24 +8,18 @@ Written by Riccardo De Gennaro Nov 2020
 """
 
 import copy
-import math
-import shutil
 from functools import partial
-from typing import (Any, Callable, Dict, Generator, List, Optional, Tuple,
-                    TypeVar)
-from pydantic import ConfigDict
+from typing import Any, Dict, List, Optional, TypeVar
 
-from ase_koopmans import Atoms
 from ase_koopmans.dft.kpoints import BandPath
 from ase_koopmans.spectrum.band_structure import BandStructure
 from ase_koopmans.spectrum.doscollection import GridDOSCollection
+from pydantic import ConfigDict
 
 # isort: off
-import koopmans.mpl_config
+import koopmans.mpl_config  # noqa: F401
 import matplotlib.pyplot as plt
 # isort: on
-
-import numpy as np
 
 from koopmans import calculators, projections, utils
 from koopmans.files import File
@@ -36,7 +30,6 @@ from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         merge_wannier_hr_file_contents,
                                         merge_wannier_u_file_contents)
 from koopmans.projections import BlockID
-from koopmans.pseudopotentials import nelec_from_pseudos, read_pseudo_file
 from koopmans.status import Status
 from koopmans.utils import SpinType
 
@@ -46,6 +39,8 @@ CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 
 
 class WannierizeOutput(IOModel):
+    """Output model for the WannierizeWorkflow."""
+
     band_structures: List[BandStructure]
     dos: Optional[GridDOSCollection] = None
     u_matrices_files: Dict[BlockID, File | None]
@@ -59,6 +54,11 @@ class WannierizeOutput(IOModel):
 
 
 class WannierizeWorkflow(Workflow[WannierizeOutput]):
+    """Workflow for Wannierizing an entire system using Quantum ESPRESSO and Wannier90.
+
+    The bands are possibly split into blocks of bands (separated in energy) that are Wannierized separately
+
+    """
 
     output_model = WannierizeOutput
 
@@ -133,12 +133,7 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
         self.parameters.functional = 'dft'
 
     def _run(self) -> None:
-        '''
-
-        Wrapper for the calculation of (maximally localized) Wannier functions
-        using PW and Wannier90
-
-        '''
+        """Run thw workflow."""
         # Run PW scf and nscf calculations
         # PWscf needs only the valence bands
         calc_scf = self.new_calculator('pw')
@@ -170,7 +165,8 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
             block_subworkflows: list[Workflow] = []
             for block in self.projections:
                 wannierize_block_subworkflow = WannierizeBlockWorkflow.fromparent(
-                    self, force_nspin2=self._force_nspin2, block=block, pw_outdir=File(calc_nscf, calc_nscf.parameters.outdir))
+                    self, force_nspin2=self._force_nspin2, block=block,
+                    pw_outdir=File(calc_nscf, calc_nscf.parameters.outdir))
                 wannierize_block_subworkflow.name = \
                     f'Wannierize {block.id.label.replace("_", " ").replace("block", "Block")}'
                 block_subworkflows.append(wannierize_block_subworkflow)
@@ -247,7 +243,8 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                 # For the last block (per spin channel), extend the U_dis matrix file if necessary
                 spins: List[SpinType] = ['up', 'down'] if self.parameters.spin_polarized else [None]
                 final_label_blocks = [
-                    [(block_id, block) for block_id, block in self.projections.to_merge.items() if block_id.spin == s][-1] for s in spins]
+                    [(block_id, block) for block_id, block in self.projections.to_merge.items()
+                     if block_id.spin == s][-1] for s in spins]
 
                 for block_id, block in final_label_blocks:
                     u_dis_file = None
@@ -293,8 +290,11 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
             calc_pw_bands.parameters.prefix += '_bands'
 
             # Link the save directory so that the bands calculation can use the old density
-            calc_pw_bands.link(File(calc_nscf, (calc_nscf.parameters.outdir / calc_nscf.parameters.prefix).with_suffix('.save')),
-                               (calc_pw_bands.parameters.outdir / calc_pw_bands.parameters.prefix).with_suffix('.save'))
+            src = File(calc_nscf, (calc_nscf.parameters.outdir / calc_nscf.parameters.prefix).with_suffix('.save'))
+            dst = (calc_pw_bands.parameters.outdir / calc_pw_bands.parameters.prefix).with_suffix('.save')
+            calc_pw_bands.link(src, dst)
+
+            # Run the bands calculation
             status = self.run_steps(calc_pw_bands)
             if status != Status.COMPLETED:
                 return
@@ -319,8 +319,8 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                            'calculation is not possible. Skipping...')
 
             # Select those calculations that generated a band structure (and are part of this wannierize workflow)
-            i_scf = [i for i, c in enumerate(self.calculations) if isinstance(c, calculators.PWCalculator)
-                     and c.parameters.calculation == 'scf'][-1]
+            i_scf = [i for i, c in enumerate(self.calculations) if isinstance(
+                c, calculators.PWCalculator) and c.parameters.calculation == 'scf'][-1]
             selected_calcs = [c for c in self.calculations[i_scf:-1]
                               if 'band structure' in c.results and c != calc_pw_bands]
 
@@ -328,7 +328,6 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
             pw_bands = calc_pw_bands.results['band structure']
 
             # Prepare the band structures for plotting
-            ax = None
             labels = ['explicit']
             for c in selected_calcs:
                 assert c.parent_process is not None
@@ -379,13 +378,17 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
         return
 
     def merge_wannier_files(self, block: List[projections.ProjectionBlock], filling_label: str, prefix: str = 'wann'):
+        """Merge various Wannier files for a block of bands.
+
+        This function merges hr (Hamiltonian), u (rotation matrix), and wannier centers files of a collection of blocks
+        that share the same filling and spin.
         """
-        Merges the hr (Hamiltonian), u (rotation matrix), and wannier centers files of a collection of blocks that
-        share the same filling and spin
-        """
+        raise NotImplementedError()
 
 
 class WannierizeBlockOutput(IOModel):
+    """Output model for the WannierizeBlockWorkflow."""
+
     hr_file: File | None = None
     centers_file: File | None = None
     u_matrices_file: File | None = None
@@ -395,6 +398,7 @@ class WannierizeBlockOutput(IOModel):
 
 
 class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
+    """Workflow that Wannierizes a block of bands using Wannier90."""
 
     output_model = WannierizeBlockOutput
 
@@ -427,7 +431,7 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
         calc_w90_pp: calculators.Wannier90Calculator = self.new_calculator(
             calc_type, init_orbitals=init_orbs, **self.block.w90_kwargs)
         calc_w90_pp.prefix = 'wannier90_preproc'
-        calc_w90_pp.command.flags = '-pp' 
+        calc_w90_pp.command.flags = '-pp'
         status = self.run_steps(calc_w90_pp)
         if status != Status.COMPLETED:
             return
@@ -442,8 +446,9 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
             return
 
         # 3) Wannier90 calculation
-        calc_w90: calculators.Wannier90Calculator = self.new_calculator(calc_type, init_orbitals=init_orbs,
-                                                                        bands_plot=self.parameters.calculate_bands, **self.block.w90_kwargs)
+        calc_w90: calculators.Wannier90Calculator = \
+            self.new_calculator(calc_type, init_orbitals=init_orbs,
+                                bands_plot=self.parameters.calculate_bands, **self.block.w90_kwargs)
         calc_w90.prefix = 'wannier90'
         for ext in ['.eig', '.amn', '.mmn']:
             calc_w90.link(File(calc_p2w, calc_p2w.parameters.seedname + ext), calc_w90.prefix + ext, symlink=True)
@@ -486,6 +491,7 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
         return
 
     def new_calculator(self, calc_type, *args, **kwargs) -> CalcExtType:  # type: ignore[type-var, misc]
+        """Create a new calculator, with some extra tweaks for Wannier90 calculations."""
         init_orbs = kwargs.pop('init_orbitals', None)
         calc: CalcExtType = super().new_calculator(calc_type, *args, **kwargs)
 

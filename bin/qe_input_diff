@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+"""Compare two QE input files."""
+
 import argparse
 
 from koopmans.calculators.kc_ham import KoopmansHamCalc

@@ -1,10 +1,4 @@
-"""
-Settings module for the UI calculator
-
-Originally written by Riccardo De Gennaro as part of the standalone 'unfolding and interpolate' code
-Integrated within koopmans by Edward Linscott Jan 2021
-
-"""
+"""Settings module for the UI calculator."""
 
 from pathlib import Path
 from typing import Any, List
@@ -62,6 +56,7 @@ valid_settings: List[Setting] = [
 
 
 class UnfoldAndInterpolateSettingsDict(SettingsDictWithChecks):
+    """Settings for the Koopmans unfolding and interpolation calculator."""
 
     def __init__(self, **kwargs):
         super().__init__(settings=valid_settings, **kwargs)
@@ -85,4 +80,5 @@ class UnfoldAndInterpolateSettingsDict(SettingsDictWithChecks):
 
     @property
     def do_smooth_interpolation(self):
+        """Return True if the smooth interpolation is used."""
         return any([f > 1 for f in self.smooth_int_factor])

@@ -67,8 +67,22 @@ docs = [
 [project.scripts]
 koopmans = "koopmans.cli.main:main"
 
+[tool.flake8]
+   max-line-length=120
+   ignore = [
+      "D105",
+      "D107",
+      "W503",
+      "E741",
+      "A003",
+      "A005",
+   ]
+   per-file-ignores = """
+      tutorials/**/*.py: E402
+   """
+
 [tool.mypy]
-ignore_missing_imports = true
+   ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 filterwarnings = [

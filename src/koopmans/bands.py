@@ -1,3 +1,5 @@
+"""Module that defines variational orbitals and their properties."""
+
 import itertools
 from typing import Dict, List, Optional, Union
 
@@ -5,10 +7,12 @@ import numpy as np
 import pandas as pd
 
 from koopmans.files import File
-from koopmans.utils import indented_print, warn
+from koopmans.utils import warn
 
 
 class Band(object):
+    """A class that defines a variational orbital. To be renamed from "Band" to "VariationalOrbital" in the future."""
+
     def __init__(self, index: Optional[int] = None, spin: int = 0, filled: bool = True, group: Optional[int] = None,
                  alpha: Optional[float] = None, error: Optional[float] = None, predicted_alpha: Optional[float] = None,
                  self_hartree: Optional[float] = None,
@@ -31,6 +35,7 @@ class Band(object):
 
     @classmethod
     def fromdict(cls, dct):
+        """Construct a Band object from a dictionary."""
         alpha_history = dct.pop('alpha_history')
         error_history = dct.pop('error_history')
         band = cls(**dct)
@@ -39,6 +44,7 @@ class Band(object):
         return band
 
     def todict(self) -> dict:
+        """Convert the Band object to a dictionary."""
         dct = self.__dict__
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
@@ -59,6 +65,7 @@ class Band(object):
 
     @property
     def alpha(self) -> Union[float, None]:
+        """The screening parameter for this variational orbital."""
         if len(self.alpha_history) == 0:
             raise AttributeError('Band does not have screening parameters')
         return self.alpha_history[-1]
@@ -71,6 +78,7 @@ class Band(object):
 
     @property
     def error(self):
+        """The error in piecewise linearity for this variational orbital."""
         if len(self.error_history) == 0:
             raise AttributeError('Band does not have error data')
         return self.error_history[-1]
@@ -83,6 +91,12 @@ class Band(object):
 
 
 class Bands(object):
+    """A class to store a list of Band objects.
+
+    N.B. this is a misnomer: these are in fact variational orbitals, not bands.
+    The class will be renamed in the near future.
+    """
+
     def __init__(self, n_bands: Union[int, List[int]], n_spin: int = 1, spin_polarized: bool = False,
                  tolerances: Dict[str, float] = {}, **kwargs):
         if isinstance(n_bands, int):
@@ -122,6 +136,7 @@ class Bands(object):
 
     @classmethod
     def fromdict(cls, dct):
+        """Construct a Bands object from a dictionary."""
         bands = dct.pop('_bands')
         obj = cls(**dct)
         obj._bands = bands
@@ -129,10 +144,11 @@ class Bands(object):
 
     @classmethod
     def fromlist(cls, bands: List[Band]):
+        """Construct a Bands object from a list of Band objects."""
         raise NotImplementedError('TODO')
-        # return bands
 
     def todict(self):
+        """Convert the Bands object to a dictionary."""
         dct = self.__dict__
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
@@ -140,6 +156,7 @@ class Bands(object):
 
     def get(self, spin: Optional[int] = None, filled: Optional[bool] = None, group: Optional[int] = None,
             to_solve: Optional[bool] = None) -> List[Band]:
+        """Return a list of bands that match the specified criteria."""
         if to_solve:
             selected_bands = self.to_solve
         else:
@@ -157,9 +174,11 @@ class Bands(object):
         return self._bands[key]
 
     def num(self, filled=None, spin=None):
+        """Return the number of bands that match the specified criteria."""
         return len(self.get(filled=filled, spin=spin))
 
     def index(self, band: Band) -> int:
+        """Return the index of the matching band."""
         if band not in self._bands:
             raise ValueError(f"{band} is not in Bands object")
         [i_match] = [i for i, b in enumerate(self._bands) if b == band]
@@ -170,10 +189,12 @@ class Bands(object):
             f'array of length {len(array)}'
         for i, (subarray, n_bands) in enumerate(zip(array, self.n_bands)):
             assert len(subarray) == n_bands, f'Bands.{array_name}[{i}] must be length {n_bands} but you provided an ' \
-                f'array with length {len(subarray)}. The file_alpharef files should reflect the number of states in the supercell.'
+                f'array with length {len(subarray)}. The file_alpharef files should reflect the number of states in ' \
+                'the supercell.'
 
     @property
     def filling(self) -> List[List[bool]]:
+        """Return a list of the filling of each band."""
         return [[b.filled for b in self if b.spin == i_spin] for i_spin in range(self.n_spin)]
 
     @filling.setter
@@ -184,10 +205,12 @@ class Bands(object):
 
     @property
     def indices(self):
+        """Return a list of the indices of each band."""
         return [[b.index for b in self if b.spin == i_spin] for i_spin in range(self.n_spin)]
 
     @property
     def groups(self):
+        """Return a list of the groups of each band."""
         return [[b.group for b in self if b.spin == i_spin] for i_spin in range(self.n_spin)]
 
     @groups.setter
@@ -196,15 +219,16 @@ class Bands(object):
         for b, v in zip(self, [v for subarray in value for v in subarray]):
             b.group = v
 
-    def assign_groups(self, sort_by: str = 'self_hartree', tol: Optional[float] = None, allow_reassignment: bool = False):
-        # Basic clustering algorithm for assigning groups
-
+    def assign_groups(self, sort_by: str = 'self_hartree', tol: Optional[float] = None,
+                      allow_reassignment: bool = False):
+        """Cluster the bands into groups based on the specified attribute."""
         if self.tolerances == {}:
             # Do not perform clustering
             return
 
         if sort_by not in self.tolerances:
-            return ValueError(f'Cannot sort bands according to {sort_by}; valid choices are' + '/'.join(self.tolerances.keys()))
+            return ValueError(f'Cannot sort bands according to {sort_by}; valid choices are'
+                              + '/'.join(self.tolerances.keys()))
 
         # By default use the settings provided when Bands() was initialized
         tol = tol if tol is not None else self.tolerances[sort_by]
@@ -277,16 +301,15 @@ class Bands(object):
                 b.group = match.group
 
         if tol != self.tolerances[sort_by]:
-            warn(f'It was not possible to group orbitals with the {sort_by} tolerance of {self.tolerances[sort_by]:.2e} eV. '
-                 f'A grouping was found for a tolerance of {tol:.2e} eV.\n'
+            warn(f'It was not possible to group orbitals with the {sort_by} tolerance of '
+                 f'{self.tolerances[sort_by]:.2e} eV. A grouping was found for a tolerance of {tol:.2e} eV.\n'
                  f'Try a larger tolerance to group more orbitals together')
 
         return
 
     @property
     def to_solve(self):
-        # Dynamically generate a list of bands that require solving explicitly
-
+        """Dynamically generate a list of bands that require solving explicitly."""
         # If groups have not been assigned...
         if None in [b.group for b in self]:
             if self.spin_polarized:
@@ -316,6 +339,7 @@ class Bands(object):
 
     @property
     def self_hartrees(self) -> List[float]:
+        """Return the self-Hartree energies for each band."""
         return [b.self_hartree for b in self]
 
     @self_hartrees.setter
@@ -326,20 +350,22 @@ class Bands(object):
 
     @property
     def predicted_alphas(self) -> List[List[float]]:
+        """Return the predicted screening parameters for each band."""
         return [[b.predicted_alpha for b in self if b.spin == i_spin] for i_spin in range(self.n_spin)]
 
     @property
     def power_spectrum(self) -> List[List[float]]:
+        """Return the power spectra of the bands."""
         return [b.power_spectrum for b in self]
 
     def update_attrib_with_history(self, name: str, value: Union[float, List[List[float]], np.ndarray, pd.DataFrame],
                                    group=None) -> None:
-        '''
-        Generic function for setting the band's screening parameters/errors to the value provided
+        """Set the band's screening parameters/errors to the value provided.
+
+        For this generic function,
          - "value" can be a scalar, a list, or a pandas DataFrame of the alpha_history
          - if "group" is provided then it applies this value to the orbitals belonging to this group only
-        '''
-
+        """
         if isinstance(value, pd.DataFrame):
             assert group is None, 'Cannot update only one group via a pandas DataFrame'
             if self.spin_polarized:
@@ -366,7 +392,10 @@ class Bands(object):
 
     @property
     def alphas(self):
-        # This returns the alpha values for the iteration number where we have alpha for all bands
+        """Return a list of screening parameters for each band.
+
+        Uses the most recent iteration for which all bands have a screening parameter.
+        """
         i = min([len(b.alpha_history) for b in self]) - 1
         if i == -1:
             raise AttributeError()
@@ -378,6 +407,7 @@ class Bands(object):
 
     @property
     def errors(self):
+        """Return a list of the errors of each band."""
         return [b.error for b in self]
 
     @errors.setter
@@ -385,10 +415,11 @@ class Bands(object):
         self.update_errors(value)
 
     def update_errors(self, value, group=None):
+        """Update the errors for the bands."""
         self.update_attrib_with_history('error', value)
 
     def _create_dataframe(self, attr, spin=None, only_to_solve=True) -> pd.DataFrame:
-        # Generate a dataframe containing the requested attribute, sorting the bands first by index, then by spin
+        """Generate a dataframe containing the requested attribute, sorting the bands first by index, then by spin."""
         if self.spin_polarized and spin is None:
             if only_to_solve:
                 blist = self.to_solve
@@ -414,10 +445,13 @@ class Bands(object):
         return df
 
     def alpha_history(self, spin=None) -> pd.DataFrame:
+        """Return a dataframe that contains the history of the screening parameters."""
         return self._create_dataframe('alpha_history', spin=spin)
 
     def error_history(self, spin=None) -> pd.DataFrame:
+        """Return a dataframe that contains the history of the errors."""
         return self._create_dataframe('error_history', spin=spin)
 
     def predicted_alpha_history(self, spin=None) -> pd.DataFrame:
+        """Return a dataframe that contains the history of the predicted screening parameters."""
         return self._create_dataframe('predicted_alpha', spin=spin)

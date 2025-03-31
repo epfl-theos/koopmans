@@ -1,40 +1,26 @@
-'''
-
-System I/O functions for koopmans.utils
-
-Written by Edward Linscott May 2020
-
-'''
+"""System I/O functions for `koopmans.utils`."""
 
 from __future__ import annotations
 
 import contextlib
 import os
 import shutil
-import subprocess
 from glob import glob
 from pathlib import Path
-from typing import (TYPE_CHECKING, List, Optional, Protocol, Union, cast,
-                    runtime_checkable)
+from typing import TYPE_CHECKING, Optional, Union
 
 if TYPE_CHECKING:
     from koopmans.engines import Engine
 
 
 def system_call(command: str, check_ierr: bool = True):
-    '''
-    Make a system call and check the exit code
-    '''
-
+    """Make a system call and check the exit code."""
     raise ValueError('System calls are no longer allowed')
-    ierr = subprocess.call(command, shell=True)
-    if ierr > 0 and check_ierr:
-        raise OSError(f'{command} exited with exit code {ierr}')
 
 
 def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True, exist_ok: bool = False,
             force: bool = False):
-    # Create a symlink of "src" at "dest"
+    """Create a symlink from "src" to "dest"."""
     if isinstance(src, str) and '*' in src:
         # Follow the syntax of ln, whereby ln -s src/* dest/ will create multiple links
         for src_file in glob(src):
@@ -80,6 +66,7 @@ def symlink(src: Union[str, Path], dest: Union[str, Path], relative: bool = True
 
 
 def symlink_tree(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool = False, force: bool = False):
+    """Create a symlink tree from "src" to "dest"."""
     if isinstance(src, str):
         src = Path(src)
     if isinstance(dest, str):
@@ -101,7 +88,7 @@ def symlink_tree(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool =
 
 
 def copy_file(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool = False):
-    # Copy a file from "src" to "dest"
+    """Copy a file from "src" to "dest"."""
     if '*' in str(src) or '?' in str(src):
         raise ValueError('Do not use wildcards in `utils.copy()`')
 
@@ -130,9 +117,11 @@ def copy_file(src: Union[str, Path], dest: Union[str, Path], exist_ok: bool = Fa
 
 
 def chdir_logic(path: Union[Path, str]):
-    # Allows for the context "with chdir(path)". All code within this
-    # context will be executed in the directory "path"
+    """Change the working directory.
 
+    Allows for the context "with chdir(path)". All code within this
+    context will be executed in the directory "path"
+    """
     # Ensure path is a Path object
     if not isinstance(path, Path):
         path = Path(path)
@@ -153,13 +142,13 @@ def chdir_logic(path: Union[Path, str]):
 
 @contextlib.contextmanager
 def chdir(path: Union[Path, str]):
+    """Return a context that changes the working directory (returns to the original directory when done)."""
     return chdir_logic(path)
 
 
 @contextlib.contextmanager
 def set_env(**environ):
-    """
-    Temporarily set the process environment variables.
+    """Temporarily set the process environment variables.
 
     :type environ: dict[str, unicode]
     :param environ: Environment variables to set
@@ -174,6 +163,7 @@ def set_env(**environ):
 
 
 def find_executable(program: Union[Path, str]) -> Optional[Path]:
+    """Find where the executable 'program' is located."""
     if isinstance(program, str):
         program = Path(program)
 
@@ -196,14 +186,18 @@ def find_executable(program: Union[Path, str]) -> Optional[Path]:
 
 
 class HasDirectory:
-    # This class will eventually be merged with the Process class
-    # For the moment it only contains information related to parent processes and directories. Once calculators and workflows
-    # have been transformed to have pydantic inputs and outputs then those classes will be able to inherit directly
-    # from Process
+    """A class that has a directory and a base directory.
+
+    This class will eventually be merged with the Process class
+    For the moment it only contains information related to parent processes and directories. Once calculators and
+    workflows have been transformed to have pydantic inputs and outputs then those classes will be able to inherit
+    directly from Process.
+    """
 
     __slots__ = ['parent_process', '_directory', '_base_directory', 'engine', '_directory_must_be_relative']
 
-    def __init__(self, parent_process: Optional[HasDirectory] = None, directory=None, base_directory=Path(), engine: Optional[Engine] = None,
+    def __init__(self, parent_process: Optional[HasDirectory] = None, directory=None, base_directory=Path(),
+                 engine: Optional[Engine] = None,
                  _directory_must_be_relative=False):
         self._base_directory: Optional[Path] = None
         self._directory: Optional[Path] = None
@@ -217,6 +211,7 @@ class HasDirectory:
 
     @property
     def directory(self) -> Path | None:
+        """Return the directory of the process."""
         return self._directory
 
     @directory.setter
@@ -231,16 +226,20 @@ class HasDirectory:
         # Sanity checks
         if value.is_absolute() and self._directory_must_be_relative:
             raise ValueError(
-                f'{self.__class__.__name__} directory must be a relative path (relative to {self.__class__.__name__},base directory)')
+                f'{self.__class__.__name__} directory must be a relative path '
+                f'(relative to {self.__class__.__name__},base directory)'
+            )
 
         self._directory = value
 
     @property
     def uid(self) -> str:
+        """Return the UID of the process."""
         return str(self.directory)
 
     @property
     def base_directory(self) -> Path | None:
+        """Return the base (i.e. root) directory of the entire workflow."""
         if self.parent_process:
             return self.parent_process.base_directory
         else:
@@ -256,6 +255,7 @@ class HasDirectory:
 
     @property
     def absolute_directory(self) -> Path | None:
+        """Return the absolute path of the directory."""
         if self.directory is None:
             return None
         if self.base_directory is None:
@@ -263,4 +263,5 @@ class HasDirectory:
         return self.base_directory / self.directory
 
     def directory_has_been_set(self) -> bool:
+        """Check if the directory has been set."""
         return self._directory is not None

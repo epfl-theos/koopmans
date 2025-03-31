@@ -1,19 +1,12 @@
-"""
+"""Generic I/O functions that koopmans.calculators and koopmans.workflows can import non-cyclically."""
 
-Generic I/O functions that koopmans.calculators and koopmans.workflows can import non-cyclically
-
-Written by Edward Linscott Jan 2020
-Moved into utils Sep 2021
-
-"""
 from __future__ import annotations
 
 import json
 import sys
 import textwrap
 from datetime import datetime
-from pathlib import Path
-from typing import IO, TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -26,17 +19,16 @@ from koopmans.cell import (cell_follows_qe_conventions, cell_to_parameters,
 
 if TYPE_CHECKING:
     from koopmans.files import File
-    from koopmans.engines import Engine
 
 from ._os import HasDirectory
 
+print_call_end = '\n'
+print_indent = 0
+previous_indent = 0
+
 
 def parse_dict(dct: Dict[str, Any]) -> Dict[str, Any]:
-    '''
-
-    Reads in a dict, formatting the values appropriately if they are not already
-
-    '''
+    """Read in a dict, formatting the values appropriately if they are not already."""
     settings: Dict[str, Any] = {}
     for k, v in dct.items():
         # Deal with bools separately since JSON strictly only will interpret
@@ -50,12 +42,13 @@ def parse_dict(dct: Dict[str, Any]) -> Dict[str, Any]:
         else:
             try:
                 settings[k] = json.loads(v)
-            except (TypeError, json.decoder.JSONDecodeError) as e:
+            except (TypeError, json.decoder.JSONDecodeError):
                 settings[k] = v
     return settings
 
 
 def construct_cell_parameters_block(atoms: Atoms) -> Dict[str, Any]:
+    """Construct a dictionary of cell parameters."""
     params: Dict[str, Any]
     if cell_follows_qe_conventions(atoms.cell):
         params = dict(**cell_to_parameters(atoms.cell))
@@ -66,6 +59,7 @@ def construct_cell_parameters_block(atoms: Atoms) -> Dict[str, Any]:
 
 
 def construct_atomic_positions_block(atoms: Atoms, crystal: bool = True) -> dict:
+    """Construct a dictionary of atomic positions and tags."""
     if len(set(atoms.get_tags())) > 1:
         labels = [s + str(t) if t > 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
     else:
@@ -81,21 +75,8 @@ def construct_atomic_positions_block(atoms: Atoms, crystal: bool = True) -> dict
     return dct
 
 
-def construct_atomic_species_block(atoms: Atoms) -> Dict[str, Any]:
-    labels: List[str] = atoms.get_chemical_symbols()
-    masses: List[float] = atoms.get_masses()
-    pseudopotentials = ['Si_ONCV_PBE-1.2.upf', 'Si_ONCV_PBE-1.2.upf']
-    species: List[List[Union[str, float]]] = []
-    for label, m, pp in zip(labels, masses, pseudopotentials):
-        line: List[Union[str, float]] = [label]
-        line.append(m)
-        line.append(pp)
-        species.append(line)
-
-    return {'species': species}
-
-
 def write_alpha_file(parent_process: HasDirectory, alphas: List[float], filling: List[bool]):
+    """Write the screening parameters to a file in the directory of `parent_process`."""
     from koopmans.files import File
 
     a_filled = [a for a, f in zip(alphas, filling) if f]
@@ -109,6 +90,7 @@ def write_alpha_file(parent_process: HasDirectory, alphas: List[float], filling:
 
 
 def read_alpha_file(parent_process: HasDirectory) -> List[float]:
+    """Read the alpha file and return the list of alphas."""
     alphas: List[float] = []
     for suffix in ['', '_empty']:
         fname = File(parent_process, f'file_alpharef{suffix}.txt')
@@ -121,7 +103,7 @@ def read_alpha_file(parent_process: HasDirectory) -> List[float]:
 
 
 def read_atomic_positions(atoms: Atoms, dct: Dict[str, Any]):
-
+    """Read the atomic positions from a dictionary and set them in the Atoms object."""
     pos_array = np.array(dct['positions'])
     symbols: List[str] = [label_to_symbol(p) for p in pos_array[:, 0]]
     tags = [label_to_tag(p) for p in pos_array[:, 0]]
@@ -155,6 +137,7 @@ def read_atomic_positions(atoms: Atoms, dct: Dict[str, Any]):
 
 
 def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
+    """Read the cell parameters from a dictionary and set them in the Atoms object."""
     cell = dct.pop('vectors', None)
     units = dct.pop('units', '')
     atoms.pbc = dct.pop('periodic', True)
@@ -179,12 +162,9 @@ def read_cell_parameters(atoms: Atoms, dct: Dict[str, Any]):
     return
 
 
-print_indent = 0
-print_call_end = '\n'
-previous_indent = 0
-
-
-def indented_print(text: str = '', indent: Optional[int] = None, style='body', parse_asterisks=True, flush=True, wrap=True, **kwargs: Any):
+def indented_print(text: str = '', indent: Optional[int] = None, style='body', parse_asterisks=True,
+                   flush=True, wrap=True, **kwargs: Any):
+    """Print text with indentation and optional wrapping following a particular "style"."""
     if sys.stdout.isatty():
         if style == 'heading' and '**' not in text:
             text = f'**{text}**'
@@ -193,8 +173,7 @@ def indented_print(text: str = '', indent: Optional[int] = None, style='body', p
                 text = text.replace('**', '\033[1m', 1).replace('**', '\033[0m', 1)
             while '*' in text:
                 text = text.replace('*', '\033[3m', 1).replace('*', '\033[0m', 1)
-    global print_indent
-    indent = print_indent if indent is None else indent
+    indent = 0 if indent is None else indent
     if style == 'body':
         _indented_print(text, indent=indent, flush=flush, wrap=wrap, **kwargs)
     elif style == 'heading':
@@ -205,9 +184,10 @@ def indented_print(text: str = '', indent: Optional[int] = None, style='body', p
 
 
 def _indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = '\n',
-                    flush: bool = False, initial_indent: str | None = None, subsequent_indent: str | None = None, wrap=True):
-    global print_call_end
-    global previous_indent
+                    flush: bool = False, initial_indent: str | None = None, subsequent_indent: str | None = None,
+                    wrap=True):
+    """Print text with indentation and optional wrapping."""
+    global previous_indent, print_call_end
     if indent < 0:
         indent = previous_indent
     for substring in text.split('\n'):
@@ -226,7 +206,7 @@ def _indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = 
 
 
 def print_alert(kind, message, header=None, indent=-1, **kwargs):
-    global previous_indent
+    """Print an alert message with a specific kind following markdown Github alerts."""
     allowed_kinds = {'note': "ℹ️ ", 'tip': "💡", 'important': "❕", 'warning': "🚨", 'caution': "❗"}
     if kind not in allowed_kinds:
         raise ValueError('`kind` must be one of ' + '/'.join(allowed_kinds.keys()))
@@ -250,7 +230,7 @@ def print_alert(kind, message, header=None, indent=-1, **kwargs):
 
 
 def generate_wannier_hr_file_contents(ham: np.ndarray, rvect: List[List[int]], weights: List[int]) -> str:
-
+    """Generate the contents of a wannier hr file."""
     nrpts = len(rvect)
     num_wann = np.size(ham, -1)
     expected_shape = (nrpts, num_wann, num_wann)
@@ -266,14 +246,14 @@ def generate_wannier_hr_file_contents(ham: np.ndarray, rvect: List[List[int]], w
         flines.append(''.join([f'{x:5d}' for x in weights[pos:pos + ints_per_line]]))
 
     for r, ham_block in zip(rvect, ham):
-        flines += [f'{r[0]:5d}{r[1]:5d}{r[2]:5d}{j+1:5d}{i+1:5d}{val.real:12.6f}{val.imag:12.6f}' for i,
+        flines += [f'{r[0]:5d}{r[1]:5d}{r[2]:5d}{j + 1:5d}{i + 1:5d}{val.real:12.6f}{val.imag:12.6f}' for i,
                    row in enumerate(ham_block) for j, val in enumerate(row)]
 
     return "\n".join(flines) + '\n'
 
 
 def parse_wannier_hr_file_contents(content: str) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
-    """ Parse the contents of a Hamiltonian file
+    """Parse the contents of a Hamiltonian file.
 
     Returns a tuple containing...
         - the hamiltonian (not reshaped, because we want to reshape different Hamiltonians differently)
@@ -281,14 +261,13 @@ def parse_wannier_hr_file_contents(content: str) -> Tuple[np.ndarray, np.ndarray
         - the list of weights
         - the number of wannier functions
     """
-
     lines = content.rstrip('\n').split('\n')
     if 'written on' in lines[0].lower():
         pass
     elif 'xml version' in lines[0]:
-        raise ValueError(f'The format of Hamiltonian file contents no longer supported')
+        raise ValueError('The format of Hamiltonian file contents no longer supported')
     else:
-        raise ValueError(f'The format of the Hamiltonian file contents are not recognized')
+        raise ValueError('The format of the Hamiltonian file contents are not recognized')
 
     # Read in the number of r-points and the number of Wannier functions
     nrpts = int(lines[2].split()[0])
@@ -323,10 +302,12 @@ def parse_wannier_hr_file_contents(content: str) -> Tuple[np.ndarray, np.ndarray
 
 
 def read_wannier_hr_file(src: File) -> Tuple[np.ndarray, np.ndarray, List[int], int]:
+    """Read a wannier hr file and return the contents as a tuple."""
     return parse_wannier_hr_file_contents(src.read_text())
 
 
 def parse_wannier_u_file_contents(content: str) -> Tuple[npt.NDArray[np.complex128], npt.NDArray[np.float64], int]:
+    """Parse the contents of a wannier u file."""
     lines = content.split('\n')
 
     nk, m, n = [int(x) for x in lines[1].split()]
@@ -346,7 +327,7 @@ def parse_wannier_u_file_contents(content: str) -> Tuple[npt.NDArray[np.complex1
 
 
 def generate_wannier_u_file_contents(umat: npt.NDArray[np.complex128], kpts: npt.NDArray[np.float64]) -> str:
-
+    """Generate the contents of a wannier u file."""
     flines = [f' Written on {datetime.now().isoformat(timespec="seconds")}']
     flines.append(''.join([f'{x:12d}' for x in umat.shape]))
 
@@ -360,6 +341,7 @@ def generate_wannier_u_file_contents(umat: npt.NDArray[np.complex128], kpts: npt
 
 
 def parse_wannier_centers_file_contents(content: str) -> Tuple[List[List[float]], Atoms]:
+    """Parse the contents of a wannier centers file."""
     centers = []
     symbols = []
     positions = []
@@ -374,6 +356,7 @@ def parse_wannier_centers_file_contents(content: str) -> Tuple[List[List[float]]
 
 
 def generate_wannier_centers_file_contents(centers: List[List[float]], atoms: Atoms) -> str:
+    """Generate the contents of a wannier centers file."""
     length = len(centers) + len(atoms)
 
     # Add the header

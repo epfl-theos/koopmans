@@ -1,8 +1,10 @@
+"""Testing the `koopmans.processes.wannier` module."""
+
 from pathlib import Path
 from typing import List
 
 import numpy as np
-import pytest
+import pytest  # noqa: F401
 
 from koopmans.engines.localhost import LocalhostEngine
 from koopmans.files import LocalFile
@@ -15,6 +17,7 @@ from koopmans.utils import (chdir, parse_wannier_hr_file_contents,
 
 
 def test_wannierize_merge_hr_file_contents(tmp_path, datadir):
+    """Test merging wannier_hr.dat files."""
     with chdir(tmp_path):
         filecontents = []
         for dir_in in sorted((datadir / 'w90').glob('occ_block*')):
@@ -35,6 +38,7 @@ def test_wannierize_merge_hr_file_contents(tmp_path, datadir):
 
 
 def test_merge_process(tmp_path):
+    """Test MergeProcess."""
     file1_contents = 'a\nb'
     file2_contents = 'c\nd'
     engine = LocalhostEngine()
@@ -59,6 +63,7 @@ def test_merge_process(tmp_path):
 
 
 def test_extend_wannier_u_dis_file_content(tmp_path, datadir):
+    """Test extending a wannier_u_dis.mat file."""
     with open(datadir / 'w90' / 'wannier90_u_dis.mat') as f:
         filecontent = f.read()
 
@@ -73,6 +78,7 @@ def test_extend_wannier_u_dis_file_content(tmp_path, datadir):
 
 
 def test_extend_process(tmp_path):
+    """Test ExtendProcess."""
     file1_contents = 'a\nb'
     extra_contents = 'c\nd'
     engine = LocalhostEngine()

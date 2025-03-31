@@ -1,28 +1,20 @@
-"""
-
-The process class defining the Unfolding & interpolating step
-
-"""
+"""The process class defining the Unfolding & interpolating step."""
 
 import copy
 import json
-import os
 from datetime import datetime
-from time import time
-from typing import List, Optional, Tuple, Type, Union
+from typing import List, Optional
 
 import numpy as np
 from ase_koopmans import Atoms
-from ase_koopmans.calculators.calculator import Calculator
 from ase_koopmans.dft.dos import DOS
-from ase_koopmans.geometry.cell import crystal_structure_from_cell
 from ase_koopmans.spectrum.band_structure import BandStructure
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 from pydantic import ConfigDict, Field
 
-from koopmans import calculators, utils
+from koopmans import utils
 from koopmans.files import File
-from koopmans.kpoints import Kpoints, kpath_to_dict
+from koopmans.kpoints import kpath_to_dict
 from koopmans.process_io import IOModel
 from koopmans.settings import (PlotSettingsDict,
                                UnfoldAndInterpolateSettingsDict)
@@ -33,6 +25,8 @@ from ._utils import crys_to_cart, extract_hr, latt_vect
 
 
 class UnfoldAndInterpolateInputs(IOModel):
+    """Input model for the `UnfoldAndInterpolateProcess`."""
+
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
 
     atoms: UIAtoms = \
@@ -64,12 +58,16 @@ class UnfoldAndInterpolateInputs(IOModel):
 
 
 class UnfoldAndInterpolateOutputs(IOModel):
+    """Output model for the `UnfoldAndInterpolateProcess`."""
+
     band_structure: BandStructure
     dos: Optional[DOS] = None
     model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
 
 
 class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndInterpolateOutputs]):
+    """Process for unfolding and interpolating the electronic bands from a supercell calculation."""
+
     __slots__ = Process.__slots__ + ['_centers', '_spreads', '_Rvec', '_hr',
                                      '_hr_smooth', '_hr_coarse', '_phases', '_wRs', '_Rsmooth', '_hk']
 
@@ -144,23 +142,20 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
         self.write_results()
 
     def parse_w90(self) -> None:
-        '''
-        centers : centers of WFs (in PC crystal units)
-        spreads : spreads of WFs (in Ang^2)
-        '''
+        """Parse the Wannier90 output file to obtain the centers and spreads of Wannier functions.
 
-        return
+        Deprecated in favor of passing these objects to the process directly.
+        """
+        raise ValueError("This function has been deprecated")
 
     def parse_hr(self) -> None:
-        """
-        parse_hr reads the hamiltonian file passed as argument and it sets it up
-        as self.hr. It also reads in the coarse and smooth Hamiltonians, if smooth
-        interploation is being performed
+        """Read the Hamiltonian file and set it up as self.hr.
+
+        Also reads in the coarse and smooth Hamiltonians, if smooth interpolation is being performed
 
         There is only one possible file format: the Wannier90 formatting. kcp files
         now also have this format. kc_occ_old and kc_emp_old have been deprecated.
         """
-
         # Read the Hamiltonian
         hr, rvect, _, nrpts = utils.read_wannier_hr_file(self.inputs.kc_ham_file)
 
@@ -190,8 +185,8 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
                     self.inputs.parameters.num_wann_sc, self.inputs.parameters.num_wann_sc)
                 self._hr_coarse = self._hr_coarse[:, :self.inputs.parameters.num_wann]
             else:
-                assert len(hr_coarse) == nrpts * \
-                    self.inputs.parameters.num_wann**2, f'Wrong number of matrix elements for hr_coarse {len(hr_coarse)}'
+                assert len(hr_coarse) == nrpts * self.inputs.parameters.num_wann**2, \
+                    f'Wrong number of matrix elements for hr_coarse {len(hr_coarse)}'
                 self._hr_coarse = np.array(hr_coarse, dtype=complex)
                 self._hr_coarse = self._hr_coarse.reshape(
                     nrpts, self.inputs.parameters.num_wann, self.inputs.parameters.num_wann)
@@ -212,16 +207,15 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
         return
 
     def parse_phases(self) -> None:
-        """
-        parse_phases gets the phases of WFs from the file 'wf_phases.dat'. If the file
-                     is not found a warning is print out and the WFs phases are ignored.
-        """
+        """Fetch the phases of the Wannier functions from the file 'wf_phases.dat'.
 
+        If the file is not found a warning is print out and the WFs phases are ignored.
+        """
         try:
             wf_phases_file = File(self, 'wf_phases.dat')
             content = wf_phases_file.read_text()
             lines = content.split('\n')
-            self._phases = [float(l.split()[0]) + float(l.split()[1]) * 1j for l in lines]
+            self._phases = [float(line.split()[0]) + float(line.split()[1]) * 1j for line in lines]
         except FileNotFoundError:
             if self.inputs.parameters.w90_input_sc:
                 utils.warn('file `wf_phases.dat` not found; phases are ignored')
@@ -229,9 +223,7 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
         return
 
     def write_results(self) -> None:
-        """
-        write_results calls write_bands and write_dos if the DOS was calculated
-        """
+        """Write the bands and DOS to disk."""
         self.write_bands()
 
         if self.inputs.parameters.do_dos:
@@ -240,12 +232,10 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
         return
 
     def write_bands(self) -> None:
-        """
-        write_bands prints the interpolated bands, in the QE format, in a file called
-                    'bands_interpolated.dat'.
-                    (see PP/src/bands.f90 around line 574 for the linearized path)
-        """
+        """Write the interpolated bands in a file called 'bands_interpolated.dat'.
 
+        See PP/src/bands.f90 around line 574 for the linearized path
+        """
         kvec = []
         for kpt in self.inputs.parameters.kpath.kpts:
             kvec.append(crys_to_cart(kpt, self.inputs.atoms.acell.reciprocal(), +1))
@@ -281,10 +271,7 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
         return
 
     def write_dos(self) -> None:
-        """
-        write_dos prints the DOS in a file called 'dos_interpolated.dat', in a format (E , DOS(E))
-
-        """
+        """Print the density of states in a file called 'dos_interpolated.dat'."""
         content = '# Written at ' + datetime.now().isoformat(timespec='seconds')
         dos = self.outputs.dos
         assert dos is not None
@@ -297,11 +284,10 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
         return
 
     def write_input(self, atoms: Atoms) -> None:
-        """
-        write_input writes out a JSON file containing the settings used for the calculation. This "input" file is
-        never actually used in a standard calculation, but it is useful for debugging
-        """
+        """Generate a JSON file containing the settings used for the calculation.
 
+        This "input" file is never actually used in a standard calculation, but it is useful for debugging purposes.
+        """
         settings = copy.deepcopy(self.inputs.parameters.data)
 
         # Remove the kpoints information from the settings dict
@@ -331,15 +317,7 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
         json_file.write_text(json.dumps(bigdct, indent=2))
 
     def interpolate(self):
-        """
-        interpolate is the main program in this module and it calls consecutively
-                    the three independent functions:
-                    - map_wannier
-                    - calc_bands
-                    - generate_dos
-
-        """
-
+        """Interpolate the electronic bands."""
         # Step 1: map the WFs
         if self.inputs.parameters.do_map:
             self.map_wannier()
@@ -356,10 +334,7 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
         return
 
     def map_wannier(self) -> None:
-        """
-        map_wannier builds the map |i> --> |Rn> between the WFs in the SC and in the PC.
-        """
-
+        """Build the map |i> --> |Rn> between the WFs in the SC and in the PC."""
         centers = []
         spreads = []
         index = []
@@ -404,15 +379,13 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
         return
 
     def calc_bands(self) -> BandStructure:
-        """
-        calc_bands interpolates the k-space hamiltonian along the input path, by Fourier
-                   transforming the Wannier hamiltonian H(R). The function generates two
-                   new attributes:
-                   - self.hk containing H(k) for any k-vector in the input path
-                   - self.results['band structure'] containing the interpolated electronic energies
+        """Interpolate the electronic bands along the input path by Fourier transforming the Wannier hamiltonian H(R).
 
+        The function generates two
+        new attributes:
+        - self.hk containing H(k) for any k-vector in the input path
+        - self.results['band structure'] containing the interpolated electronic energies
         """
-
         # when smooth interpolation is on, we remove the DFT part from hr
         hr = self._hr[:, :self.inputs.parameters.num_wann]
         if self.inputs.parameters.do_smooth_interpolation:
@@ -441,29 +414,26 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
         return BandStructure(self.inputs.parameters.kpath, [bands])
 
     def correct_phase(self) -> NDArray[np.complex128]:
-        """
-        correct_phase calculate the correct phase factor to put in the Fourier transform
-                      to get the interpolated k-space hamiltonian. The correction consists
-                      of finding the right distance, i.e. the right R-vector, considering
-                      also the BVK boundary conditions.
-                      if use_ws_distance=True, the function accounts also for the intracell
-                      distance between Wannier functions, otherwise only the intercell
-                      distances are considered.
+        """Deterime the phase factor to put in the Fourier transform to get the interpolated k-space hamiltonian.
 
-           IMPORTANT: the vectors must all be in crystal units otherwise the distances are
-                      not properly evaluated.
-        """
+        The correction consists of finding the right distance, i.e. the right R-vector, considering also the BVK
+        boundary conditions. If use_ws_distance=True, the function accounts also for the intracell distance between
+        Wannier functions, otherwise only the intercell distances are considered.
 
+        IMPORTANT: the vectors must all be in crystal units otherwise the distances are not properly evaluated.
+        """
         if self.inputs.parameters.use_ws_distance:
             # create an array containing all the distances between reference (R=0) WFs and all the other WFs:
             # 1) accounting for their positions within the unit cell
             wf_dist = np.concatenate([self._centers] * self.inputs.parameters.num_wann) \
-                - np.concatenate([[c] * self.inputs.parameters.num_wann_sc for c in self._centers[:self.inputs.parameters.num_wann]])
+                - np.concatenate([[c] * self.inputs.parameters.num_wann_sc
+                                  for c in self._centers[:self.inputs.parameters.num_wann]])
 
         else:
             # 2) considering only the distance between the unit cells they belong to
-            wf_dist = np.array(np.concatenate([[rvec] * self.inputs.parameters.num_wann for rvec in self._Rvec]).tolist()
-                               * self.inputs.parameters.num_wann)
+            wf_dist = np.array(
+                np.concatenate([[rvec] * self.inputs.parameters.num_wann for rvec in self._Rvec]).tolist()
+                * self.inputs.parameters.num_wann)
 
         # supercell lattice vectors
         Tvec = [np.array((i, j, k)) * self.inputs.parameters.kgrid for i in range(-1, 2)
@@ -481,16 +451,13 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
                     phase[ik, i] += np.exp(2j * np.pi * np.dot(kvect, Tvec[it]))
                 phase[ik, i] /= len(t_index)
 
-        phase_reshaped = phase.reshape(len(self.inputs.parameters.kpath.kpts), self.inputs.parameters.num_wann, len(self._Rvec),
-                                       self.inputs.parameters.num_wann)
+        phase_reshaped = phase.reshape(len(self.inputs.parameters.kpath.kpts), self.inputs.parameters.num_wann,
+                                       len(self._Rvec), self.inputs.parameters.num_wann)
         return np.transpose(phase_reshaped, axes=(0, 2, 3, 1))
 
 
 def generate_dos(band_structure: BandStructure, plotting_parameters: PlotSettingsDict, spin_polarized=False) -> DOS:
-    """
-    Generate the density of states using the DOS function from ASE
-    """
-
+    """Generate the density of states using the DOS function from ASE."""
     if spin_polarized:
         nspins = 2
         if band_structure.energies.shape[0] != 2:

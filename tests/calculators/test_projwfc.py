@@ -1,17 +1,17 @@
-import shutil
+"""Tests for `koopmans.calculators.projwfc`."""
+
 from pathlib import Path
 
-import pytest
+import pytest  # noqa: F401
 
-from koopmans import __path__ as koopmans_src
 from koopmans import utils, workflows
-from koopmans.engines.localhost import LocalhostEngine
 from koopmans.files import File, LocalFile
 from koopmans.io import read_pkl, write_pkl
 from tests.helpers.patches import benchmark_filename
 
 
 def test_generate_dos(silicon, tmp_path, datadir, pytestconfig):
+    """Test the generation of DOS files."""
     with utils.chdir(tmp_path):
         # Create a projwfc calculator to match the one that was used to generate the pdos files
         wf = workflows.DFTBandsWorkflow(

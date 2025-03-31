@@ -1,10 +1,10 @@
+"""A class for representing files in a general way by tethering them to a parent process."""
+
 from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generator, Union
-
-import numpy as np
+from typing import TYPE_CHECKING, Generator, Union
 
 from koopmans.utils import HasDirectory
 
@@ -15,15 +15,14 @@ logger = logging.getLogger(__name__)
 
 
 class File:
-    """ An abstract way of representing a file
+    """An abstract way of representing a file.
 
     Because a file may not exist locally (specifically, when koopmans is run with AiiDA), we need a way of
     referring to a file that is more general than an absolute path. This class achieves this by storing a
     file as a parent_process (which is a Process, Calculator, or some other object that exists in a directory known
     to koopmans/AiiDA) and a name (which is the path of the file relative to the parent_process's directory).
 
-    We also need to delegate file creation/modification/deletion to the engine
-
+    We also need to delegate file creation/modification/deletion to the engine.
     """
 
     def __init__(self, parent_process: HasDirectory, name: Union[str, Path]):
@@ -41,6 +40,7 @@ class File:
         return str(self.aspath())
 
     def aspath(self) -> Path:
+        """Return the File as a Path object."""
         if self.parent_process.directory is None:
             return self.name
         else:
@@ -48,59 +48,71 @@ class File:
 
     @property
     def parent(self) -> File:
+        """Return the parent directory."""
         return File(self.parent_process, self.name.parent)
 
     @property
     def parents(self) -> Generator[File, None, None]:
+        """Return a generator of all parent directories."""
         parent = self.parent
         while parent != self:
             yield parent
             parent = parent.parent
 
     def copy_to(self, dst: File, exist_ok=False):
+        """Copy this file to another."""
         assert self._engine is not None
         logger.info(f'Copying {self.aspath()} to {dst.aspath()}')
         self._engine.copy_file(self, dst, exist_ok=exist_ok)
 
-    def exists(self):
+    def exists(self) -> bool:
+        """Return true if the file exists."""
         assert self._engine is not None
         return self._engine.file_exists(self)
 
     def read_text(self) -> str:
+        """Read text from this file."""
         assert self._engine is not None
         logger.info(f'Reading text from {self.aspath()}')
         return self._engine.read_file(self, binary=False)
 
     def read_bytes(self) -> bytes:
+        """Read bytes from this file."""
         assert self._engine is not None
         logger.info(f'Reading bytes from {self.aspath()}')
         return self._engine.read_file(self, binary=True)
 
     def write_text(self, content: str):
+        """Write text to this file."""
         assert self._engine is not None
         logger.info(f'Writing text to {self.aspath()}')
         self._engine.write_file(content, self)
 
     def write_bytes(self, content: bytes):
+        """Write bytes to this file."""
         assert self._engine is not None
         logger.info(f'Writing bytes to {self.aspath()}')
         self._engine.write_file(content, self)
 
     def rglob(self, pattern: str) -> Generator[File, None, None]:
+        """Iterate over all files within this directory and its subdirectories that match the pattern."""
         assert self._engine is not None
         yield from self._engine.glob(self, pattern, recursive=True)
 
     def glob(self, pattern: str) -> Generator[File, None, None]:
+        """Iterate over all files within this directory that match the pattern."""
         assert self._engine is not None
         yield from self._engine.glob(self, pattern, recursive=False)
 
     def symlink_to(self, target: File, overwrite=False, recursive=False):
+        """Symbolically link this file to another file."""
         # Create a symbolic link at self that points to target
         assert self._engine is not None
         logger.info(f'Creating symlink from {self.aspath()} to {target.aspath()}')
         self._engine.link_file(target, self, overwrite=overwrite, recursive=recursive)
 
     def unlink(self):
+        """Remove this file/directory."""
         assert self._engine is not None
         if self.is_dir():
             self._engine.rmdir(self)
@@ -109,11 +121,13 @@ class File:
         logger.info(f'Removing {self.aspath()}')
 
     def mkdir(self, *args, **kwargs):
+        """Create this directory."""
         assert self._engine is not None
         logger.info(f'Creating directory {self.aspath()}')
         self._engine.mkdir(self, *args, **kwargs)
 
     def is_dir(self) -> bool:
+        """Return true if the file is a directory."""
         assert self._engine is not None
         return self._engine.file_is_dir(self)
 
@@ -121,10 +135,12 @@ class File:
         if not isinstance(other, File):
             return False
         # Note that we only check the parent_process's directory, not the parent_process details
-        return self.parent_process.absolute_directory == other.parent_process.absolute_directory and self.name == other.name
+        return self.parent_process.absolute_directory == other.parent_process.absolute_directory \
+            and self.name == other.name
 
     def __reduce__(self):
-        # We don't want to store the entire parent_process object in the database; we only need the directory information
+        # We don't want to store the entire parent_process object in the database; we only need the directory
+        # information
         if self.parent is None:
             dummy_parent = None
         else:
@@ -145,8 +161,11 @@ class File:
 
 
 class ParentProcessPlaceholder(HasDirectory):
-    # Placeholder parent_process for Files that don't have a Workflow/Process/Calculator as a parent_process OR for when we
-    # don't want to store the parent in the database
+    """Placeholder parent_process for Files that don't have a Workflow/Process/Calculator as a parent_process.
+
+    Also used when we don't want to store the parent in the database.
+    """
+
     def __init__(self, parent_process, directory, engine, **kwargs):
         super().__init__(parent_process, directory, engine=engine, _directory_must_be_relative=False, **kwargs)
 
@@ -155,6 +174,7 @@ class ParentProcessPlaceholder(HasDirectory):
 
     @classmethod
     def fromobj(cls, obj, replace_parents_with_placeholders=True):
+        """Create a ParentProcessPlaceholder from a Process/Calculator object."""
         if replace_parents_with_placeholders:
             if obj.parent_process is None:
                 parent_process = None
@@ -178,10 +198,12 @@ class ParentProcessPlaceholder(HasDirectory):
 
     @classmethod
     def frompath(cls, path: Path, engine: Engine | None = None):
+        """Create a ParentProcessPlaceholder from a path."""
         return cls(None, path, engine)
 
 
 def LocalFile(path: Path | str) -> File:
+    """Return a file object that does not have a parent_process, and is assumed to be on the local filesystem."""
     from koopmans.engines.localhost import LocalhostEngine
     path = path if isinstance(path, Path) else Path(path)
     engine = LocalhostEngine()

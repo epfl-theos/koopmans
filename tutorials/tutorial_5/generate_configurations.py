@@ -1,7 +1,9 @@
+"""Generate input configurations of water molecules."""
+
 import copy
 
 import numpy as np
-from ase import io
+from ase_koopmans import io
 
 np.random.seed(0)
 
@@ -14,7 +16,7 @@ trajectory = []
 for i in range(20):
     random_pertubation = np.random.normal(0, 1, (3, 3))
     new_perturbed_h2o = copy.deepcopy(unperturbed_h2o)
-    new_perturbed_h2o.positions += 0.1*random_pertubation
+    new_perturbed_h2o.positions += 0.1 * random_pertubation
     trajectory.append(new_perturbed_h2o)
 
 io.write('snapshots.gif', trajectory, interval=500, rotation='-100y,-10x')

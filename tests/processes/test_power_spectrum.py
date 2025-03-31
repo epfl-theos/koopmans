@@ -1,7 +1,9 @@
+"""Test the Processes for power spectrum decomposition."""
+
 from pathlib import Path
 
 import numpy as np
-import pytest
+import pytest  # noqa: F401
 from ase_koopmans import Atoms
 
 from koopmans import utils
@@ -13,7 +15,7 @@ from koopmans.processes.power_spectrum import (
 
 
 def test_extract_coefficients_from_xml_process(tmpdir, datadir, check_patch):
-
+    """Test `ExtractCoefficientsFromXMLProcess`."""
     with utils.chdir(tmpdir):
 
         # set up the test system
@@ -39,9 +41,11 @@ def test_extract_coefficients_from_xml_process(tmpdir, datadir, check_patch):
         total_density_xml = LocalFile(datadir / 'power_spectrum' / 'charge-density.xml')
         orbital_density_xml = LocalFile(datadir / 'power_spectrum' / 'orbital.occ.0.00001.xml')
 
-        process = ExtractCoefficientsFromXMLProcess(n_max=n_max, l_max=l_max, r_min=r_min, r_max=r_max, r_cut=r_cut,
-                                                    wannier_centers=centers, total_density_xml=total_density_xml,
-                                                    orbital_densities_xml=[orbital_density_xml], bands=bands_to_extract, cell=water.cell)
+        process = ExtractCoefficientsFromXMLProcess(
+            n_max=n_max, l_max=l_max, r_min=r_min, r_max=r_max, r_cut=r_cut,
+            wannier_centers=centers, total_density_xml=total_density_xml,
+            orbital_densities_xml=[orbital_density_xml], bands=bands_to_extract, cell=water.cell
+        )
 
         process.directory = Path()
         process.engine = LocalhostEngine()
@@ -50,6 +54,7 @@ def test_extract_coefficients_from_xml_process(tmpdir, datadir, check_patch):
 
 
 def test_compute_power_spectrum_process(tmpdir, datadir, check_patch):
+    """Test `ComputePowerSpectrumProcess`."""
     with utils.chdir(tmpdir):
 
         # set up the test system

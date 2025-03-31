@@ -1,11 +1,6 @@
-'''
+"""Outward-facing module for dealing with settings."""
 
-Outward-facing module for dealing with settings
-
-Written by Edward Linscott May 2020
-
-'''
-
+# flake8: noqa: F401
 from ._convergence import ConvergenceSettingsDict
 from ._engine import EngineSettingsDict
 from ._koopmans_cp import KoopmansCPSettingsDict

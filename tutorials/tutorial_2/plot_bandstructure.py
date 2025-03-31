@@ -1,3 +1,5 @@
+"""Plot the bandstructure of bulk silicon and extract the band gap."""
+
 from koopmans.io import read
 
 # Load the workflow object

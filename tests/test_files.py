@@ -1,3 +1,5 @@
+"""Tests for the `koopmans.files` module."""
+
 from pathlib import Path
 
 from koopmans.files import File
@@ -7,6 +9,7 @@ from koopmans.workflows import SinglepointWorkflow
 
 
 def test_file_reduce(water, tmp_path):
+    """Test the file reduce method."""
     with chdir(tmp_path):
         wf = SinglepointWorkflow(**water)
         wf.directory = Path()

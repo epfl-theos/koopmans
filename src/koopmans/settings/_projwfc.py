@@ -2,6 +2,8 @@ from ._utils import SettingsDict
 
 
 class ProjwfcSettingsDict(SettingsDict):
+    """Settings for a projwfc calculator."""
+
     def __init__(self, **kwargs) -> None:
 
         super().__init__(valid=['outdir', 'prefix', 'filpdos', 'deltae', 'degauss'],

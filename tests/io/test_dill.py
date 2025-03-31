@@ -1,3 +1,5 @@
+"""Test the pickling of objects using `koopmans.io`."""
+
 from pathlib import Path
 
 import pytest
@@ -10,8 +12,9 @@ paths = [base_directory / 'subpath/to/directory',
          base_directory.parent / 'path/that/is/not/a/subpath/of/base_directory/', Path('relative/path')]
 
 
-@ pytest.mark.parametrize('obj', paths)
+@pytest.mark.parametrize('obj', paths)
 def test_roundtrip_pkl_with_placeholder(obj, tmp_path):
+    """Test that objects can be pickled and unpickled using placeholders."""
     with chdir(tmp_path):
         write_pkl(obj, 'test.pkl', base_directory=base_directory)
 
@@ -20,8 +23,9 @@ def test_roundtrip_pkl_with_placeholder(obj, tmp_path):
         assert obj == new_obj
 
 
-@ pytest.mark.parametrize('obj', paths)
+@pytest.mark.parametrize('obj', paths)
 def test_roundtrip_pkl_without_placeholder(obj, tmp_path):
+    """Test that objects can be pickled and unpickled without placeholders."""
     with chdir(tmp_path):
         write_pkl(obj, 'test.pkl')
 

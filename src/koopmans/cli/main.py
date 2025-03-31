@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 
+"""Main Koopmans CLI."""
+
 import argparse
 import json
 import re
 import sys
-import textwrap
-import traceback
 from pathlib import Path
 
-import koopmans.mpl_config
+import koopmans.mpl_config  # noqa: F401
 from koopmans.engines import Engine, LocalhostEngine
-from koopmans.io import read, write
+from koopmans.io import read
 from koopmans.logging_config import setup_logging
-from koopmans.status import Status
 from koopmans.utils import print_alert
 
 DEFAULT_ENGINE = 'localhost'
@@ -27,7 +26,10 @@ def _custom_exception_hook(exception_type, exception_value, traceback):
 
 
 class ListPseudoAction(argparse.Action):
+    """An action to list the available pseudopotential libraries."""
+
     def __call__(self, parser, namespace, values, option_string=None):
+        """List the available pseudopotential libraries."""
         engine_name = getattr(namespace, 'engine', DEFAULT_ENGINE)
         engine_config = getattr(namespace, 'engine_config', None)
         engine = initialize_engine(engine_name, engine_config)
@@ -37,7 +39,10 @@ class ListPseudoAction(argparse.Action):
 
 
 class InstallPseudoAction(argparse.Action):
+    """An action to install a pseudopotential file."""
+
     def __call__(self, parser, namespace, values, option_string=None):
+        """Install a pseudopotential file."""
         engine_name = getattr(parser, 'engine', DEFAULT_ENGINE)
         engine_config = getattr(parser, 'engine_config', None)
         engine = initialize_engine(engine_name, engine_config)
@@ -50,7 +55,10 @@ class InstallPseudoAction(argparse.Action):
 
 
 class UninstallPseudoAction(argparse.Action):
+    """An action to uninstall a pseudopotential library."""
+
     def __call__(self, parser, namespace, values, option_string=None):
+        """Uninstall a pseudopotential library."""
         engine_name = getattr(namespace, 'engine', DEFAULT_ENGINE)
         engine_config = getattr(namespace, 'engine_config', None)
         engine = initialize_engine(engine_name, engine_config)
@@ -60,6 +68,7 @@ class UninstallPseudoAction(argparse.Action):
 
 
 def initialize_engine(engine_arg: str, engine_config: str | None) -> Engine:
+    """Initialize the engine based on the command line arguments."""
     if engine_arg == 'localhost':
         engine = LocalhostEngine()
     elif engine_arg == 'aiida':
@@ -76,6 +85,7 @@ def initialize_engine(engine_arg: str, engine_config: str | None) -> Engine:
 
 
 def main():
+    """Run the main Koopmans CLI."""
     from koopmans import __version__
 
     # Construct parser

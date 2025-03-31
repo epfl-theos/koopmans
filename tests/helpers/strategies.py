@@ -1,3 +1,5 @@
+"""Hypothesis strategies for generating objects (cells, kpoints, etc) for testing purposes."""
+
 from typing import Callable, List, Optional
 
 import numpy as np
@@ -5,15 +7,15 @@ from ase_koopmans.cell import Cell
 from ase_koopmans.dft.kpoints import BandPath
 from ase_koopmans.lattice import (BCC, BCT, CUB, FCC, HEX, MCL, MCLC, ORC,
                                   ORCC, ORCF, ORCI, RHL, TET, TRI,
-                                  BravaisLattice, UnconventionalLattice,
-                                  tri_angles_explanation)
-from hypothesis import assume, given, note, settings
+                                  BravaisLattice, UnconventionalLattice)
+from hypothesis import assume, note
 from hypothesis.strategies import (booleans, composite, decimals, floats,
                                    integers, lists)
 
 
 @composite
 def ase_cells(draw: Callable) -> Cell:
+    """Generate ASE cells."""
     # Define the strategies for drawing lengths and angles
     def lengths(min_value: float = 1.0):
         return decimals(min_value=min_value, max_value=min_value + 5.0, places=3).map(float)
@@ -61,14 +63,15 @@ def ase_cells(draw: Callable) -> Cell:
     assume(np.all(op == np.identity(3, dtype=int)))
 
     # Log these parameters so hypothesis can report them upon a failure
-    note('Generated a {lat_class} cell with ' +
-         ', '.join([f'{k}={v}' for k, v in parameters.items() if k in lat_class.parameters]))
+    parameter_strs = [f'{k}={v}' for k, v in parameters.items() if k in lat_class.parameters]
+    note('Generated a {lat_class} cell with ' + ', '.join(parameter_strs))
 
     return new_cell
 
 
 @composite
 def bandpaths(draw: Callable) -> BandPath:
+    """Generate band paths."""
     cell = draw(ase_cells())
     return cell.bandpath(eps=1e-12)
 
@@ -80,6 +83,7 @@ _offsets_nscf = lists(floats(min_value=0, max_value=1), min_size=3, max_size=3)
 
 @composite
 def _kpoints_via_bandpath(draw):
+    """Generate k-points via a `BandPath`."""
     from koopmans.kpoints import Kpoints
     gamma_only = draw(booleans())
     if gamma_only:
@@ -96,6 +100,7 @@ def _kpoints_via_bandpath(draw):
 
 @composite
 def _kpoints_via_pathstr(draw):
+    """Generate k-points via a path string."""
     from koopmans.kpoints import Kpoints
     gamma_only = draw(booleans())
     if gamma_only:

@@ -1,15 +1,15 @@
 """Defines Process, a class for abstractly representing a Workflow/Calculator/other operation.
 
-Inspired by CWL."""
+Inspired by the Common Workflow Language (CWL).
+"""
 
 import logging
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Generic, Tuple, Type, TypeVar
+from typing import Dict, Generic, Type, TypeVar
 
 import dill
-import numpy as np
 
 from koopmans import utils
 from koopmans.files import File
@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 
 
 class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
+    """Class that defines a Process.
+
+    This could be a Workflow, a Commandline tool, a calculator, etc.
+    """
 
     __slots__ = utils.HasDirectory.__slots__ + ['inputs', '_outputs', 'name', 'linked_files']
 
@@ -47,6 +51,7 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
         logger.info(f'with inputs={self.inputs.model_dump()}')
 
     def run(self):
+        """Run the process."""
         logger.info(f'Running {self.directory}')
         self._pre_run()
         self._run()
@@ -54,6 +59,7 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
 
     @property
     def outputs(self) -> OutputModel:
+        """Return the outputs of the process."""
         if self._outputs is None:
             raise ValueError('Process has no outputs because it has not been run yet')
         logger.info(f'Querying outputs of {self.directory}')
@@ -91,16 +97,19 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
         return out + ')'
 
     def dump_inputs(self):
+        """Dump the inputs of the process to the file system."""
         assert self.directory is not None
         dst = File(self, f'{self.name}_inputs.pkl')
         dst.write_bytes(dill.dumps(self.inputs))
 
     def dump_outputs(self):
+        """Dump the outputs of the process to the file system."""
         assert self.directory is not None
         dst = File(self, f'{self.name}_outputs.pkl')
         dst.write_bytes(dill.dumps(self.outputs))
 
     def load_outputs(self):
+        """Load the outputs of the process from the file system."""
         if self.directory is None:
             raise ValueError('Process directory must be set before attempting to load outputs')
         src = File(self, f'{self.name}_outputs.pkl')
@@ -108,6 +117,7 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
         self.outputs = dill.loads(content)
 
     def is_complete(self):
+        """Return True if the process has been run and the outputs have been saved."""
         if self.directory is None:
             raise ValueError('Process directory must be set before checking if it is complete')
         return (self.directory / f'{self.name}_outputs.pkl').exists()

@@ -1,11 +1,9 @@
-from typing import Any, List
-
-from koopmans import utils
-
 from ._utils import Setting, SettingsDictWithChecks
 
 
 class MLSettingsDict(SettingsDictWithChecks):
+    """Settings for the machine learning configuration."""
+
     def __init__(self, **kwargs) -> None:
         valid_settings = [
             Setting('train', 'train a machine learning model to predict the screening parameters',
@@ -14,7 +12,8 @@ class MLSettingsDict(SettingsDictWithChecks):
                     bool, False, (True, False)),
             Setting('predict', 'use a machine learning model to predict the screening parameters',
                     bool, False, (True, False)),
-            Setting('model_file', 'JSON file containing the ML model information (generated from a prior training calculation)',
+            Setting('model_file', 'JSON file containing the ML model information (generated from a '
+                    'prior training calculation)',
                     str, None, None),
             Setting('n_max',
                     'The maximum expansion coefficient n for radial basis functions',
