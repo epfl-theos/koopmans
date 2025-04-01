@@ -126,7 +126,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
         else:
             nocc = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials) // 2
             if all(self.atoms.pbc):
-                exclude_bands = self.calculator_parameters['w90'].get(
+                exclude_bands: List[int] = self.calculator_parameters['w90'].get(
                     'exclude_bands', [])
                 nocc -= len(exclude_bands)
                 ntot = self.projections.num_wann()
