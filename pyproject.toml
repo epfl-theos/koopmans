@@ -63,6 +63,10 @@ docs = [
     "numpydoc>=1.4.0",
     "sphinx-pyproject>=0.1.0",
 ]
+lint = [
+    "pylint",
+    "flake8",
+]
 
 [project.scripts]
 koopmans = "koopmans.cli.main:main"
