@@ -3,7 +3,6 @@
 """Main Koopmans CLI."""
 
 import argparse
-import json
 import re
 import sys
 from pathlib import Path
@@ -72,13 +71,15 @@ def initialize_engine(engine_arg: str, engine_config: str | None) -> Engine:
     if engine_arg == 'localhost':
         engine = LocalhostEngine()
     elif engine_arg == 'aiida':
-        from aiida_koopmans.engine.aiida import AiiDAEngine
-        if engine_config is not None:
-            with open(engine_config, 'r') as f:
-                engine_config = json.load(f)
-        else:
-            engine_config = None
-        engine = AiiDAEngine(configuration=engine_config)
+        raise NotImplementedError("AiiDA engine is not yet implemented")
+        # Uncomment the following lines once aiida_koopmans is available
+        # from aiida_koopmans.engine.aiida import AiiDAEngine
+        # if engine_config is not None:
+        #     with open(engine_config, 'r') as f:
+        #         engine_config = json.load(f)
+        # else:
+        #     engine_config = None
+        # engine = AiiDAEngine(configuration=engine_config)
     else:
         raise NotImplementedError(f"Unknown engine '{engine_arg}'")
     return engine
