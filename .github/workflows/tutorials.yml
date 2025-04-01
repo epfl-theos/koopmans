@@ -4,9 +4,17 @@ on:
    pull_request:
       branches:
          - master
+      paths:
+        - 'src/**'
+        - 'tutorials/**'
+        - 'tests/**'
    push:
       branches:
          - master
+      paths:
+        - 'src/**'
+        - 'tutorials/**'
+        - 'tests/**'
 
 jobs:
    test:
@@ -20,7 +28,7 @@ jobs:
          - name: Checkout
            uses: actions/checkout@v3
            with:
-              submodules: true
+              submodules: false
          - name: Set up Python
            uses: actions/setup-python@v4
            with:
