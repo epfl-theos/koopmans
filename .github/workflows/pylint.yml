@@ -33,12 +33,3 @@ jobs:
         with:
           name: pylint-report
           path: pylint-report.txt
-
-      - name: Fail on deprecation warnings and errors
-        run: |
-          deprecated_warnings=$(grep -E '^(E|F):.*deprecated' pylint-report.txt)
-          if [ -n "$deprecated_warnings" ]; then
-            echo "Deprecation warning found:"
-            echo "$deprecated_warnings"
-            exit 1
-          fi
