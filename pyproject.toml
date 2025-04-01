@@ -67,6 +67,9 @@ docs = [
 [project.scripts]
 koopmans = "koopmans.cli.main:main"
 
+[tool.pylint."FORMAT"]
+   max-line-length = 120
+
 [tool.flake8]
    max-line-length=120
    ignore = [
