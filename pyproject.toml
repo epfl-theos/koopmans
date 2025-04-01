@@ -67,8 +67,9 @@ docs = [
 [project.scripts]
 koopmans = "koopmans.cli.main:main"
 
-[tool.pylint."FORMAT"]
+[tool.pylint]
    max-line-length = 120
+   fail-on = ["W4901", "W4902", "W4903", "W4904", "W4905", "W4906", "W6001"]
 
 [tool.flake8]
    max-line-length=120
