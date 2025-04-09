@@ -75,7 +75,7 @@ def construct_atomic_positions_block(atoms: Atoms, crystal: bool = True) -> dict
     return dct
 
 
-def write_alpha_file(parent_process: HasDirectory, alphas: List[float], filling: List[bool]):
+def write_alpha_files(parent_process: HasDirectory, alphas: List[float], filling: List[bool]):
     """Write the screening parameters to a file in the directory of `parent_process`."""
     from koopmans.files import File
 
@@ -89,8 +89,19 @@ def write_alpha_file(parent_process: HasDirectory, alphas: List[float], filling:
         dst_file.write_text(content)
 
 
-def read_alpha_file(parent_process: HasDirectory) -> List[float]:
-    """Read the alpha file and return the list of alphas."""
+def read_alpha_file(alpha_file: File) -> List[float]:
+    """Read an alpha file and return the list of alphas."""
+    alphas: List[float] = []
+    if not alpha_file.exists():
+        raise FileNotFoundError(f'{alpha_file} does not exist')
+    flines = alpha_file.read_text().split('\n')
+    n_orbs = int(flines[0])
+    alphas += [float(line.split()[1]) for line in flines[1:n_orbs + 1]]
+    return alphas
+
+
+def read_alpha_files(parent_process: HasDirectory) -> List[float]:
+    """Read all alpha files and return the list of alphas."""
     from koopmans.files import File
 
     alphas: List[float] = []
@@ -98,9 +109,7 @@ def read_alpha_file(parent_process: HasDirectory) -> List[float]:
         fname = File(parent_process, f'file_alpharef{suffix}.txt')
         if not fname.exists():
             break
-        flines = fname.read_text().split('\n')
-        n_orbs = int(flines[0])
-        alphas += [float(line.split()[1]) for line in flines[1:n_orbs + 1]]
+        alphas += read_alpha_file(fname)
     return alphas
 
 
@@ -352,7 +361,8 @@ def parse_wannier_centers_file_contents(content: str) -> Tuple[List[List[float]]
         if line.startswith('X    '):
             centers.append([float(x) for x in line.split()[1:]])
         else:
-            symbols.append(line.split()[0])
+            lowercase_symbol = line.split()[0]
+            symbols.append(lowercase_symbol[0].upper() + lowercase_symbol[1:])
             positions.append([float(x) for x in line.split()[1:]])
     return centers, Atoms(symbols=symbols, positions=positions, pbc=True)
 

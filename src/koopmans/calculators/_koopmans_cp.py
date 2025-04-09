@@ -444,7 +444,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
         flat_alphas = [a for sublist in self.alphas for a in sublist]
         flat_filling = [f for sublist in self.filling for f in sublist]
-        utils.write_alpha_file(self, flat_alphas, flat_filling)
+        utils.write_alpha_files(self, flat_alphas, flat_filling)
 
     def read_alphas(self) -> List[List[float]]:
         """Read in file_alpharef.txt and file_alpharef_empty.txt from this calculation's directory.
@@ -456,7 +456,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             return [[]]
 
         assert self.directory is not None
-        flat_alphas = utils.read_alpha_file(self)
+        flat_alphas = utils.read_alpha_files(self)
 
         assert isinstance(self.parameters, settings.KoopmansCPSettingsDict)
 
