@@ -16,7 +16,7 @@ from koopmans.utils import print_alert
 DEFAULT_ENGINE = 'localhost'
 
 
-def _custom_exception_hook(exception_type, exception_value, traceback):
+def _custom_exception_hook(exception_type, exception_value, traceback):  # noqa: W0613
     # Adding spaces to the error name so that it is easier to read
     spaced_text = re.sub(r'([a-z])([A-Z])', r'\1 \2', exception_type.__name__)
     spaced_text = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1 \2', spaced_text)
@@ -151,13 +151,14 @@ def main():
         parser.exit()
 
     # Create the engine
+    engine = None
     if getattr(args, 'engine', None):
         engine = initialize_engine(args.engine, getattr(args, 'engine_config', None))
 
     # For koopmans pseudo list, perform the action and exit
     if args.command == 'pseudos':
         if hasattr(args, 'action'):
-            args.action.__call__(parser, args, None, None)
+            args.action(parser, args, None, None)
         else:
             pseudos_parser.print_help()
         parser.exit()
