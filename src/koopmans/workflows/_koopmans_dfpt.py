@@ -1,6 +1,5 @@
 """The workflow for performing KI and KIPZ calculations with kcw.x."""
 
-from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -9,7 +8,7 @@ from koopmans import pseudopotentials, utils
 from koopmans.bands import Bands
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
                                   Wann2KCCalculator, Wannier90Calculator)
-from koopmans.files import File
+from koopmans.files import File, LocalFile
 from koopmans.process_io import IOModel
 from koopmans.projections import BlockID
 from koopmans.status import Status
@@ -258,7 +257,10 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
             else:
                 # Load the alphas
                 if self.parameters.alpha_from_file:
-                    self.bands.alphas = [utils.read_alpha_file(Path())]
+                    alpha_file_occ = LocalFile("file_alpharef.txt")
+                    alpha_file_empty = LocalFile("file_alpharef.txt")
+                    self.bands.alphas = [utils.read_alpha_file(alpha_file_occ)
+                                         + utils.read_alpha_file(alpha_file_empty)]
                 else:
                     self.bands.alphas = self.parameters.alpha_guess
 
