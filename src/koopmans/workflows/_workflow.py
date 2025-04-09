@@ -101,7 +101,6 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
     name: str
     kpoints: Kpoints
     pseudopotentials: OrderedDict[str, UPFDict]
-    pseudo_dir: Path
     projections: ProjectionBlocks
     ml_model: Optional[AbstractMLModel]
     snapshots: List[Atoms]
