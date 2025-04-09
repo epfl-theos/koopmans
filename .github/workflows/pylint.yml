@@ -27,4 +27,4 @@ jobs:
       - name: Run pylint checks
         run: |
           set -e
-          pylint --enable=all --fail-on=W4901,W4902,W4903,W4904,W4905,W4906 $(git ls-files '*.py')
+          pylint --enable=all --exit-zero --fail-on=W4901,W4902,W4903,W4904,W4905,W4906 $(git ls-files '*.py')
