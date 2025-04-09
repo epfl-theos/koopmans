@@ -91,6 +91,8 @@ def write_alpha_file(parent_process: HasDirectory, alphas: List[float], filling:
 
 def read_alpha_file(parent_process: HasDirectory) -> List[float]:
     """Read the alpha file and return the list of alphas."""
+    from koopmans.files import File
+
     alphas: List[float] = []
     for suffix in ['', '_empty']:
         fname = File(parent_process, f'file_alpharef{suffix}.txt')
