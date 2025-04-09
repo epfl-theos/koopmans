@@ -257,8 +257,10 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
             else:
                 # Load the alphas
                 if self.parameters.alpha_from_file:
-                    alpha_file = LocalFile("file_alpharef.txt")
-                    self.bands.alphas = [utils.read_alpha_file(alpha_file)]
+                    alpha_file_occ = LocalFile("file_alpharef.txt")
+                    alpha_file_empty = LocalFile("file_alpharef.txt")
+                    self.bands.alphas = [utils.read_alpha_file(alpha_file_occ)
+                                         + utils.read_alpha_file(alpha_file_empty)]
                 else:
                     self.bands.alphas = self.parameters.alpha_guess
 
