@@ -24,7 +24,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install .[lint,test,docs]
-      - name: Run pylint checks
+      - name: Run pylint checks for deprecated code
         run: |
           set -e
-          pylint --enable=all --exit-zero --fail-on=W4901,W4902,W4903,W4904,W4905,W4906,R0401 $(git ls-files '*.py')
+          pylint --disable=all --enable=W4901,W4902,W4903,W4904,W4905,W4906 $(git ls-files '*.py')
