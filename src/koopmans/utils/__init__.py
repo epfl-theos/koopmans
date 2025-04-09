@@ -11,8 +11,9 @@ from ._io import (construct_atomic_positions_block,
                   parse_wannier_centers_file_contents,
                   parse_wannier_hr_file_contents,
                   parse_wannier_u_file_contents, print_alert, read_alpha_file,
-                  read_atomic_positions, read_cell_parameters,
-                  read_wannier_hr_file, write_alpha_file)
+                  read_alpha_files, read_atomic_positions,
+                  read_cell_parameters, read_wannier_hr_file,
+                  write_alpha_files)
 from ._misc import flatten, update_nested_dict
 from ._os import (HasDirectory, chdir, chdir_logic, copy_file, find_executable,
                   set_env, symlink, symlink_tree, system_call)

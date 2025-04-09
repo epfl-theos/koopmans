@@ -234,10 +234,10 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
     def read_alphas_from_file(self, directory: Path = Path()):
         """Read the contents of `file_alpharef.txt` and `file_alpharef_empty.txt`.
 
-        Since utils.read_alpha_file provides a flattened list of alphas so we must convert this
+        Since utils.read_alpha_files provides a flattened list of alphas so we must convert this
         to a nested list using convert_flat_alphas_for_kcp()
         """
-        flat_alphas = utils.read_alpha_file(self)
+        flat_alphas = utils.read_alpha_files(self)
         params = self.calculator_parameters['kcp']
         assert isinstance(params, KoopmansCPSettingsDict)
         alphas = convert_flat_alphas_for_kcp(flat_alphas, params)

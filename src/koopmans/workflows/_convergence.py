@@ -355,7 +355,7 @@ class ConvergenceWorkflow(Workflow[ConvergenceOutputs]):
                     # self.parameters.orbital_groups = master_orbital_groups + \
                     #     [master_orbital_groups[-1]
                     #         for _ in range(extra_orbitals)]
-                    # utils.write_alpha_file(directory=Path(), alphas=alphas, filling=filling)
+                    # utils.write_alpha_files(directory=Path(), alphas=alphas, filling=filling)
 
                 # Perform calculation
                 subwf.name += label
