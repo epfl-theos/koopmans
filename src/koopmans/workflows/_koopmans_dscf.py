@@ -557,6 +557,8 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
                         return
 
                     descriptors = psfit_workflow.outputs.descriptors
+                else:
+                    raise NotImplementedError()
             else:
                 descriptors = self._precomputed_descriptors
             for band, power_spectrum in zip(self.bands.to_solve, descriptors):

@@ -27,7 +27,8 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
     This could be a Workflow, a Commandline tool, a calculator, etc.
     """
 
-    __slots__ = utils.HasDirectory.__slots__ + ['inputs', '_outputs', 'name', 'linked_files']
+    __slots__ = utils.HasDirectory.__slots__ + ['inputs', '_outputs',
+                                                'name', 'linked_files', 'input_model', 'output_model']
 
     input_model: Type[InputModel]
     output_model: Type[OutputModel]

@@ -1350,6 +1350,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             ax_dos = axes[1]
         else:
             ax_bs = None
+            ax_dos = None
 
         # Plot the band structure
         defaults = {'colors': colors, 'emin': self.plotting.Emin, 'emax': self.plotting.Emax}

@@ -245,7 +245,7 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
             dxmod = float(np.linalg.norm(kvec[ik] - kvec[ik - 1]))
             if ik == 1:
                 dxmod_save = dxmod
-            if dxmod > 5 * dxmod_save:
+            elif dxmod > 5 * dxmod_save:
                 kx.append(kx[ik - 1])
             elif dxmod > 1.e-4:
                 kx.append(kx[ik - 1] + dxmod)
