@@ -28,7 +28,7 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
     """
 
     __slots__ = utils.HasDirectory.__slots__ + ['inputs', '_outputs',
-                                                'name', 'linked_files', 'input_model', 'output_model']
+                                                'name', 'linked_files']
 
     input_model: Type[InputModel]
     output_model: Type[OutputModel]
