@@ -103,7 +103,7 @@ class MyChronoStyle(UnsrtStyle):
 
     def __init__(self, *args, **kwargs):
         kwargs.update(sorting_style=ChronoSortingStyle, abbreviate_names=True)
-        return super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 pybtex.plugin.register_plugin('pybtex.style.formatting', 'chrono', MyChronoStyle)
@@ -114,7 +114,7 @@ class MyAbbrevPlainStyle(PlainStyle):
 
     def __init__(self, *args, **kwargs):
         kwargs.update(abbreviate_names=True)
-        return super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 pybtex.plugin.register_plugin('pybtex.style.formatting', 'plainabbrev', MyAbbrevPlainStyle)

@@ -101,7 +101,6 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
     name: str
     kpoints: Kpoints
     pseudopotentials: OrderedDict[str, UPFDict]
-    pseudo_dir: Path
     projections: ProjectionBlocks
     ml_model: Optional[AbstractMLModel]
     snapshots: List[Atoms]
@@ -1351,6 +1350,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             ax_dos = axes[1]
         else:
             ax_bs = None
+            ax_dos = None
 
         # Plot the band structure
         defaults = {'colors': colors, 'emin': self.plotting.Emin, 'emax': self.plotting.Emax}

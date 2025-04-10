@@ -27,6 +27,7 @@ class BlockID(BaseModel):
 
     # Set label to 'occ' or 'emp' if filled is set but label is not
     @model_validator(mode='before')
+    @classmethod
     def set_label_from_filled(cls, data: Any):
         """Construct a label (if it is not provided) from the filling and spin arguments."""
         if isinstance(data, dict):
