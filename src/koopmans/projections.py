@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import string
+from abc import ABC
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
 
 from ase_koopmans import Atoms
 from ase_koopmans.io.wannier90 import (list_to_formatted_str,
                                        num_wann_from_projections,
                                        proj_string_to_dict)
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import (BaseModel, ConfigDict, Field, computed_field,
+                      field_validator, model_validator)
+from wannier90_input.models.parameters import Projection
 
 from koopmans import calculators
 from koopmans.utils import Spin
@@ -31,8 +34,8 @@ class BlockID(BaseModel):
     def set_label_from_filled(cls, data: Any):
         if isinstance(data, dict):
             if data.get('filled', None) is not None and data.get('label', None) is None:
-                spin = data.get('spin', None)
-                spin_label = '_spin_' + spin if spin is not None else ''
+                spin = data.get('spin', Spin.NONE)
+                spin_label = f'_spin_{spin}' if spin != Spin.NONE else ''
                 data['label'] = 'occ' + spin_label if data['filled'] else 'emp' + spin_label
         return data
 
@@ -45,7 +48,7 @@ class BlockID(BaseModel):
             raise ValueError(f'The filling of block {str(self)} is not known')
 
 
-class ProjectionBlock(BaseModel):
+class ProjectionsBlock(BaseModel):
     # This simple object contains the projections, filling, and spin corresponding to a block of bands
 
     num_wann: int
@@ -63,7 +66,7 @@ class ProjectionBlock(BaseModel):
     def id(self):
         return BlockID(label=self.label, filled=self.filled, spin=self.spin)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.num_wann
 
     def __bool__(self):
@@ -71,41 +74,9 @@ class ProjectionBlock(BaseModel):
         return len(self) > 0
 
     def __eq__(self, other):
-        if isinstance(other, ProjectionBlock):
+        if isinstance(other, ProjectionsBlock):
             return self.__dict__ == other.__dict__
         return False
-
-    def todict(self) -> dict:
-        dct = {k: v for k, v in self.__dict__.items()}
-        dct.pop('w90_calc')
-        dct['__koopmans_name__'] = self.__class__.__name__
-        dct['__koopmans_module__'] = self.__class__.__module__
-        return dct
-
-    def split(self, groups: List[List[int]]) -> List[ProjectionBlock]:
-        # Sanity checking
-        band_indices = [i for group in groups for i in group]
-        if not len(band_indices) == len(set(band_indices)):
-            raise ValueError('The provided groups contain duplicate band indices')
-
-        assert self.include_bands is not None
-        if not set(band_indices) == set(self.include_bands):
-            raise ValueError('The provided groups do not span the same bands as this block of bands')
-
-        # Construct the sub-groups
-        blocks = []
-        for letter, include_bands in zip(string.ascii_lowercase, groups):
-            exclude_bands = [i for i in self.include_bands if i not in include_bands]
-            new_block = ProjectionBlock(num_wann=len(include_bands),
-                                        num_bands=len(include_bands) + len(exclude_bands),
-                                        spin=self.spin,
-                                        filled=self.filled,
-                                        label=self.label + letter if self.label else None,
-                                        include_bands=include_bands,
-                                        exclude_bands=exclude_bands)
-            blocks.append(new_block)
-
-        return blocks
 
     @property
     def w90_kwargs(self) -> Dict[str, Any]:
@@ -121,36 +92,79 @@ class ProjectionBlock(BaseModel):
             kwargs['spin'] = self.spin.value
         return kwargs
 
-    @classmethod
-    def fromdict(cls, dct):
-        return cls(**dct)
+
+class ImplicitProjectionsBlock(ProjectionsBlock):
+    """This class implements ProjectionsBlock with automated projections."""
+
+    def split(self, groups: List[List[int]]) -> List[ImplicitProjectionsBlock]:
+        # Sanity checking
+        band_indices = [i for group in groups for i in group]
+        if not len(band_indices) == len(set(band_indices)):
+            raise ValueError('The provided groups contain duplicate band indices')
+
+        assert self.include_bands is not None
+        if not set(band_indices) == set(self.include_bands):
+            raise ValueError('The provided groups do not span the same bands as this block of bands')
+
+        # Construct the sub-groups
+        blocks = []
+        for letter, include_bands in zip(string.ascii_lowercase, groups):
+            exclude_bands = [i for i in self.include_bands if i not in include_bands]
+            new_block = ImplicitProjectionsBlock(num_wann=len(include_bands),
+                                                 num_bands=len(include_bands) + len(exclude_bands),
+                                                 spin=self.spin,
+                                                 filled=self.filled,
+                                                 label=self.label + letter if self.label else None,
+                                                 include_bands=include_bands,
+                                                 exclude_bands=exclude_bands)
+            blocks.append(new_block)
+
+        return blocks
+
+    @property
+    def w90_kwargs(self) -> Dict[str, Any]:
+        # Returns the keywords to provide when constructing a new calculator corresponding to this block
+        kwargs = super().w90_kwargs
+        kwargs['auto_projections'] = True
+        return kwargs
 
 
-class ExplicitProjectionBlock(ProjectionBlock):
-    # This class extends ProjectionBlock to have explicit projections instead of simply num_wann
-    pass
+class ExplicitProjectionsBlock(ProjectionsBlock):
+    """This class extends ProjectionsBlock to have explicit projections instead of simply num_wann."""
+
+    projections: list[Projection]
+
+    @property
+    def w90_kwargs(self) -> Dict[str, Any]:
+        kwargs = super().w90_kwargs
+        kwargs['auto_projections'] = False
+        kwargs['projections'] = [p.dict() for p in self.projections]
+        return kwargs
 
 
-class ProjectionBlocks(object):
+ProjectionsBlockType = TypeVar('ProjectionsBlockType', bound=ProjectionsBlock)
+
+
+class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
     """
     This object is a collection of blocks of projections. In addition to the projections blocks themselves, it also
     stores system-wide properties such as how many extra conduction bands we have.
 
     Whenever a user queries self.blocks (e.g. when they iterate over this object) it will first propagate these
-    system-wide properties down to the individual ProjectionBlock objects. See self.blocks() for more details.
+    system-wide properties down to the individual ProjectionBlock objects. See self._populate_blocks() for more details.
     """
 
-    def __init__(self, blocks: List[ProjectionBlock], atoms: Atoms):
-        self._blocks = blocks
-        self._atoms = atoms
-        # This BandBlocks object must keep track of how many bands we have not belonging to any block
-        self.exclude_bands: Dict[Spin, List[int]] = {k: [] for k in Spin}
-        self.num_extra_bands: Dict[Spin, int] = {k: 0 for k in Spin}
-        self._num_occ_bands: Dict[Spin, int] = {}
+    blocks: list[ProjectionsBlockType]
+    atoms: Atoms
+    exclude_bands: Dict[Spin, List[int]] = Field(default_factory=lambda: {k: [] for k in Spin})
+    num_extra_bands: Dict[Spin, int | None] = Field(default_factory=lambda: {k: 0 for k in Spin})
+    num_occ_bands: Dict[Spin, int | None] = Field(default_factory=lambda: {k: None for k in Spin})
 
-    def __repr__(self):
-        out = 'ProjectionBlocks('
-        for b in self._blocks:
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    def __repr__(self) -> str:
+        out = self.__class__.__name__
+        for b in self.blocks:
             out += f'{b}\n                  '
         out = out.strip()
         out += ')'
@@ -158,22 +172,24 @@ class ProjectionBlocks(object):
 
     def __len__(self):
         # Count the number of non-empty "ProjectionBlock"s
-        return sum([1 for b in self._blocks if b])
+        self._populate_blocks()
+        return sum([1 for b in self.blocks if b])
 
     def __bool__(self):
         # Return true if this contains any non-empty "ProjectionBlock"s
         return len(self) > 0
 
     def __eq__(self, other):
-        if isinstance(other, ProjectionBlocks):
+        if isinstance(other, Projections):
             return self.__dict__ == other.__dict__
         return False
 
     def __getitem__(self, key):
+        self._populate_blocks()
         return self.blocks[key]
 
     def __setitem__(self, key, value):
-        self._blocks[key] = value
+        self.blocks[key] = value
 
     def divisions(self, spin: Spin) -> List[int]:
         # This algorithm works out the size of individual "blocks" in the set of bands
@@ -192,9 +208,7 @@ class ProjectionBlocks(object):
         assert len(excl_bands) == 0
         return divs
 
-    @property
-    def blocks(self):
-        # Before returning all the blocks, add more global information such as exclude_bands
+    def _populate_blocks(self):
         for spin in Spin:
             subset = self.get_subset(spin=spin)
             if len(subset) == 0:
@@ -227,33 +241,15 @@ class ProjectionBlocks(object):
                 spin_str = '' if spin == Spin.NONE else f'_spin_{spin.value}'
                 b.label = f'block_{iblock + 1}{spin_str}'
 
-        return self._blocks
-
     def __iter__(self):
+        # Before returning all the blocks, add more global information such as exclude_bands
+        self._populate_blocks()
+
         for b in self.blocks:
             yield b
 
-    @classmethod
-    def fromlist(cls,
-                 list_of_projections: List[List[Union[str, Dict[str, Any]]]],
-                 spins: List[Spin],
-                 atoms: Atoms):
-
-        if not all([isinstance(p, list) for p in list_of_projections]):
-            raise ValueError('`list_of_projections` must be a list of lists')
-        blocks: List[ProjectionBlock] = []
-        blocks += [ProjectionBlock(p, s) for p, s in zip(list_of_projections, spins) if len(p) > 0]
-
-        return cls(blocks, atoms)
-
-    @classmethod
-    def from_block_lengths(cls, lengths: List[int], spins: List[Spin], atoms: Atoms):
-        blocks: List[ProjectionBlock] = []
-        blocks += [ProjectionBlock(num_wann=nw, spin=s) for nw, s in zip(lengths, spins) if nw > 0]
-        return cls(blocks, atoms)
-
-    def get_subset(self, spin: Spin | str = 'both') -> List[ProjectionBlock]:
-        return [b for b in self._blocks if (spin == 'both' or b.spin == spin)]
+    def get_subset(self, spin: Spin | str = 'both') -> List[ProjectionsBlockType]:
+        return [b for b in self.blocks if (spin == 'both' or b.spin == spin)]
 
     def num_wann(self, spin: Spin | str = 'both') -> int:
         return sum([b.num_wann for b in self.get_subset(spin)])
@@ -261,37 +257,17 @@ class ProjectionBlocks(object):
     def num_bands(self, spin: Spin) -> int:
         nbands = self.num_wann(spin)
         nbands += len(self.exclude_bands[spin])
-        nbands += self.num_extra_bands[spin]
+        num_extra_bands = self.num_extra_bands[spin]
+        if num_extra_bands is None:
+            raise ValueError(f"`num_extra_bands` is not set for spin = {spin}")
+        nbands += num_extra_bands
         return nbands
 
     @property
-    def num_occ_bands(self):
-        return self._num_occ_bands
-
-    @num_occ_bands.setter
-    def num_occ_bands(self, value: Dict[Spin, int]):
-        self._num_occ_bands = value
-
-    def todict(self) -> dict:
-        dct: Dict[str, Any] = {k: v for k, v in self.__dict__.items()}
-        dct['__koopmans_name__'] = self.__class__.__name__
-        dct['__koopmans_module__'] = self.__class__.__module__
-        return dct
-
-    @classmethod
-    def fromdict(cls, dct):
-        new_bandblock = cls(dct.pop('_blocks'), dct.pop('_atoms'))
-        for k, v in dct.items():
-            if not hasattr(new_bandblock, k):
-                raise AttributeError(k)
-            setattr(new_bandblock, k, v)
-        return new_bandblock
-
-    @property
-    def to_merge(self) -> Dict[BlockID, List[ProjectionBlock]]:
+    def to_merge(self) -> Dict[BlockID, List[ProjectionsBlockType]]:
         # Group the blocks by their correspondence to occupied/empty bands, and by their spin
-        dct: Dict[BlockID, List[ProjectionBlock]] = {}
-        for block in self.blocks:
+        dct: Dict[BlockID, List[ProjectionsBlockType]] = {}
+        for block in self:
             try:
                 n_occ_bands = self.num_occ_bands[block.spin]
             except KeyError:
@@ -309,3 +285,26 @@ class ProjectionBlocks(object):
             else:
                 dct[block_id] = [block]
         return dct
+
+
+class ExplicitProjections(Projections[ExplicitProjectionsBlock]):
+
+    @classmethod
+    def fromlist(cls,
+                 list_of_projections: List[List[Union[str, Dict[str, Any]]]],
+                 spins: List[Spin],
+                 atoms: Atoms):
+
+        if not all([isinstance(p, list) for p in list_of_projections]):
+            raise ValueError('`list_of_projections` must be a list of lists')
+        blocks = [ExplicitProjectionsBlock(projections=p, spin=s, num_wann=num_wann_from_projections(
+            p, atoms)) for p, s in zip(list_of_projections, spins) if len(p) > 0]
+        return cls(blocks=blocks, atoms=atoms)
+
+
+class ImplicitProjections(Projections[ImplicitProjectionsBlock]):
+
+    @classmethod
+    def from_block_lengths(cls, lengths: List[int], spins: List[Spin], atoms: Atoms):
+        blocks = [ImplicitProjectionsBlock(num_wann=nw, spin=s) for nw, s in zip(lengths, spins) if nw > 0]
+        return cls(blocks=blocks, atoms=atoms)

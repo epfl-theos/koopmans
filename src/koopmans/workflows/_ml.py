@@ -4,9 +4,9 @@ Written by Yannick Schubert Jul 2022
 import os
 from pathlib import Path
 from typing import Any, Dict, Generator, List, Tuple
-from pydantic import ConfigDict
 
 import numpy as np
+from pydantic import ConfigDict
 from sklearn.metrics import mean_absolute_error as mae
 
 from koopmans import calculators, ml, utils
@@ -92,7 +92,9 @@ class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionOutp
         # Convert the binary files to xml format
         bin2xml_workflow = ConvertOrbitalFilesToXMLWorkflow.fromparent(
             self, calc_that_produced_orbital_densities=self.calc_that_produced_orbital_densities)
-        bin2xml_workflow.run()
+        status = bin2xml_workflow.proceed()
+        if status != Status.COMPLETED:
+            return
 
         # Extract the coefficients from the xml files
         if self.parameters.spin_polarized:
@@ -176,7 +178,8 @@ class ConvertOrbitalFilesToXMLWorkflow(Workflow[ConvertOrbitalFilesToXMLOutput])
                 occ_id = 'occ'
             else:
                 occ_id = 'emp'
-            binary = self.calc_that_produced_orbital_densities.write_directory / f'real_space_orb_density.{occ_id}.{band.spin}.{band.index:05d}.dat'
+            binary = self.calc_that_produced_orbital_densities.write_directory / \
+                f'real_space_orb_density.{occ_id}.{band.spin}.{band.index:05d}.dat'
 
             bin2xml_orbital_density = Bin2XMLProcess(
                 name=f'bin2xml_{occ_id}_spin_{band.spin}_orb_{band.index}_density', binary=binary)

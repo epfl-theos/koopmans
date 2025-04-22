@@ -109,6 +109,8 @@ def write_alpha_file(parent_process: HasDirectory, alphas: List[float], filling:
 
 
 def read_alpha_file(parent_process: HasDirectory) -> List[float]:
+    from koopmans.files import File
+
     alphas: List[float] = []
     for suffix in ['', '_empty']:
         fname = File(parent_process, f'file_alpharef{suffix}.txt')
@@ -368,7 +370,8 @@ def parse_wannier_centers_file_contents(content: str) -> Tuple[List[List[float]]
         if line.startswith('X    '):
             centers.append([float(x) for x in line.split()[1:]])
         else:
-            symbols.append(line.split()[0])
+            symbol = line.split()[0]
+            symbols.append(symbol[0].upper() + symbol[1:])
             positions.append([float(x) for x in line.split()[1:]])
     return centers, Atoms(symbols=symbols, positions=positions, pbc=True)
 

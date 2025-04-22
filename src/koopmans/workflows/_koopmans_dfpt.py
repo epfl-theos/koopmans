@@ -13,13 +13,14 @@ from typing import Dict, List, Optional
 import numpy as np
 
 from koopmans import pseudopotentials, utils
-from koopmans.bands import Bands
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
                                   Wann2KCCalculator, Wannier90Calculator)
 from koopmans.files import File
 from koopmans.process_io import IOModel
 from koopmans.projections import BlockID
 from koopmans.status import Status
+from koopmans.utils import Spin
+from koopmans.variational_orbitals import VariationalOrbitals
 
 from ._dft import DFTPWWorkflow
 from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
@@ -123,9 +124,9 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                 val = self.parameters.get(f'orbital_groups_{key}_tol', None)
                 if val is not None:
                     tols[key] = val
-            self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2,
-                               spin_polarized=self.parameters.spin_polarized,
-                               filling=filling, groups=self.parameters.orbital_groups, tolerances=tols)
+            self.bands = VariationalOrbitals(n_bands=[len(f) for f in filling], n_spin=2,
+                                             spin_polarized=self.parameters.spin_polarized,
+                                             filling=filling, groups=self.parameters.orbital_groups, tolerances=tols)
         else:
             nocc = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials) // 2
             if all(self.atoms.pbc):
@@ -143,8 +144,8 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                 val = self.parameters.get(f'orbital_groups_{key}_tol', None)
                 if val is not None:
                     tols[key] = val
-            self.bands = Bands(n_bands=nocc + nemp, filling=filling,
-                               groups=self.parameters.orbital_groups, tolerances=tols)
+            self.bands = VariationalOrbitals(n_bands=nocc + nemp, filling=filling,
+                                             groups=self.parameters.orbital_groups, tolerances=tols)
 
         # Populating kpoints if absent
         if not all(self.atoms.pbc):
@@ -189,7 +190,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                 c, PWCalculator) and c.parameters.calculation == 'nscf'][-1]
 
             # Populate a list of files to link to subsequent calculations
-            spins = ['up', 'down'] if self.parameters.spin_polarized else [None]
+            spins = [Spin.UP, Spin.DOWN] if self.parameters.spin_polarized else [Spin.NONE]
             for spin in spins:
                 wannier_files_to_link_by_spin.append({})
                 for filled in [True, False]:

@@ -48,7 +48,6 @@ from ase_koopmans.spectrum.dosdata import GridDOSData
 from upf_tools import UPFDict
 
 from koopmans import calculators, settings, utils
-from koopmans.bands import Bands
 from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.engines import Engine, LocalhostEngine
 from koopmans.files import File, LocalFile, ParentProcessPlaceholder
@@ -58,13 +57,14 @@ from koopmans.process_io import IOModel
 from koopmans.processes import Process, ProcessProtocol
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
-from koopmans.projections import ExplicitProjectionBlock, ProjectionBlocks
+from koopmans.projections import ExplicitProjections, Projections
 from koopmans.pseudopotentials import (element_from_pseudo_filename,
                                        nelec_from_pseudos, nwfcs_from_pseudos,
                                        pseudopotential_library_citations)
 from koopmans.references import bib_data
 from koopmans.status import Status
 from koopmans.utils import Spin
+from koopmans.variational_orbitals import VariationalOrbitals
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 W = TypeVar('W', bound='Workflow')
@@ -115,7 +115,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
     kpoints: Kpoints
     pseudopotentials: OrderedDict[str, UPFDict]
     pseudo_dir: Path
-    projections: ProjectionBlocks
+    projections: Projections
     ml_model: Optional[AbstractMLModel]
     snapshots: List[Atoms]
     version: str
@@ -135,7 +135,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                  engine: Engine,
                  pseudopotentials: OrderedDict[str, UPFDict | str] = OrderedDict(),
                  kpoints: Optional[Kpoints] = None,
-                 projections: Optional[ProjectionBlocks] = None,
+                 projections: Optional[Projections] = None,
                  name: Optional[str] = None,
                  parameters: Union[Dict[str, Any], settings.WorkflowSettingsDict] = {},
                  calculator_parameters: Optional[Union[Dict[str, Dict[str, Any]],
@@ -178,7 +178,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         self.calculations: List[calculators.Calc] = []
         self.processes: List[Process] = []
         self.steps: List = []
-        self._bands: Optional[Bands] = None
+        self._bands: Optional[VariationalOrbitals] = None
 
         if projections is None:
             proj_list: List[List[str]]
@@ -381,7 +381,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 # num_wann = [nwfcs_from_projectors(self.atoms, self.pseudopotentials) for _ in spins]
             else:
                 num_wann = [nwfcs_from_pseudos(self.atoms, self.pseudopotentials) for _ in spins]
-            self.projections = ProjectionBlocks.from_block_lengths(num_wann, spins, self.atoms)
+            self.projections = Projections.from_block_lengths(num_wann, spins, self.atoms)
 
             # Also override various pw2wannier and w90 settings
             self.calculator_parameters['pw2wannier'].atom_proj = True
@@ -1028,12 +1028,12 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         return wf
 
     @property
-    def bands(self) -> Bands | None:
+    def bands(self) -> VariationalOrbitals | None:
         return self._bands
 
     @bands.setter
-    def bands(self, value: Bands):
-        assert isinstance(value, Bands)
+    def bands(self, value: VariationalOrbitals):
+        assert isinstance(value, VariationalOrbitals)
         self._bands = value
 
     @classmethod
@@ -1144,7 +1144,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
         # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
         # object but it is provided in the w90 subdictionary)
-        kwargs['projections'] = ProjectionBlocks.fromlist(w90_block_projs, w90_block_spins, atoms)
+        if w90_block_projs:
+            kwargs['projections'] = ExplicitProjections.fromlist(w90_block_projs, w90_block_spins, atoms)
 
         kwargs['pseudopotentials'] = bigdct.pop('pseudopotentials', {})
 

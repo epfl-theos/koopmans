@@ -17,7 +17,6 @@ from ase_koopmans.dft import DOS
 from pydantic import ConfigDict
 
 from koopmans import utils
-from koopmans.bands import Band, Bands
 from koopmans.calculators import (KoopmansCPCalculator, PWCalculator,
                                   convert_flat_alphas_for_kcp)
 from koopmans.files import File
@@ -28,6 +27,8 @@ from koopmans.projections import BlockID
 from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.status import Status
 from koopmans.utils import Spin
+from koopmans.variational_orbitals import (VariationalOrbital,
+                                           VariationalOrbitals)
 
 from ._folding import FoldToSupercellWorkflow
 from ._koopmans_cp_with_spin_swap import KoopmansCPWithSpinSwapWorkflow
@@ -198,8 +199,8 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
             val = self.parameters.get(f'orbital_groups_{key}_tol', None)
             if val is not None:
                 tols[key] = val
-        self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2, spin_polarized=self.parameters.spin_polarized,
-                           filling=filling, groups=groups, tolerances=tols)
+        self.bands = VariationalOrbitals(n_bands=[len(f) for f in filling], n_spin=2, spin_polarized=self.parameters.spin_polarized,
+                                         filling=filling, groups=groups, tolerances=tols)
 
         if self.parameters.alpha_from_file:
             # Reading alpha values from file
@@ -656,7 +657,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
 
     output_model = OrbitalDeltaSCFOutputs
 
-    def __init__(self, band: Band, trial_calc: KoopmansCPCalculator,
+    def __init__(self, band: VariationalOrbital, trial_calc: KoopmansCPCalculator,
                  dummy_outdir: File | None, i_sc: int,
                  alpha_indep_calcs: List[KoopmansCPCalculator],
                  **kwargs):
@@ -854,7 +855,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
     def calculate_alpha_from_list_of_calcs(self,
                                            calcs: List[KoopmansCPCalculator],
                                            trial_calc: KoopmansCPCalculator,
-                                           band: Band,
+                                           band: VariationalOrbital,
                                            filled: bool = True) -> Tuple[float, float]:
         '''
 

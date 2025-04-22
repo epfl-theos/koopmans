@@ -5,7 +5,7 @@ import pytest
 from ase_koopmans import Atoms
 
 from koopmans import utils
-from koopmans.bands import Bands
+from koopmans.bands import VariationalOrbitals
 from koopmans.engines.localhost import LocalhostEngine
 from koopmans.files import LocalFile
 from koopmans.processes.power_spectrum import (
@@ -30,7 +30,7 @@ def test_extract_coefficients_from_xml_process(tmpdir, datadir, check_patch):
 
         # say which bands we want to extract
         n_bands = 1
-        bands_to_extract = Bands(n_bands=n_bands, n_spin=1, spin_polarized=False)
+        bands_to_extract = VariationalOrbitals(n_bands=n_bands, n_spin=1, spin_polarized=False)
 
         # provide the Wannier centers for the decomposition
         centers = np.array([[3.159166, -3.286943, -3.412441]])

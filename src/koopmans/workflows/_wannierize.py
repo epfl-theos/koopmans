@@ -39,7 +39,7 @@ from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         merge_wannier_u_file_contents)
 from koopmans.processes.wjl import (WannierJLCheckNNKPProcess,
                                     WannierJLGenerateCubicNNKPProcess)
-from koopmans.projections import BlockID, ProjectionBlock
+from koopmans.projections import BlockID, ProjectionsBlock
 from koopmans.pseudopotentials import nelec_from_pseudos, read_pseudo_file
 from koopmans.status import Status
 from koopmans.utils import Spin
@@ -187,6 +187,14 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
                 and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
 
+            # Store the number of electrons for each spin channel in self.projections. It needs to know this
+            # to work out which bands to merge with one another.
+            for spin in Spin:
+                nelec = self.number_of_electrons(spin)
+                if spin == Spin.NONE:
+                    nelec //= 2
+                self.projections.num_occ_bands[spin] = nelec
+
             block_subworkflows: list[Workflow] = []
             for block in self.projections:
                 # Check if the block should be split. It will be split if...
@@ -197,9 +205,17 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                     n_occ_bands //= 2
                 bs = calc_pw_bands.results['band structure']
                 ispin = 1 if block.spin == Spin.DOWN else 0
-                groups = detect_band_blocks(bs._energies[ispin, :, :self.projections.num_wann(block.spin)],
-                                            tol=self.parameters.block_wannierization_threshold,
-                                            num_occ_bands=n_occ_bands)
+                all_groups = detect_band_blocks(bs._energies[ispin, :, :self.projections.num_wann(block.spin)],
+                                                tol=self.parameters.block_wannierization_threshold,
+                                                num_occ_bands=n_occ_bands)
+
+                # Restrict the groups to only those bands that are in this particular block
+                groups = []
+                for group in all_groups:
+                    # Calculate the overlap with the bands of this block
+                    overlap = [g for g in group if g in block.include_bands]
+                    if overlap:
+                        groups.append(overlap)
 
                 # Construct the subworkflow
                 kwargs = {}
@@ -224,7 +240,7 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                 block_subworkflows.append(subworkflow)
 
             for wf in block_subworkflows:
-                wf.run()
+                wf.proceed()
             if any([wf.status != Status.COMPLETED for wf in block_subworkflows]):
                 return
 
@@ -308,7 +324,7 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                         else:
                             # First, calculate how many empty bands we have
                             spin = block_id.spin
-                            if spin:
+                            if spin != Spin.NONE:
                                 nbnd_occ = self.number_of_electrons(spin)
                             else:
                                 nbnd_occ = self.number_of_electrons() // 2
@@ -321,8 +337,8 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                             filling_label = '' if block_id.filled else '_emp'
                             extend_function = partial(extend_wannier_u_dis_file_content, nbnd=nbnd_tot, nwann=nwann_tot)
                             extend_proc = ExtendProcess(extend_function=extend_function,
-                                                        src_file=(calc_with_u_dis,
-                                                                  calc_with_u_dis.prefix + '_u_dis.mat'),
+                                                        src_file=File(calc_with_u_dis,
+                                                                      calc_with_u_dis.prefix + '_u_dis.mat'),
                                                         dst_file=calc_with_u_dis.prefix + f'{filling_label}_u_dis.mat')
                             extend_proc.name = f'extend_{block_id.label}_wannier_u_dis'
                             status = self.run_steps(extend_proc)
@@ -414,7 +430,7 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
 
         return
 
-    def merge_wannier_files(self, block: List[ProjectionBlock], filling_label: str, prefix: str = 'wann'):
+    def merge_wannier_files(self, block: List[ProjectionsBlock], filling_label: str, prefix: str = 'wann'):
         """
         Merges the hr (Hamiltonian), u (rotation matrix), and wannier centers files of a collection of blocks that
         share the same filling and spin
@@ -438,7 +454,7 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
 
     output_model = WannierizeBlockOutput
 
-    def __init__(self, *args, block: ProjectionBlock, force_nspin2=False, minimize=True, pw_outdir: File | None = None,
+    def __init__(self, *args, block: ProjectionsBlock, force_nspin2=False, minimize=True, pw_outdir: File | None = None,
                  amn_file: File | None = None, eig_file: File | None = None, mmn_file: File | None = None,
                  nnkp_file: File | None = None, **kwargs):
         self.block = block
@@ -540,14 +556,14 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
 
 class WannierizeAndSplitBlockOutput(IOModel):
     block_outputs: List[WannierizeBlockOutput]
-    blocks: List[ProjectionBlock]
+    blocks: List[ProjectionsBlock]
 
 
 class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeBlockOutput]):
 
     output_model = WannierizeBlockOutput
 
-    def __init__(self, *args, pw_outdir: File, block: ProjectionBlock, groups: List[List[int]], force_nspin2=False, minimize=True, **kwargs):
+    def __init__(self, *args, pw_outdir: File, block: ProjectionsBlock, groups: List[List[int]], force_nspin2=False, minimize=True, **kwargs):
         self.pw_outdir = pw_outdir
         self.block = block
         self.groups = groups

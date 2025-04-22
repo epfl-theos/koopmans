@@ -5,6 +5,7 @@ from ase_koopmans.dft.kpoints import BandPath, monkhorst_pack
 from ase_koopmans.io.wannier90 import (construct_kpoint_path,
                                        formatted_str_to_list,
                                        proj_string_to_dict)
+from wannier90_input.models.parameters import Projection
 
 from ._utils import SettingsDict
 
@@ -88,10 +89,6 @@ class Wannier90SettingsDict(SettingsDict):
                 for i, v in enumerate(value):
                     if isinstance(v, str):
                         v = proj_string_to_dict(v)
-                    assert isinstance(v, dict)
-                    for k in v.keys():
-                        if k not in ['site', 'csite', 'fsite', 'ang_mtm', 'zaxis', 'xaxis', 'radial', 'zona']:
-                            raise KeyError(f'Unrecognized key `{k}` in the w90 projections block')
                     value[i] = v
             if key == 'exclude_bands' and isinstance(value, str):
                 value = formatted_str_to_list(value)

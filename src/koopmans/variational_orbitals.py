@@ -1,42 +1,38 @@
 import itertools
+from collections import UserList
 from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
+from pydantic import BaseModel, Field
 
 from koopmans.files import File
 from koopmans.utils import indented_print, warn
 
 
-class Band(object):
-    def __init__(self, index: Optional[int] = None, spin: int = 0, filled: bool = True, group: Optional[int] = None,
-                 alpha: Optional[float] = None, error: Optional[float] = None, predicted_alpha: Optional[float] = None,
-                 self_hartree: Optional[float] = None,
-                 spread: Optional[float] = None,
-                 center: Optional[np.ndarray] = None,
-                 power_spectrum: Optional[File] = None) -> None:
-        self.index = index
-        self.spin = spin
-        self.filled = filled
-        self.group = group
-        self.alpha_history: List[float] = []
-        self.error_history: List[float] = []
-        self.alpha = alpha
-        self.error = error
-        self.predicted_alpha = predicted_alpha
-        self.self_hartree = self_hartree
-        self.spread = spread
-        self.center = center
-        self.power_spectrum = power_spectrum
+class VariationalOrbital(BaseModel):
+
+    index: int
+    spin: int = 0
+    filled: bool = True
+    group: int
+    alpha_history: List[float] = Field(default_factory=list)
+    error_history: List[float] = Field(default_factory=list)
+    predicted_alpha: Optional[float] = None
+    self_hartree: Optional[float] = None
+    spread: Optional[float] = None
+    center: Optional[np.ndarray] = None
+    power_spectrum: Optional[File] = None
+    model_config = {'arbitrary_types_allowed': True}
 
     @classmethod
     def fromdict(cls, dct):
         alpha_history = dct.pop('alpha_history')
         error_history = dct.pop('error_history')
-        band = cls(**dct)
-        band.alpha_history = alpha_history
-        band.error_history = error_history
-        return band
+        var_orb = cls(**dct)
+        var_orb.alpha_history = alpha_history
+        var_orb.error_history = error_history
+        return var_orb
 
     def todict(self) -> dict:
         dct = self.__dict__
@@ -45,12 +41,12 @@ class Band(object):
         return dct
 
     def __eq__(self, other):
-        if not isinstance(other, Band):
+        if not isinstance(other, VariationalOrbital):
             return False
         return self.__dict__ == other.__dict__
 
     def __repr__(self) -> str:
-        info = f'Band(index={self.index}, spin={self.spin}, filled={self.filled}, group={self.group}'
+        info = f'{self.__class__.__name__}(index={self.index}, spin={self.spin}, filled={self.filled}, group={self.group}'
         for attr in ['alpha', 'self_hartree', 'spread', 'center']:
             val = getattr(self, attr, None)
             if val:
@@ -58,9 +54,9 @@ class Band(object):
         return info + ')'
 
     @property
-    def alpha(self) -> Union[float, None]:
+    def alpha(self) -> float:
         if len(self.alpha_history) == 0:
-            raise AttributeError('Band does not have screening parameters')
+            raise AttributeError('VariationalOrbital does not have screening parameters')
         return self.alpha_history[-1]
 
     @alpha.setter
@@ -72,7 +68,7 @@ class Band(object):
     @property
     def error(self):
         if len(self.error_history) == 0:
-            raise AttributeError('Band does not have error data')
+            raise AttributeError('VariationalOrbital does not have error data')
         return self.error_history[-1]
 
     @error.setter
@@ -82,119 +78,86 @@ class Band(object):
             self.error_history.append(value)
 
 
-class Bands(object):
-    def __init__(self, n_bands: Union[int, List[int]], n_spin: int = 1, spin_polarized: bool = False,
-                 tolerances: Dict[str, float] = {}, **kwargs):
-        if isinstance(n_bands, int):
-            self.n_bands = [n_bands for _ in range(n_spin)]
-        else:
-            if len(n_bands) != n_spin:
-                raise ValueError(f'`n_bands = {n_bands}` should have length matching `n_spin = {n_spin}`')
-            self.n_bands = n_bands
-        self.n_spin = n_spin
-        self.spin_polarized = spin_polarized
-        if self.spin_polarized:
-            # Assign every single band a distinct group
-            self._bands: List[Band] = []
-            for i_spin, n_bands_spin in enumerate(self.n_bands):
-                for i_band in range(n_bands_spin):
-                    self._bands.append(Band(i_band + 1, i_spin, group=len(self._bands)))
-        else:
-            # Assign bands with the same index but opposite spin the same group
-            self._bands = [Band(i_band + 1, i_spin, group=i_band) for i_spin in range(n_spin)
-                           for i_band in range(self.n_bands[i_spin])]
+class VariationalOrbitals(BaseModel):
 
-        self.tolerances = tolerances
-        for k, v in kwargs.items():
-            assert hasattr(self, k)
-            if v:
-                setattr(self, k, v)
+    orbitals: List[VariationalOrbital] = Field(default_factory=list)
+    n_spin: int = 1
+    spin_polarized: bool = False
+    tolerances: Dict[str, float] = Field(default_factory=dict)
 
     def __iter__(self):
-        for b in self._bands:
-            yield b
+        for o in self.orbitals:
+            yield o
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}([\n  ' + '\n  '.join([str(b) for b in self]) + '\n])'
+        return f'{self.__class__.__name__}([\n  ' + '\n  '.join([str(o) for o in self]) + '\n])'
 
     def __len__(self) -> int:
-        return len(self._bands)
+        return len(self.orbitals)
 
     @classmethod
-    def fromdict(cls, dct):
-        bands = dct.pop('_bands')
-        obj = cls(**dct)
-        obj._bands = bands
-        return obj
-
-    @classmethod
-    def fromlist(cls, bands: List[Band]):
+    def fromlist(cls, orbitals: List[VariationalOrbital]):
         raise NotImplementedError('TODO')
-        # return bands
-
-    def todict(self):
-        dct = self.__dict__
-        dct['__koopmans_name__'] = self.__class__.__name__
-        dct['__koopmans_module__'] = self.__class__.__module__
-        return dct
+        # return orbitals
 
     def get(self, spin: Optional[int] = None, filled: Optional[bool] = None, group: Optional[int] = None,
-            to_solve: Optional[bool] = None) -> List[Band]:
+            to_solve: Optional[bool] = None) -> List[VariationalOrbital]:
         if to_solve:
-            selected_bands = self.to_solve
+            selected_orbs = self.to_solve
         else:
-            selected_bands = self
+            selected_orbs = self
         if filled is not None:
-            selected_bands = [b for b in selected_bands if b.filled == filled]
+            selected_orbs = [o for o in selected_orbs if o.filled == filled]
         if group is not None:
-            selected_bands = [b for b in selected_bands if b.group == group]
+            selected_orbs = [o for o in selected_orbs if o.group == group]
         if spin is not None:
-            selected_bands = [b for b in selected_bands if b.spin == spin]
+            selected_orbs = [o for o in selected_orbs if o.spin == spin]
 
-        return selected_bands
+        return selected_orbs
 
     def __getitem__(self, key):
-        return self._bands[key]
+        return self.orbitals[key]
 
     def num(self, filled=None, spin=None):
         return len(self.get(filled=filled, spin=spin))
 
-    def index(self, band: Band) -> int:
-        if band not in self._bands:
-            raise ValueError(f"{band} is not in Bands object")
-        [i_match] = [i for i, b in enumerate(self._bands) if b == band]
+    def index(self, orbital: VariationalOrbital) -> int:
+        if orbital not in self.orbitals:
+            raise ValueError(f"{orbital} is not in {self}")
+        [i_match] = [i for i, b in enumerate(self.orbitals) if b == orbital]
         return i_match
 
-    def _check_array_shape_match(self, array, array_name):
-        assert len(array) == self.n_spin, f'Bands.{array_name} must be length {self.n_spin} but you provided an ' \
-            f'array of length {len(array)}'
-        for i, (subarray, n_bands) in enumerate(zip(array, self.n_bands)):
-            assert len(subarray) == n_bands, f'Bands.{array_name}[{i}] must be length {n_bands} but you provided an ' \
-                f'array with length {len(subarray)}. The file_alpharef files should reflect the number of states in the supercell.'
+    # def _check_array_shape_match(self, array, array_name):
+    #     raise NotImplementedError()
+    #     assert len(array) == self.n_spin, f'Bands.{array_name} must be length {self.n_spin} but you provided an ' \
+    #         f'array of length {len(array)}'
+    #     for i, (subarray, n_bands) in enumerate(zip(array, self.n_bands)):
+    #         assert len(subarray) == n_bands, f'Bands.{array_name}[{i}] must be length {n_bands} but you provided an ' \
+    #             f'array with length {len(subarray)}. The file_alpharef files should reflect the number of states in the supercell.'
 
     @property
     def filling(self) -> List[List[bool]]:
-        return [[b.filled for b in self if b.spin == i_spin] for i_spin in range(self.n_spin)]
+        return [[o.filled for o in self if o.spin == i_spin] for i_spin in range(self.n_spin)]
 
     @filling.setter
     def filling(self, value: List[List[bool]]):
         self._check_array_shape_match(value, 'filling')
-        for b, v in zip(self, [v for subarray in value for v in subarray]):
-            b.filled = v
+        for o, v in zip(self, [v for subarray in value for v in subarray]):
+            o.filled = v
 
     @property
     def indices(self):
-        return [[b.index for b in self if b.spin == i_spin] for i_spin in range(self.n_spin)]
+        return [[o.index for o in self if o.spin == i_spin] for i_spin in range(self.n_spin)]
 
     @property
     def groups(self):
-        return [[b.group for b in self if b.spin == i_spin] for i_spin in range(self.n_spin)]
+        return [[o.group for o in self if o.spin == i_spin] for i_spin in range(self.n_spin)]
 
     @groups.setter
     def groups(self, value: List[List[int]]):
         self._check_array_shape_match(value, 'groups')
-        for b, v in zip(self, [v for subarray in value for v in subarray]):
-            b.group = v
+        for o, v in zip(self, [v for subarray in value for v in subarray]):
+            o.group = v
 
     def assign_groups(self, sort_by: str = 'self_hartree', tol: Optional[float] = None, allow_reassignment: bool = False):
         # Basic clustering algorithm for assigning groups
@@ -213,13 +176,13 @@ class Bands(object):
         # different subsets
         if self.spin_polarized:
             # Separate by both spin and filling
-            unassigned_sets = [[b for b in self if b.filled == filled and b.spin == i_spin]
+            unassigned_sets = [[o for o in self if o.filled == filled and o.spin == i_spin]
                                for i_spin in range(self.n_spin) for filled in [True, False]]
         else:
             # Separate by filling and focus only on the spin=0 channel
             unassigned_sets = [[b for b in self if b.filled == filled and b.spin == 0] for filled in [True, False]]
 
-        def points_are_close(p0: Band, p1: Band, factor: Union[int, float] = 1) -> bool:
+        def points_are_close(p0: VariationalOrbital, p1: VariationalOrbital, factor: Union[int, float] = 1) -> bool:
             # Determine if two bands are "close"
             assert tol is not None
             return abs(getattr(p0, sort_by) - getattr(p1, sort_by)) < tol * factor
@@ -230,12 +193,12 @@ class Bands(object):
                 # Select one band
                 guess = unassigned[0]
 
-                # Find the neighborhood of adjacent bands (with 2x larger threshold)
+                # Find the neighborhood of adjacent orbitals (with 2x larger threshold)
                 neighborhood = [b for b in unassigned if points_are_close(guess, b)]
 
                 # Find the center of that neighborhood
                 av = np.mean([getattr(b, sort_by) for b in neighborhood])
-                center = Band(**{sort_by: av})
+                center = VariationalOrbital(**{sort_by: av})
 
                 # Find a revised neighborhood close to the center (using a factor of 0.5 because we want points that
                 # are on opposite sides of the neighborhood to be within "tol" of each other which means they can be
@@ -254,27 +217,27 @@ class Bands(object):
                                            allow_reassignment=allow_reassignment)
                         return
 
-                for b in neighborhood:
-                    unassigned.remove(b)
+                for o in neighborhood:
+                    unassigned.remove(o)
 
                     if allow_reassignment:
                         # Perform the reassignment
-                        b.group = group
+                        o.group = group
                     else:
                         # Check previous values exist
-                        if b.group is None:
-                            b.group = group
+                        if o.group is None:
+                            o.group = group
                         # Check the new grouping matches the old grouping
-                        if b.group != group:
+                        if o.group != group:
                             raise Exception('Clustering algorithm found different grouping')
 
                 # Move on to next group
                 group += 1
 
         if not self.spin_polarized and self.n_spin == 2:
-            for b in self.get(spin=1):
-                [match] = [b_op for b_op in self.get(spin=0) if b_op.index == b.index]
-                b.group = match.group
+            for o in self.get(spin=1):
+                [match] = [b_op for b_op in self.get(spin=0) if b_op.index == o.index]
+                o.group = match.group
 
         if tol != self.tolerances[sort_by]:
             warn(f'It was not possible to group orbitals with the {sort_by} tolerance of {self.tolerances[sort_by]:.2e} eV. '
@@ -285,10 +248,10 @@ class Bands(object):
 
     @property
     def to_solve(self):
-        # Dynamically generate a list of bands that require solving explicitly
+        # Dynamically generate a list of orbitals that require solving explicitly
 
         # If groups have not been assigned...
-        if None in [b.group for b in self]:
+        if None in [o.group for o in self]:
             if self.spin_polarized:
                 # ... and spin-polarized, solve all bands
                 return self.get()
@@ -300,14 +263,14 @@ class Bands(object):
         groups_found = set([])
         to_solve = []
 
-        for band in [b for i_spin in range(self.n_spin) for b in self.get(spin=i_spin)[::-1] if b.filled] \
-                + [b for i_spin in range(self.n_spin) for b in self.get(spin=i_spin) if not b.filled]:
+        for orb in [o for i_spin in range(self.n_spin) for o in self.get(spin=i_spin)[::-1] if o.filled] \
+                + [o for i_spin in range(self.n_spin) for o in self.get(spin=i_spin) if not o.filled]:
             # Looping through the filled bands from highest to lowest (first high spin then low spin), then empty
             # bands from lowest to highest (but note since these are variational orbitals "highest" and "lowest")
             # is not especially meaningful, unless we happen to be using KS orbitals as variational orbitals...
-            if band.group not in groups_found:
-                groups_found.add(band.group)
-                to_solve.append(band)
+            if orb.group not in groups_found:
+                groups_found.add(orb.group)
+                to_solve.append(orb)
 
         if groups_found != set([b.group for b in self]):
             raise ValueError('Splitting of orbitals into groups failed')

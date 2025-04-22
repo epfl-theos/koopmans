@@ -23,7 +23,7 @@ from ase_koopmans.io.espresso import cell_to_ibrav
 from pandas.core.series import Series
 from scipy.linalg import block_diag
 
-from koopmans import bands, pseudopotentials, settings, utils
+from koopmans import pseudopotentials, settings, utils, variational_orbitals
 from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.commands import ParallelCommand
 from koopmans.files import File
@@ -121,7 +121,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # Give the calculator an attribute to keep track of which band has been held fixed, for calculations where
         # fixed_state = .true.. N.B. this differs from self.parameters.fixed_band in the case of empty orbitals (see
         # koopmans.workflows._koopmans_dscf.py for more details)
-        self.fixed_band: Optional[bands.Band] = None
+        self.fixed_band: Optional[variational_orbitals.VariationalOrbital] = None
 
         # Create a private attribute to keep track of whether the spin channels have been swapped
         self._spin_channels_are_swapped: bool = False

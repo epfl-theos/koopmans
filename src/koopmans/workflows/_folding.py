@@ -10,15 +10,15 @@ Written by Edward Linscott Feb 2021
 import os
 from pathlib import Path
 from typing import Dict, Generator, List, Tuple
-from pydantic import ConfigDict
 
 import numpy as np
+from pydantic import ConfigDict
 
 from koopmans import calculators, utils
 from koopmans.files import File
 from koopmans.process_io import IOModel
 from koopmans.processes.merge_evc import MergeEVCProcess
-from koopmans.projections import BlockID, ProjectionBlock
+from koopmans.projections import BlockID, ProjectionsBlock
 from koopmans.status import Status
 
 from ._workflow import Workflow

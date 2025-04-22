@@ -4,14 +4,14 @@ Processes used during the machine learning workflows
 from functools import partial
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
-from pydantic import ConfigDict
 
 import numpy as np
 from ase_koopmans.cell import Cell
+from pydantic import ConfigDict
 
 from koopmans import ml, utils
-from koopmans.bands import Band
 from koopmans.files import File
+from koopmans.variational_orbitals import VariationalOrbital
 
 from ._process import IOModel, Process
 
@@ -26,7 +26,7 @@ class ExtractCoefficientsFromXMLInput(IOModel):
     total_density_xml: File
     cell: Cell
     orbital_densities_xml: List[File]
-    bands: List[Band]
+    bands: List[VariationalOrbital]
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 

@@ -10,8 +10,8 @@ from sklearn.dummy import DummyRegressor
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 
-from koopmans.bands import Band
 from koopmans.engines import Engine
+from koopmans.variational_orbitals import VariationalOrbital
 
 
 class WrappedEstimator(ABC):
@@ -108,7 +108,7 @@ def estimator_factory(estimator: str) -> WrappedEstimator:
 class AbstractMLModel(ABC):
 
     def __init__(self, estimator_type: str = 'ridge_regression', descriptor='orbital_density', is_trained: bool = False,
-                 estimator: WrappedEstimator | None = None, descriptor_from_band: Callable[[Band], np.ndarray] | None = None,
+                 estimator: WrappedEstimator | None = None, descriptor_from_band: Callable[[VariationalOrbital], np.ndarray] | None = None,
                  engine: Engine | None = None):
         self.estimator_type = estimator_type
         self.estimator = estimator_factory(estimator_type) if estimator is None else estimator
@@ -126,7 +126,7 @@ class AbstractMLModel(ABC):
         self.descriptor_type = descriptor
 
     @abstractmethod
-    def add_training_data(self, bands: List[Band]) -> None:
+    def add_training_data(self, bands: List[VariationalOrbital]) -> None:
         ...
 
     @abstractmethod
@@ -139,7 +139,7 @@ class AbstractMLModel(ABC):
         ...
 
     @abstractmethod
-    def predict(self, band: Band) -> float:
+    def predict(self, band: VariationalOrbital) -> float:
         ...
 
     def __eq__(self, other):
@@ -174,7 +174,7 @@ class AbstractMLModel(ABC):
         return f'{self.__class__.__name__}({self._repr_fields()})'
 
 
-def power_spectrum_from_band(band: Band, engine: Engine) -> np.ndarray:
+def power_spectrum_from_band(band: VariationalOrbital, engine: Engine) -> np.ndarray:
     assert band.power_spectrum is not None
     assert band.power_spectrum.parent_process is not None
     binary_content = engine.read_file(band.power_spectrum, binary=True)
@@ -182,15 +182,15 @@ def power_spectrum_from_band(band: Band, engine: Engine) -> np.ndarray:
     return np.frombuffer(binary_content)
 
 
-def self_hartree_from_band(band: Band) -> np.ndarray:
+def self_hartree_from_band(band: VariationalOrbital) -> np.ndarray:
     return np.array([band.self_hartree])
 
 
-def dummy_from_band(band: Band) -> np.ndarray:
+def dummy_from_band(band: VariationalOrbital) -> np.ndarray:
     return np.array([np.nan])
 
 
-def descriptor_from_band_factory(descriptor: str, engine: Engine | None = None) -> Callable[[Band], np.ndarray]:
+def descriptor_from_band_factory(descriptor: str, engine: Engine | None = None) -> Callable[[VariationalOrbital], np.ndarray]:
     if descriptor == 'orbital_density':
         assert engine is not None
         return partial(power_spectrum_from_band, engine=engine)
@@ -220,7 +220,7 @@ class MLModel(AbstractMLModel):
             out += f", shape(Y_train)={self.Y_train.shape}"
         return out
 
-    def predict(self, band: Band) -> float:
+    def predict(self, band: VariationalOrbital) -> float:
         """
         Make a prediction using the trained estimator.
         """
@@ -239,7 +239,7 @@ class MLModel(AbstractMLModel):
         self.estimator = estimator_factory(self.estimator_type)
         self.estimator.fit(self.X_train, self.Y_train)
 
-    def add_training_data(self, bands: List[Band]):  # x_train: np.ndarray, y_train: Union[float, np.ndarray]):
+    def add_training_data(self, bands: List[VariationalOrbital]):
         """
         Add training data to the estimator.
         """
@@ -261,7 +261,7 @@ class OccEmpMLModels(AbstractMLModel):
     def __init__(self, estimator_type='ridge_regression', descriptor='orbital_density', is_trained: bool = False,
                  X_train_occ: Optional[np.ndarray] = None, Y_train_occ: Optional[np.ndarray] = None,
                  X_train_emp: Optional[np.ndarray] = None, Y_train_emp: Optional[np.ndarray] = None,
-                 estimator_occ=None, estimator_emp=None, descriptor_from_band: Callable[[Band], np.ndarray] | None = None,
+                 estimator_occ=None, estimator_emp=None, descriptor_from_band: Callable[[VariationalOrbital], np.ndarray] | None = None,
                  engine: Engine | None = None):
 
         self.model_occ = MLModel(estimator_type=estimator_type, descriptor=descriptor, is_trained=is_trained,
@@ -273,7 +273,7 @@ class OccEmpMLModels(AbstractMLModel):
         self.estimator_type = estimator_type
         self.descriptor_type = descriptor
 
-    def add_training_data(self, bands: List[Band]) -> None:
+    def add_training_data(self, bands: List[VariationalOrbital]) -> None:
         for band in bands:
             if band.filled:
                 self.model_occ.add_training_data([band])
@@ -288,7 +288,7 @@ class OccEmpMLModels(AbstractMLModel):
     def is_trained(self):
         return self.model_occ.is_trained and self.model_emp.is_trained
 
-    def predict(self, band: Band) -> float:
+    def predict(self, band: VariationalOrbital) -> float:
         if band.filled:
             return self.model_occ.predict(band)
         else:

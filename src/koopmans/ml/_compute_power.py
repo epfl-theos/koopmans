@@ -3,8 +3,6 @@ from typing import Dict
 
 import numpy as np
 
-from koopmans.bands import Bands
-
 
 def read_coeff_matrix(coff_orb: np.ndarray, coff_tot: np.ndarray, n_max: int, l_max: int) -> np.ndarray:
     """

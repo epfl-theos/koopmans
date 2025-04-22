@@ -5,7 +5,7 @@ import pytest
 from koopmans import workflows
 from koopmans.io import write
 from koopmans.kpoints import Kpoints
-from koopmans.projections import BlockID, ProjectionBlocks
+from koopmans.projections import BlockID, Projections
 from koopmans.utils import chdir
 
 
@@ -54,7 +54,7 @@ def test_singlepoint_si_ki_dscf(spin_polarized, silicon, workflow_patch, tmp_pat
                     spin_proj = copy.deepcopy(proj)
                     spin_proj.id = BlockID(filled=proj.id.filled, spin=spin)
                     spin_projs.append(spin_proj)
-            silicon['projections'] = ProjectionBlocks(spin_projs, silicon['atoms'])
+            silicon['projections'] = Projections(spin_projs, silicon['atoms'])
         silicon['kpoints'] = Kpoints(grid=[2, 2, 2], path='GL', density=50.0, cell=silicon['atoms'].cell)
         wf = workflows.SinglepointWorkflow(parameters=parameters, **silicon)
         wf.run()

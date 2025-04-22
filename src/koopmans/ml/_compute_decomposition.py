@@ -8,8 +8,8 @@ from ase_koopmans import Atoms, units
 from ase_koopmans.cell import Cell
 from numpy.linalg import norm
 
-from koopmans.bands import Band
 from koopmans.files import File
+from koopmans.variational_orbitals import VariationalOrbital
 
 from ._basis_functions import g as g_basis
 from ._basis_functions import \
@@ -143,7 +143,7 @@ def get_coefficients(rho: np.ndarray, rho_total: np.ndarray, r_cartesian: np.nda
 
 def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_cut: float,
                           total_density_xml: File, orbital_densities_xml: List[File],
-                          bands: List[Band], cell: Cell, wannier_centers: np.ndarray, alpha_file: File,
+                          var_orbs: List[VariationalOrbital], cell: Cell, wannier_centers: np.ndarray, alpha_file: File,
                           beta_file: File) -> Tuple[Dict[str, bytes], Dict[str, bytes]]:
     """
     Computes the expansion coefficients of the total and orbital densities.
@@ -206,10 +206,10 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
     total_files = {}
 
     # Compute the decomposition for each band
-    assert len(orbital_densities_xml) == len(bands)
-    for orbital_density_xml, band in zip(orbital_densities_xml, bands):
+    assert len(orbital_densities_xml) == len(var_orbs)
+    for orbital_density_xml, var_orb in zip(orbital_densities_xml, var_orbs):
 
-        if band.filled:
+        if var_orb.filled:
             filled_str = 'occ'
         else:
             filled_str = 'emp'
@@ -224,8 +224,8 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
 
         # Bring the the density to the same integration domain as the precomputed basis, centered around the orbital's
         # center, making sure that the center is in within the unit cell
-        assert band.index is not None
-        wfc_center_tmp = wannier_centers[band.index-1]
+        assert var_orb.index is not None
+        wfc_center_tmp = wannier_centers[var_orb.index-1]
         wfc_center = np.array([wfc_center_tmp[2] % lat_vecs[0], wfc_center_tmp[1] %
                                lat_vecs[1], wfc_center_tmp[0] % lat_vecs[2]])
         center_index = get_index(r, wfc_center)
@@ -238,9 +238,9 @@ def compute_decomposition(n_max: int, l_max: int, r_min: float, r_max: float, r_
             rho_r_new, total_density_r_new, r_cartesian, total_basis_array)
 
         # save the decomposition coefficients in files
-        orbital_file = f'coeff.orbital.{filled_str}.{band.index}.npy'
+        orbital_file = f'coeff.orbital.{filled_str}.{var_orb.index}.npy'
         orbital_files[orbital_file] = coefficients_orbital.tobytes()
-        total_file = f'coeff.total.{filled_str}.{band.index}.npy'
+        total_file = f'coeff.total.{filled_str}.{var_orb.index}.npy'
         total_files[total_file] = coefficients_total.tobytes()
 
     return orbital_files, total_files
