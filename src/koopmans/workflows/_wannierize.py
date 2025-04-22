@@ -457,7 +457,7 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
         if self.block.spin != Spin.NONE:
             calc_type += f'_{self.block.spin}'
 
-        if self.amn_file is None or self.eig_file is None or self.mmn_file is None or self.nnkp_file is None:
+        if self.amn_file is None or self.eig_file is None or self.mmn_file is None:
             if self.pw_outdir is None:
                 raise ValueError(
                     'Wannierization requires either a `pw_outdir` or `.amn`, `.eig`, `.mmn`, and `.nnkp`, files')
@@ -491,7 +491,8 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
             calc_type, bands_plot=self.parameters.calculate_bands, **self.block.w90_kwargs)
         calc_w90.prefix = 'wannier90'
         for f in [self.amn_file, self.eig_file, self.mmn_file, self.nnkp_file]:
-            calc_w90.link(f, calc_w90.prefix + f.suffix, symlink=True)
+            if f is not None:
+                calc_w90.link(f, calc_w90.prefix + f.suffix, symlink=True)
         status = self.run_steps(calc_w90)
         if status != Status.COMPLETED:
             return
@@ -556,11 +557,11 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeBlockOutput]):
 
     def _run(self) -> None:
         # Perform a Block Wannierization
-        wf = WannierizeBlockWorkflow.fromparent(
+        wannierize_wf = WannierizeBlockWorkflow.fromparent(
             self, pw_outdir=self.pw_outdir, block=self.block, force_nspin2=self._force_nspin2, minimize=self.minimize)
-        wf.name = 'wannierize'
-        wf.run()
-        if wf.status != Status.COMPLETED:
+        wannierize_wf.name = 'wannierize'
+        wannierize_wf.proceed()
+        if wannierize_wf.status != Status.COMPLETED:
             return
 
         # Check that the .nnkp file has the bvectors needed by the parallel transport algorithm
@@ -571,8 +572,9 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeBlockOutput]):
             return
 
         # Create a cubic nnkp
-        w90_input_file = File(wf.outputs.wannier90_calculation, wf.outputs.wannier90_calculation.prefix + '.win')
-        if check_nnkp_process.outputs.missing_bvectors:
+        w90_input_file = File(wannierize_wf.outputs.wannier90_calculation,
+                              wannierize_wf.outputs.wannier90_calculation.prefix + '.win')
+        if check_nnkp_process.outputs.missing_bvectors and False:
             # The .nnkp file is missing some b-vectors that wjl will require to perform the parallel transport, so
             # we must regenerate it
             generate_nnkp_process = WannierJLGenerateCubicNNKPProcess(wannier_input_file=w90_input_file)
@@ -593,12 +595,12 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeBlockOutput]):
             mmn_file = File(calc_p2w, calc_p2w.parameters.seedname + '.mmn')
         else:
             # The files from the original Wannierization should be sufficient for wjl to perform the parallel transport
-            assert wf.outputs.amn_file is not None
-            amn_file = wf.outputs.amn_file
-            assert wf.outputs.eig_file is not None
-            eig_file = wf.outputs.eig_file
-            assert wf.outputs.mmn_file is not None
-            mmn_file = wf.outputs.mmn_file
+            assert wannierize_wf.outputs.amn_file is not None
+            amn_file = wannierize_wf.outputs.amn_file
+            assert wannierize_wf.outputs.eig_file is not None
+            eig_file = wannierize_wf.outputs.eig_file
+            assert wannierize_wf.outputs.mmn_file is not None
+            mmn_file = wannierize_wf.outputs.mmn_file
 
         # Determine how to split the blocks
         new_blocks = self.block.split(self.groups)
@@ -609,7 +611,8 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeBlockOutput]):
         calc_wjl.prefix = 'split'
 
         # Providing the files that `wjl`` expects
-        w90_chk_file = File(wf.outputs.wannier90_calculation, wf.outputs.wannier90_calculation.prefix + '.chk')
+        w90_chk_file = File(wannierize_wf.outputs.wannier90_calculation,
+                            wannierize_wf.outputs.wannier90_calculation.prefix + '.chk')
         for f in [w90_input_file, w90_chk_file, mmn_file, amn_file, eig_file]:
             assert f is not None
             calc_wjl.link(f, calc_wjl.prefix + f.suffix, symlink=True)
@@ -620,17 +623,19 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeBlockOutput]):
 
         # Construct workflows to Wannierize each subblock
         subwfs = []
-        for new_block in new_blocks:
+        for new_block, wjl_outdir in zip(new_blocks, calc_wjl.parameters.outdirs):
             # Wannierize without preprocessing
+            wjl_files = {f"{ext}_file": File(calc_wjl, f"{wjl_outdir}/{calc_wjl.name}.{ext}")
+                         for ext in ["amn", "eig", "mmn"]}
             wf = WannierizeBlockWorkflow.fromparent(self,
                                                     block=new_block,
+                                                    **wjl_files
                                                     )
-
             subwfs.append(wf)
 
         # Run each subblock
         for wf in subwfs:
-            wf.run()
+            wf.proceed()
         if any([wf.status != Status.COMPLETED for wf in subwfs]):
             return
 

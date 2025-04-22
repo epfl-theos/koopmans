@@ -23,6 +23,6 @@ class WannierJLSettingsDict(SettingsDict):
                 raise NotImplementedError('task != splitvc is not yet supported')
         if key == 'outdirs':
             if not isinstance(value, list):
-                raise ValueError("WannierJL's outdir setting must be a list of Paths")
-            value = [Path(v) for v in value]
+                raise ValueError("WannierJL's outdir setting must be a list")
+            value = [str(v) for v in value]
         return super().__setitem__(key, value)
