@@ -115,7 +115,7 @@ class VariationalOrbitals(BaseModel):
                     group = i_orb + i_spin * n_orbitals if spin_polarized else i_orb
                 else:
                     group = groups[i_spin][i_orb]
-                orbitals.append(VariationalOrbital(index=i_orb + i_spin * n_orbitals,
+                orbitals.append(VariationalOrbital(index=i_orb + i_spin * n_orbitals + 1,
                                                    spin=spin, group=group, filled=f_orb))
         return cls(orbitals=orbitals, n_spin=n_spin, spin_polarized=spin_polarized, tolerances=tolerances)
 

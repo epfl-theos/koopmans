@@ -683,6 +683,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
     def _run(self) -> None:
 
         assert self.variational_orbitals is not None
+        spin_index = self.variational_orbitals.spin_channels.index(self.variational_orbital.spin)
 
         alpha_dep_calcs = [self._trial_calc]
 
@@ -752,10 +753,9 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
                 # the spin-up channel, so we explicitly construct both spin
                 # channels for "alphas" and "filling"
                 alphas = self.variational_orbitals.alphas
-                alphas[self.variational_orbital.spin].append(alphas[self.variational_orbital.spin][-1])
+                alphas[spin_index].append(alphas[spin_index][-1])
                 filling = self.variational_orbitals.filling
                 assert self.variational_orbital.index is not None
-                spin_index = self.variational_orbitals.spin_channels.index(self.variational_orbital.spin)
                 filling[spin_index][self.variational_orbital.index - 1] = True
                 filling[spin_index].append(False)
             else:
@@ -766,13 +766,13 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
             # bands)
             fixed_band = min(self.variational_orbital.index, self.variational_orbitals.num(
                 filled=True, spin=self.variational_orbital.spin) + 1)
-            if self.parameters.spin_polarized and self.variational_orbital.spin == 1:
-                fixed_band += self.variational_orbitals.num(filled=True, spin=0)
+            if self.parameters.spin_polarized and self.variational_orbital.spin == Spin.DOWN:
+                fixed_band += self.variational_orbitals.num(filled=True, spin=Spin.UP)
 
             # Set up calculator
             calc = internal_new_kcp_calculator(self, calc_type, alphas=alphas, filling=filling, fixed_band=fixed_band,
                                                index_empty_to_save=index_empty_to_save,
-                                               add_to_spin_up=(self.variational_orbital.spin == 0))
+                                               add_to_spin_up=(self.variational_orbital.spin == Spin.UP))
 
             if calc.parameters.ndr == self._trial_calc.parameters.ndw:
                 calc.link(self._trial_calc.write_directory, calc.read_directory,
@@ -789,6 +789,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
 
             # Run kcp.x
             if calc.parameters.nelup < calc.parameters.neldw:
+                raise ValueError()
                 subwf = KoopmansCPWithSpinSwapWorkflow.fromparent(self, calc=calc)
                 subwf.proceed()
                 if subwf.status != Status.COMPLETED:
@@ -930,8 +931,10 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
         # Extract lambda from the base calculator
         assert band.index is not None
         iband = band.index - 1  # converting from 1-indexing to 0-indexing
-        lambda_a = trial_calc.results['lambda'][band.spin][iband, iband].real
-        lambda_0 = trial_calc.results['bare lambda'][band.spin][iband, iband].real
+        assert self.variational_orbitals is not None
+        ispin = self.variational_orbitals.spin_channels.index(band.spin)
+        lambda_a = trial_calc.results['lambda'][ispin][iband, iband].real
+        lambda_0 = trial_calc.results['bare lambda'][ispin][iband, iband].real
 
         # Obtaining alpha
         if (trial_calc.parameters.odd_nkscalfact and filled) \
