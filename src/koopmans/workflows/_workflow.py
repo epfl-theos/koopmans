@@ -114,8 +114,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
     __slots__ = utils.HasDirectory.__slots__ + ['atoms', 'parameters', 'calculator_parameters', 'name', 'kpoints',
                                                 'pseudopotentials', 'projections', 'ml_model', 'snapshots',
                                                 'version', 'calculations', 'processes',
-                                                'steps', 'plotting', 'ml', '_bands', 'step_counter', 'print_indent',
-                                                'status', '_outputs']
+                                                'steps', 'plotting', 'ml', '_variational_orbitals', 'step_counter',
+                                                'print_indent', 'status', '_outputs']
 
     def __init__(self,
                  atoms: Atoms,
@@ -167,7 +167,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         self.calculations: List[calculators.Calc] = []
         self.processes: List[Process] = []
         self.steps: List = []
-        self._bands: Optional[VariationalOrbitals] = None
+        self._variational_orbitals: Optional[VariationalOrbitals] = None
 
         if projections is None:
             # proj_list: List[List[str]]
@@ -956,12 +956,12 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         n_calculations = len(self.calculations)
         n_processes = len(self.processes)
 
-        # Link the bands
-        if self.parent_process.bands is not None:
+        # Link the variational orbitals
+        if self.parent_process.variational_orbitals is not None:
             if copy_outputs_to_parent:
-                self.bands = self.parent_process.bands
+                self.variational_orbitals = self.parent_process.variational_orbitals
             else:
-                self.bands = copy.deepcopy(self.parent_process.bands)
+                self.variational_orbitals = copy.deepcopy(self.parent_process.variational_orbitals)
 
         # Prepend the step counter to the subdirectory name
         subdirectory_str = self.name.replace(' ', '-').lower() if subdirectory is None else subdirectory
@@ -980,9 +980,9 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 self.parent_process.steps += self.steps[n_steps:]
 
                 if self.status == Status.COMPLETED:
-                    if self.bands is not None and self.parent_process.bands is None:
-                        # Copy the entire bands object
-                        self.parent_process.bands = self.bands
+                    if self.variational_orbitals is not None and self.parent_process.variational_orbitals is None:
+                        # Copy the entire variational_orbitals object
+                        self.parent_process.variational_orbitals = self.variational_orbitals
 
     def print(self, *args, **kwargs):
         """Print information in a tidy way."""
@@ -1021,14 +1021,14 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         return wf
 
     @property
-    def bands(self) -> VariationalOrbitals | None:
-        """The bands object associated with this workflow."""
-        return self._bands
+    def variational_orbitals(self) -> VariationalOrbitals | None:
+        """The variational_orbitals object associated with this workflow."""
+        return self._variational_orbitals
 
-    @bands.setter
-    def bands(self, value: VariationalOrbitals):
+    @variational_orbitals.setter
+    def variational_orbitals(self, value: VariationalOrbitals):
         assert isinstance(value, VariationalOrbitals)
-        self._bands = value
+        self._variational_orbitals = value
 
     @classmethod
     def fromjson(cls, fname: str, override: Dict[str, Any] = {}, **kwargs):
@@ -1493,6 +1493,9 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             else:
                 raise ValueError('When spin-polarized, `spin` must be either `Spin.UP` or `Spin.DOWN`')
             nelec = int(nelec // 2)
+        else:
+            if spin != Spin.NONE:
+                nelec //= 2
         return nelec
 
 

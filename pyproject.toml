@@ -37,6 +37,7 @@ dependencies = [
     "dill>=0.3.8",
     "tabulate==0.9.0",
     "toml",
+    "ipdb",
     "wannier90_input",
 ]
 

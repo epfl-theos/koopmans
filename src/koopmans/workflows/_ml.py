@@ -25,8 +25,8 @@ class SelfHartreeWorkflow(Workflow[SelfHartreeOutput]):
     output_model = SelfHartreeOutput
 
     def _run(self) -> None:
-        assert self.bands
-        self.outputs = self.output_model(descriptors=[b.self_hartree for b in self.bands.to_solve])
+        assert self.variational_orbitals
+        self.outputs = self.output_model(descriptors=[b.self_hartree for b in self.variational_orbitals.to_solve])
         self.status = Status.COMPLETED
         return
 
@@ -64,13 +64,13 @@ class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionOutp
                              'should not have been called')
 
         # Specify for which bands we want to compute the decomposition
-        assert self.bands
-        self.num_bands_occ = [len([band for band in self.bands if (band.filled and band.spin == spin)])
+        assert self.variational_orbitals
+        self.num_bands_occ = [len([band for band in self.variational_orbitals if (band.filled and band.spin == spin)])
                               for spin in [0, 1]]
-        self.num_bands_to_extract = [len([band for band in self.bands.to_solve if band.filled == filled])
+        self.num_bands_to_extract = [len([band for band in self.variational_orbitals.to_solve if band.filled == filled])
                                      for filled in [True, False]]
 
-        if self.bands.spin_polarized:
+        if self.variational_orbitals.spin_polarized:
             self.nspin_to_extract = 2
         else:
             self.nspin_to_extract = 1
@@ -93,9 +93,9 @@ class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionOutp
 
         # Extract the coefficients from the xml files
         if self.parameters.spin_polarized:
-            wannier_centers = [b.center for b in self.bands]
+            wannier_centers = [b.center for b in self.variational_orbitals]
         else:
-            wannier_centers = [b.center for b in self.bands if b.spin == 0]
+            wannier_centers = [b.center for b in self.variational_orbitals if b.spin == 0]
 
         decomposition_process = ExtractCoefficientsFromXMLProcess(
             n_max=self.ml.n_max,
@@ -104,7 +104,7 @@ class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionOutp
             r_max=self.ml.r_max,
             r_cut=min(self.atoms.get_cell_lengths_and_angles()[:3]),
             wannier_centers=wannier_centers,
-            bands=self.bands.to_solve,
+            bands=self.variational_orbitals.to_solve,
             cell=self.atoms.cell,
             total_density_xml=bin2xml_workflow.outputs.total_density,
             orbital_densities_xml=bin2xml_workflow.outputs.orbital_densities,
@@ -169,8 +169,8 @@ class ConvertOrbitalFilesToXMLWorkflow(Workflow[ConvertOrbitalFilesToXMLOutput])
 
         # Convert orbital densities to XML
         orbital_densities: List[File] = []
-        assert self.bands
-        for band in self.bands.to_solve:
+        assert self.variational_orbitals
+        for band in self.variational_orbitals.to_solve:
             if band.filled:
                 occ_id = 'occ'
             else:

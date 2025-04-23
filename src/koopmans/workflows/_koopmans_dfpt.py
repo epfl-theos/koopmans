@@ -94,7 +94,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                                 f'`assume_isolated = {params.assume_isolated}` is incompatible with '
                                 '`mt_correction = True`')
 
-        # Initialize the bands
+        # Initialize the variational orbitals
         tols: Dict[str, float] = {}
         if self.parameters.spin_polarized:
             nelec = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials)
@@ -116,13 +116,6 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
             if self.parameters.orbital_groups is None:
                 self.parameters.orbital_groups = [
                     list(range(nocc_up + nemp_up)), list(range(nocc_dw + nemp_dw))]
-            for key in ['self_hartree', 'spread']:
-                val = self.parameters.get(f'orbital_groups_{key}_tol', None)
-                if val is not None:
-                    tols[key] = val
-            self.bands = VariationalOrbitals(n_bands=[len(f) for f in filling], n_spin=2,
-                                             spin_polarized=self.parameters.spin_polarized,
-                                             filling=filling, groups=self.parameters.orbital_groups, tolerances=tols)
         else:
             nocc = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials) // 2
             if all(self.atoms.pbc):
@@ -136,12 +129,14 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
             filling = [[True] * nocc + [False] * nemp]
             if self.parameters.orbital_groups is None:
                 self.parameters.orbital_groups = [list(range(nocc + nemp))]
-            for key in ['self_hartree', 'spread']:
-                val = self.parameters.get(f'orbital_groups_{key}_tol', None)
-                if val is not None:
-                    tols[key] = val
-            self.bands = VariationalOrbitals(n_bands=nocc + nemp, filling=filling,
-                                             groups=self.parameters.orbital_groups, tolerances=tols)
+        for key in ['self_hartree', 'spread']:
+            val = self.parameters.get(f'orbital_groups_{key}_tol', None)
+            if val is not None:
+                tols[key] = val
+        self.variational_orbitals = VariationalOrbitals.empty(filling=filling,
+                                                              groups=self.parameters.orbital_groups,
+                                                              spin_polarized=self.parameters.spin_polarized,
+                                                              tolerances=tols)
 
         # Populating kpoints if absent
         if not all(self.atoms.pbc):
@@ -259,11 +254,11 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                 # Load the alphas
                 if self.parameters.alpha_from_file:
                     alpha_file_occ = LocalFile("file_alpharef.txt")
-                    alpha_file_empty = LocalFile("file_alpharef.txt")
-                    self.bands.alphas = [utils.read_alpha_file(alpha_file_occ)
-                                         + utils.read_alpha_file(alpha_file_empty)]
+                    alpha_file_empty = LocalFile("file_alpharef_empty.txt")
+                    self.variational_orbitals.alphas = [utils.read_alpha_file(alpha_file_occ)
+                                                        + utils.read_alpha_file(alpha_file_empty)]
                 else:
-                    self.bands.alphas = self.parameters.alpha_guess
+                    self.variational_orbitals.alphas = self.parameters.alpha_guess
 
         for wf in screen_wfs:
             wf.proceed()
@@ -384,10 +379,10 @@ class ComputeScreeningViaDFPTWorkflow(Workflow[ComputeScreeningViaDFPTOutputs]):
         self._spin_component = spin_component
 
     def _run(self):
-        # Group the bands by spread
-        self.bands.assign_groups(sort_by='spread', allow_reassignment=True)
+        # Group the variational orbitals by spread
+        self.variational_orbitals.assign_groups(sort_by='spread', allow_reassignment=True)
 
-        if len(self.bands.to_solve) == len(self.bands):
+        if len(self.variational_orbitals.to_solve) == len(self.variational_orbitals):
             # If there is no orbital grouping, do all orbitals in one calculation
 
             # 1) Create the calculator
@@ -399,18 +394,19 @@ class ComputeScreeningViaDFPTWorkflow(Workflow[ComputeScreeningViaDFPTOutputs]):
                 return
 
             # 3) Store the computed screening parameters
-            self.bands.alphas = kc_screen_calc.results['alphas']
+            self.variational_orbitals.alphas = kc_screen_calc.results['alphas']
         else:
             # If there is orbital grouping, do the orbitals one-by-one
-            assert self.bands is not None
-            bands_to_solve = [b for b in self.bands.to_solve if b.spin == self._spin_component - 1]
+            assert self.variational_orbitals is not None
+            spin = self.variational_orbitals.spin_channels[self._spin_component - 1]
+            orbitals_to_solve = [o for o in self.variational_orbitals.to_solve if o.spin == spin]
 
             # 1) Create the calculators
             kc_screen_calcs = []
-            for band in bands_to_solve:
-                kc_screen_calc = self.new_calculator('kcw_screen', i_orb=band.index,
+            for orbital in orbitals_to_solve:
+                kc_screen_calc = self.new_calculator('kcw_screen', i_orb=orbital.index,
                                                      spin_component=self._spin_component)
-                kc_screen_calc.prefix += f'_orbital_{band.index}_spin_{self._spin_component}'
+                kc_screen_calc.prefix += f'_orbital_{orbital.index}_spin_{self._spin_component}'
                 kc_screen_calcs.append(kc_screen_calc)
 
             # 2) Run the calculators (possibly in parallel)
@@ -419,11 +415,11 @@ class ComputeScreeningViaDFPTWorkflow(Workflow[ComputeScreeningViaDFPTOutputs]):
                 return
 
             # 3) Store the computed screening parameters (accounting for band groupings)
-            for band, kc_screen_calc in zip(bands_to_solve, kc_screen_calcs):
-                for b in self.bands:
-                    if b.group == band.group:
+            for orbital, kc_screen_calc in zip(orbitals_to_solve, kc_screen_calcs):
+                for o in self.variational_orbitals:
+                    if o.group == orbital.group:
                         [[alpha]] = kc_screen_calc.results['alphas']
-                        b.alpha = alpha
+                        o.alpha = alpha
 
         self.status = Status.COMPLETED
 
@@ -476,9 +472,9 @@ def internal_new_calculator(workflow, calc_presets, **kwargs):
             calc.parameters.eps_inf = workflow.parameters.eps_inf
     else:
         calc.parameters.do_bands = all(workflow.atoms.pbc)
-        if not workflow.parameters.spin_polarized and len(workflow.bands.alphas) != 1:
+        if not workflow.parameters.spin_polarized and len(workflow.variational_orbitals.alphas) != 1:
             raise ValueError('The list of screening parameters should be length 1 for spin-unpolarized calculations')
-        calc.alphas = workflow.bands.alphas[calc.parameters.spin_component - 1]
+        calc.alphas = workflow.variational_orbitals.alphas[calc.parameters.spin_component - 1]
 
     if all(workflow.atoms.pbc):
         if workflow.parameters.spin_polarized:
@@ -489,8 +485,8 @@ def internal_new_calculator(workflow, calc_presets, **kwargs):
                 nocc = workflow.calculator_parameters['kcp'].neldw
                 nemp = workflow.projections.num_wann(spin='down') - nocc
         else:
-            nocc = workflow.bands.num(filled=True)
-            nemp = workflow.bands.num(filled=False)
+            nocc = workflow.variational_orbitals.num(filled=True)
+            nemp = workflow.variational_orbitals.num(filled=False)
         nemp_pw = workflow.calculator_parameters['pw'].nbnd - nocc
         have_empty = (nemp > 0)
         has_disentangle = (nemp != nemp_pw)

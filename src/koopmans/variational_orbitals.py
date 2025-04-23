@@ -8,14 +8,14 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from koopmans.files import File
-from koopmans.utils import warn
+from koopmans.utils import Spin, warn
 
 
 class VariationalOrbital(BaseModel):
     """A class that defines a variational orbital. To be renamed from "Band" to "VariationalOrbital" in the future."""
 
     index: int
-    spin: int = 0
+    spin: Spin = Spin.NONE
     filled: bool = True
     group: int
     alpha_history: List[float] = Field(default_factory=list)
@@ -93,6 +93,32 @@ class VariationalOrbitals(BaseModel):
     spin_polarized: bool = False
     tolerances: Dict[str, float] = Field(default_factory=dict)
 
+    model_config = {'arbitrary_types_allowed': True, 'extra': 'forbid'}
+
+    @classmethod
+    def empty(cls,
+              filling: list[list[bool]],
+              groups: Optional[list[list[int]]] = None,
+              spin_polarized: bool = False,
+              tolerances: Dict[str, float] = {}) -> 'VariationalOrbitals':
+        """Create an empty VariationalOrbitals object."""
+        orbitals = []
+        n_spin = len(filling)
+        n_orbitals = len(filling[0])
+        if groups:
+            if len(groups) != n_spin:
+                raise ValueError('Shape mismatch between filling and groups')
+        spins = [Spin.UP, Spin.DOWN] if n_spin == 2 else [Spin.NONE]
+        for i_spin, (spin, filling_spin) in enumerate(zip(spins, filling)):
+            for i_orb, f_orb in enumerate(filling_spin):
+                if groups is None:
+                    group = i_orb + i_spin * n_orbitals if spin_polarized else i_orb
+                else:
+                    group = groups[i_spin][i_orb]
+                orbitals.append(VariationalOrbital(index=i_orb + i_spin * n_orbitals,
+                                                   spin=spin, group=group, filled=f_orb))
+        return cls(orbitals=orbitals, n_spin=n_spin, spin_polarized=spin_polarized, tolerances=tolerances)
+
     def __iter__(self):
         for o in self.orbitals:
             yield o
@@ -103,15 +129,22 @@ class VariationalOrbitals(BaseModel):
     def __len__(self) -> int:
         return len(self.orbitals)
 
+    @property
+    def n_orbitals(self) -> int:
+        """Return the number of orbitals for a single spin channel."""
+        return len(self.get(spin=self.spin_channels[0]))
+
     @classmethod
     def fromlist(cls, orbitals: List[VariationalOrbital]):
         """Construct a Bands object from a dictionary."""
         raise NotImplementedError('TODO')
         # return orbitals
 
-    def get(self, spin: Optional[int] = None, filled: Optional[bool] = None, group: Optional[int] = None,
+    def get(self, spin: Spin | None = None, filled: Optional[bool] = None, group: Optional[int] = None,
             to_solve: Optional[bool] = None) -> List[VariationalOrbital]:
         """Return all orbitals that match the specified criteria."""
+        if spin is None:
+            spin = self.spin_channels[0]
         if to_solve:
             selected_orbs = self.to_solve
         else:
@@ -120,15 +153,18 @@ class VariationalOrbitals(BaseModel):
             selected_orbs = [o for o in selected_orbs if o.filled == filled]
         if group is not None:
             selected_orbs = [o for o in selected_orbs if o.group == group]
-        if spin is not None:
+        if spin != Spin.NONE:
             selected_orbs = [o for o in selected_orbs if o.spin == spin]
+
+        if len(selected_orbs) == 0:
+            raise ValueError(f'No orbitals found matching the criteria: spin={spin}, filled={filled}, group={group}')
 
         return selected_orbs
 
     def __getitem__(self, key):
         return self.orbitals[key]
 
-    def num(self, filled=None, spin=None):
+    def num(self, filled: bool | None = None, spin: Spin | None = None):
         """Return the number of bands that match the specified criteria."""
         return len(self.get(filled=filled, spin=spin))
 
@@ -139,19 +175,23 @@ class VariationalOrbitals(BaseModel):
         [i_match] = [i for i, b in enumerate(self.orbitals) if b == orbital]
         return i_match
 
-    # def _check_array_shape_match(self, array, array_name):
-    #     raise NotImplementedError()
-    #     assert len(array) == self.n_spin, f'Bands.{array_name} must be length {self.n_spin} but you provided an ' \
-    #         f'array of length {len(array)}'
-    #     for i, (subarray, n_bands) in enumerate(zip(array, self.n_bands)):
-    #         assert len(subarray) == n_bands, f'Bands.{array_name}[{i}] must be length {n_bands} but you provided ' \
-    #             f'an array with length {len(subarray)}. The file_alpharef files should reflect the number of ' \
-    #             'states in the supercell.'
+    def _check_array_shape_match(self, array, array_name):
+        assert len(array) == self.n_spin, f'{self.__class__.__name__}.{array_name} must be length {self.n_spin} ' \
+            f'but you provided an array of length {len(array)}'
+        for i, subarray in enumerate(array):
+            assert len(subarray) == self.n_orbitals, f'{self.__class__.__name__}.{array_name}[{i}] must be length ' \
+                f'{self.n_orbitals} but you provided an array with length {len(subarray)}. The file_alpharef files ' \
+                'should reflect the number of states in the supercell.'
+
+    @property
+    def spin_channels(self) -> list[Spin]:
+        """Return a list of the different spin channels."""
+        return [Spin.UP, Spin.DOWN] if self.n_spin == 2 else [Spin.NONE]
 
     @property
     def filling(self) -> List[List[bool]]:
         """Return the filling of each orbital."""
-        return [[o.filled for o in self if o.spin == i_spin] for i_spin in range(self.n_spin)]
+        return [[o.filled for o in self if o.spin == spin] for spin in self.spin_channels]
 
     @filling.setter
     def filling(self, value: List[List[bool]]):
@@ -162,12 +202,12 @@ class VariationalOrbitals(BaseModel):
     @property
     def indices(self):
         """Return a list of the indices of each orbital."""
-        return [[o.index for o in self if o.spin == i_spin] for i_spin in range(self.n_spin)]
+        return [[o.index for o in self if o.spin == spin] for spin in self.spin_channels]
 
     @property
     def groups(self):
         """Return a list of the groups of each orbital."""
-        return [[o.group for o in self if o.spin == i_spin] for i_spin in range(self.n_spin)]
+        return [[o.group for o in self if o.spin == spin] for spin in self.spin_channels]
 
     @groups.setter
     def groups(self, value: List[List[int]]):
@@ -186,21 +226,22 @@ class VariationalOrbitals(BaseModel):
             return ValueError(f'Cannot sort orbitals according to {sort_by}; valid choices are'
                               + '/'.join(self.tolerances.keys()))
 
-        # By default use the settings provided when Bands() was initialized
+        # By default use the settings provided when VariationalOrbitals() was initialized
         tol = tol if tol is not None else self.tolerances[sort_by]
 
         # Separate the orbitals into different subsets, where we don't want any grouping of orbitals belonging to
         # different subsets
         if self.spin_polarized:
-            # Separate by both spin and filling
-            unassigned_sets = [[o for o in self if o.filled == filled and o.spin == i_spin]
-                               for i_spin in range(self.n_spin) for filled in [True, False]]
+            unassigned_sets = [[o for o in self if o.filled == filled and o.spin == spin]
+                               for spin in self.spin_channels for filled in [True, False]]
         else:
-            # Separate by filling and focus only on the spin=0 channel
-            unassigned_sets = [[o for o in self if o.filled == filled and o.spin == 0] for filled in [True, False]]
+            # Separate by filling and focus only on the first spin channel
+            selected_spin = self.spin_channels[0]
+            unassigned_sets = [[o for o in self if o.filled == filled and o.spin == selected_spin]
+                               for filled in [True, False]]
 
         def points_are_close(p0: VariationalOrbital, p1: VariationalOrbital, factor: Union[int, float] = 1) -> bool:
-            # Determine if two bands are "close"
+            # Determine if two orbitals are "close"
             assert tol is not None
             return abs(getattr(p0, sort_by) - getattr(p1, sort_by)) < tol * factor
 
@@ -252,8 +293,8 @@ class VariationalOrbitals(BaseModel):
                 group += 1
 
         if not self.spin_polarized and self.n_spin == 2:
-            for o in self.get(spin=1):
-                [match] = [b_op for b_op in self.get(spin=0) if b_op.index == o.index]
+            for o in self.get(spin=self.spin_channels[1]):
+                [match] = [o_op for o_op in self.get(spin=self.spin_channels[0]) if o_op.index == o.index]
                 o.group = match.group
 
         if tol != self.tolerances[sort_by]:
@@ -265,24 +306,24 @@ class VariationalOrbitals(BaseModel):
 
     @property
     def to_solve(self):
-        """Dynamically generate a list of bands that require solving explicitly."""
+        """Dynamically generate a list of orbitals that require solving explicitly."""
         # If groups have not been assigned...
         if None in [o.group for o in self]:
             if self.spin_polarized:
-                # ... and spin-polarized, solve all bands
+                # ... and spin-polarized, solve all orbitals
                 return self.get()
             else:
-                # ... and not spin-polarized, solve the spin-up bands only
-                return self.get(spin=0)
+                # ... and not spin-polarized, solve one spin channel only
+                return self.get(spin=self.spin_channels[0])
 
-        # If not, work out which bands to solve explicitly
+        # If not, work out which orbitals to solve explicitly
         groups_found = set([])
         to_solve = []
 
-        for orb in [o for i_spin in range(self.n_spin) for o in self.get(spin=i_spin)[::-1] if o.filled] \
-                + [o for i_spin in range(self.n_spin) for o in self.get(spin=i_spin) if not o.filled]:
-            # Looping through the filled bands from highest to lowest (first high spin then low spin), then empty
-            # bands from lowest to highest (but note since these are variational orbitals "highest" and "lowest")
+        for orb in [o for spin in self.spin_channels for o in self.get(spin=spin)[::-1] if o.filled] \
+                + [o for spin in self.spin_channels for o in self.get(spin=spin) if not o.filled]:
+            # Looping through the filled orbitals from "highest" to "lowest" (first high spin then low spin), then empty
+            # orbitals from "lowest" to "highest" (but note since these are variational orbitals "highest" and "lowest")
             # is not especially meaningful, unless we happen to be using KS orbitals as variational orbitals...
             if orb.group not in groups_found:
                 groups_found.add(orb.group)
@@ -307,7 +348,7 @@ class VariationalOrbitals(BaseModel):
     @property
     def predicted_alphas(self) -> List[List[float]]:
         """Return the predicted screening parameters for each band."""
-        return [[b.predicted_alpha for b in self if b.spin == i_spin] for i_spin in range(self.n_spin)]
+        return [[b.predicted_alpha for b in self if b.spin == spin] for spin in self.spin_channels]
 
     @property
     def power_spectrum(self) -> List[List[float]]:
@@ -316,7 +357,7 @@ class VariationalOrbitals(BaseModel):
 
     def update_attrib_with_history(self, name: str, value: Union[float, List[List[float]], np.ndarray, pd.DataFrame],
                                    group=None) -> None:
-        """Set the band's screening parameters/errors to the value provided.
+        """Set the orbitals' screening parameters/errors to the value provided.
 
         For this generic function,
          - "value" can be a scalar, a list, or a pandas DataFrame of the alpha_history
@@ -330,14 +371,14 @@ class VariationalOrbitals(BaseModel):
                 tmp_arr = np.transpose(value.values)
                 array = [tmp_arr for _ in range(self.n_spin)]
 
-            for spin, s_array in enumerate(array):
+            for spin, s_array in zip(self.spin_channels, array):
                 for b, history in zip(self.get(spin=spin), s_array):
                     # Make sure to exclude NaNs
                     setattr(b, f'{name}_history', [a for a in history.tolist() if not np.isnan(a)])
             return
 
         if isinstance(value, float):
-            value = [[value for _ in range(n_bands_spin)] for n_bands_spin in self.n_bands]
+            value = [[value for _ in range(self.n_orbitals)] for _ in self.spin_channels]
 
         self._check_array_shape_match(value, name)
         for b, v in zip(self, [v for subarray in value for v in subarray]):
@@ -355,7 +396,7 @@ class VariationalOrbitals(BaseModel):
         i = min([len(b.alpha_history) for b in self]) - 1
         if i == -1:
             raise AttributeError()
-        return [[b.alpha_history[i] for b in self if b.spin == i_spin] for i_spin in range(self.n_spin)]
+        return [[b.alpha_history[i] for b in self if b.spin == spin] for spin in self.spin_channels]
 
     @alphas.setter
     def alphas(self, value):
@@ -374,18 +415,17 @@ class VariationalOrbitals(BaseModel):
         """Update the errors for the bands."""
         self.update_attrib_with_history('error', value)
 
-    def _create_dataframe(self, attr, spin=None, only_to_solve=True) -> pd.DataFrame:
+    def _create_dataframe(self, attr, spin: Spin = Spin.NONE, only_to_solve=True) -> pd.DataFrame:
         """Generate a dataframe containing the requested attribute, sorting the bands first by index, then by spin."""
-        if self.spin_polarized and spin is None:
+        if self.spin_polarized and spin == Spin.NONE:
             if only_to_solve:
                 blist = self.to_solve
             else:
                 blist = self
 
-            columns = pd.MultiIndex.from_tuples([(f'spin {b.spin}', b.index) for b in blist])
+            columns = pd.MultiIndex.from_tuples([(f'spin {str(b.spin)}', b.index) for b in blist])
             band_subset = sorted(blist, key=lambda x: (x.spin, x.index))
         else:
-            spin = 0 if spin is None else spin
             columns = [b.index for b in self.get(spin=spin, to_solve=only_to_solve)]
             band_subset = self.get(spin=spin, to_solve=only_to_solve)
 
@@ -400,14 +440,14 @@ class VariationalOrbitals(BaseModel):
             df = pd.DataFrame(arr, columns=columns)
         return df
 
-    def alpha_history(self, spin=None) -> pd.DataFrame:
+    def alpha_history(self, spin: Spin = Spin.NONE) -> pd.DataFrame:
         """Return a dataframe that contains the history of the screening parameters."""
         return self._create_dataframe('alpha_history', spin=spin)
 
-    def error_history(self, spin=None) -> pd.DataFrame:
+    def error_history(self, spin: Spin = Spin.NONE) -> pd.DataFrame:
         """Return a dataframe that contains the history of the errors."""
         return self._create_dataframe('error_history', spin=spin)
 
-    def predicted_alpha_history(self, spin=None) -> pd.DataFrame:
+    def predicted_alpha_history(self, spin: Spin = Spin.NONE) -> pd.DataFrame:
         """Return a dataframe that contains the history of the predicted screening parameters."""
         return self._create_dataframe('predicted_alpha', spin=spin)

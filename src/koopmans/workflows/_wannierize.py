@@ -522,16 +522,16 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
             return
         self.block.w90_calc = calc_w90
 
-        if self.bands is not None:
+        if self.variational_orbitals is not None:
             # Add centers and spreads info to self.bands
             if self.block.spin is None:
-                remaining_bands = [b for b in self.bands if b.center is None and b.spin == 0]
+                remaining_bands = [b for b in self.variational_orbitals if b.center is None and b.spin == 0]
             else:
                 if self.block.spin == 'up':
                     i_spin = 0
                 else:
                     i_spin = 1
-                remaining_bands = [b for b in self.bands if b.center is None and b.spin == i_spin]
+                remaining_bands = [b for b in self.variational_orbitals if b.center is None and b.spin == i_spin]
 
             centers = calc_w90.results['centers']
             spreads = calc_w90.results['spreads']
@@ -539,9 +539,9 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
                 band.center = center
                 band.spread = spread
 
-                if self.block.spin is None and len(self.bands.get(spin=1)) > 0:
+                if self.block.spin is None and len(self.variational_orbitals.get(spin=1)) > 0:
                     # Copy over spin-up results to spin-down
-                    [match] = [b for b in self.bands if b.index == band.index and b.spin == 1]
+                    [match] = [b for b in self.variational_orbitals if b.index == band.index and b.spin == 1]
                     match.center = center
                     match.spread = spread
 

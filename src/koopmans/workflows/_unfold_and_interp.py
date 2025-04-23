@@ -6,7 +6,7 @@ Originally written by Riccardo De Gennaro as the standalone 'unfolding and inter
 Integrated within koopmans by Edward Linscott Jan 2021
 """
 
-from typing import Dict, List, Literal, Optional
+from typing import Dict, Optional
 
 import numpy as np
 from ase_koopmans.dft.dos import DOS
@@ -19,6 +19,7 @@ from koopmans.process_io import IOModel
 from koopmans.processes.ui import UnfoldAndInterpolateProcess, generate_dos
 from koopmans.projections import BlockID
 from koopmans.status import Status
+from koopmans.utils import Spin
 
 from ._wannierize import WannierizeWorkflow
 from ._workflow import Workflow
@@ -78,15 +79,14 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             self._smooth_dft_ham_files = wannier_workflow.outputs.hr_files
 
         process: UnfoldAndInterpolateProcess
-        spins: List[Literal[None, "up", "down", "spinor"]]
         if self.parameters.spin_polarized:
-            spins = ['up', 'down']
+            spins = [Spin.UP, Spin.DOWN]
         else:
-            spins = [None]
+            spins = [Spin.NONE]
 
-        assert self.bands is not None
+        assert self.variational_orbitals is not None
         processes = []
-        for spin, band_filling in zip(spins, self.bands.filling):
+        for spin, orb_filling in zip(spins, self.variational_orbitals.filling):
             # Extract the centers and spreads corresponding to this particular spin
             centers = np.array([center for c, p in zip(w90_calcs, self.projections)
                                for center in c.results['centers'] if p.spin == spin])
@@ -106,7 +106,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                     # For dfpt, self.bands correspond to the primitive cell so band_filling is already the correct
                     # dimensions
                     ngrid = 1
-                mask = np.array(band_filling[::ngrid]) == filled
+                mask = np.array(orb_filling[::ngrid]) == filled
 
                 # Add the smooth DFT Hamiltonian file if relevant
                 if self.calculator_parameters['ui'].do_smooth_interpolation:

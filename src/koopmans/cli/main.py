@@ -6,7 +6,10 @@ import argparse
 import json
 import re
 import sys
+import traceback
 from pathlib import Path
+
+import ipdb
 
 import koopmans.mpl_config  # noqa: F401
 from koopmans.engines import Engine, LocalhostEngine
@@ -23,6 +26,11 @@ def _custom_exception_hook(exception_type, exception_value, traceback):
     spaced_text = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1 \2', spaced_text)
 
     print_alert('caution', str(exception_value), header=spaced_text, indent=1)
+
+
+def _pdb_exception_hook(exception_type, exception_value, exception_traceback):
+    traceback.print_exception(exception_type, exception_value, exception_traceback)
+    ipdb.post_mortem(exception_traceback)
 
 
 class ListPseudoAction(argparse.Action):
@@ -111,6 +119,7 @@ def main():
                             help='a single JSON file containing the workflow and code settings')
     run_parser.add_argument('-t', '--traceback', action='store_true', help='enable traceback')
     run_parser.add_argument('-l', '--log', action='store_true', help='enable logging')
+    run_parser.add_argument('--pdb', action='store_true', help='enable interactive debugging')
     add_engine_flag(run_parser)
     run_parser.add_argument('--engine_config', type=str, default='engine.json',
                             help='Specify the engine configuration file (default: engine.json)')
@@ -165,6 +174,9 @@ def main():
     if args.traceback:
         sys.tracebacklimit = None
         sys.excepthook = default_excepthook
+    elif args.pdb:
+        sys.tracebacklimit = None
+        sys.excepthook = _pdb_exception_hook
 
     # If requested, set up logging
     if args.log:
