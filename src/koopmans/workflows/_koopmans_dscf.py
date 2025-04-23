@@ -560,35 +560,36 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
                     descriptors = psfit_workflow.outputs.descriptors
             else:
                 descriptors = self._precomputed_descriptors
-            for band, power_spectrum in zip(self.variational_orbitals.to_solve, descriptors):
-                band.power_spectrum = power_spectrum
+            for var_orb, power_spectrum in zip(self.variational_orbitals.to_solve, descriptors):
+                var_orb.power_spectrum = power_spectrum
 
         # Loop over removing/adding an electron from/to each orbital
         assert self.variational_orbitals is not None
-        for band in self.variational_orbitals:
+        for var_orb in self.variational_orbitals:
             # Working out what to print for the orbital heading (grouping skipped bands together)
-            if band in self.variational_orbitals.to_solve or band == self.variational_orbitals.get(spin=band.spin)[-1]:
-                if band not in self.variational_orbitals.to_solve \
-                        and (self.parameters.spin_polarized or band.spin == 0):
-                    skipped_orbitals.append(band.index)
+            if var_orb in self.variational_orbitals.to_solve \
+                    or var_orb == self.variational_orbitals.get(spin=var_orb.spin)[-1]:
+                if var_orb not in self.variational_orbitals.to_solve \
+                        and (self.parameters.spin_polarized or var_orb.spin == 0):
+                    skipped_orbitals.append(var_orb.index)
                 if len(skipped_orbitals) > 0:
                     skipped_orbitals = []
-                if band not in self.variational_orbitals.to_solve:
+                if var_orb not in self.variational_orbitals.to_solve:
                     continue
-            elif not self.parameters.spin_polarized and band.spin == 1:
+            elif not self.parameters.spin_polarized and var_orb.spin == 1:
                 # In this case, skip over the bands entirely and don't include it in the printout about which
                 # bands we've skipped
                 continue
             else:
                 # Skip the bands which can copy the screening parameter from another
                 # calculation in the same orbital group
-                skipped_orbitals.append(band.index)
+                skipped_orbitals.append(var_orb.index)
                 continue
 
             # Use the ML model to predict the screening parameters
             if self.ml.predict or self.ml.test:
                 assert self.ml_model is not None
-                alpha_pred = self.ml_model.predict(band)
+                alpha_pred = self.ml_model.predict(var_orb)
             else:
                 alpha_pred = None
 
@@ -597,10 +598,11 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
                 error = None
             else:
                 # Calculate the screening parameters ab initio
-                assert isinstance(band.index, int)
-                dummy_outdir = self._dummy_outdirs.get((band.index, band.spin), None)
+                assert isinstance(var_orb.index, int)
+                dummy_outdir = self._dummy_outdirs.get((var_orb.index, var_orb.spin), None)
                 subwf = OrbitalDeltaSCFWorkflow.fromparent(
-                    self, band=band, trial_calc=trial_calc, dummy_outdir=dummy_outdir, i_sc=self._i_sc,
+                    self, variational_orbital=var_orb, trial_calc=trial_calc,
+                    dummy_outdir=dummy_outdir, i_sc=self._i_sc,
                     alpha_indep_calcs=self._alpha_indep_calcs
                 )
                 subwf.proceed()
@@ -608,10 +610,10 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
                     return
                 alpha = subwf.outputs.alpha
                 error = subwf.outputs.error
-                self._dummy_outdirs[(band.index, band.spin)] = subwf.outputs.dummy_outdir
+                self._dummy_outdirs[(var_orb.index, var_orb.spin)] = subwf.outputs.dummy_outdir
 
             for b in self.variational_orbitals:
-                if b == band or (b.group is not None and b.group == band.group):
+                if b == var_orb or (b.group is not None and b.group == var_orb.group):
                     if alpha:
                         b.alpha = alpha
                     if error:
@@ -622,7 +624,7 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
             # add alpha to training data
             if self.ml.train:
                 assert self.ml_model is not None
-                self.ml_model.add_training_data([band])
+                self.ml_model.add_training_data([var_orb])
                 # if the user wants to train on the fly, train the model after the calculation of each orbital
                 if self.ml.train_on_the_fly:
                     assert self.ml_model is not None
