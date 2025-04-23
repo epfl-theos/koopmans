@@ -1,3 +1,5 @@
+"""Fixtures of ASE Atoms objects for testing purposes."""
+
 import copy
 from typing import Any, Dict
 
@@ -12,7 +14,7 @@ from koopmans.engines.localhost import LocalhostEngine
 
 @pytest.fixture
 def water() -> Dict[str, Any]:
-    # water
+    """Generate a water molecule."""
     return {'atoms': molecule('H2O', vacuum=5.0, pbc=False),
             'engine': LocalhostEngine(keep_tmpdirs=False),
             'pseudo_library': 'SG15/1.2/PBE/SR',
@@ -22,6 +24,7 @@ def water() -> Dict[str, Any]:
 
 @pytest.fixture
 def water_snapshots(water) -> Dict[str, Any]:
+    """Generate multiple snapshots of a water molecule."""
     atoms = water['atoms']
     atoms.pbc = True
     water['snapshots'] = []
@@ -36,7 +39,7 @@ def water_snapshots(water) -> Dict[str, Any]:
 
 @pytest.fixture
 def silicon() -> Dict[str, Any]:
-    # bulk silicon
+    """Generate bulk silicon."""
     from koopmans.kpoints import Kpoints
     from koopmans.projections import Projections
 
@@ -59,7 +62,7 @@ def silicon() -> Dict[str, Any]:
 
 @pytest.fixture
 def ozone() -> Dict[str, Any]:
-    # ozone
+    """Generate an ozone molecule."""
     return {'atoms': molecule('O3', vacuum=5.0, pbc=False),
             'pseudo_library': 'SG15/1.2/PBE/SR',
             'engine': LocalhostEngine(keep_tmpdirs=False),
@@ -68,7 +71,7 @@ def ozone() -> Dict[str, Any]:
 
 @pytest.fixture
 def tio2() -> Dict[str, Any]:
-    # rutile TiO2
+    """Generate rutile TiO2."""
     from koopmans.kpoints import Kpoints
     from koopmans.projections import Projections
 
@@ -77,9 +80,11 @@ def tio2() -> Dict[str, Any]:
     atoms: Atoms = crystal(['Ti', 'O'], basis=[(0, 0, 0), (0.3, 0.3, 0.0)],
                            spacegroup=136, cellpar=[a, a, c, 90, 90, 90])
 
-    projs = Projections.fromlist([["Ti:l=0"], ["Ti:l=1"], ["O:l=0"], ["O:l=1"], ["Ti:l=2"]],
-                                      spins=[None, None, None, None, None],
-                                      atoms=atoms)
+    projs = Projections.fromlist(
+        [["Ti:l=0"], ["Ti:l=1"], ["O:l=0"], ["O:l=1"], ["Ti:l=2"]],
+        spins=[None, None, None, None, None],
+        atoms=atoms
+    )
 
     kpoints = Kpoints(grid=[2, 2, 2], path='GXG', cell=atoms.cell)
     return {'atoms': atoms,
@@ -93,13 +98,13 @@ def tio2() -> Dict[str, Any]:
 
 @pytest.fixture
 def gaas() -> Dict[str, Any]:
-    # bulk gallium arsenide
+    """Generate bulk gallium arsenide."""
     from koopmans.kpoints import Kpoints
     from koopmans.projections import Projections
     atoms: Atoms = bulk('GaAs', crystalstructure='zincblende', a=5.6536)
     gaas_projs = Projections.fromlist([["Ga: d"], ["As: sp3"], ["Ga: sp3"]],
-                                           spins=[None, None, None],
-                                           atoms=atoms)
+                                      spins=[None, None, None],
+                                      atoms=atoms)
     kpoints = Kpoints(grid=[2, 2, 2])
     return {'atoms': atoms,
             'engine': LocalhostEngine(keep_tmpdirs=False),

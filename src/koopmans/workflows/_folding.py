@@ -1,39 +1,36 @@
-"""
+"""Workflow for converting W90 or PW files to kcp.x friendly-format using wann2kcp.x."""
 
-Workflow module for koopmans, containing the workflow for converting W90 or PW files to
-kcp.x friendly-format using wann2kcp.x
-
-Written by Edward Linscott Feb 2021
-
-"""
-
-import os
 from pathlib import Path
-from typing import Dict, Generator, List, Tuple
+from typing import Dict
 
-import numpy as np
 from pydantic import ConfigDict
 
-from koopmans import calculators, utils
 from koopmans.files import File
 from koopmans.process_io import IOModel
 from koopmans.processes.merge_evc import MergeEVCProcess
-from koopmans.projections import BlockID, ProjectionsBlock
+from koopmans.projections import BlockID
 from koopmans.status import Status
 
 from ._workflow import Workflow
 
 
 class FoldToSupercellOutputs(IOModel):
+    """Output model for the FoldToSupercellWorkflow."""
+
     kcp_files: Dict[str, File]
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class FoldToSupercellWorkflow(Workflow):
+    """Workflow that folds Wannier/Kohn-Sham orbitals from the primitive to the supercell.
+
+    The output is in a `kcp.x` friendly format.
+    """
 
     output_model = FoldToSupercellOutputs  # type: ignore
 
-    def __init__(self, nscf_outdir: File, hr_files: Dict[str, File], wannier90_calculations, wannier90_pp_calculations, **kwargs):
+    def __init__(self, nscf_outdir: File, hr_files: Dict[str, File], wannier90_calculations,
+                 wannier90_pp_calculations, **kwargs):
         super().__init__(**kwargs)
         self._nscf_outdir = nscf_outdir
         self._hr_files = hr_files
@@ -41,18 +38,13 @@ class FoldToSupercellWorkflow(Workflow):
         self._wannier90_pp_calculations = wannier90_pp_calculations
 
     def _run(self) -> None:
-        '''
-
-        Wrapper for folding Wannier or Kohn-Sham functions from the primitive cell
-        to the supercell and convert them to a kcp.x friendly format.
-
-        '''
-
+        """Run the workflow."""
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             # Loop over the various subblocks that we have wannierized separately
             converted_files = {}
             w2k_calcs = []
-            for w90_calc, w90_pp_calc, block in zip(self._wannier90_calculations, self._wannier90_pp_calculations, self.projections):
+            for w90_calc, w90_pp_calc, block in zip(self._wannier90_calculations, self._wannier90_pp_calculations,
+                                                    self.projections):
                 # Create the calculator
                 calc_w2k = self.new_calculator('wann2kcp', spin_component=block.spin, wan_mode='wannier2kcp')
                 calc_w2k.prefix = f'convert_{block.name}_to_supercell'
@@ -109,7 +101,7 @@ class FoldToSupercellWorkflow(Workflow):
                             tidy_label = 'occupied'
                         else:
                             tidy_label = 'empty'
-                        if merged_id.spin != None:
+                        if merged_id.spin is not None:
                             tidy_label += f'_spin_{subset[0].spin}'
                         merge_proc.name = 'merge_wavefunctions_for_' + tidy_label
                         status = self.run_steps(merge_proc)

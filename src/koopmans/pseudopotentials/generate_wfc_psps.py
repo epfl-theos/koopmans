@@ -1,7 +1,4 @@
-'''
-Script for regenerating pseudopotentials missing PP_PSWFC fields with oncvpsp(r).x
-Written by Edward Linscott, March 2022
-'''
+"""Script for regenerating pseudopotentials missing PP_PSWFC fields with `oncvpsp(r).x`."""
 
 import subprocess
 import xml.etree.ElementTree as ET

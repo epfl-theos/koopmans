@@ -1,10 +1,6 @@
-'''
+"""Machine Learning for `koopmans`"""
 
-utils module for Machine Learning for Koopmans
-
-Written by Yannick Schubert June 2022
-
-'''
+# flake8: noqa: F401
 
 from ._basis_functions import g, phi, real_spherical_harmonics
 from ._compute_decomposition import compute_decomposition

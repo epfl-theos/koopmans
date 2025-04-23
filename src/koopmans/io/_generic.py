@@ -1,10 +1,4 @@
-"""
-
-Generic I/O functions for koopmans
-
-Written by Edward Linscott Jan 2020
-
-"""
+"""Generic I/O functions for koopmans."""
 
 from pathlib import Path
 from typing import Any, List, Union
@@ -17,6 +11,7 @@ from ._json import read_json, write_json
 
 
 def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Any:
+    """Read an object from file, with the behavior depending on the file extension."""
     if isinstance(filename, str):
         filename = Path(filename)
     elif isinstance(filename, list):
@@ -41,6 +36,7 @@ def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Any:
 
 
 def write(obj: Any, filename: Union[str, Path]):
+    """Write an object to file. Behaves differently depending on the file extension."""
     if isinstance(filename, str):
         filename = Path(filename)
 

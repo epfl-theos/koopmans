@@ -1,18 +1,21 @@
+"""Processes for modifying Wannier90 files."""
+
 import math
 from pathlib import Path
-from typing import Callable, List, Tuple
+from typing import Callable, List
 
 import numpy as np
 from ase_koopmans import Atoms
 from pydantic import ConfigDict
 
-from koopmans import calculators, utils
+from koopmans import utils
 from koopmans.files import File
 
 from ._process import IOModel, Process
 
 
 def merge_wannier_hr_file_contents(filecontents: List[str]) -> str:
+    """Merge the contents of multiple `Wannier90` hr files into a single file."""
     # Reading in each hr file in turn
     hr_list = []
     weights_out = None
@@ -57,6 +60,7 @@ def merge_wannier_hr_file_contents(filecontents: List[str]) -> str:
 
 
 def merge_wannier_u_file_contents(filecontents: List[str]) -> str:
+    """Merge the contents of multiple `Wannier90` U matrix files into a single file."""
     u_list = []
     kpts_master = None
     for filecontent in filecontents:
@@ -68,7 +72,7 @@ def merge_wannier_u_file_contents(filecontents: List[str]) -> str:
         elif nkpts == len(kpts_master) and np.allclose(kpts, kpts_master):
             pass
         else:
-            raise ValueError(f'Cannot merge U matrix file contents with differing sets of k-points.')
+            raise ValueError('Cannot merge U matrix file contents with differing sets of k-points.')
 
         u_list.append(umat)
 
@@ -90,6 +94,7 @@ def merge_wannier_u_file_contents(filecontents: List[str]) -> str:
 
 
 def merge_wannier_centers_file_contents(filecontents: list[str], atoms: Atoms) -> str:
+    """Merge the contents of multiple `Wannier90` centers files into a single file."""
     centers_list = []
     for filecontent in filecontents:
         centers, _ = utils.parse_wannier_centers_file_contents(filecontent)
@@ -101,6 +106,7 @@ def merge_wannier_centers_file_contents(filecontents: list[str], atoms: Atoms) -
 
 
 def extend_wannier_u_dis_file_content(filecontent: str, nbnd: int, nwann: int) -> str:
+    """Extend the content of a `Wannier90` u_dis file to include the identity matrix for lower bands."""
     # Parse the file content
     udis_mat, kpts, _ = utils.parse_wannier_u_file_contents(filecontent)
 
@@ -116,17 +122,23 @@ def extend_wannier_u_dis_file_content(filecontent: str, nbnd: int, nwann: int) -
 
 
 class MergeInputModel(IOModel):
+    """Input model for a `MergeProcess`."""
+
     src_files: List[File]
     dst_file: Path
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MergeOutputModel(IOModel):
+    """Output model for a `MergeProcess`."""
+
     dst_file: File
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MergeProcess(Process):
+    """Generic process for merging the contents of multiple Wannier files (e.g. hr, u, centers)."""
+
     input_model = MergeInputModel
     output_model = MergeOutputModel
 
@@ -149,17 +161,23 @@ class MergeProcess(Process):
 
 
 class ExtendInputModel(IOModel):
+    """Input model for an `ExtendProcess`."""
+
     src_file: File
     dst_file: Path
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ExtendOutputModel(IOModel):
+    """Output model for an `ExtendProcess`."""
+
     dst_file: File
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ExtendProcess(Process):
+    """Generic process for extending the contents of a Wannier file (usually a u_dis file)."""
+
     input_model = ExtendInputModel
     output_model = ExtendOutputModel
 

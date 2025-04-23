@@ -1,3 +1,5 @@
+"""Test the `koopmans.commands` module."""
+
 import os
 
 import pytest
@@ -8,6 +10,7 @@ from koopmans.commands import (Command, ParallelCommand,
 
 
 def test_command():
+    """Test the Command class creation."""
     # Creation from a string
     c_str = 'pw.x -in in.pwi > out.pwi'
     c = Command(c_str)
@@ -16,8 +19,8 @@ def test_command():
 
     # Creation from another command object
     c2 = Command(c)
-    assert c.executable == 'pw.x'
-    assert str(c) == c_str
+    assert c2.executable == 'pw.x'
+    assert str(c2) == c_str
 
 
 parallel_commands = [('mpirun -n 16', 'pw.x', '-in in.pwi > out.pwi'),
@@ -27,6 +30,7 @@ parallel_commands = [('mpirun -n 16', 'pw.x', '-in in.pwi > out.pwi'),
 
 @pytest.mark.parametrize('mpi_command,executable,suffix', parallel_commands)
 def test_parallel_command(mpi_command, executable, suffix):
+    """Test the ParallelCommand class."""
     c_str = ' '.join((mpi_command, executable, suffix))
     c = ParallelCommand(c_str)
 
@@ -36,6 +40,7 @@ def test_parallel_command(mpi_command, executable, suffix):
 
 
 def test_parallel_command_with_postfix():
+    """Test the ParallelCommandWithPostfix class."""
     with utils.set_env(PARA_POSTFIX='-npool 4'):
         c_str = 'mpirun -n 16 pw.x -in in.pwi > out.pwi'
         postfix = '-npool 4'

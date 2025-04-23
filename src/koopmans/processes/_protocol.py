@@ -11,17 +11,23 @@ if TYPE_CHECKING:
 
 @runtime_checkable
 class ProcessProtocol(Protocol):
-    # Ultimately to be merged with Process once that has a more general definition
+    """Protocol for a Process.
+
+    Ultimately to be merged with Process once that has a more general definition
+    """
+
     parent_process: HasDirectory | None
     name: str
     engine: Engine | None
 
     @property
     def uid(self) -> str:
+        """Return the unique identifier for the process."""
         ...
 
     @property
     def directory(self) -> Path | None:
+        """Return the directory in which the process runs."""
         ...
 
     @directory.setter
@@ -29,6 +35,7 @@ class ProcessProtocol(Protocol):
         ...
 
     def run(self) -> None:
+        """Run the Process."""
         ...
 
     def _pre_run(self) -> None:
@@ -41,12 +48,15 @@ class ProcessProtocol(Protocol):
         ...
 
     def directory_has_been_set(self) -> bool:
+        """Return true if the directory has been set."""
         ...
 
     @property
     def absolute_directory(self) -> Path | None:
+        """Return the absolute path to the directory in which the process is contained."""
         ...
 
     @property
     def base_directory(self) -> Path | None:
+        """Return the base directory in which the process is contained."""
         ...

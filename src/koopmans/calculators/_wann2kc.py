@@ -1,12 +1,4 @@
-"""
-
-Wann2KCW calculator module for koopmans
-
-Written by Edward Linscott Feb 2021
-
-"""
-
-import os
+"""Wann2KCW calculator module for koopmans."""
 
 from ase_koopmans import Atoms
 from ase_koopmans.calculators.espresso import Wann2KC
@@ -18,7 +10,8 @@ from ._calculator import CalculatorABC, KCWannCalculator
 
 
 class Wann2KCCalculator(KCWannCalculator, Wann2KC, CalculatorABC):
-    # Subclass of KCWannCalculator for converting Wannier functions to a KCW format with kcw.x
+    """Subclass of KCWannCalculator for converting Wannier functions to a KCW format with kcw.x."""
+
     ext_in = '.w2ki'
     ext_out = '.w2ko'
 
@@ -33,7 +26,9 @@ class Wann2KCCalculator(KCWannCalculator, Wann2KC, CalculatorABC):
         self.command = ParallelCommandWithPostfix(f'kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out} 2>&1')
 
     def is_converged(self):
+        """Return True; a Wann2KC calculation is never not "converged"."""
         return True
 
     def is_complete(self):
+        """Return True if the calculation is complete."""
         return self.results['job_done']

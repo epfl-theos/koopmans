@@ -1,8 +1,4 @@
-'''
-references module for koopmans
-
-Written by Edward Linscott, Feb 2022
-'''
+"""References module for koopmans."""
 
 from pathlib import Path
 

@@ -1,1 +1,1 @@
-# Command line interface module for koopmans
+"""Command line interface module for koopmans."""

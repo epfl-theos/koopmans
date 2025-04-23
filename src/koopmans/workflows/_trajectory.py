@@ -1,18 +1,7 @@
-"""
+"""A workflow for running the Koopmans DSCF workflow on multiple atomic configurations."""
 
-A workflow for serially running the Koopmans DSCF workflow on multiple atomic configurations
+from typing import List
 
-"""
-
-import shutil
-from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional
-
-import numpy as np
-from ase_koopmans import Atoms, io
-from sklearn.metrics import mean_absolute_error, r2_score
-
-from koopmans import calculators, utils
 from koopmans.process_io import IOModel
 from koopmans.status import Status
 
@@ -21,10 +10,13 @@ from ._workflow import Workflow
 
 
 class TrajectoryOutputs(IOModel):
+    """Pydantic model for the outputs of a `TrajectoryWorkflow`."""
+
     snapshot_outputs: List[KoopmansDSCFOutputs]
 
 
 class TrajectoryWorkflow(Workflow[TrajectoryOutputs]):
+    """A workflow for running the KoopmansDSCF Workflow on multiple snapshots."""
 
     output_model = TrajectoryOutputs
 
@@ -33,12 +25,7 @@ class TrajectoryWorkflow(Workflow[TrajectoryOutputs]):
         self.parameters.task = 'trajectory'
 
     def _run(self) -> None:
-        """
-        Starts the KoopmansDSCF Workflow for each snapshot indicated in indices
-        """
-
-        # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
-
+        """Run a KoopmansDSCF Workflow for each snapshot indicated in indices."""
         workflows = []
         for i, snapshot in enumerate(self.snapshots):
             # Get the atomic positions for the current snapshot
@@ -46,7 +33,7 @@ class TrajectoryWorkflow(Workflow[TrajectoryOutputs]):
 
             # Initialize and run the DSCF workflow
             workflow = KoopmansDSCFWorkflow.fromparent(self)
-            workflow.name += f' Snapshot {i+1} of {len(self.snapshots)}'
+            workflow.name += f' Snapshot {i + 1} of {len(self.snapshots)}'
             workflows.append(workflow)
 
         for w in workflows:

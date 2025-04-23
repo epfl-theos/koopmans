@@ -1,3 +1,5 @@
+"""Plot the LDA and Koopmans band structures of ZnO."""
+
 import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,7 +25,7 @@ lda_bs_shifted = lda_bs.subtract_reference(koopmans_bs.reference)
 
 # Plot the two band structures
 ax = lda_bs_shifted.plot(label='LDA', spin=0, color='tab:blue', ls='--')
-ax = koopmans_bs_shifted.plot(ax=ax, label='K@LDA', color='tab:green')
+ax = koopmans_bs_shifted.plot(ax=ax, label='KI@LDA', color='tab:green')
 
 # Find the Koopmans valence band maximum
 valence = koopmans_bs_shifted.energies[:, :, :-2]

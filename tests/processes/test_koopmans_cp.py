@@ -1,6 +1,8 @@
+"""Tests for the Koopmans CP processes."""
+
 from pathlib import Path
 
-import pytest
+import pytest  # noqa: F401
 
 from koopmans import utils
 from koopmans.engines.localhost import LocalhostEngine
@@ -11,6 +13,7 @@ from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
 
 
 def test_convert_files_from_spin_1_to_2_process(tmpdir, check_patch, datadir):
+    """Test the `ConvertFilesFromSpin1To2` process."""
     with utils.chdir(tmpdir):
         spin_1_files = sorted([LocalFile(f) for f in (datadir / 'kcp' / 'spin_1_files').glob('*')])
         spin_2_up_files = sorted([f.name for f in (datadir / 'kcp' / 'spin_2_files').glob('*1.???')])
@@ -26,6 +29,7 @@ def test_convert_files_from_spin_1_to_2_process(tmpdir, check_patch, datadir):
 
 
 def test_convert_files_from_spin_2_to_1_process(tmpdir, check_patch, datadir):
+    """These the `ConvertFilesFromSpin2To1` process."""
     with utils.chdir(tmpdir):
         spin_1_files = sorted([f.name for f in (datadir / 'kcp' / 'spin_1_files').glob('*')])
         spin_2_files = sorted([LocalFile(f) for f in (datadir / 'kcp' / 'spin_2_files').glob('*1.???')])
@@ -38,6 +42,7 @@ def test_convert_files_from_spin_2_to_1_process(tmpdir, check_patch, datadir):
 
 
 def test_swap_spin_files(tmpdir, check_patch, datadir):
+    """Test the `SwapSpinFilesProcess`."""
     with utils.chdir(tmpdir):
         process = SwapSpinFilesProcess(read_directory=LocalFile(datadir / 'kcp' / 'spin_2_files'))
         process.directory = Path()

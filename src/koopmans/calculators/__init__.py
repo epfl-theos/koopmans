@@ -1,4 +1,7 @@
-'Calculators for use with koopmans'
+"""Calculators for use with koopmans."""
+
+# flake8: noqa: F401
+
 from typing import Type, Union
 
 from ._calculator import (CalculatorCanEnforceSpinSym, CalculatorExt,

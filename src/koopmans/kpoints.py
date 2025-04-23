@@ -1,5 +1,4 @@
-"""
-Defines a "kpoints" class that stores information related to k-points
+"""Defines a "kpoints" class that stores information related to k-points.
 
 Written by Edward Linscott, July 2022
 """
@@ -18,8 +17,7 @@ from ase_koopmans.dft.kpoints import (BandPath, kpoint_convert,
 
 
 class Kpoints:
-    """
-    A class for storing k-point information
+    """A class for storing k-point information.
 
     Attributes
     ----------
@@ -30,7 +28,8 @@ class Kpoints:
         in that dimension
     offset_nscf : Union[List[Union[int, float]]], int, float]
         a list of three numbers, within the interval (-1, 1].
-        It has the same meaning of offset, but it is applied only to the grid of PWnscf calculations. Additionally it allows to provide explicitly any fractional offset.
+        It has the same meaning of offset, but it is applied only to the grid of PWnscf calculations. Additionally it
+        allows to provide explicitly any fractional offset.
     path : ase.dft.kpoints.BandPath
         an ASE ``BandPath`` object specifying the k-path as defined by the special points of the Bravais
         lattice
@@ -48,8 +47,9 @@ class Kpoints:
                  offset_nscf: Optional[Union[List[Union[int, float]], int, float]] = None,
                  path: Optional[Union[str, BandPath]] = None, gamma_only: bool = False, cell: Optional[Cell] = None,
                  density: float = 10.0):
-        """
-        Initialize a Kpoint object. The path can be initialized using a string, but if so the additional requirements
+        """Initialize a Kpoint object.
+
+        The path can be initialized using a string, but if so the additional requirements
         density and cell are required, where...
 
         cell : ase.cell.Cell
@@ -87,6 +87,7 @@ class Kpoints:
 
     @property
     def grid(self) -> Optional[List[int]]:
+        """The regular k-point grid."""
         return self._grid
 
     @grid.setter
@@ -100,6 +101,7 @@ class Kpoints:
 
     @property
     def offset(self) -> Optional[List[int]]:
+        """The offset of the regular k-point grid."""
         return self._offset
 
     @offset.setter
@@ -113,6 +115,7 @@ class Kpoints:
 
     @property
     def offset_nscf(self) -> Optional[Union[List[Union[int, float]], int, float]]:
+        """The offset of the regular k-point grid for PWnscf calculations."""
         return self._offset_nscf
 
     @offset_nscf.setter
@@ -135,6 +138,7 @@ class Kpoints:
 
     @property
     def path(self) -> Optional[BandPath]:
+        """The k-point path."""
         return self._path
 
     @path.setter
@@ -144,6 +148,7 @@ class Kpoints:
         self._path = value
 
     def set_path(self, path: Optional[Union[str, BandPath]], cell: Optional[Cell] = None, density: float = 10.0):
+        """Set the path attribute of the Kpoints object."""
         # A function for setting self.path with a string
         if isinstance(path, str):
             # Convert the string to a BandPath object
@@ -154,6 +159,7 @@ class Kpoints:
         self.path = path
 
     def tojson(self) -> Dict[str, Union[str, bool, List[int], Dict[str, Any]]]:
+        """Convert the object to a dictionary."""
         dct: Dict[str, Union[str, bool, List[int], Dict[str, Any]]] = {}
         for k, v in self.__dict__.items():
             k = k.lstrip('_')
@@ -166,6 +172,7 @@ class Kpoints:
         return dct
 
     def todict(self) -> Dict[str, Union[str, bool, List[int], BandPath]]:
+        """Convert the object to a dictionary with added information required to reconstruct the object."""
         dct = self.tojson()
 
         # We also need the cell
@@ -179,6 +186,7 @@ class Kpoints:
 
     @classmethod
     def fromdict(cls, dct) -> Kpoints:
+        """Create an instance of the class from a dictionary."""
         # Remove name and module if they're there
         dct.pop('__koopmans_name__', None)
         dct.pop('__koopmans_module__', None)
@@ -203,12 +211,14 @@ class Kpoints:
 
 
 def convert_kpath_str_to_bandpath(path: str, cell: Cell, density: Optional[float] = None) -> BandPath:
+    """Convert a string of high-symmetry k-points to a BandPath object."""
     special_points: Dict[str, np.ndarray] = cell.bandpath(eps=1e-10).special_points
     special_points_on_path = set([x for y in parse_path_string(path) for x in y])
     for sp in special_points_on_path:
         if sp not in special_points.keys():
             raise KeyError(
-                f'The path provided to convert_kpath_str_to_bandpath contains a special point ({sp}) that is not in the set of special points for this cell ({", ".join(special_points.keys())})')
+                f'The path provided to convert_kpath_str_to_bandpath contains a special point ({sp}) '
+                f'that is not in the set of special points for this cell ({", ".join(special_points.keys())})')
     bp = BandPath(cell=cell, path=path, special_points=special_points)
     if len(path) > 1:
         bp = bp.interpolate(density=density)
@@ -216,6 +226,7 @@ def convert_kpath_str_to_bandpath(path: str, cell: Cell, density: Optional[float
 
 
 def kpath_length(path: BandPath) -> float:
+    """Calculate the length of a k-path."""
     _, paths = resolve_kpt_path_string(path.path, path.special_points)
     points = np.concatenate(paths)
     dists = points[1:] - points[:-1]
@@ -230,6 +241,7 @@ def kpath_length(path: BandPath) -> float:
 
 
 def kpath_to_dict(path: BandPath) -> Dict[str, Any]:
+    """Convert a BandPath object to a dictionary."""
     dct = {}
     dct['path'] = path.path
     dct['cell'] = path.cell.todict()
@@ -262,6 +274,7 @@ def kpath_to_dict(path: BandPath) -> Dict[str, Any]:
 
 
 def dict_to_kpath(dct: Dict[str, Any]) -> BandPath:
+    """Convert a dictionary to a BandPath object."""
     dct = copy.deepcopy(dct)
     density = dct.pop('density', None)
     cell = Cell(dct.pop('cell')['array'])

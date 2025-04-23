@@ -1,10 +1,4 @@
-'''
-
-Units koopmans.utils
-
-Written by Edward Linscott May 2020
-
-'''
+"""Units for `koopmans.utils`."""
 
 
 from ase_koopmans.units import create_units

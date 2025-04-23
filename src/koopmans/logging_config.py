@@ -1,10 +1,15 @@
+"""Logging configuration for `koopmans`."""
+
 import inspect
 import logging
 from pathlib import Path
 
 
 class FormatterWithLineNo(logging.Formatter):
-    def format(self, record):
+    """Logging formatter with line number information."""
+
+    def format(self, record):  # noqa: A003
+        """Format the log message, adding the file name and line number where the log was called."""
         stack = inspect.stack()
         frame = stack[10]
         file_name = Path(frame.filename).relative_to(Path(__file__).parents[2])
@@ -16,19 +21,10 @@ class FormatterWithLineNo(logging.Formatter):
 
 
 def setup_logging(level=logging.INFO, filename='koopmans.log'):
-
+    """Set up logging."""
     file_handler = logging.FileHandler(filename, mode='w')
     file_handler.setFormatter(FormatterWithLineNo())
 
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
     root_logger.addHandler(file_handler)
-
-    # # Add a file handler for each module dynamically
-    # logger = logging.getLogger()
-    # if not logger.handlers:
-    #     module_name = logger.name if logger.name else 'default'
-    #     log_file = f'logs/{module_name}.log'
-    #     module_handler = logging.FileHandler(log_file)
-    #     module_handler.setFormatter(FormatterWithLineNo())
-    #     logger.addHandler(module_handler)

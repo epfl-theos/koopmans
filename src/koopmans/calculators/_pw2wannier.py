@@ -1,10 +1,4 @@
-"""
-
-pw2wannier calculator module for koopmans
-
-Written by Edward Linscott Sep 2020
-
-"""
+"""pw2wannier calculator module for koopmans."""
 
 import os
 
@@ -18,6 +12,7 @@ from ._calculator import CalculatorABC, CalculatorExt
 
 
 class PW2WannierCalculator(CalculatorExt, PW2Wannier, CalculatorABC):
+    """A `PW2Wannier` calculator."""
 
     ext_in = '.p2wi'
     ext_out = '.p2wo'
@@ -32,7 +27,9 @@ class PW2WannierCalculator(CalculatorExt, PW2Wannier, CalculatorABC):
         self.command = ParallelCommand(os.environ.get('ASE_PW2WANNIER_COMMAND', self.command))
 
     def is_converged(self):
+        """Return True; a PW2Wannier calculation is never not "converged"."""
         return True
 
     def is_complete(self):
+        """Return True if the calculation is complete."""
         return self.results['job done']

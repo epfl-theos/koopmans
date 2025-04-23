@@ -1,6 +1,4 @@
-'''
-A simple script that converges the HOMO energy of a water molecule with respect to nr1b, nr2b, and nr3b
-'''
+"""A simple script that converges the HOMO energy of a water molecule with respect to nr1b, nr2b, and nr3b."""
 
 from ase_koopmans.build import molecule
 
@@ -24,12 +22,14 @@ subworkflow = workflows.DFTCPWorkflow(atoms=atoms, ecutwfc=30.0, base_functional
 
 
 def get_nrb(workflow):
+    """Get the values for nr1-3b from a workflow."""
     return [workflows.get_calculator_parameter(workflow, f'nr{i}b') for i in [1, 2, 3]]
 
 # ... define a function that sets nr1-3b
 
 
 def set_nrb(workflow, value):
+    """Set nr1-3b equal to `value` for a workflow."""
     workflows.set_calculator_parameter(workflow, 'nr1b', value[0])
     workflows.set_calculator_parameter(workflow, 'nr2b', value[1])
     workflows.set_calculator_parameter(workflow, 'nr3b', value[2])

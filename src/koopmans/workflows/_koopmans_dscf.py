@@ -1,16 +1,9 @@
-"""
-
-Workflow module for koopmans, containing the workflow for performing KI and KIPZ calculations
-
-Written by Edward Linscott Jan 2020
-Split off from workflow.py Oct 2020
-
-"""
+"""Workflow for performing KI and KIPZ calculations with kcp.x."""
 
 import logging
 import shutil
 from pathlib import Path
-from typing import Dict, Generator, List, Mapping, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from ase_koopmans.dft import DOS
@@ -21,8 +14,6 @@ from koopmans.calculators import (KoopmansCPCalculator, PWCalculator,
                                   convert_flat_alphas_for_kcp)
 from koopmans.files import File
 from koopmans.process_io import IOModel
-from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
-                                            ConvertFilesFromSpin2To1)
 from koopmans.projections import BlockID
 from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.status import Status
@@ -41,9 +32,8 @@ logger = logging.getLogger(__name__)
 
 
 class KoopmansDSCFOutputs(IOModel):
-    '''
-    Outputs for the KoopmansDSCFWorkflow
-    '''
+    """Pydantic model for the outputs of a `KoopmansDSCFWorkflow`."""
+
     variational_orbital_files: Dict[str, File]
     final_calc: KoopmansCPCalculator
     wannier_hamiltonian_files: Dict[BlockID, File] | None = None
@@ -52,6 +42,7 @@ class KoopmansDSCFOutputs(IOModel):
 
 
 class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
+    """Workflow for performing a Koopmans calculation, computing the screening parameters via the DSCF method."""
 
     output_model = KoopmansDSCFOutputs
 
@@ -65,8 +56,8 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
         # The following two additional keywords allow for some tweaking of the workflow when running a singlepoint
         # workflow with functional == 'all'
 
-        # If the higher-resolution DFT calculations have already been computed, the smooth DFT Hamiltonian can be provided
-        # via this keyword to avoid redoing these calculations unnecessarily
+        # If the higher-resolution DFT calculations have already been computed, the smooth DFT Hamiltonian can be
+        # provided via this keyword to avoid redoing these calculations unnecessarily
         self._smooth_dft_ham_files = smooth_dft_ham_files
 
         # For the KIPZ calculation we restart from the old KI calculation
@@ -97,19 +88,23 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
                         label += f'_{spin}'
                     nbands_excl = len(self.calculator_parameters[label].get('exclude_bands', []))
                     if nbands_excl > 0:
-                        raise ValueError('Excluding bands is incompatible with `method == "dscf"`. Please provide '
-                                         'projections for every band and remove the `exclude_bands` `Wannier90` keyword.')
+                        raise ValueError(
+                            'Excluding bands is incompatible with `method == "dscf"`. Please provide '
+                            'projections for every band and remove the `exclude_bands` `Wannier90` keyword.'
+                        )
 
                     nwann = self.projections.num_wann(spin=spin)
 
                     if nwann < nelec:
-                        raise ValueError('You have configured this calculation to only wannierize a subset of the '
-                                         'occupied bands:\n'
-                                         f' number of occupied bands = {nbands_occ}\n'
-                                         f' number of Wannier functions = {nwann}\n'
-                                         'This is incompatible with the subsequent Koopmans '
-                                         'calculation.\nPlease modify the `Wannier90` settings in order to wannierize '
-                                         'all of the occupied bands.')
+                        raise ValueError(
+                            'You have configured this calculation to only wannierize a subset of the '
+                            'occupied bands:\n'
+                            f' number of occupied bands = {nbands_occ}\n'
+                            f' number of Wannier functions = {nwann}\n'
+                            'This is incompatible with the subsequent Koopmans '
+                            'calculation.\nPlease modify the `Wannier90` settings in order to wannierize '
+                            'all of the occupied bands.'
+                        )
 
                     nbands_emp = nwann - nbands_occ
                 else:
@@ -199,7 +194,8 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
             val = self.parameters.get(f'orbital_groups_{key}_tol', None)
             if val is not None:
                 tols[key] = val
-        self.bands = VariationalOrbitals(n_bands=[len(f) for f in filling], n_spin=2, spin_polarized=self.parameters.spin_polarized,
+        self.bands = VariationalOrbitals(n_bands=[len(f) for f in filling], n_spin=2,
+                                         spin_polarized=self.parameters.spin_polarized,
                                          filling=filling, groups=groups, tolerances=tols)
 
         if self.parameters.alpha_from_file:
@@ -226,7 +222,10 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
                                       'has not yet been implemented')
 
     def convert_kcp_to_supercell(self):
-        # Multiply all extensive KCP settings by the appropriate prefactor
+        """Convert the KCP settings to correspond to a supercell calculation.
+
+        Multiply all extensive KCP settings by the appropriate prefactor
+        """
         assert self.kpoints.grid is not None
         prefactor = np.prod(self.kpoints.grid)
         for attr in ['nelec', 'nelup', 'neldw', 'nbnd', 'conv_thr', 'esic_conv_thr', 'tot_charge', 'tot_magnetization']:
@@ -235,14 +234,12 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
                 setattr(self.calculator_parameters['kcp'], attr, prefactor * value)
 
     def read_alphas_from_file(self, directory: Path = Path()):
-        '''
-        This routine reads in the contents of file_alpharef.txt and file_alpharef_empty.txt
+        """Read the contents of `file_alpharef.txt` and `file_alpharef_empty.txt`.
 
-        Since utils.read_alpha_file provides a flattened list of alphas so we must convert this
+        Since utils.read_alpha_files provides a flattened list of alphas so we must convert this
         to a nested list using convert_flat_alphas_for_kcp()
-        '''
-
-        flat_alphas = utils.read_alpha_file(self)
+        """
+        flat_alphas = utils.read_alpha_files(self)
         params = self.calculator_parameters['kcp']
         assert isinstance(params, KoopmansCPSettingsDict)
         alphas = convert_flat_alphas_for_kcp(flat_alphas, params)
@@ -253,10 +250,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
         return alphas
 
     def _run(self) -> None:
-        '''
-        This function runs a KI/pKIPZ/KIPZ workflow from start to finish
-        '''
-
+        """Run the workflow."""
         init_wf: Optional[InitializationWorkflow] = None
         if self._initial_variational_orbital_files is None:
             init_wf = InitializationWorkflow.fromparent(self)
@@ -272,9 +266,11 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
         self.primitive_to_supercell()
 
         if self.parameters.calculate_alpha:
-            screening_wf = CalculateScreeningViaDSCF.fromparent(self, initial_variational_orbital_files=self._initial_variational_orbital_files,
-                                                                initial_cp_calculation=initial_cp_calculation,
-                                                                precomputed_descriptors=self._precomputed_descriptors)
+            screening_wf = CalculateScreeningViaDSCF.fromparent(
+                self, initial_variational_orbital_files=self._initial_variational_orbital_files,
+                initial_cp_calculation=initial_cp_calculation,
+                precomputed_descriptors=self._precomputed_descriptors
+            )
             screening_wf.proceed()
             if screening_wf.status != Status.COMPLETED:
                 return
@@ -354,10 +350,12 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
                 final_koopmans_calc = self.calculations[-1]
                 koopmans_ham_files: Dict[BlockID, File]
                 if self.parameters.spin_polarized:
-                    koopmans_ham_files = {BlockID(filled=True, spin="up"): File(final_koopmans_calc, Path('ham_occ_1.dat')),
-                                          BlockID(filled=False, spin="up"): File(final_koopmans_calc, Path('ham_emp_1.dat')),
-                                          BlockID(filled=True, spin="down"): File(final_koopmans_calc, Path('ham_occ_2.dat')),
-                                          BlockID(filled=False, spin="down"): File(final_koopmans_calc, Path('ham_emp_2.dat'))}
+                    koopmans_ham_files = {
+                        BlockID(filled=True, spin="up"): File(final_koopmans_calc, Path('ham_occ_1.dat')),
+                        BlockID(filled=False, spin="up"): File(final_koopmans_calc, Path('ham_emp_1.dat')),
+                        BlockID(filled=True, spin="down"): File(final_koopmans_calc, Path('ham_occ_2.dat')),
+                        BlockID(filled=False, spin="down"): File(final_koopmans_calc, Path('ham_emp_2.dat'))
+                    }
                 else:
                     koopmans_ham_files = {BlockID(filled=True): File(final_koopmans_calc, Path('ham_occ_1.dat')),
                                           BlockID(filled=False): File(final_koopmans_calc, Path('ham_emp_1.dat'))}
@@ -395,11 +393,14 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
 
 
 class CalculateScreeningViaDSCFOutput(IOModel):
+    """Pydantic model for the outputs of a `CalculateScreeningViaDSCF` workflow."""
+
     n_electron_restart_dir: File
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
+    """Calculate the screening parameters of a system via DSCF."""
 
     output_model = CalculateScreeningViaDSCFOutput
 
@@ -425,11 +426,13 @@ class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
         while not converged and i_sc < self.parameters.alpha_numsteps:
             i_sc += 1
 
-            iteration_wf = DeltaSCFIterationWorkflow.fromparent(self, variational_orbital_files=variational_orbital_files,
-                                                                previous_n_electron_calculation=n_electron_calc,
-                                                                precomputed_descriptors=self._precomputed_descriptors,
-                                                                dummy_outdirs=dummy_outdirs,
-                                                                i_sc=i_sc, alpha_indep_calcs=alpha_indep_calcs)
+            iteration_wf = DeltaSCFIterationWorkflow.fromparent(
+                self, variational_orbital_files=variational_orbital_files,
+                previous_n_electron_calculation=n_electron_calc,
+                precomputed_descriptors=self._precomputed_descriptors,
+                dummy_outdirs=dummy_outdirs,
+                i_sc=i_sc, alpha_indep_calcs=alpha_indep_calcs
+            )
             iteration_wf.name = f'Iteration {i_sc}'
 
             if i_sc == 1:
@@ -473,6 +476,8 @@ class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
 
 
 class DeltaSCFIterationOutputs(IOModel):
+    """Pydantic model for the outputs of a `DeltaSCFIterationWorkflow`."""
+
     converged: bool
     n_electron_restart_dir: File
     dummy_outdirs: Dict[Tuple[int, int], File | None]
@@ -480,13 +485,15 @@ class DeltaSCFIterationOutputs(IOModel):
 
 
 class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
+    """Perform one iteration of the Delta SCF calculation of the screening parameters."""
 
     output_model = DeltaSCFIterationOutputs
 
     def __init__(self, *args, variational_orbital_files: Dict[str, File],
                  previous_n_electron_calculation=KoopmansCPCalculator,
                  dummy_outdirs: Dict[Tuple[int, int], File | None], i_sc: int,
-                 alpha_indep_calcs: List[KoopmansCPCalculator], precomputed_descriptors: List[File] | None, **kwargs) -> None:
+                 alpha_indep_calcs: List[KoopmansCPCalculator],
+                 precomputed_descriptors: List[File] | None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self._variational_orbital_files = variational_orbital_files
         self._previous_n_electron_calculation = previous_n_electron_calculation
@@ -532,7 +539,6 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
             status = self.run_steps(trial_calc)
             if status != Status.COMPLETED:
                 return
-        alpha_dep_calcs = [trial_calc]
 
         # Update the bands' self-Hartree and energies (assuming spin-symmetry)
         self.bands.self_hartrees = trial_calc.results['orbital_data']['self-Hartree']
@@ -541,8 +547,6 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
         self.bands.assign_groups(allow_reassignment=True)
 
         skipped_orbitals = []
-        first_band_of_each_channel = [self.bands.get(spin=spin)[0] for spin in range(2)]
-
         # Calculate the power spectrum if required
         if self.ml.descriptor == 'orbital_density' and (self.ml.train or self.ml.predict or self.ml.test) \
                 and self.ml.estimator != 'mean':
@@ -563,10 +567,6 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
         # Loop over removing/adding an electron from/to each orbital
         assert self.bands is not None
         for band in self.bands:
-            # For a KI calculation with only filled bands, we don't have any further calculations to
-            # do, so in this case don't print any headings
-            print_headings = self.parameters.functional != 'ki' or not band.filled
-
             # Working out what to print for the orbital heading (grouping skipped bands together)
             if band in self.bands.to_solve or band == self.bands.get(spin=band.spin)[-1]:
                 if band not in self.bands.to_solve and (self.parameters.spin_polarized or band.spin == 0):
@@ -600,7 +600,9 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
                 assert isinstance(band.index, int)
                 dummy_outdir = self._dummy_outdirs.get((band.index, band.spin), None)
                 subwf = OrbitalDeltaSCFWorkflow.fromparent(
-                    self, band=band, trial_calc=trial_calc, dummy_outdir=dummy_outdir, i_sc=self._i_sc, alpha_indep_calcs=self._alpha_indep_calcs)
+                    self, band=band, trial_calc=trial_calc, dummy_outdir=dummy_outdir, i_sc=self._i_sc,
+                    alpha_indep_calcs=self._alpha_indep_calcs
+                )
                 subwf.proceed()
                 if subwf.status != Status.COMPLETED:
                     return
@@ -647,6 +649,8 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
 
 
 class OrbitalDeltaSCFOutputs(IOModel):
+    """Pydantic model for the outputs of the OrbitalDeltaSCFWorkflow."""
+
     alpha: float
     error: float
     dummy_outdir: File | None
@@ -654,6 +658,7 @@ class OrbitalDeltaSCFOutputs(IOModel):
 
 
 class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
+    """Workflow for calculating the screening parameter for a single orbital."""
 
     output_model = OrbitalDeltaSCFOutputs
 
@@ -857,7 +862,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
                                            trial_calc: KoopmansCPCalculator,
                                            band: VariationalOrbital,
                                            filled: bool = True) -> Tuple[float, float]:
-        '''
+        """Calculate the screening parameter alpha from a list of calculations.
 
         Calculates alpha via equation 10 of Nguyen et. al (2018) 10.1103/PhysRevX.8.021051
         If the band is filled, use s = 1; if the band is empty, use s = 0
@@ -866,9 +871,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
             calcs          -- a list of selected calculations from which to calculate alpha
             trial_calc     -- the N-electron Koopmans calculation
             filled         -- True if the orbital for which we're calculating alpha is filled
-
-        '''
-
+        """
         # Extract the energy difference Delta E
         if self.parameters.functional == 'kipz':
             if filled:
@@ -956,15 +959,13 @@ def internal_new_kcp_calculator(workflow,
                                 filling: Optional[List[List[bool]]] = None,
                                 add_to_spin_up: bool = True,
                                 **kwargs) -> KoopmansCPCalculator:
-    """
+    """Generate a new KCP calculator based on `self.calculator_parameters["kcp"]`.
 
-    Generates a new KCP calculator based on the self.calculator_parameters["kcp"]
-    parameters, modifying the appropriate settings to match the
-    chosen calc_presets, and altering any Quantum Espresso keywords
-    specified as kwargs
+    Modifies the appropriate settings to match the chosen calc_presets, and altering any Quantum Espresso
+    keywords specified as kwargs
 
-    Arguments:
-
+    Arguments
+    ---------
         calc_presets
             The set of preset values to use; must be one of the following strings:
 
@@ -1007,9 +1008,7 @@ def internal_new_kcp_calculator(workflow,
                 apply these options to the returned ASE calculator
 
     Returns: a new KCP calculator object
-
     """
-
     # By default, use the last row in the alpha table for the screening parameters
     if alphas is None:
         alphas = workflow.bands.alphas
@@ -1184,6 +1183,7 @@ def internal_new_kcp_calculator(workflow,
 
 
 class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
+    """Workflow to perform the DFT/PZ initialization of the variational orbitals within a larger DSCF workflow."""
 
     output_model = KoopmansDSCFOutputs
 
@@ -1204,7 +1204,6 @@ class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
                 return
 
             # Store the Hamitonian files
-            hr_file_keys: List[BlockID]
             if self.parameters.spin_polarized:
                 hr_file_ids = [BlockID(filled=True, spin='up'),
                                BlockID(filled=False, spin='up'),
@@ -1222,10 +1221,12 @@ class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
             # Convert the files over from w90 format to kcp format
             nscf_calc = wannier_workflow.outputs.nscf_calculation
             nscf_outdir = File(nscf_calc, nscf_calc.parameters.outdir)
-            fold_workflow = FoldToSupercellWorkflow.fromparent(self, nscf_outdir=nscf_outdir,
-                                                               hr_files=wannier_workflow.outputs.hr_files,
-                                                               wannier90_calculations=wannier_workflow.outputs.wannier90_calculations,
-                                                               wannier90_pp_calculations=wannier_workflow.outputs.preprocessing_calculations)
+            fold_workflow = FoldToSupercellWorkflow.fromparent(
+                self, nscf_outdir=nscf_outdir,
+                hr_files=wannier_workflow.outputs.hr_files,
+                wannier90_calculations=wannier_workflow.outputs.wannier90_calculations,
+                wannier90_pp_calculations=wannier_workflow.outputs.preprocessing_calculations
+            )
             fold_workflow.proceed()
             if fold_workflow.status != Status.COMPLETED:
                 return
@@ -1363,10 +1364,11 @@ class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
 
 
 def print_alpha_history(wf: Workflow):
+    """Print out the history of the screening parameter α and the error ΔE - λ for each band."""
     # Printing out a progress summary
     assert wf.bands is not None
     if not wf.ml.predict:
-        wf.print(f'\n**α**')
+        wf.print('\n**α**')
         if wf.parameters.spin_polarized:
             wf.print('\n**spin up**')
             wf.print(wf.bands.alpha_history(spin=0).to_markdown(), wrap=False)
@@ -1376,7 +1378,7 @@ def print_alpha_history(wf: Workflow):
             wf.print(wf.bands.alpha_history().to_markdown(), wrap=False)
 
     if None not in [b.predicted_alpha for b in wf.bands]:
-        wf.print(f'\n**predicted α**')
+        wf.print('\n**predicted α**')
         if wf.parameters.spin_polarized:
             wf.print('\n**spin up**')
             wf.print(wf.bands.predicted_alpha_history(spin=0).to_markdown(), wrap=False)
@@ -1386,7 +1388,7 @@ def print_alpha_history(wf: Workflow):
             wf.print(wf.bands.predicted_alpha_history().to_markdown(), wrap=False)
 
     if not wf.bands.error_history().empty:
-        wf.print(f'\n**ΔE<sub>i</sub> - λ<sub>ii</sub> (eV)**')
+        wf.print('\n**ΔE<sub>i</sub> - λ<sub>ii</sub> (eV)**')
         if wf.parameters.spin_polarized:
             wf.print('\n**spin up**')
             wf.print(wf.bands.error_history(spin=0).to_markdown(), wrap=False)

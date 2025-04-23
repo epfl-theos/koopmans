@@ -1,13 +1,16 @@
-import os
+"""Settings for a `Workflow` object."""
+
 from pathlib import Path
 from typing import Any
-
-from koopmans import pseudopotentials
 
 from ._utils import Setting, SettingsDictWithChecks
 
 
 class WorkflowSettingsDict(SettingsDictWithChecks):
+    """Settings for a `Workflow` object.
+
+    To be replaced by a pydantic model in the near future.
+    """
 
     def __init__(self, **kwargs) -> None:
         settings = [

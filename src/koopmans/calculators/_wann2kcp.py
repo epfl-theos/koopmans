@@ -1,10 +1,4 @@
-"""
-
-wann2kcp calculator module for koopmans
-
-Written by Riccardo De Gennaro Mar 2022
-
-"""
+"""wann2kcp calculator module for koopmans."""
 
 import os
 
@@ -18,6 +12,7 @@ from ._calculator import CalculatorABC, CalculatorExt
 
 
 class Wann2KCPCalculator(CalculatorExt, Wann2KCP, CalculatorABC):
+    """A `Wann2KCP` calculator."""
 
     ext_in = '.wki'
     ext_out = '.wko'
@@ -32,7 +27,9 @@ class Wann2KCPCalculator(CalculatorExt, Wann2KCP, CalculatorABC):
         self.command = ParallelCommand(os.environ.get('ASE_WANN2KCP_COMMAND', self.command))
 
     def is_converged(self):
+        """Return True; a Wann2KCP calculation is never not "converged"."""
         return True
 
     def is_complete(self):
+        """Return True if the calculation is complete."""
         return self.results['job done']

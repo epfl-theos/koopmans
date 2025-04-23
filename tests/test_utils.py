@@ -1,8 +1,10 @@
+"""Test koopmans.utils."""
+
 import itertools
 from pathlib import Path
 
 import numpy as np
-import pytest
+import pytest  # noqa: F401
 
 from koopmans import utils
 
@@ -10,9 +12,7 @@ wann_files_dir = Path(__file__).parent / 'w90_example_files'
 
 
 def test_generate_and_parse_wannier_hr_file_contents():
-    '''
-    Test function for utils.generate_wannier_hr_file_contents and utils.parse_wannier_hr_file_contents
-    '''
+    """Test utils.generate_wannier_hr_file_contents and utils.parse_wannier_hr_file_contents."""
     # Dummy data
     rvec_in = [list(x) for x in itertools.product([-1, 0, 1], repeat=3)]
     n = 5
@@ -33,10 +33,7 @@ def test_generate_and_parse_wannier_hr_file_contents():
 
 
 def test_generate_and_parse_wannier_u_file_contents():
-    '''
-    Test function for utils.generate_wannier_u_file_contents and utils.parse_wannier_u_file_contents
-    '''
-
+    """Test utils.generate_wannier_u_file_contents and utils.parse_wannier_u_file_contents."""
     # Dummy data
     kpts = np.array([[0, 0, 0], [0.5, 0, 0]])
     n_k = len(kpts)
@@ -55,9 +52,7 @@ def test_generate_and_parse_wannier_u_file_contents():
 
 
 def test_parse_wannier_centers_file_contents(tmp_path, datadir):
-    '''
-    Test function for utils.parse_wannier_centers_file_contents
-    '''
+    """Test utils.parse_wannier_centers_file_contents."""
     with utils.chdir(tmp_path):
         xyz_file = (datadir / 'w90' / 'example_centres.xyz').resolve()
 
@@ -70,9 +65,7 @@ def test_parse_wannier_centers_file_contents(tmp_path, datadir):
 
 
 def test_generate_and_parse_wannier_centers_file(silicon, tmp_path, datadir):
-    '''
-    Test function for utils.read_wannier_centers_file and utils.write_wannier_centers_file
-    '''
+    """Test utils.read_wannier_centers_file and utils.write_wannier_centers_file."""
     with utils.chdir(tmp_path):
         # Use silicon as the atoms
         atoms = silicon['atoms']

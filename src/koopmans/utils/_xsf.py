@@ -6,10 +6,7 @@ from ase_koopmans import Atoms
 
 
 def write_xsf(filename: Path, atoms: Atoms, arrays: List[np.ndarray], nr_xml: Tuple[int, int, int]):
-    """
-    Writes a quantity defined on the real space grid to a xsf file, which can be plotted with xcrysden
-    """
-
+    """Write a quantity defined on the real space grid to a xsf file, which can be plotted with xcrysden."""
     # Convert the arrays to xsf-format, where the last row at for each axis is identical to the first
     arrays_xsf: List[np.ndarray] = []
     for array in arrays:
@@ -36,7 +33,7 @@ def write_xsf(filename: Path, atoms: Atoms, arrays: List[np.ndarray], nr_xml: Tu
         out.write('BEGIN_BLOCK_DATAGRID_3D\n')
         out.write("\t" + 'Datagrid_written_by_koopmans\n')
         for i, array_xsf in enumerate(arrays_xsf):
-            out.write(f'\tBEGIN_DATAGRID_3D_#{i+1}\n')
+            out.write(f'\tBEGIN_DATAGRID_3D_#{i + 1}\n')
             out.write(f"\t\t{nr_xml[0]}\t{nr_xml[1]}\t{nr_xml[2]}\t\n")
             out.write("\t\t0.0\t0.0\t0.0\t\n")  # origin of the data grid
             for vec in cell_parameters:

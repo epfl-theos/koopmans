@@ -1,3 +1,5 @@
+"""IO-related pytest fixtures."""
+
 from pathlib import Path
 
 import pytest
@@ -5,12 +7,13 @@ import pytest
 
 @pytest.fixture
 def datadir():
-    # Returns the directory where various reference QE files are stored
+    """Return the directory where various reference QE files are stored."""
     return Path(__file__).parents[1] / 'data'
 
 
 @pytest.fixture
 def sys2file(capsys, tmp_path):
+    """Python fixture to redirect stdout and stderr to file."""
     # Run the test
     yield
 

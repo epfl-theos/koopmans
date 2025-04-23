@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+"""Utility script for converting Quantum ESPRESSO input files to koopmans JSON input files."""
+
 import argparse
 import textwrap
 

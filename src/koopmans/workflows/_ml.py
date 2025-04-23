@@ -1,15 +1,9 @@
-"""
-Written by Yannick Schubert Jul 2022
-"""
-import os
-from pathlib import Path
-from typing import Any, Dict, Generator, List, Tuple
+"""Machine learning workflows for koopmans."""
+from typing import Any, Dict, List
 
-import numpy as np
 from pydantic import ConfigDict
-from sklearn.metrics import mean_absolute_error as mae
 
-from koopmans import calculators, ml, utils
+from koopmans import calculators
 from koopmans.files import File
 from koopmans.process_io import IOModel
 from koopmans.processes.power_spectrum import (
@@ -20,10 +14,13 @@ from ._workflow import Workflow
 
 
 class SelfHartreeOutput(IOModel):
+    """Output model for the SelfHartreeWorkflow."""
+
     descriptors: List[float]
 
 
 class SelfHartreeWorkflow(Workflow[SelfHartreeOutput]):
+    """Workflow for 'computing' (i.e. looking up) the self-Hartree energy of individual orbitals."""
 
     output_model = SelfHartreeOutput
 
@@ -35,11 +32,14 @@ class SelfHartreeWorkflow(Workflow[SelfHartreeOutput]):
 
 
 class PowerSpectrumDecompositionOutput(IOModel):
+    """Output model for the PowerSpectrumDecompositionWorkflow."""
+
     descriptors: List[File]
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionOutput]):
+    """Workflow for computing the power spectrum decomposition of orbital densities."""
 
     output_model = PowerSpectrumDecompositionOutput  # type: ignore
 
@@ -51,8 +51,7 @@ class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionOutp
         self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
 
     def _run(self) -> None:
-        """
-        Runs the PowerSpectrumDecomposition workflow.
+        """Run the PowerSpectrumDecomposition workflow.
 
         If the input data are orbital densities, this workflow consists of three steps:
         1) converting the binary files containing real space densities to xml-files
@@ -60,7 +59,6 @@ class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionOutp
            harmonics and radial basis functions
         3) computing the power spectra of the resulting coefficient vectors
         """
-
         if self.ml.estimator == 'mean':
             raise ValueError('A mean estimator does not require input data; this `PowerSpectrumDecompositionWorkflow` '
                              'should not have been called')
@@ -85,10 +83,7 @@ class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionOutp
         return
 
     def extract_input_vector_from_orbital_densities(self):
-        """
-        Performs the three steps of the PowerSpectrumDecomposition workflow
-        """
-
+        """Perform the three steps of the PowerSpectrumDecomposition workflow."""
         # Convert the binary files to xml format
         bin2xml_workflow = ConvertOrbitalFilesToXMLWorkflow.fromparent(
             self, calc_that_produced_orbital_densities=self.calc_that_produced_orbital_densities)
@@ -102,17 +97,18 @@ class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionOutp
         else:
             wannier_centers = [b.center for b in self.bands if b.spin == 0]
 
-        decomposition_process = ExtractCoefficientsFromXMLProcess(n_max=self.ml.n_max,
-                                                                  l_max=self.ml.l_max,
-                                                                  r_min=self.ml.r_min,
-                                                                  r_max=self.ml.r_max,
-                                                                  r_cut=min(
-                                                                      self.atoms.get_cell_lengths_and_angles()[:3]),
-                                                                  wannier_centers=wannier_centers,
-                                                                  bands=self.bands.to_solve,
-                                                                  cell=self.atoms.cell,
-                                                                  total_density_xml=bin2xml_workflow.outputs.total_density,
-                                                                  orbital_densities_xml=bin2xml_workflow.outputs.orbital_densities)
+        decomposition_process = ExtractCoefficientsFromXMLProcess(
+            n_max=self.ml.n_max,
+            l_max=self.ml.l_max,
+            r_min=self.ml.r_min,
+            r_max=self.ml.r_max,
+            r_cut=min(self.atoms.get_cell_lengths_and_angles()[:3]),
+            wannier_centers=wannier_centers,
+            bands=self.bands.to_solve,
+            cell=self.atoms.cell,
+            total_density_xml=bin2xml_workflow.outputs.total_density,
+            orbital_densities_xml=bin2xml_workflow.outputs.orbital_densities,
+        )
         status = self.run_steps(decomposition_process)
         if status != Status.COMPLETED:
             return
@@ -137,18 +133,22 @@ class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionOutp
 
     @classmethod
     def fromdict(cls, dct: Dict[str, Any], **kwargs) -> Workflow:
+        """Convert a dictionary to a PowerSpectrumDecompositionWorkflow object."""
         calc_that_produced_orbital_densities = dct.pop('calc_that_produced_orbital_densities')
         return super(PowerSpectrumDecompositionWorkflow, cls).fromdict(
             dct, calc_that_produced_orbital_densities=calc_that_produced_orbital_densities, **kwargs)
 
 
 class ConvertOrbitalFilesToXMLOutput(IOModel):
+    """Output model for the ConvertOrbitalFilesToXMLWorkflow."""
+
     total_density: File
     orbital_densities: List[File]
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ConvertOrbitalFilesToXMLWorkflow(Workflow[ConvertOrbitalFilesToXMLOutput]):
+    """Workflow that converts binary files containing real space densities to xml files."""
 
     output_model = ConvertOrbitalFilesToXMLOutput  # type: ignore
 
@@ -157,10 +157,7 @@ class ConvertOrbitalFilesToXMLWorkflow(Workflow[ConvertOrbitalFilesToXMLOutput])
         self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
 
     def _run(self) -> None:
-        """
-        Converts the binary files produced by a previous calculation to python-readable xml files.
-        """
-
+        """Convert the binary files produced by a previous calculation to python-readable xml files."""
         from koopmans.processes.bin2xml import Bin2XMLProcess
 
         # Convert total density to XML

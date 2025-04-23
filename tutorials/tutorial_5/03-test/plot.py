@@ -1,3 +1,5 @@
+"""Compare predicted and true orbital energies."""
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -41,7 +43,7 @@ std = np.std(errors_meV)
 ymax = ax1.get_ylim()[1]
 ax1.fill_betweenx([0, ymax], mean - std, mean + std, color='gray', alpha=0.5, lw=0)
 ax1.set_ylim(0, ymax)
-ax1.text(0.98, 0.98, f'mean = {mean:.0f} meV\n$\sigma = {std:.0f}$ meV', transform=ax1.transAxes, ha='right', va='top')
+ax1.text(0.98, 0.98, rf'mean = {mean:.0f} meV\n$\sigma = {std:.0f}$ meV', transform=ax1.transAxes, ha='right', va='top')
 
 # Save the figure
 plt.subplots_adjust(left=0.12, right=0.99, top=0.98, bottom=0.18, wspace=0.07)

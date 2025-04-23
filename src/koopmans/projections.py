@@ -1,16 +1,14 @@
+"""Classes that define blocks of bands."""
 from __future__ import annotations
 
 import string
 from abc import ABC
-from pathlib import Path
 from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
 
 from ase_koopmans import Atoms
 from ase_koopmans.io.wannier90 import (list_to_formatted_str,
-                                       num_wann_from_projections,
-                                       proj_string_to_dict)
-from pydantic import (BaseModel, ConfigDict, Field, computed_field,
-                      field_validator, model_validator)
+                                       num_wann_from_projections)
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from wannier90_input.models.parameters import Projection
 
 from koopmans import calculators
@@ -18,6 +16,7 @@ from koopmans.utils import Spin
 
 
 class BlockID(BaseModel):
+    """The ID of a block of bands, which includes a label, filling, and spin."""
 
     label: Optional[str] = None
     filled: Optional[bool] = None
@@ -32,6 +31,7 @@ class BlockID(BaseModel):
     # Set label to 'occ' or 'emp' if filled is set but label is not
     @model_validator(mode='before')
     def set_label_from_filled(cls, data: Any):
+        """Construct a label (if it is not provided) from the filling and spin arguments."""
         if isinstance(data, dict):
             if data.get('filled', None) is not None and data.get('label', None) is None:
                 spin = data.get('spin', Spin.NONE)
@@ -40,6 +40,7 @@ class BlockID(BaseModel):
         return data
 
     def filling(self):
+        """Return a string indicating whether the block is occupied or empty."""
         if self.filled:
             return 'occ'
         elif self.filled is False:
@@ -49,7 +50,7 @@ class BlockID(BaseModel):
 
 
 class ProjectionsBlock(BaseModel):
-    # This simple object contains the projections, filling, and spin corresponding to a block of bands
+    """A class that contains the projections, filling, and spin corresponding to a block of bands."""
 
     num_wann: int
     filled: Optional[bool] = None
@@ -64,6 +65,7 @@ class ProjectionsBlock(BaseModel):
 
     @property
     def id(self):
+        """Return the ID of this block."""
         return BlockID(label=self.label, filled=self.filled, spin=self.spin)
 
     def __len__(self) -> int:
@@ -80,7 +82,7 @@ class ProjectionsBlock(BaseModel):
 
     @property
     def w90_kwargs(self) -> Dict[str, Any]:
-        # Returns the keywords to provide when constructing a new calculator corresponding to this block
+        """Return the `Wannier90` keywords to provide when constructing a new calculator corresponding to this block."""
         kwargs = {}
         for key in ['num_wann', 'num_bands', 'exclude_bands']:
             val = getattr(self, key, None)
@@ -97,6 +99,7 @@ class ImplicitProjectionsBlock(ProjectionsBlock):
     """This class implements ProjectionsBlock with automated projections."""
 
     def split(self, groups: List[List[int]]) -> List[ImplicitProjectionsBlock]:
+        """Split the block into sub-blocks according to their groupings."""
         # Sanity checking
         band_indices = [i for group in groups for i in group]
         if not len(band_indices) == len(set(band_indices)):
@@ -123,7 +126,7 @@ class ImplicitProjectionsBlock(ProjectionsBlock):
 
     @property
     def w90_kwargs(self) -> Dict[str, Any]:
-        # Returns the keywords to provide when constructing a new calculator corresponding to this block
+        """Return the `Wannier90` keywords to provide when constructing a new calculator corresponding to this block."""
         kwargs = super().w90_kwargs
         kwargs['auto_projections'] = True
         return kwargs
@@ -136,6 +139,7 @@ class ExplicitProjectionsBlock(ProjectionsBlock):
 
     @property
     def w90_kwargs(self) -> Dict[str, Any]:
+        """Return the `Wannier90` keywords to provide when constructing a new calculator corresponding to this block."""
         kwargs = super().w90_kwargs
         kwargs['auto_projections'] = False
         kwargs['projections'] = [p.dict() for p in self.projections]
@@ -146,12 +150,13 @@ ProjectionsBlockType = TypeVar('ProjectionsBlockType', bound=ProjectionsBlock)
 
 
 class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
-    """
-    This object is a collection of blocks of projections. In addition to the projections blocks themselves, it also
+    """A collection of blocks of projections.
+
+    In addition to the projections blocks themselves, it also
     stores system-wide properties such as how many extra conduction bands we have.
 
-    Whenever a user queries self.blocks (e.g. when they iterate over this object) it will first propagate these
-    system-wide properties down to the individual ProjectionBlock objects. See self._populate_blocks() for more details.
+    Whenever a user iterates through this object it will first propagate these system-wide properties down
+    to the individual ProjectionBlock objects. See self._populate_blocks() for more details.
     """
 
     blocks: list[ProjectionsBlockType]
@@ -192,7 +197,7 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
         self.blocks[key] = value
 
     def divisions(self, spin: Spin) -> List[int]:
-        # This algorithm works out the size of individual "blocks" in the set of bands
+        """Work out the size of individual "blocks" in the set of bands."""
         divs: List[int] = []
         excl_bands = set(self.exclude_bands[spin])
         for block in self.get_subset(spin):
@@ -209,6 +214,7 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
         return divs
 
     def _populate_blocks(self):
+        """Populate all blocks of projections with additional global information."""
         for spin in Spin:
             subset = self.get_subset(spin=spin)
             if len(subset) == 0:
@@ -249,12 +255,15 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
             yield b
 
     def get_subset(self, spin: Spin | str = 'both') -> List[ProjectionsBlockType]:
+        """Return all blocks with a particular spin."""
         return [b for b in self.blocks if (spin == 'both' or b.spin == spin)]
 
     def num_wann(self, spin: Spin | str = 'both') -> int:
+        """Return the number of Wannier functions in the entire system."""
         return sum([b.num_wann for b in self.get_subset(spin)])
 
     def num_bands(self, spin: Spin) -> int:
+        """Return the number of bands in the entire system."""
         nbands = self.num_wann(spin)
         nbands += len(self.exclude_bands[spin])
         num_extra_bands = self.num_extra_bands[spin]
@@ -265,7 +274,10 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
 
     @property
     def to_merge(self) -> Dict[BlockID, List[ProjectionsBlockType]]:
-        # Group the blocks by their correspondence to occupied/empty bands, and by their spin
+        """Determine the sets of blocks that should be merged with one another.
+
+        Group the blocks by their correspondence to occupied/empty bands, and by their spin
+        """
         dct: Dict[BlockID, List[ProjectionsBlockType]] = {}
         for block in self:
             try:
@@ -288,23 +300,27 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
 
 
 class ExplicitProjections(Projections[ExplicitProjectionsBlock]):
+    """A set of projections with explicitly specified projections."""
 
     @classmethod
     def fromlist(cls,
                  list_of_projections: List[List[Union[str, Dict[str, Any]]]],
                  spins: List[Spin],
                  atoms: Atoms):
-
+        """Create a set of projections from a list of projections."""
         if not all([isinstance(p, list) for p in list_of_projections]):
             raise ValueError('`list_of_projections` must be a list of lists')
         blocks = [ExplicitProjectionsBlock(projections=p, spin=s, num_wann=num_wann_from_projections(
             p, atoms)) for p, s in zip(list_of_projections, spins) if len(p) > 0]
+        # TODO achieve the above via a model validator to populate the projections
         return cls(blocks=blocks, atoms=atoms)
 
 
 class ImplicitProjections(Projections[ImplicitProjectionsBlock]):
+    """A set of projections with the projections specified only via num_wann."""
 
     @classmethod
     def from_block_lengths(cls, lengths: List[int], spins: List[Spin], atoms: Atoms):
+        """Construct a set of implicit projections purely from the number of Wannier orbitals."""
         blocks = [ImplicitProjectionsBlock(num_wann=nw, spin=s) for nw, s in zip(lengths, spins) if nw > 0]
         return cls(blocks=blocks, atoms=atoms)

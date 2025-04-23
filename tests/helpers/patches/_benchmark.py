@@ -1,3 +1,5 @@
+"""Monkeypatching to write out benchmarks for the tests."""
+
 import json
 import os
 import shutil
@@ -27,10 +29,11 @@ base_directory = Path(__file__).parents[3]
 
 
 def patch_calculator(c, monkeypatch):
-
+    """Patch a calculator to additionally write out a benchmark."""
     unpatched_calculate = c._calculate
 
     def _calculate(self):
+        """Patch the calculation to write out a benchmark."""
         # Before running the calculation, make a list of the files that exist
         files_before = find_subfiles_of_calc(self)
 
@@ -81,10 +84,11 @@ def patch_calculator(c, monkeypatch):
 
 
 def patch_process(p, monkeypatch):
-
+    """Patch a process to additionally write out a benchmark."""
     unpatched_run = p._run
 
     def _run(self):
+        """Run the process and write out the benchmark."""
         unpatched_run(self)
 
         # Write the benchmark to file
@@ -107,6 +111,7 @@ def patch_process(p, monkeypatch):
 
 
 def monkeypatch_bench(monkeypatch):
+    """Patch the calculators and processes to write out benchmarks for the tests."""
     for c in [EnvironCalculator, KoopmansCPCalculator, KoopmansHamCalculator, KoopmansScreenCalculator,
               PhCalculator, ProjwfcCalculator, PW2WannierCalculator, PWCalculator, Wann2KCCalculator,
               Wann2KCPCalculator, Wannier90Calculator]:

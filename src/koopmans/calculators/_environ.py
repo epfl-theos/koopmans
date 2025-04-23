@@ -1,5 +1,4 @@
 import copy
-import os
 
 from ._pw import PWCalculator
 
@@ -15,7 +14,7 @@ _default_settings = {
 
 
 class EnvironCalculator(PWCalculator):
-    # Create an environ calculator that inherits from the vanilla pw.x calculator
+    """An environ calculator that inherits from the vanilla pw.x calculator."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -31,6 +30,7 @@ class EnvironCalculator(PWCalculator):
         super()._pre_calculate()
 
     def set_environ_settings(self, settings, use_defaults=True):
+        """Set the environ settings."""
         self.environ_settings = settings
 
         if use_defaults:
@@ -45,7 +45,7 @@ class EnvironCalculator(PWCalculator):
                         self.environ_settings[block_name][key] = value
 
     def write_environ_in(self):
-        # Write an environ.in file
+        """Write an environ.in file."""
         with open(f'{self.directory}/environ.in', 'w') as f:
             # cycle through blocks
             for block_name, block in self.environ_settings.items():
@@ -60,11 +60,15 @@ class EnvironCalculator(PWCalculator):
                 f.write('/\n')
 
     def check_code_is_installed(self):
+        """Check if environ-enabled pw.x is installed."""
         super().check_code_is_installed()
         if not environ_addon_is_installed(self.command.path.parent):
             raise OSError('The pw add-on `environ` is not installed')
 
 
 def environ_addon_is_installed(qe_directory):
-    # This is written in this way so it can be externally imported by the test suite
+    """Check if the environ add-on is installed.
+
+    This is written in this way so it can be externally imported by the test suite
+    """
     return (qe_directory / 'Environ_PATCH').is_file()

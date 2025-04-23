@@ -1,8 +1,9 @@
-import shutil
+"""Tests for the KoopmansCP calculator."""
+
 from pathlib import Path
 
 import numpy as np
-import pytest
+import pytest  # noqa
 from hypothesis import given
 from hypothesis import strategies as st
 
@@ -17,7 +18,7 @@ from koopmans.pseudopotentials import local_base_directory
 
 
 def test_convert_flat_alphas_for_kcp():
-
+    """Test the conversion of flat alphas to the correct shape for the KoopmansCP calculator."""
     nbnd = 10
     nspin = 2
     nelup = 5
@@ -37,7 +38,7 @@ def test_convert_flat_alphas_for_kcp():
 
 
 def test_read_write_ham_pkl(water, tmp_path):
-
+    """Test reading and writing Hamiltonian pkl files."""
     with utils.chdir(tmp_path):
         # Create a kcp calculator
         pseudo_library = water.pop('pseudo_library')
@@ -60,12 +61,13 @@ def test_read_write_ham_pkl(water, tmp_path):
 
 
 def test_read_ham(water, datadir, tmp_path):
-
+    """Test reading Hamiltonian files."""
     with utils.chdir(tmp_path):
         # Create a kcp calculator
         pseudo_library = water.pop('pseudo_library')
         pseudo_dir = local_base_directory / pseudo_library
-        calc = KoopmansCPCalculator(outdir='tmp', nspin=2, nelec=8, ndw=50, prefix='test_read_ham', **water, pseudo_dir=pseudo_dir)
+        calc = KoopmansCPCalculator(outdir='tmp', nspin=2, nelec=8, ndw=50,
+                                    prefix='test_read_ham', **water, pseudo_dir=pseudo_dir)
         calc.directory = Path()
         calc.engine = LocalhostEngine()
 
@@ -95,10 +97,7 @@ small_ints = st.integers(min_value=0, max_value=2)
 
 @given(small_ints, small_ints, small_ints, small_ints, small_ints, small_ints)
 def test_allowed_nr(p2: int, p3: int, p5: int, p7: int, p11: int, p13: int):
-    '''
-    The allowed() function should return True if nr has no prime factors greater than 5
-    '''
-
+    """Return True if nr has no prime factors greater than 5."""
     nr = 2 ** p2 * 3 ** p3 * 5 ** p5 * 7 ** p7 * 11 ** p11 * 13 * p13
 
     allow = allowed(nr)
@@ -110,9 +109,7 @@ small_pos_ints = st.integers(min_value=1, max_value=2)
 
 @given(small_pos_ints, small_pos_ints, small_pos_ints, small_pos_ints, small_pos_ints, small_pos_ints)
 def test_good_fft(p2: int, p3: int, p5: int, p7: int, p11: int, p13: int):
-    '''
-    The good_fft() function should return an allowed integer
-    '''
+    """Return an allowed integer."""
     nr = 2 ** p2 * 3 ** p3 * 5 ** p5 * 7 ** p7 * 11 ** p11 * 13 * p13
 
     # This nr should not be allowed

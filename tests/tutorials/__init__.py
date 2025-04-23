@@ -1,3 +1,1 @@
-"""
-Tests for the tutorials
-"""
+"""Tests for the tutorials."""

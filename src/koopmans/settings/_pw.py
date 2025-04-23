@@ -1,12 +1,13 @@
 from typing import Any, Dict
 
-from ase_koopmans.dft.kpoints import BandPath
 from ase_koopmans.io.espresso import pw_keys
 
 from ._utils import IbravDict, SettingsDict
 
 
 class PWSettingsDict(IbravDict, SettingsDict):
+    """Settings for a Quantum ESPRESSO pw.x calculator."""
+
     def __init__(self, **kwargs) -> None:
         # Get rid of any nested kwargs
         flattened_kwargs: Dict[str, Any] = {}
@@ -23,7 +24,10 @@ class PWSettingsDict(IbravDict, SettingsDict):
                          **flattened_kwargs)
 
     def is_valid(self, name: str) -> bool:
-        # Allow for keywords such as ion_radius(i) where i is some arbitrary index
+        """Check if a keyword is valid for this calculator.
+
+        Allow for keywords such as ion_radius(i) where i is some arbitrary index
+        """
         if 'celldm' in name:
             return super().is_valid(name)
         else:

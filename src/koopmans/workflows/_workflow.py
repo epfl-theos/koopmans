@@ -1,10 +1,4 @@
-"""
-Generic workflow object for koopmans
-
-Written by Edward Linscott Oct 2020
-
-Converted workflows from functions to objects Nov 2020
-"""
+"""Generic workflow object for koopmans."""
 
 from __future__ import annotations
 
@@ -13,7 +7,6 @@ import json as json_ext
 import logging
 import os
 import re
-import shutil
 import sys
 from abc import ABC, abstractmethod
 from collections import OrderedDict
@@ -28,13 +21,12 @@ from numpy import typing as npt
 from pybtex.database import BibliographyData
 
 # isort: off
-import koopmans.mpl_config
+import koopmans.mpl_config  # noqa: F401
 import matplotlib.pyplot as plt
 # isort: on
 
 from ase_koopmans import Atoms
 from ase_koopmans.build.supercells import make_supercell
-from ase_koopmans.calculators.calculator import CalculationFailed
 from ase_koopmans.dft.dos import DOS
 from ase_koopmans.dft.kpoints import BandPath
 from ase_koopmans.io import read as ase_read
@@ -48,7 +40,6 @@ from ase_koopmans.spectrum.dosdata import GridDOSData
 from upf_tools import UPFDict
 
 from koopmans import calculators, settings, utils
-from koopmans.commands import ParallelCommandWithPostfix
 from koopmans.engines import Engine, LocalhostEngine
 from koopmans.files import File, LocalFile, ParentProcessPlaceholder
 from koopmans.kpoints import Kpoints
@@ -58,8 +49,7 @@ from koopmans.processes import Process, ProcessProtocol
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
 from koopmans.projections import ExplicitProjections, Projections
-from koopmans.pseudopotentials import (element_from_pseudo_filename,
-                                       nelec_from_pseudos, nwfcs_from_pseudos,
+from koopmans.pseudopotentials import (nelec_from_pseudos, nwfcs_from_pseudos,
                                        pseudopotential_library_citations)
 from koopmans.references import bib_data
 from koopmans.status import Status
@@ -75,13 +65,10 @@ logger = logging.getLogger(__name__)
 
 
 class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
-
-    r'''
-    Abstract base class that defines a Koopmans workflow
+    r"""Abstract base class that defines a Koopmans workflow.
 
     Parameters
     ----------
-
     atoms : Atoms
         an ASE ``Atoms`` object defining the atomic positions, cell, etc
     pseudopotentials : OrderedDict[str, UPFDict]
@@ -106,7 +93,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         this is when creating a new workflow from a .kwf file
     **kwargs
         any valid workflow, calculator, or plotting settings e.g. ``{"functional": "ki", "ecutwfc": 50.0}``
-    '''
+    """
 
     atoms: Atoms
     parameters: settings.WorkflowSettingsDict
@@ -157,10 +144,12 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         # Initialize the HasDirectory information (parent_process, base_directory, directory)
         base_directory = None if parent_process else Path.cwd()
         directory = None if parent_process else Path()
-        super().__init__(parent_process=parent_process, base_directory=base_directory, directory=directory, engine=engine)
+        super().__init__(parent_process=parent_process, base_directory=base_directory, directory=directory,
+                         engine=engine)
         if self.engine is None:
             raise ValueError(
-                'Please provide an engine -- without one, a Workflow cannot be initialized as it does not know e.g. how to load pseudopotentials')
+                'Please provide an engine -- without one, a Workflow cannot be initialized as it does not know '
+                'e.g. how to load pseudopotentials')
 
         # Parsing parameters
         self.parameters = settings.WorkflowSettingsDict(**parameters)
@@ -181,14 +170,14 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         self._bands: Optional[VariationalOrbitals] = None
 
         if projections is None:
-            proj_list: List[List[str]]
-            spins: List[Spin]
-            if self.parameters.spin_polarized:
-                proj_list = [[], []]
-                spins = [Spin.UP, Spin.DOWN]
-            else:
-                proj_list = [[]]
-                spins = [Spin.NONE]
+            # proj_list: List[List[str]]
+            # spins: List[Spin]
+            # if self.parameters.spin_polarized:
+            #     proj_list = [[], []]
+            #     spins = [Spin.UP, Spin.DOWN]
+            # else:
+            #     proj_list = [[]]
+            #     spins = [Spin.NONE]
             raise NotImplementedError('Need to re-implement this now that ProjectionBlocks has been redefined')
             # self.projections = ProjectionBlocks.fromlist(proj_list, spins=spins, atoms=self.atoms)
         else:
@@ -318,7 +307,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                     else:
                         # If |mag| >= 1, QE interprets this as site magnetization
                         starting_magmoms[l] = mag
-                atoms.set_initial_magnetic_moments([starting_magmoms[l] for l in labels])
+                atoms.set_initial_magnetic_moments([starting_magmoms[label] for label in labels])
             elif tot_mag != 0:
                 atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
 
@@ -375,8 +364,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 spins = [Spin.NONE]
 
             if self.calculator_parameters['pw2wannier'].atom_proj_ext:
-                proj_dir = self.calculator_parameters['pw2wannier'].get(
-                    'atom_proj_dir', self.parameters.pseudo_directory)
+                # proj_dir = self.calculator_parameters['pw2wannier'].get(
+                #     'atom_proj_dir', self.parameters.pseudo_directory)
                 raise NotImplementedError('Need to re-implement this')
                 # num_wann = [nwfcs_from_projectors(self.atoms, self.pseudopotentials) for _ in spins]
             else:
@@ -435,6 +424,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
     @utils.HasDirectory.base_directory.setter  # type: ignore
     def base_directory(self, value: Path):
+        """Set the base_directory attribute with additional workflow-specific behavior."""
         old_base_directory = getattr(self, '_base_directory', None)
 
         super(Workflow, Workflow).base_directory.__set__(self, value)
@@ -449,9 +439,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             self.parameters.pseudo_directory = os.path.relpath(abs_pseudo_dir, self.base_directory)
 
     def run(self):
-        '''
-        Run the workflow
-        '''
+        """Run the workflow."""
         self.print_preamble()
         attempts = 0
 
@@ -480,15 +468,14 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         self.status = Status.COMPLETED
 
     def _pre_run(self):
-
+        """Run checks and actions before running the workflow."""
         self.step_counter = 0
 
         if self.status == Status.NOT_STARTED:
             self.status = Status.RUNNING
 
     def proceed(self, subdirectory: Optional[str] = None, copy_outputs_to_parent: Optional[bool] = True):
-        '''
-        Proceed through the workflow until a step has status `RUNNING`
+        """Proceed through the workflow until a step has status `RUNNING`.
 
         Typically, this will involve proceeding to the next step in the workflow which has not been run,
         set it `RUNNING`, and then returning
@@ -497,8 +484,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         which, when requested to run a step in the workflow, will run that step and block the interpreter until the
         step is completed. For such a workflow, the status of individual steps proceed immediately from `NOT_STARTED`
         to `COMPLETE` and `proceed()` will not exit until all the steps in the workflow are `COMPLETED`.
-        '''
-
+        """
         logger.info(f'Running workflow {self.name} ({self.__class__.__name__})')
 
         self._pre_run()
@@ -516,20 +502,24 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         logger.info(f'Exiting workflow {self.name} with status "{self.status.value}" ({self.__class__.__name__})')
 
     def _post_run(self):
+        """Run checks and actions after running the workflow."""
         assert self.engine is not None
         self.engine.update_statuses()
 
     @abstractmethod
     def _run(self) -> None:
+        """Run the workflow; to be implemented by subclasses."""
         ...
 
     @property
     @abstractmethod
     def output_model(self) -> Type[OutputModel]:
+        """The pydantic model for the output of the workflow."""
         ...
 
     @property
     def outputs(self) -> OutputModel:
+        """The outputs of the workflow."""
         if self._outputs is None:
             raise ValueError('Process has no outputs because it has not been run yet')
         return self._outputs
@@ -540,12 +530,11 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
     @classmethod
     def from_other(cls: Type[W], other_wf: Workflow, **kwargs: Any) -> W:
-        '''
-        Creates a new workflow from another workflow, copying all settings and parameters
+        """Create a new workflow from another workflow, copying all settings and parameters.
+
         e.g.
         >>> new_wf = Workflow.fromother(other_wf)
-        '''
-
+        """
         parameters = copy.deepcopy(other_wf.parameters)
 
         # Pass the pseudo_directory as an absolute path
@@ -571,11 +560,11 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
     @classmethod
     def fromparent(cls: Type[W], parent_wf: Workflow, **kwargs: Any) -> W:
-        '''
-        Creates a subworkflow with the same configuration as the parent workflow
+        """Create a subworkflow with the same configuration as the parent workflow.
+
         e.g.
         >>> sub_wf = Workflow.fromparent(self)
-        '''
+        """
         return cls.from_other(other_wf=parent_wf, parent_process=parent_wf, **kwargs)
 
     def _run_sanity_checks(self):
@@ -730,7 +719,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             if self.parameters.orbital_groups:
                 utils.warn('Using orbital_groups has not yet been extensively tested.')
             if not np.all(self.atoms.cell.angles() == 90.0):
-                raise ValueError(f"The ML-workflow has only been implemented for simulation cells that have 90° angles")
+                raise ValueError("The ML-workflow has only been implemented for simulation cells that have 90° angles")
 
             # check that each n_max, l_max, r_max and r_min are greater or equal to 0 and that r_min is smaller than
             # r_max
@@ -757,7 +746,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                        calc_type: str,
                        kpts: Optional[Union[List[int], BandPath]] = None,
                        **kwargs) -> calculators.Calc:  # type: ignore[type-var, misc]
-
+        """Create a new calculator of a given type."""
         calc_class: calculators.CalcType
 
         if calc_type == 'kcp':
@@ -805,8 +794,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 elif kw == 'kpath':
                     val = self.kpoints.path
                 elif kw == 'koffset':
-                    if (calc_class == calculators.PWCalculator and all_kwargs['calculation'] == 'nscf' or
-                            calc_class == calculators.Wannier90Calculator) and self.kpoints.offset_nscf is not None:
+                    if (calc_class == calculators.PWCalculator and all_kwargs['calculation'] == 'nscf'
+                            or calc_class == calculators.Wannier90Calculator) and self.kpoints.offset_nscf is not None:
                         val = self.kpoints.offset_nscf
                     else:
                         val = self.kpoints.offset
@@ -833,7 +822,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         return calc
 
     def primitive_to_supercell(self, matrix: Optional[npt.NDArray[np.int_]] = None, **kwargs):
-        # Converts to a supercell as given by a 3x3 transformation matrix
+        """Convert from a primitive cell to a supercell, as given by a 3x3 transformation matrix."""
         if matrix is None:
             if self.kpoints.gamma_only:
                 matrix = np.identity(3, dtype=float)
@@ -844,8 +833,10 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         self.atoms = make_supercell(self.atoms, matrix, **kwargs)
 
     def supercell_to_primitive(self, matrix: Optional[npt.NDArray[np.int_]] = None):
-        # Converts from a supercell to a primitive cell, as given by a 3x3 transformation matrix
-        # The inverse of self.primitive_to_supercell()
+        """Convert from a supercell to a primitive cell, as given by a 3x3 transformation matrix.
+
+        This is the inverse of self.primitive_to_supercell()
+        """
         if matrix is None:
             assert self.kpoints.grid is not None
             matrix = np.diag(self.kpoints.grid)
@@ -866,7 +857,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         self.atoms = self.atoms[mask]
 
     def run_steps(self, steps: ProcessProtocol | Sequence[ProcessProtocol]) -> Status:
-        """Run a sequence of steps in the workflow
+        """Run a sequence of steps in the workflow.
 
         Run either a step or sequence (i.e. list) of steps. If a list is provided, the steps must be able to be run
         in parallel.
@@ -876,7 +867,6 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         :return: The status of this set of steps
         :rtype: Status
         """
-
         assert self.engine is not None
 
         # Convert steps to an immutable, covariant tuple
@@ -932,6 +922,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         return Status.COMPLETED
 
     def steps_are_running(self) -> bool:
+        """Return True if any steps have status RUNNING."""
         assert self.engine is not None
         for step in self.steps:
             if self.engine.get_status(step) == Status.RUNNING:
@@ -941,11 +932,11 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
     @contextmanager
     def _parent_context(self, subdirectory: Optional[str] = None,
                         copy_outputs_to_parent: Optional[bool] = True) -> Generator[None, None, None]:
-        '''
-        Context for calling self._run(), within which self inherits relevant information from self.parent_process, runs, and
-        then passes back relevant information to self.parent
-        '''
+        """Provide context for running a subworkflow within a parent workflow.
 
+        This is the context for calling self._run(), within which self inherits relevant information from
+        self.parent_process, runs, and then passes back relevant information to self.parent_process.
+        """
         assert isinstance(self.parent_process, Workflow)
 
         # Increase the indent level
@@ -994,9 +985,11 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                         self.parent_process.bands = self.bands
 
     def print(self, *args, **kwargs):
+        """Print information in a tidy way."""
         utils.indented_print(*args, **kwargs)
 
     def todict(self):
+        """Convert the workflow to a dictionary."""
         # Shallow copy
         dct = dict(self.__dict__)
 
@@ -1007,7 +1000,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
     @classmethod
     def fromdict(cls, dct: Dict[str, Any], **kwargs) -> Workflow:
-
+        """Create a workflow from a dictionary."""
         # Remove __koopmans_name/module__ if present (won't happen if the encoder was used, but will happen if
         # todict and fromdict are used directly)
         dct.pop('__koopmans_name__', None)
@@ -1029,6 +1022,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
     @property
     def bands(self) -> VariationalOrbitals | None:
+        """The bands object associated with this workflow."""
         return self._bands
 
     @bands.setter
@@ -1038,7 +1032,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
     @classmethod
     def fromjson(cls, fname: str, override: Dict[str, Any] = {}, **kwargs):
-
+        """Generate a workflow from a json file."""
         with open(fname, 'r') as fd:
             bigdct = json_ext.loads(fd.read())
         wf = cls._fromjsondct(bigdct, override, **kwargs)
@@ -1050,6 +1044,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
     @classmethod
     def _fromjsondct(cls, bigdct: Dict[str, Any], override: Dict[str, Any] = {}, **kwargs):
+        """Generate a workflow from a dictionary loaded from a json file."""
         # Override all keywords provided explicitly
         utils.update_nested_dict(bigdct, override)
 
@@ -1179,6 +1174,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             return wf
 
     def print_bib(self):
+        """Generate a .bib file containing the references relevant to this workflow."""
         relevant_references = BibliographyData()
 
         def add_ref(bibkey: str, note: str):
@@ -1208,14 +1204,15 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 add_ref('Borghi2015', 'Describes the algorithms underpinning the kcp.x code')
 
             for citation in pseudopotential_library_citations(self.parameters.pseudo_library):
-                add_ref(
-                    citation, f'Citation for the {self.parameters.pseudo_library.replace("_", " ")} pseudopotential library')
+                add_ref(citation,
+                        f'Citation for the {self.parameters.pseudo_library.replace("_", " ")} pseudopotential library')
 
         utils.print_alert(
             'note', f'Please cite the papers listed in `{self.name}.bib` in work involving this calculation')
         relevant_references.to_file(self.name + '.bib')
 
     def print_preamble(self):
+        """Print the preamble of the workflow."""
         if self.parent_process:
             return
 
@@ -1224,7 +1221,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         self.print_bib()
 
     def toinputjson(self) -> Dict[str, Dict[str, Any]]:
-
+        """Convert the workflow to a dictionary that can be written to a json file."""
         bigdct: Dict[str, Dict[str, Any]] = {}
 
         bigdct['workflow'] = {}
@@ -1345,9 +1342,10 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                            filename: Optional[str] = None,
                            bsplot_kwargs: Union[Dict[str, Any], List[Dict[str, Any]]] = {},
                            dosplot_kwargs: Dict[str, Any] = {}) -> None:
-        """
-        Plots the provided band structure (and optionally also a provided DOS)
-        Arguments:
+        """Plot the provided band structure (and optionally also a provided DOS).
+
+        Arguments
+        ---------
         bs -- a bandstructure/list of band structures to be plotted
         dos -- a density of states object to be plotted
         filename -- the name of the file to which the figure will be saved
@@ -1355,7 +1353,6 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                          structures, bsplot_kwargs must be a list of equal length, with kwarg dicts for each entry
         dosplot_kwargs -- keyword arguments for when plotting the DOS
         """
-
         # Sanitize input
         if isinstance(bs, BandStructure):
             bs = [bs]
@@ -1456,10 +1453,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         plt.close()
 
     def _remove_tmpdirs(self):
-        '''
-        Removes tmpdirs
-        '''
-
+        """Remove temporary directories created during the workflow."""
         for calc in self.calculations:
             if calc.parameters.get('outdir', None) is None:
                 continue
@@ -1468,10 +1462,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 outdir.unlink()
 
     def _teardown(self):
-        '''
-        Performs final tasks before the workflow completes
-        '''
-
+        """Perform final tasks before the workflow completes."""
         from koopmans.io import write
 
         assert self.status == Status.COMPLETED
@@ -1489,7 +1480,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             self._remove_tmpdirs()
 
     def number_of_electrons(self, spin: Spin = Spin.NONE, params: Optional[settings.SettingsDict] = None) -> int:
-        # Return the number of electrons in a particular spin channel
+        """Return the number of electrons in a particular spin channel."""
         nelec_tot = nelec_from_pseudos(self.atoms, self.pseudopotentials)
         if params is None:
             params = self.calculator_parameters['pw']
@@ -1506,10 +1497,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
 
 def read_atoms_dict(dct: Dict[str, Any]) -> Tuple[Atoms, List[Atoms]]:
-    '''
-    Reads the "atoms" block
-    '''
-
+    """Read the "atoms" block."""
     subdct: Dict[str, Any]
     if 'snapshots' in dct.get('atomic_positions', {}):
         subdct = dct.pop('atomic_positions')
@@ -1544,8 +1532,11 @@ def read_atoms_dict(dct: Dict[str, Any]) -> Tuple[Atoms, List[Atoms]]:
 
 
 def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]:
-    # Dictionary to be used as the default value for 'calculator_parameters' when initializing a workflow
-    # We create this dynamically in order for the .directory attributes to make sense
+    """Generate a dictionary of default calculator parameters.
+
+    This dictionary is to be used as the default value for 'calculator_parameters' when initializing a workflow
+    We create this dynamically in order for the .directory attributes to make sense
+    """
     return {'kcp': settings.KoopmansCPSettingsDict(),
             'kcw_ham': settings.KoopmansHamSettingsDict(),
             'kcw_screen': settings.KoopmansScreenSettingsDict(),
@@ -1587,6 +1578,7 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
 
 def sanitize_calculator_parameters(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \
         -> Dict[str, settings.SettingsDict]:
+    """Convert a dictionary of calculator parameters to a dictionary of SettingsDict objects."""
     dct_out: Dict[str, settings.SettingsDict] = {}
     for k, cls in settings_classes.items():
         dct: Union[Dict, settings.SettingsDict] = dct_in.get(k, {})
@@ -1606,6 +1598,7 @@ def sanitize_calculator_parameters(dct_in: Union[Dict[str, Dict], Dict[str, sett
 
 
 def header():
+    """Print the output header."""
     from koopmans import __version__
 
     bf = '**' if sys.stdout.isatty() else ''
@@ -1628,11 +1621,11 @@ def header():
 
 
 def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
-    """
-    Generate a series of calculators that will be equivalent to the original master_calc
+    """Enforce the spin-symmetry of a spin-polarized calculation.
+
+    Generates a series of calculators that will be equivalent to the original master_calc
     but switching back and forth between nspin=1 and nspin=2 calculations to fix spin contamination
     """
-
     if not isinstance(master_calc, calculators.CalculatorCanEnforceSpinSym):
         raise NotImplementedError(f'`{master_calc.__class__.__name__}` cannot enforce spin symmetry')
 

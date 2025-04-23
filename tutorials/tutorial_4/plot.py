@@ -1,3 +1,5 @@
+"""Plot the convergence of the HOMO of water as a function of ecutwfc and cell size."""
+
 import matplotlib
 import pandas as pd
 
@@ -11,10 +13,9 @@ import matplotlib.pyplot as plt  # nopep8
 wf = io.read('h2o_conv.pkl')
 calcs = wf.calculations
 
-# Create a simple function for extracting celldm1 from a calculator
-
 
 def get_celldm1(calc):
+    """Extract celldm1 from a calculation."""
     return cell_to_parameters(calc.atoms.cell)['celldms'][1]
 
 
@@ -40,7 +41,7 @@ ax.axhline(0.01, c='grey', ls='--')
 # Figure aesthetics
 ax.set_ylabel(r'$|\Delta\varepsilon_{HOMO}|$ (eV)')
 ax.set_xlabel('energy cutoff (Ha)')
-ax.legend(title='celldm1 ($\AA$)', ncol=2)
+ax.legend(title=r'celldm1 ($\AA$)', ncol=2)
 plt.tight_layout()
 
 # Save the figure

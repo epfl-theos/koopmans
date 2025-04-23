@@ -1,10 +1,10 @@
+"""An engine for running a workflow locally."""
+
 import contextlib
-import os
 import shutil
-import sys
 from itertools import chain
 from pathlib import Path
-from typing import Generator, List, Literal, Optional, overload
+from typing import Generator, Literal, Optional, overload
 
 import yaml
 from ase_koopmans.calculators.calculator import CalculationFailed
@@ -26,12 +26,14 @@ config_file = Path.home() / '.koopmans/config.yaml'
 
 
 class LocalhostEngine(Engine):
-    # Engine for running a workflow locally
+    """Engine for running a workflow locally."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.statuses = {}
 
     def run(self, step: ProcessProtocol):
+        """Run a step."""
         self._step_running_message(step)
 
         assert step.directory is not None
@@ -59,14 +61,18 @@ class LocalhostEngine(Engine):
         return
 
     def load_old_calculator(self, calc: Calc):
+        """Load a calculation that has already run."""
         return load_old_calculator(calc)
 
     def load_results(self, step: ProcessProtocol):
-        # For the local calculation, step.run() also loads the results of the calculator
+        """Load the results of a step.
+
+        Note that for this class, step.run() also loads the results of the calculator so this function is not needed.
+        """
         pass
 
     def get_status(self, step: ProcessProtocol) -> Status:
-
+        """Get the status of a step."""
         if not self.from_scratch:
             to_run = True
             if isinstance(step, ImplementedCalc):
@@ -99,13 +105,18 @@ class LocalhostEngine(Engine):
         return self.statuses[step.uid]
 
     def set_status(self, step: ProcessProtocol, status: Status):
+        """Set the status of a step."""
         self.statuses[step.uid] = status
 
     def update_statuses(self) -> None:
+        """Update the statuses of all steps."""
         pass
 
-    def get_pseudopotential(self, library: str, element: Optional[str] = None, filename: Optional[str] = None) -> UPFDict:
-
+    def get_pseudopotential(self,
+                            library: str,
+                            element: Optional[str] = None,
+                            filename: Optional[str] = None) -> UPFDict:
+        """Return the content of a pseudopotential."""
         if element is None and filename is None:
             raise ValueError('Either `element` or `filename` must be provided')
 
@@ -154,6 +165,7 @@ class LocalhostEngine(Engine):
         return UPFDict.from_upf(matching_pseudo.aspath())
 
     def install_pseudopotential(self, file: Path, library: str) -> None:
+        """Install a pseudopotential file."""
         try:
             with open(config_file, 'r') as f:
                 config = yaml.safe_load(f)
@@ -170,6 +182,7 @@ class LocalhostEngine(Engine):
                 yaml.dump(config, f)
 
     def uninstall_pseudopotential_library(self, library):
+        """Uninstall a pseudopotential library."""
         try:
             with open(config_file, 'r') as f:
                 config = yaml.safe_load(f)
@@ -186,15 +199,19 @@ class LocalhostEngine(Engine):
                 yaml.dump(config, f)
 
     @overload
-    def read_file(self, file: File, binary: Literal[True]) -> bytes: ...
+    def read_file(self, file: File, binary: Literal[True]) -> bytes:
+        ...
 
     @overload
-    def read_file(self, file: File, binary: Literal[False]) -> str: ...
+    def read_file(self, file: File, binary: Literal[False]) -> str:
+        ...
 
     @overload
-    def read_file(self, file: File, binary: bool = False) -> bytes | str: ...
+    def read_file(self, file: File, binary: bool = False) -> bytes | str:
+        ...
 
     def read_file(self, file: File, binary: bool = False) -> bytes | str:
+        """Read the contents of a file."""
         assert file.parent_process.absolute_directory is not None
         full_path = file.parent_process.absolute_directory / file.name
         fstring = 'rb' if binary else 'r'
@@ -203,6 +220,7 @@ class LocalhostEngine(Engine):
         return flines
 
     def write_file(self, content: str | bytes, file: File) -> None:
+        """Write content to a file."""
         fstring = 'wb' if isinstance(content, bytes) else 'w'
         if file.parents:
             self.mkdir(file.parent, parents=True, exist_ok=True)
@@ -210,25 +228,31 @@ class LocalhostEngine(Engine):
             f.write(content)
 
     def copy_file(self, source: File, destination: File, exist_ok: bool = False) -> None:
+        """Copy one file to another."""
         utils.copy_file(source.aspath(), destination.aspath(), exist_ok=exist_ok)
 
     def link_file(self, source: File, destination: File, recursive: bool = False, overwrite: bool = False) -> None:
+        """Link one file to another."""
         if recursive:
             utils.symlink_tree(source.aspath(), destination.aspath())
         else:
             utils.symlink(source.aspath(), destination.aspath(), exist_ok=overwrite, force=overwrite)
 
     def file_exists(self, file: File) -> bool:
+        """Return True if the file exists."""
         return file.aspath().exists()
 
     def file_is_dir(self, file: File) -> bool:
+        """Return True if the file is a directory."""
         return file.aspath().is_dir()
 
     @contextlib.contextmanager
     def chdir(self, directory: Path):
+        """Return a context manager that changes the current working directory."""
         return utils.chdir_logic(directory)
 
     def rmdir(self, directory: File) -> None:
+        """Remove a directory."""
         path = directory.aspath()
         if isinstance(path, str):
             path = Path(path)
@@ -238,12 +262,15 @@ class LocalhostEngine(Engine):
             raise ValueError(f'{path} is not a directory')
 
     def unlink_file(self, file: File) -> None:
+        """Remove a file."""
         file.aspath().unlink()
 
     def mkdir(self, directory: File, parents: bool = False, exist_ok: bool = False) -> None:
+        """Make a directory."""
         directory.aspath().mkdir(parents=parents, exist_ok=exist_ok)
 
     def glob(self, directory: File, pattern: str, recursive: bool = False) -> Generator[File, None, None]:
+        """Generate files that match the pattern."""
         assert directory.parent_process is not None
         assert directory.parent_process.directory is not None
         if recursive:
@@ -251,9 +278,11 @@ class LocalhostEngine(Engine):
         else:
             generator = directory.aspath().glob(pattern)
         for path in generator:
-            yield File(parent_process=directory.parent_process, name=path.relative_to(directory.parent_process.directory))
+            yield File(parent_process=directory.parent_process,
+                       name=path.relative_to(directory.parent_process.directory))
 
     def available_pseudo_libraries(self) -> set[str]:
+        """List the available pseudopotential libraries."""
         try:
             with open(config_file, 'r') as f:
                 config = yaml.safe_load(f)
@@ -264,6 +293,7 @@ class LocalhostEngine(Engine):
 
 
 def load_old_calculator(calc):
+    """Load a calculation that has already run."""
     # This is a separate function so that it can be imported by other engines
     loaded_calc = calc.__class__.fromfile(calc.directory / calc.prefix)
 

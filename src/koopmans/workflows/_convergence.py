@@ -1,26 +1,16 @@
-"""
-
-convergence workflow object for koopmans
-
-Written by Edward Linscott Oct 2020
-Converted to a workflow object Nov 2020
-
-"""
+"""Convergence workflow for koopmans."""
 
 from __future__ import annotations
 
-import copy
 import itertools
-import shutil
 from dataclasses import dataclass
 from functools import partial
-from pathlib import Path
-from typing import (Any, Callable, Dict, Generator, Generic, List, Optional,
-                    Type, TypeVar, Union, cast)
+from typing import (Any, Callable, Dict, Generic, List, Optional, Type,
+                    TypeVar, Union, cast)
 
 import numpy as np
 
-from koopmans import cell, utils
+from koopmans import cell
 from koopmans.process_io import IOModel
 from koopmans.status import Status
 
@@ -31,6 +21,7 @@ T = TypeVar('T', int, float, List[int], List[float])
 
 
 def generate_values_via_addition(initial_value: T, increment: T, length: int) -> List[T]:
+    """Generate a list of values of length `length` starting from `initial_value` and incrementing by `increment`."""
     if isinstance(initial_value, list):
         return [[v + i * delta for v, delta in zip(initial_value, increment)] for i in range(length)]
     else:
@@ -39,6 +30,8 @@ def generate_values_via_addition(initial_value: T, increment: T, length: int) ->
 
 @dataclass
 class ConvergenceVariable(Generic[T]):
+    """A variable with respect to which we will perform a convergence calculation."""
+
     name: str
     increment: T
     get_value: Callable[[Workflow], T]
@@ -49,6 +42,7 @@ class ConvergenceVariable(Generic[T]):
     converged_value: Optional[T] = None
 
     def extend(self):
+        """Add another value to the list of values to try."""
         self.length += 1
 
     def __len__(self) -> int:
@@ -56,19 +50,26 @@ class ConvergenceVariable(Generic[T]):
 
     @property
     def values(self) -> List[T]:
+        """List the values of the convergence variable to try."""
         if self.initial_value is None:
             raise ValueError(
-                f'`{self.__class__.__name__}.initial_value` has not been set. Use `{self.__class__.__name__}.get_initial_value()` to set it.')
+                f'`{self.__class__.__name__}.initial_value` has not been set. Use '
+                '`{self.__class__.__name__}.get_initial_value()` to set it.'
+            )
 
         return self.generate_values(self.initial_value, self.increment, self.length)
 
     def get_initial_value(self, workflow: Workflow):
+        """Get the initial value of the convergence variable."""
         if self.initial_value is not None:
             raise ValueError(
-                f'Do not call `{self.__class__.__name__}.get_initial_value()` once `{self.__class__.__name__}.initial_value` has been initialized')
+                f'Do not call `{self.__class__.__name__}.get_initial_value()` once '
+                '`{self.__class__.__name__}.initial_value` has been initialized'
+            )
         self.initial_value = self.get_value(workflow)
 
     def todict(self) -> Dict[str, Any]:
+        """Convert the `ConvergenceVariable` to a dictionary."""
         dct = dict(self.__dict__)
         dct['__koopmans_name__'] = self.__class__.__name__
         dct['__koopmans_module__'] = self.__class__.__module__
@@ -76,13 +77,12 @@ class ConvergenceVariable(Generic[T]):
 
     @classmethod
     def fromdict(cls, dct: Dict[str, Any]):
+        """Create a `ConvergenceVariable` from a dictionary."""
         return cls(**dct)
 
 
 def get_calculator_parameter(wf: Workflow, key: str) -> None:
-    '''
-    Gets a particular calculator setting from a workflow
-    '''
+    """Get a particular calculator setting from a workflow."""
     values = set([])
     for settings in wf.calculator_parameters.values():
         if settings.is_valid(key):
@@ -98,15 +98,14 @@ def get_calculator_parameter(wf: Workflow, key: str) -> None:
 
 
 def set_calculator_parameter(wf: Workflow, key: str, value: Union[int, float]) -> None:
-    '''
-    Sets a particular calculator setting for every calculator in the workflow
-    '''
+    """Set a particular calculator setting for every calculator in the workflow."""
     for settings in wf.calculator_parameters.values():
         if settings.is_valid(key):
             settings[key] = value
 
 
 def fetch_result_default(wf: Workflow, observable: str) -> float:
+    """Fetch a result from the last calculation of a workflow."""
     calc = wf.calculations[-1]
     observable = observable.replace('total ', '').replace(' ', '_')
     if observable not in calc.results:
@@ -116,11 +115,13 @@ def fetch_result_default(wf: Workflow, observable: str) -> float:
 
 
 def fetch_eps_inf(wf: Workflow) -> float:
+    """Fetch the static dielectric constant from a workflow."""
     calc = wf.calculations[-1]
     return np.mean(np.diag(calc.results['dielectric tensor']))
 
 
 def ObservableFactory(obs_str: str) -> Callable[[Workflow], float]:
+    """Create a function that fetches the observable from a workflow."""
     if obs_str == 'eps_inf':
         return fetch_eps_inf
     else:
@@ -128,24 +129,26 @@ def ObservableFactory(obs_str: str) -> Callable[[Workflow], float]:
 
 
 def _get_celldm1(wf: Workflow) -> float:
-
+    """Get the lattice parameter of a workflow."""
     params = cell.cell_to_parameters(wf.atoms.cell)
     assert 1 in params['celldms']
     return params['celldms'][1]
 
 
 def _set_celldm1(wf: Workflow, value: float) -> None:
+    """Set the lattice parameter of a workflow."""
     params = cell.cell_to_parameters(wf.atoms.cell)
     params['celldms'][1] = value
     wf.atoms.cell = cell.parameters_to_cell(**params)
 
 
 def conv_var_celldm1(increment: float = 1.0, **kwargs) -> ConvergenceVariable:
-
+    """Create a `ConvergenceVariable` object for the lattice parameter."""
     return ConvergenceVariable('celldm1', increment, _get_celldm1, _set_celldm1, **kwargs)
 
 
 def _set_ecutwfc(wf: Workflow, value: float) -> None:
+    """Set the plane-wave cutoff energy of a workflow."""
     set_calculator_parameter(wf, 'ecutwfc', value)
     set_calculator_parameter(wf, 'ecutrho', 4 * value)
 
@@ -154,7 +157,7 @@ _get_ecutwfc = cast(Callable[[Workflow], float], partial(get_calculator_paramete
 
 
 def conv_var_ecutwfc(increment: float = 10.0, **kwargs) -> ConvergenceVariable:
-
+    """Create a `ConvergenceVariable` object for the plane-wave cutoff energy."""
     return ConvergenceVariable('ecutwfc', increment, _get_ecutwfc, _set_ecutwfc, **kwargs)
 
 
@@ -163,20 +166,23 @@ _get_nbnd = cast(Callable[[Workflow], int], partial(get_calculator_parameter, ke
 
 
 def conv_var_nbnd(increment: int = 1, **kwargs) -> ConvergenceVariable:
-
+    """Create a `ConvergenceVariable` object for the number of bands."""
     return ConvergenceVariable('nbnd', increment, _get_nbnd, _set_nbnd, **kwargs)
 
 
 def _get_kgrid(wf: Workflow) -> List[int]:
+    """Get the k-point grid of a workflow."""
     assert wf.kpoints.grid
     return wf.kpoints.grid
 
 
 def _set_kgrid(wf: Workflow, value: List[int]) -> None:
+    """Set the k-point grid for a workflow."""
     wf.kpoints.grid = value
 
 
 def _generate_kgrid_values(initial_value: List[int], increment: List[int], length: int) -> List[List[int]]:
+    """Create a list of k-point grids to test."""
     values: List[List[int]] = [initial_value]
 
     while len(values) < length:
@@ -195,22 +201,25 @@ def _generate_kgrid_values(initial_value: List[int], increment: List[int], lengt
 
 
 def conv_var_kgrid(increment: List[int] = [1, 1, 1], **kwargs) -> ConvergenceVariable:
-
+    """Create a `ConvergenceVariable` object for the k-point grid."""
     return ConvergenceVariable('kgrid', increment, _get_kgrid, _set_kgrid,
                                generate_values=_generate_kgrid_values, **kwargs)
 
 
 def _get_num_training_snapshots(wf: Workflow) -> int:
+    """Get the number of training snapshots for a workflow."""
     nts = wf.ml.number_of_training_snapshots
     assert isinstance(nts, int)
     return nts
 
 
 def _set_num_training_snapshots(wf: Workflow, value: int) -> None:
+    """Set the number of training snapshots for a workflow."""
     wf.ml.number_of_training_snapshots = value
 
 
 def conv_var_number_of_training_snapshots(increment: int = 1, **kwargs) -> ConvergenceVariable:
+    """Create a `ConvergenceVariable` object for the number of training snapshots."""
     if 'length' not in kwargs:
         kwargs['length'] = 10
     return ConvergenceVariable('number_of_training_snapshots', increment, _get_num_training_snapshots,
@@ -218,7 +227,7 @@ def conv_var_number_of_training_snapshots(increment: int = 1, **kwargs) -> Conve
 
 
 def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
-
+    """Create a `ConvergenceVariable` object for the specified convergence variable."""
     if conv_var == 'celldm1':
         return conv_var_celldm1(**kwargs)
     elif conv_var == 'ecutwfc':
@@ -237,19 +246,21 @@ def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
 
 
 class ConvergenceOutputs(IOModel):
+    """Pydantic model for the outputs of a `ConvergenceWorkflow`."""
 
     converged_values: Dict[str, Any]
 
 
 class ConvergenceWorkflow(Workflow[ConvergenceOutputs]):
+    """A Workflow class that wraps another workflow in a convergence procedure.
+
+    Converges the "observable" within the specified tolerance with respect to the "variables"
+    """
 
     output_model = ConvergenceOutputs
 
-    '''
-    A Workflow class that wraps another workflow in a convergence procedure in order to converge the observable within the specified tolerance with respect to the variables
-    '''
-
-    def __init__(self, subworkflow_class: Type[Workflow], observable: Optional[Callable[[Workflow], float]] = None, threshold: Optional[float] = None, variables: List[ConvergenceVariable] = [], *args, **kwargs):
+    def __init__(self, subworkflow_class: Type[Workflow], observable: Optional[Callable[[Workflow], float]] = None,
+                 threshold: Optional[float] = None, variables: List[ConvergenceVariable] = [], *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._subworkflow_class = subworkflow_class
@@ -259,6 +270,7 @@ class ConvergenceWorkflow(Workflow[ConvergenceOutputs]):
 
     @classmethod
     def fromdict(cls, dct: Dict[str, Any], **kwargs) -> Workflow:
+        """Create a `ConvergenceWorkflow` from a dictionary."""
         kwargs.update(subworkflow_class=dct.pop('_subworkflow_class'),
                       observable=dct.pop('observable'),
                       threshold=dct.pop('threshold'),
@@ -278,11 +290,13 @@ class ConvergenceWorkflow(Workflow[ConvergenceOutputs]):
 
         if len(self.variables) == 0:
             raise ValueError(
-                f'`{self.__class__.__name__}` has not been provided with any variables with which to perform convergence')
+                f'`{self.__class__.__name__}` has not been provided with any variables with which to perform '
+                'convergence')
 
         if self.threshold is None:
             raise ValueError(
-                f'`{self.__class__.__name__}` has not been provided with a threshold with which to perform convergence')
+                f'`{self.__class__.__name__}` has not been provided with a threshold with which to perform '
+                'convergence')
 
         # Create array for storing calculation results
         results = np.empty([len(v) for v in self.variables])
@@ -297,12 +311,9 @@ class ConvergenceWorkflow(Workflow[ConvergenceOutputs]):
             and self.parameters.functional in ['ki', 'kipz', 'pkipz', 'all'] \
             and self.parameters.alpha_from_file
         if provide_alpha:
-            master_alphas = utils.read_alpha_file(self)
             if self.parameters.orbital_groups is None:
                 self.parameters.orbital_groups = list(
                     range(self.calculator_parameters['kcp'].nbnd))
-            master_orbital_groups = copy.deepcopy(
-                self.parameters.orbital_groups)
 
         while True:
             # Loop over all possible permutations of convergence variables
@@ -344,7 +355,7 @@ class ConvergenceWorkflow(Workflow[ConvergenceOutputs]):
                     # self.parameters.orbital_groups = master_orbital_groups + \
                     #     [master_orbital_groups[-1]
                     #         for _ in range(extra_orbitals)]
-                    # utils.write_alpha_file(directory=Path(), alphas=alphas, filling=filling)
+                    # utils.write_alpha_files(directory=Path(), alphas=alphas, filling=filling)
 
                 # Perform calculation
                 subwf.name += label
@@ -424,7 +435,8 @@ class ConvergenceWorkflow(Workflow[ConvergenceOutputs]):
                     self.print(
                         f'{var.name} still appears unconverged, will reattempt using a finer value')
 
-                # Deal with the edge case where all variables appear converged for the finest value of all the other variables
+                # Deal with the edge case where all variables appear converged for the finest value of all the
+                # other variables
                 if results.shape == tuple([len(v) for v in self.variables]):
                     self.print(
                         '... but the variables are not collectively converged. Cautiously incrementing all variables.')
@@ -440,16 +452,18 @@ class ConvergenceWorkflow(Workflow[ConvergenceOutputs]):
                 results = new_results
 
 
-def ConvergenceWorkflowFactory(subworkflow: Workflow, observable: Union[str, Callable[[Workflow], float]], threshold: float,
+def ConvergenceWorkflowFactory(subworkflow: Workflow,
+                               observable: Union[str, Callable[[Workflow], float]],
+                               threshold: float,
                                variables: List[Union[str, ConvergenceVariable]]) -> ConvergenceWorkflow:
-    '''
-    Generates a ConvergenceWorkflow based on...
+    """Generate a ConvergenceWorkflow.
+
+    The workflow is generated based on...
         subworkflow_class: the class of the Workflow that we will repeatedly run
         observable: a function with which we extract the observable from the child workflow
         threshold: the threshold within which the observable will be converged
         variables: a list of variables with respect to which we will perform the convergence
-    '''
-
+    """
     # Ensure variables are all ConvergenceVariables
     variables = [v if isinstance(
         v, ConvergenceVariable) else ConvergenceVariableFactory(v) for v in variables]

@@ -32,12 +32,12 @@ def print_settings_as_html(settings, table_id, fd):
         if isinstance(s.options, (tuple, list)) and s.kind is not bool:
             default += ' (must be ' + '/'.join([f'<code>{o}</code>' for o in s.options]) + ')'
 
-        fd.write(f'\n   <tr>')
+        fd.write('\n   <tr>')
         fd.write(f'\n      <td><code>{s.name}</code></td>')
         fd.write(f'\n      <td>{s.description.replace("<","&lt;").replace(">","&gt;")}</td>')
         fd.write(f'\n      <td>{stype}</td>')
         fd.write(f'\n      <td>{default}</td>')
-        fd.write(f'\n   </tr>')
+        fd.write('\n   </tr>')
     fd.write('\n</table>')
 
 

@@ -1,3 +1,5 @@
+"""Settings for a Wannier90 calculator."""
+
 from typing import Any
 
 import numpy as np
@@ -5,12 +7,13 @@ from ase_koopmans.dft.kpoints import BandPath, monkhorst_pack
 from ase_koopmans.io.wannier90 import (construct_kpoint_path,
                                        formatted_str_to_list,
                                        proj_string_to_dict)
-from wannier90_input.models.parameters import Projection
 
 from ._utils import SettingsDict
 
 
 class Wannier90SettingsDict(SettingsDict):
+    """Settings for a Wannier90 calculator."""
+
     def __init__(self, **kwargs) -> None:
 
         super().__init__(valid=['num_bands', 'num_wann', 'exclude_bands', 'kpoints',
@@ -27,6 +30,7 @@ class Wannier90SettingsDict(SettingsDict):
                          **kwargs)
 
     def update(self, *args, **kwargs) -> None:
+        """Update the settings with the provided arguments."""
         kpath = kwargs.pop('kpath', None)
         super().update(*args, **kwargs)
         # Defer setting kpath until after bands_plot has had the chance to be updated
@@ -60,7 +64,7 @@ class Wannier90SettingsDict(SettingsDict):
             self.kpoints = kpts
         elif key == 'koffset':
             if self.mp_grid is None:
-                raise ValueError('Cannot offset the list of k-points if `kpoints` has not been defined yet. ' +
+                raise ValueError('Cannot offset the list of k-points if `kpoints` has not been defined yet. '
                                  'Check that `kgrid` is provided before `koffset`')
             if isinstance(value, int) or isinstance(value, list) and all([isinstance(k, int) for k in value]):
                 # For koffset = [1, 1, 1], PW shifts the k-grid by half a grid step

@@ -1,12 +1,13 @@
 from typing import Any
 
-from ase_koopmans.dft.kpoints import BandPath
 from ase_koopmans.io.espresso import kch_keys
 
 from ._utils import SettingsDict, kcw_defaults
 
 
 class KoopmansHamSettingsDict(SettingsDict):
+    """Settings for a Quantum ESPRESSO kcw.x Hamiltonian calculation."""
+
     def __init__(self, **kwargs) -> None:
         super().__init__(valid=[k for block in kch_keys.values() for k in block],
                          defaults={'calculation': 'ham', 'do_bands': True, 'use_ws_distance': True, 'write_hr': True,
@@ -25,6 +26,6 @@ class KoopmansHamSettingsDict(SettingsDict):
             assert isinstance(value, list)
             assert len(value) == 3
             for i, x in enumerate(value):
-                self.__setitem__(f'mp{i+1}', x)
+                self.__setitem__(f'mp{i + 1}', x)
         else:
             return super().__setitem__(key, value)

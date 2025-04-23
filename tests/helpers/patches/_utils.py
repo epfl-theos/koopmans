@@ -1,5 +1,6 @@
+"""Utilities for `tests.helpers.patches`."""
+
 import inspect
-import os
 from pathlib import Path
 from typing import Set, Tuple
 
@@ -7,6 +8,7 @@ from koopmans.files import File
 
 
 def find_test_function_name():
+    """Find the name of the test function that called this function."""
     # Traverse the stack to locate the test function frame
     for frame_info in reversed(inspect.stack()):
         # Get the module where the frame was defined
@@ -18,6 +20,7 @@ def find_test_function_name():
 
 
 def benchmark_filename(obj) -> Path:
+    """Generate a unique filename for a benchmark file."""
     base_directory = Path(__file__).parents[3]
     benchmark_dir = base_directory / 'tests' / 'benchmarks'
     tests_dir = base_directory / 'tests'
@@ -45,11 +48,13 @@ def benchmark_filename(obj) -> Path:
 
 
 def metadata_filename(calc) -> Path:
+    """Generate a unique filename for a metadata file."""
     benchmark_path = benchmark_filename(calc)
     return benchmark_path.with_name(benchmark_path.name.replace('.pkl', '_metadata.json'))
 
 
 def find_subfiles_of_calc(calc) -> Set[Tuple[Path, float]]:
+    """Find all subfiles of a given calculation."""
     files = find_subfiles_of_dir(calc.directory)
     if 'outdir' in calc.parameters.valid:
         files = files | find_subfiles_of_dir(calc.parameters.outdir)
@@ -57,6 +62,7 @@ def find_subfiles_of_calc(calc) -> Set[Tuple[Path, float]]:
 
 
 def find_subfiles_of_dir(base_dir: Path) -> Set[Tuple[Path, float]]:
+    """Find all files in a given directory."""
     files: Set[Tuple[Path, float]]
     if base_dir.exists():
         files = set([(x, x.stat().st_mtime) for x in base_dir.rglob('*') if x.is_file()])
@@ -66,6 +72,7 @@ def find_subfiles_of_dir(base_dir: Path) -> Set[Tuple[Path, float]]:
 
 
 def recursively_find_files(obj):
+    """Recursively find all files in a nested object."""
     if isinstance(obj, dict):
         for k, v in obj.items():
             yield from recursively_find_files(v)
