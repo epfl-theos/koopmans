@@ -175,6 +175,8 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
             status = self.run_steps(calc_pw_bands)
             if status != Status.COMPLETED:
                 return
+        else:
+            calc_pw_bands = None
 
         u_matrices_files = {}
         hr_files: Dict[BlockID, File] = {}
@@ -195,6 +197,7 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                 self.projections.num_occ_bands[spin] = nelec
 
             block_subworkflows: list[Workflow] = []
+            groups: list[list[int] | None] = []
             for block in self.projections:
                 # Check if the block should be split. It will be split if...
                 # - the block includes both occupied and empty bands
@@ -202,19 +205,23 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                 n_occ_bands = self.number_of_electrons(block.spin)
                 if block.spin == Spin.NONE:
                     n_occ_bands //= 2
-                bs = calc_pw_bands.results['band structure']
-                ispin = 1 if block.spin == Spin.DOWN else 0
-                all_groups = detect_band_blocks(bs._energies[ispin, :, :self.projections.num_wann(block.spin)],
-                                                tol=self.parameters.block_wannierization_threshold,
-                                                num_occ_bands=n_occ_bands)
 
-                # Restrict the groups to only those bands that are in this particular block
-                groups = []
-                for group in all_groups:
-                    # Calculate the overlap with the bands of this block
-                    overlap = [g for g in group if g in block.include_bands]
-                    if overlap:
-                        groups.append(overlap)
+                if calc_pw_bands is not None:
+                    bs = calc_pw_bands.results['band structure']
+                    ispin = 1 if block.spin == Spin.DOWN else 0
+                    all_groups = detect_band_blocks(bs._energies[ispin, :, :self.projections.num_wann(block.spin)],
+                                                    tol=self.parameters.block_wannierization_threshold,
+                                                    num_occ_bands=n_occ_bands)
+
+                    # Restrict the groups to only those bands that are in this particular block
+                    groups = []
+                    for group in all_groups:
+                        # Calculate the overlap with the bands of this block
+                        overlap = [g for g in group if g in block.include_bands]
+                        if overlap:
+                            groups.append(overlap)
+                else:
+                    groups = [None]
 
                 # Construct the subworkflow
                 kwargs = {}
@@ -354,6 +361,7 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
         dos = None
         bs_list = []
         if self.parameters.calculate_bands:
+            assert calc_pw_bands is not None
 
             # Calculate a projected DOS
             if all([p['header']['number_of_wfc'] > 0 for p in self.pseudopotentials.values()]):

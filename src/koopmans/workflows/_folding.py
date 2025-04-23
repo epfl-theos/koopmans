@@ -47,7 +47,7 @@ class FoldToSupercellWorkflow(Workflow):
                                                     self.projections):
                 # Create the calculator
                 calc_w2k = self.new_calculator('wann2kcp', spin_component=block.spin, wan_mode='wannier2kcp')
-                calc_w2k.prefix = f'convert_{block.name}_to_supercell'
+                calc_w2k.prefix = f'convert_{block.id}_to_supercell'
 
                 # Checking that gamma_trick is consistent with gamma_only
                 if calc_w2k.parameters.gamma_trick and not self.kpoints.gamma_only:

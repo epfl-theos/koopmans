@@ -26,7 +26,7 @@ class BlockID(BaseModel):
     def __str__(self):
         if self.label is None:
             return ''
-        return f'{self.label}_{self.spin}' if self.spin else self.label
+        return f'{self.label}_{self.spin}' if self.spin != Spin.NONE else self.label
 
     # Set label to 'occ' or 'emp' if filled is set but label is not
     @model_validator(mode='before')

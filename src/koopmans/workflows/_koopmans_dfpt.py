@@ -3,6 +3,7 @@
 from typing import Dict, List, Optional
 
 import numpy as np
+from ase_koopmans.spectrum.band_structure import BandStructure
 
 from koopmans import pseudopotentials, utils
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
@@ -23,7 +24,9 @@ from ._workflow import Workflow
 class KoopmansDFPTOutputs(IOModel):
     """Pydantic model for the outputs of a `KoopmansDFPTWorkflow`."""
 
-    pass
+    band_structure: BandStructure | None = None
+
+    model_config = {'arbitrary_types_allowed': True}
 
 
 class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
@@ -328,6 +331,8 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                 if ui_workflow.status != Status.COMPLETED:
                     return
 
+        self.outputs = KoopmansDFPTOutputs()
+
         # Plotting
         if self._perform_ham_calc:
             self.plot_bandstructure()
@@ -355,6 +360,8 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
             bs_to_plot._energies = np.append(bs_to_plot._energies, bandstructures[1]._energies - ref, axis=0)
 
         super().plot_bandstructure(bs_to_plot)
+
+        self.outputs.band_structure = bs_to_plot
 
     def new_calculator(self, calc_presets, **kwargs):
         """Create a new calculator for the workflow."""

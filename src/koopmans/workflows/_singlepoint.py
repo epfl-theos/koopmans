@@ -7,6 +7,10 @@ Converted to a workflow object Nov 2020
 from typing import Dict, Optional
 
 import numpy as np
+from ase_koopmans.dft.dos import DOS
+from ase_koopmans.spectrum.band_structure import BandStructure
+from ase_koopmans.spectrum.doscollection import DOSCollection
+from pydantic import Field
 
 from koopmans.calculators import KoopmansCPCalculator
 from koopmans.files import File
@@ -25,7 +29,10 @@ load_results_from_output = True
 class SinglepointOutputs(IOModel):
     """Pydantic model for the outputs of a `SinglepointWorkflow`."""
 
-    pass
+    band_structures: Dict[str, BandStructure] = Field(default_factory=dict)
+    densities_of_states: Dict[str, DOSCollection | DOS] = Field(default_factory=dict)
+
+    model_config = {'arbitrary_types_allowed': True}
 
 
 class SinglepointWorkflow(Workflow[SinglepointOutputs]):
@@ -66,6 +73,9 @@ class SinglepointWorkflow(Workflow[SinglepointOutputs]):
 
     def _run(self) -> None:
 
+        bs_dict = {}
+        dos_dict = {}
+
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
         if self.parameters.eps_inf == 'auto':
             eps_workflow = DFTPhWorkflow.fromparent(self)
@@ -79,6 +89,8 @@ class SinglepointWorkflow(Workflow[SinglepointOutputs]):
             workflow.proceed()
             if workflow.status != Status.COMPLETED:
                 return
+
+            bs_dict[self.parameters.functional] = workflow.outputs.band_structure
 
         elif self.parameters.functional == 'all':
             # if 'all', create subdirectories and run
@@ -127,6 +139,10 @@ class SinglepointWorkflow(Workflow[SinglepointOutputs]):
                 if kc_workflow.status != Status.COMPLETED:
                     return
 
+                # Store the results
+                bs_dict[functional] = kc_workflow.outputs.band_structure
+                dos_dict[functional] = kc_workflow.outputs.density_of_states
+
         else:
             # self.functional != all and self.method != 'dfpt'
             if self.parameters.functional in ['ki', 'pkipz', 'kipz']:
@@ -134,11 +150,17 @@ class SinglepointWorkflow(Workflow[SinglepointOutputs]):
                 dscf_workflow.proceed()
                 if dscf_workflow.status != Status.COMPLETED:
                     return
+                bs_dict[self.parameters.functional] = dscf_workflow.outputs.band_structure
+                dos_dict[self.parameters.functional] = dscf_workflow.outputs.density_of_states
+
             else:
                 dft_workflow = DFTCPWorkflow.fromparent(self)
                 dft_workflow.proceed()
                 if dft_workflow.status != Status.COMPLETED:
                     return
+
+        self.outputs = SinglepointOutputs(band_structures=bs_dict,
+                                          densities_of_states=dos_dict)
 
         self.status = Status.COMPLETED
 

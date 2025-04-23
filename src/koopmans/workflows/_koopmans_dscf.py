@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from ase_koopmans.dft import DOS
+from ase_koopmans.spectrum.band_structure import BandStructure
 from pydantic import ConfigDict
 
 from koopmans import utils
@@ -38,6 +39,8 @@ class KoopmansDSCFOutputs(IOModel):
     final_calc: KoopmansCPCalculator
     wannier_hamiltonian_files: Dict[BlockID, File] | None = None
     smooth_dft_ham_files: Dict[BlockID, File] | None = None
+    band_structure: BandStructure | None = None
+    density_of_states: DOS | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
@@ -342,6 +345,8 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
                                      for f in ['evc01.dat', 'evc02.dat', 'evc0_empty1.dat', 'evc0_empty2.dat']}
 
         # Postprocessing
+        band_structure: BandStructure | None = None
+        dos: DOS | None = None
         smooth_dft_ham_files: Dict[BlockID, File] | None = None
         if all(self.atoms.pbc):
             if self.parameters.calculate_bands in [None, True] and self.projections and self.kpoints.path is not None:
@@ -369,13 +374,16 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
                 if ui_workflow.status != Status.COMPLETED:
                     return
                 smooth_dft_ham_files = ui_workflow.outputs.smooth_dft_ham_files
+                band_structure = ui_workflow.outputs.band_structure
+                dos = ui_workflow.outputs.dos
             else:
                 # Generate the DOS only
                 dos = DOS(self.calculations[-1], width=self.plotting.degauss, npts=self.plotting.nstep + 1)
                 self.calculations[-1].results['dos'] = dos
 
         self.outputs = self.output_model(variational_orbital_files=variational_orbital_files, final_calc=final_calc,
-                                         smooth_dft_ham_files=smooth_dft_ham_files)
+                                         smooth_dft_ham_files=smooth_dft_ham_files, band_structure=band_structure,
+                                         density_of_states=dos)
 
         self.status = Status.COMPLETED
 
