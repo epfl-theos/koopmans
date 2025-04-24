@@ -99,7 +99,11 @@ class ImplicitProjectionsBlock(ProjectionsBlock):
     """This class implements ProjectionsBlock with automated projections."""
 
     def split(self, groups: List[List[int]]) -> List[ImplicitProjectionsBlock]:
-        """Split the block into sub-blocks according to their groupings."""
+        """Split the block into sub-blocks according to their groupings.
+
+        Note that these blocks will have `num_wann` == `num_bands` and will not have any disentanglement.
+        It is assumed that any disentanglement has already been performed on the full block.
+        """
         # Sanity checking
         band_indices = [i for group in groups for i in group]
         if not len(band_indices) == len(set(band_indices)):
@@ -114,7 +118,7 @@ class ImplicitProjectionsBlock(ProjectionsBlock):
         for letter, include_bands in zip(string.ascii_lowercase, groups):
             exclude_bands = [i for i in self.include_bands if i not in include_bands]
             new_block = ImplicitProjectionsBlock(num_wann=len(include_bands),
-                                                 num_bands=len(include_bands) + len(exclude_bands),
+                                                 num_bands=len(include_bands),
                                                  spin=self.spin,
                                                  filled=self.filled,
                                                  label=self.label + letter if self.label else None,
@@ -168,7 +172,7 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __repr__(self) -> str:
-        out = self.__class__.__name__
+        out = self.__class__.__name__ + '('
         for b in self.blocks:
             out += f'{b}\n                  '
         out = out.strip()

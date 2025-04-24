@@ -1245,7 +1245,7 @@ class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
                 self, nscf_outdir=nscf_outdir,
                 hr_files=wannier_workflow.outputs.hr_files,
                 wannier90_calculations=wannier_workflow.outputs.wannier90_calculations,
-                wannier90_pp_calculations=wannier_workflow.outputs.preprocessing_calculations
+                wannier90_nnkp_files=wannier_workflow.outputs.nnkp_files
             )
             fold_workflow.proceed()
             if fold_workflow.status != Status.COMPLETED:

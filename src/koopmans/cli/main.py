@@ -4,18 +4,24 @@
 
 import argparse
 import json
+import os
 import re
 import sys
 import traceback
 from pathlib import Path
-
-import ipdb
 
 import koopmans.mpl_config  # noqa: F401
 from koopmans.engines import Engine, LocalhostEngine
 from koopmans.io import read
 from koopmans.logging_config import setup_logging
 from koopmans.utils import print_alert
+
+# Disabling the auto-loading of the juliacall ipython extension prior to loading ipdb
+# isort: off
+os.environ['PYTHON_JULIACALL_AUTOLOAD_IPYTHON_EXTENSION'] = 'no'
+import ipdb  # noqa: E402
+# isort: on
+
 
 DEFAULT_ENGINE = 'localhost'
 

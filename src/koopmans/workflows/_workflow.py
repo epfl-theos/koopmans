@@ -48,7 +48,8 @@ from koopmans.process_io import IOModel
 from koopmans.processes import Process, ProcessProtocol
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
-from koopmans.projections import ExplicitProjections, Projections
+from koopmans.projections import (ExplicitProjections, ImplicitProjections,
+                                  Projections)
 from koopmans.pseudopotentials import (nelec_from_pseudos, nwfcs_from_pseudos,
                                        pseudopotential_library_citations)
 from koopmans.references import bib_data
@@ -168,20 +169,6 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         self.processes: List[Process] = []
         self.steps: List = []
         self._variational_orbitals: Optional[VariationalOrbitals] = None
-
-        if projections is None:
-            # proj_list: List[List[str]]
-            # spins: List[Spin]
-            # if self.parameters.spin_polarized:
-            #     proj_list = [[], []]
-            #     spins = [Spin.UP, Spin.DOWN]
-            # else:
-            #     proj_list = [[]]
-            #     spins = [Spin.NONE]
-            raise NotImplementedError('Need to re-implement this now that ProjectionBlocks has been redefined')
-            # self.projections = ProjectionBlocks.fromlist(proj_list, spins=spins, atoms=self.atoms)
-        else:
-            self.projections = projections
 
         self.plotting = settings.PlotSettingsDict(**plotting)
         for key, value in kwargs.items():
@@ -355,14 +342,13 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                        'possesses a calculator. This calculator will be ignored.')
             self.atoms.calc = None
 
-        # Generating self.projections if auto_projections is True
+        # Projections
         auto = [self.calculator_parameters[s].auto_projections for s in ['w90', 'w90_up', 'w90_down']]
-        if any(auto):
+        if projections is None or any(auto):
             if self.parameters.spin_polarized:
                 spins = [Spin.UP, Spin.DOWN]
             else:
                 spins = [Spin.NONE]
-
             if self.calculator_parameters['pw2wannier'].atom_proj_ext:
                 # proj_dir = self.calculator_parameters['pw2wannier'].get(
                 #     'atom_proj_dir', self.parameters.pseudo_directory)
@@ -370,15 +356,20 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 # num_wann = [nwfcs_from_projectors(self.atoms, self.pseudopotentials) for _ in spins]
             else:
                 num_wann = [nwfcs_from_pseudos(self.atoms, self.pseudopotentials) for _ in spins]
-            self.projections = Projections.from_block_lengths(num_wann, spins, self.atoms)
+            self.projections = ImplicitProjections.from_block_lengths(num_wann, spins, self.atoms)
+            if not any(auto):
+                utils.warn('Projections were not provided; will attempt to use automated Wannierization')
 
             # Also override various pw2wannier and w90 settings
             self.calculator_parameters['pw2wannier'].atom_proj = True
             for spin in spins:
                 label = 'w90' if spin == Spin.NONE else f'w90_{spin.value}'
                 self.calculator_parameters[label].guiding_centres = False
+                self.calculator_parameters[label].dis_froz_proj = True
                 if self.calculator_parameters[label].dis_proj_max is None:
                     self.calculator_parameters[label].dis_proj_max = 0.95
+        else:
+            self.projections = projections
 
         # Adding excluded_bands info to self.projections
         if self.projections:
@@ -1139,7 +1130,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
         # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
         # object but it is provided in the w90 subdictionary)
-        if w90_block_projs:
+        if w90_block_projs != [[]]:
             kwargs['projections'] = ExplicitProjections.fromlist(w90_block_projs, w90_block_spins, atoms)
 
         kwargs['pseudopotentials'] = bigdct.pop('pseudopotentials', {})
