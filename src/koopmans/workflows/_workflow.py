@@ -103,7 +103,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
     kpoints: Kpoints
     pseudopotentials: OrderedDict[str, UPFDict]
     pseudo_dir: Path
-    projections: Projections
+    projections: Projections | None
     ml_model: Optional[AbstractMLModel]
     snapshots: List[Atoms]
     version: str
@@ -344,7 +344,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
         # Projections
         auto = [self.calculator_parameters[s].auto_projections for s in ['w90', 'w90_up', 'w90_down']]
-        if projections is None or any(auto):
+        if any(auto):
             if self.parameters.spin_polarized:
                 spins = [Spin.UP, Spin.DOWN]
             else:
@@ -357,8 +357,6 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             else:
                 num_wann = [nwfcs_from_pseudos(self.atoms, self.pseudopotentials) for _ in spins]
             self.projections = ImplicitProjections.from_block_lengths(num_wann, spins, self.atoms)
-            if not any(auto):
-                utils.warn('Projections were not provided; will attempt to use automated Wannierization')
 
             # Also override various pw2wannier and w90 settings
             self.calculator_parameters['pw2wannier'].atom_proj = True
@@ -1305,6 +1303,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 else:
                     spin = Spin.NONE
                     calcdct['w90'] = params_dict
+                if self.projections is None:
+                    raise ValueError('Projections are required for the w90 calculator, but none were provided')
                 projections = self.projections.get_subset(spin)
                 if projections:
                     proj_kwarg = {'projections': [p.projections for p in projections]}

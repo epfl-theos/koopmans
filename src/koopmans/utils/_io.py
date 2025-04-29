@@ -337,6 +337,22 @@ def parse_wannier_u_file_contents(content: str) -> Tuple[npt.NDArray[np.complex1
     return umat, kpts, nk
 
 
+def parse_wannier_amn_file_contents(content: str) -> npt.NDArray[np.complex128]:
+    """Parse the contents of a wannier amn file."""
+    lines = content.split('\n')
+    nw, nk, nw2 = [int(x) for x in lines[1].split()]
+    if nw != nw2:
+        raise ValueError("Malformed wannier amn file (A^k is not square)")
+
+    amn = np.empty((nk, nw, nw), dtype=complex)
+
+    for line in lines[2:-1]:
+        [i, j, k, re, im] = line.split()
+        amn[int(k) - 1, int(i) - 1, int(j) - 1] = complex(float(re), float(im))
+
+    return amn
+
+
 def generate_wannier_u_file_contents(umat: npt.NDArray[np.complex128], kpts: npt.NDArray[np.float64]) -> str:
     """Generate the contents of a wannier u file."""
     flines = [f' Written on {datetime.now().isoformat(timespec="seconds")}']

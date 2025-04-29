@@ -10,14 +10,14 @@ from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
                                   Wann2KCCalculator, Wannier90Calculator)
 from koopmans.files import File, LocalFile
 from koopmans.process_io import IOModel
-from koopmans.projections import BlockID
+from koopmans.projections import BlockID, ImplicitProjections
 from koopmans.status import Status
 from koopmans.utils import Spin
 from koopmans.variational_orbitals import VariationalOrbitals
 
 from ._dft import DFTPWWorkflow
 from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
-from ._wannierize import WannierizeWorkflow
+from ._wannierize import MergeableFile, WannierizeWorkflow
 from ._workflow import Workflow
 
 
@@ -106,6 +106,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
             nocc_dw = (nelec - tot_mag) // 2
             if all(self.atoms.pbc):
                 # Using Wannier functions
+                assert self.projections is not None
                 ntot_up = self.projections.num_wann(spin='up')
                 ntot_dw = self.projections.num_wann(spin='down')
             else:
@@ -125,6 +126,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                 exclude_bands = self.calculator_parameters['w90'].get(
                     'exclude_bands', [])
                 nocc -= len(exclude_bands)
+                assert self.projections is not None
                 ntot = self.projections.num_wann()
             else:
                 ntot = self.calculator_parameters['pw'].nbnd
@@ -171,7 +173,11 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                 if key.startswith('w90'):
                     self.calculator_parameters[key].write_u_matrices = True
                     self.calculator_parameters[key].write_xyz = True
-            wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True, scf_kgrid=self._scf_kgrid)
+            wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True, scf_kgrid=self._scf_kgrid,
+                                                        files_to_merge=[MergeableFile.U,
+                                                                        MergeableFile.HR,
+                                                                        MergeableFile.U_DIS,
+                                                                        MergeableFile.CENTERS])
             wf_workflow.proceed()
             if wf_workflow.status != Status.COMPLETED:
                 return
@@ -184,23 +190,30 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
             spins = [Spin.UP, Spin.DOWN] if self.parameters.spin_polarized else [Spin.NONE]
             for spin in spins:
                 wannier_files_to_link_by_spin.append({})
-                for filled in [True, False]:
-                    block_id = BlockID(filled=filled, spin=spin)
-                    for f in [wf_workflow.outputs.u_matrices_files[block_id],
-                              wf_workflow.outputs.hr_files[block_id],
+                unique = isinstance(self.projections, ImplicitProjections)
+                if unique:
+                    # Use a unique Wannierization of occupied + empty
+                    fillings = [None]
+                else:
+                    # The Wannierization is done separately for occupied and empty
+                    fillings = [True, False]
+                for filled in fillings:
+                    block_id = BlockID(filled=filled, spin=spin, unique=unique)
+                    for f in [wf_workflow.outputs.u_files[block_id],
                               wf_workflow.outputs.centers_files[block_id]]:
                         assert f is not None
 
-                        if filled:
+                        if filled in [True, None]:
                             wannier_files_to_link_by_spin[-1][f.name] = f
                         else:
                             wannier_files_to_link_by_spin[-1]['wannier90_emp' + str(f.name)[9:]] = f
 
                     dft_ham_files[block_id] = wf_workflow.outputs.hr_files[block_id]
 
-                # Empty blocks might also have a disentanglement file than we need to copy
+                # Empty/Unique manifolds might also have a disentanglement file than we need to copy
                 if wf_workflow.outputs.u_dis_files[block_id] is not None:
-                    wannier_files_to_link_by_spin[-1]['wannier90_emp_u_dis.mat'] = \
+                    emp_str = "" if filled is None else "_emp"
+                    wannier_files_to_link_by_spin[-1][f'wannier90{emp_str}_u_dis.mat'] = \
                         wf_workflow.outputs.u_dis_files[block_id]
 
         else:
@@ -469,6 +482,9 @@ def internal_new_calculator(workflow, calc_presets, **kwargs):
     calc.parameters.spin_component = kwargs['spin_component'] if 'spin_component' in kwargs else 1
     calc.parameters.kcw_at_ks = not all(workflow.atoms.pbc)
     calc.parameters.read_unitary_matrix = all(workflow.atoms.pbc)
+
+    if isinstance(workflow.projections, ImplicitProjections):
+        calc.parameters.l_unique_manifold = True
 
     if calc_presets == 'kcw_wannier':
         pass

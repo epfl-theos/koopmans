@@ -7,6 +7,8 @@ from pydantic import BaseModel
 class IOModel(BaseModel):
     """A base class for input/output models of Processes."""
 
+    model_config = {'arbitrary_types_allowed': True, 'extra': 'forbid'}
+
     def __eq__(self, other):
         """Check if two instances of the class have matching contents (need not be the same instance)."""
         if not isinstance(other, self.__class__):

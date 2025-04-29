@@ -26,7 +26,7 @@ from ._folding import FoldToSupercellWorkflow
 from ._koopmans_cp_with_spin_swap import KoopmansCPWithSpinSwapWorkflow
 from ._ml import PowerSpectrumDecompositionWorkflow
 from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
-from ._wannierize import WannierizeWorkflow
+from ._wannierize import MergeableFile, WannierizeWorkflow
 from ._workflow import Workflow, spin_symmetrize
 
 logger = logging.getLogger(__name__)
@@ -1213,7 +1213,7 @@ class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
                 (all(self.atoms.pbc) and self.parameters.init_orbitals == 'kohn-sham'):
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x (pw.x only for Kohn-Sham states)
-            wannier_workflow = WannierizeWorkflow.fromparent(self)
+            wannier_workflow = WannierizeWorkflow.fromparent(self, files_to_merge=[MergeableFile.HR])
             if wannier_workflow.parameters.calculate_bands:
                 wannier_workflow.parameters.calculate_bands = \
                     not self.calculator_parameters['ui'].do_smooth_interpolation

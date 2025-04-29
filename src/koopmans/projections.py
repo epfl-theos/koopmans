@@ -1,7 +1,6 @@
 """Classes that define blocks of bands."""
 from __future__ import annotations
 
-import string
 from abc import ABC
 from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
 
@@ -15,29 +14,38 @@ from koopmans import calculators
 from koopmans.utils import Spin
 
 
+def _set_label_from_filled_or_unique(cls, data):
+    """Set `label` if either (a) `filled` is set or (b) `unique` is True."""
+    if data.get('label', None) is None:
+        filled = data.get('filled', None)
+        unique = data.get('unique', cls.model_fields['unique'].default)
+        if unique:
+            label = 'all'
+        elif filled is not None:
+            label = 'occ' if filled else 'emp'
+        else:
+            raise ValueError("Failed to auto-generate the block label")
+        data['label'] = label
+    return data
+
+
 class BlockID(BaseModel):
     """The ID of a block of bands, which includes a label, filling, and spin."""
 
     label: Optional[str] = None
     filled: Optional[bool] = None
     spin: Spin = Spin.NONE
+    unique: bool = Field(default=False, description="Whether or not this block spans the entire system")
     model_config = ConfigDict(frozen=True)
+
+    @model_validator(mode="before")
+    def _set_label(cls, data):
+        return _set_label_from_filled_or_unique(cls, data)
 
     def __str__(self):
         if self.label is None:
             return ''
         return f'{self.label}_{self.spin}' if self.spin != Spin.NONE else self.label
-
-    # Set label to 'occ' or 'emp' if filled is set but label is not
-    @model_validator(mode='before')
-    def set_label_from_filled(cls, data: Any):
-        """Construct a label (if it is not provided) from the filling and spin arguments."""
-        if isinstance(data, dict):
-            if data.get('filled', None) is not None and data.get('label', None) is None:
-                spin = data.get('spin', Spin.NONE)
-                spin_label = f'_spin_{spin}' if spin != Spin.NONE else ''
-                data['label'] = 'occ' + spin_label if data['filled'] else 'emp' + spin_label
-        return data
 
     def filling(self):
         """Return a string indicating whether the block is occupied or empty."""
@@ -57,16 +65,21 @@ class ProjectionsBlock(BaseModel):
     spin: Spin = Spin.NONE
     label: Optional[str] = None
     num_bands: Optional[int] = None
+    unique: bool = False
     include_bands: Optional[List[int]] = None
     exclude_bands: Optional[List[int]] = None
     w90_calc: calculators.Wannier90Calculator | None = None
 
-    model_config = ConfigDict(frozen=False, arbitrary_types_allowed=True)
+    model_config = ConfigDict(frozen=False, arbitrary_types_allowed=True, extra="forbid")
+
+    @model_validator(mode="before")
+    def _set_label(cls, data):
+        return _set_label_from_filled_or_unique(cls, data)
 
     @property
     def id(self):
         """Return the ID of this block."""
-        return BlockID(label=self.label, filled=self.filled, spin=self.spin)
+        return BlockID(label=self.label, filled=self.filled, spin=self.spin, unique=self.unique)
 
     def __len__(self) -> int:
         return self.num_wann
@@ -98,6 +111,8 @@ class ProjectionsBlock(BaseModel):
 class ImplicitProjectionsBlock(ProjectionsBlock):
     """This class implements ProjectionsBlock with automated projections."""
 
+    unique: bool = True
+
     def split(self, groups: List[List[int]]) -> List[ImplicitProjectionsBlock]:
         """Split the block into sub-blocks according to their groupings.
 
@@ -115,13 +130,14 @@ class ImplicitProjectionsBlock(ProjectionsBlock):
 
         # Construct the sub-groups
         blocks = []
-        for letter, include_bands in zip(string.ascii_lowercase, groups):
+        for i_block, include_bands in enumerate(groups):
             exclude_bands = [i for i in self.include_bands if i not in include_bands]
             new_block = ImplicitProjectionsBlock(num_wann=len(include_bands),
                                                  num_bands=len(include_bands),
                                                  spin=self.spin,
                                                  filled=self.filled,
-                                                 label=self.label + letter if self.label else None,
+                                                 unique=len(groups) == 1,
+                                                 label=f'block_{i_block + 1}',
                                                  include_bands=include_bands,
                                                  exclude_bands=exclude_bands)
             blocks.append(new_block)
@@ -217,6 +233,15 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
         assert len(excl_bands) == 0
         return divs
 
+    @property
+    def spin_channels(self) -> List[Spin]:
+        """Generate a list of the spin channels that are present in this set of projections."""
+        out = []
+        for spin in Spin:
+            if any([b.spin == spin for b in self.blocks]):
+                out.append(spin)
+        return out
+
     def _populate_blocks(self):
         """Populate all blocks of projections with additional global information."""
         for spin in Spin:
@@ -248,8 +273,8 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
                     b.exclude_bands = list_to_formatted_str(to_exclude)
 
                 # Construct the ID
-                spin_str = '' if spin == Spin.NONE else f'_spin_{spin.value}'
-                b.label = f'block_{iblock + 1}{spin_str}'
+                if not b.unique:
+                    b.label = f'block_{iblock + 1}'
 
     def __iter__(self):
         # Before returning all the blocks, add more global information such as exclude_bands
@@ -276,25 +301,27 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
         nbands += num_extra_bands
         return nbands
 
-    @property
-    def to_merge(self) -> Dict[BlockID, List[ProjectionsBlockType]]:
+    def to_merge(self, merge_occ_and_empty: bool = False) -> Dict[BlockID, list[ProjectionsBlockType]]:
         """Determine the sets of blocks that should be merged with one another.
 
         Group the blocks by their correspondence to occupied/empty bands, and by their spin
         """
-        dct: Dict[BlockID, List[ProjectionsBlockType]] = {}
+        dct: Dict[BlockID, list[ProjectionsBlockType]] = {}
         for block in self:
-            try:
-                n_occ_bands = self.num_occ_bands[block.spin]
-            except KeyError:
-                raise AssertionError(
-                    'Initialize `ProjectionBlocks.num_occ_bands` before calling `ProjectionBlocks.to_merge()`')
-            if max(block.include_bands) <= n_occ_bands:
-                filled = True
-            elif min(block.include_bands) > n_occ_bands:
-                filled = False
+            if merge_occ_and_empty:
+                filled = None
             else:
-                raise ValueError('Block spans both occupied and empty manifolds')
+                try:
+                    n_occ_bands = self.num_occ_bands[block.spin]
+                except KeyError:
+                    raise AssertionError(
+                        'Initialize `ProjectionBlocks.num_occ_bands` before calling `ProjectionBlocks.to_merge()`')
+                if max(block.include_bands) <= n_occ_bands:
+                    filled = True
+                elif min(block.include_bands) > n_occ_bands:
+                    filled = False
+                else:
+                    raise ValueError('Block spans both occupied and empty manifolds')
             block_id = BlockID(filled=filled, spin=block.spin)
             if block_id in dct:
                 dct[block_id].append(block)

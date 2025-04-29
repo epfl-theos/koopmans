@@ -29,8 +29,8 @@ load_results_from_output = True
 class SinglepointOutputs(IOModel):
     """Pydantic model for the outputs of a `SinglepointWorkflow`."""
 
-    band_structures: Dict[str, BandStructure] = Field(default_factory=dict)
-    densities_of_states: Dict[str, DOSCollection | DOS] = Field(default_factory=dict)
+    band_structures: Dict[str, BandStructure | None] = Field(default_factory=dict)
+    densities_of_states: Dict[str, DOSCollection | DOS | None] = Field(default_factory=dict)
 
     model_config = {'arbitrary_types_allowed': True}
 

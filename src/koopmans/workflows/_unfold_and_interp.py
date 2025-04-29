@@ -56,6 +56,9 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         - an UnfoldAndInterpolateProcess for emp states
         - an UnfoldAndInterpolateProcess to merge occ and emp results
         """
+        if self.projections is None:
+            raise ValueError(f'{self.__class__.__name__} requires projections but none were provided.')
+
         # Transform self.atoms back to the primitive cell
         if self.parameters.method == 'dscf':
             self.supercell_to_primitive()
