@@ -254,8 +254,6 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
         if status != Status.COMPLETED:
             return
 
-        raise ValueError('Killing here; check the spreads!')
-
         # Calculate screening parameters
         screen_wfs = []
         for spin_component, wannier_files_to_link, wann2kc_calc in zip(spin_components,

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
+from typing import Any, Dict, Generic, List, Optional, Sequence, TypeVar
 
 from ase_koopmans import Atoms
 from ase_koopmans.io.wannier90 import (list_to_formatted_str,
@@ -14,7 +14,7 @@ from koopmans import calculators
 from koopmans.utils import Spin
 
 
-def _set_label_from_filled_or_unique(cls, data):
+def _set_label_from_filled_or_unique(cls: BaseModel, data: dict[str, Any]) -> dict[str, Any]:
     """Set `label` if either (a) `filled` is set or (b) `unique` is True."""
     if data.get('label', None) is None:
         filled = data.get('filled', None)
@@ -24,7 +24,7 @@ def _set_label_from_filled_or_unique(cls, data):
         elif filled is not None:
             label = 'occ' if filled else 'emp'
         else:
-            raise ValueError("Failed to auto-generate the block label")
+            label = None
         data['label'] = label
     return data
 
@@ -39,7 +39,7 @@ class BlockID(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     @model_validator(mode="before")
-    def _set_label(cls, data):
+    def _set_label(cls, data: dict[str, Any]):
         return _set_label_from_filled_or_unique(cls, data)
 
     def __str__(self):
@@ -73,7 +73,7 @@ class ProjectionsBlock(BaseModel):
     model_config = ConfigDict(frozen=False, arbitrary_types_allowed=True, extra="forbid")
 
     @model_validator(mode="before")
-    def _set_label(cls, data):
+    def _set_label(cls, data: dict[str, Any]):
         return _set_label_from_filled_or_unique(cls, data)
 
     @property
@@ -94,9 +94,9 @@ class ProjectionsBlock(BaseModel):
         return False
 
     @property
-    def w90_kwargs(self) -> Dict[str, Any]:
+    def w90_kwargs(self) -> dict[str, Any]:
         """Return the `Wannier90` keywords to provide when constructing a new calculator corresponding to this block."""
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         for key in ['num_wann', 'num_bands', 'exclude_bands']:
             val = getattr(self, key, None)
             if val is None and key != 'exclude_bands':
@@ -113,7 +113,7 @@ class ImplicitProjectionsBlock(ProjectionsBlock):
 
     unique: bool = True
 
-    def split(self, groups: List[List[int]]) -> List[ImplicitProjectionsBlock]:
+    def split(self, groups: List[List[int]]) -> Sequence[ImplicitProjectionsBlock]:
         """Split the block into sub-blocks according to their groupings.
 
         Note that these blocks will have `num_wann` == `num_bands` and will not have any disentanglement.
@@ -129,7 +129,7 @@ class ImplicitProjectionsBlock(ProjectionsBlock):
             raise ValueError('The provided groups do not span the same bands as this block of bands')
 
         # Construct the sub-groups
-        blocks = []
+        blocks: list[ImplicitProjectionsBlock] = []
         for i_block, include_bands in enumerate(groups):
             exclude_bands = [i for i in self.include_bands if i not in include_bands]
             new_block = ImplicitProjectionsBlock(num_wann=len(include_bands),
@@ -158,9 +158,9 @@ class ExplicitProjectionsBlock(ProjectionsBlock):
     projections: list[Projection]
 
     @property
-    def w90_kwargs(self) -> Dict[str, Any]:
+    def w90_kwargs(self) -> dict[str, Any]:
         """Return the `Wannier90` keywords to provide when constructing a new calculator corresponding to this block."""
-        kwargs = super().w90_kwargs
+        kwargs: dict[str, Any] = super().w90_kwargs
         kwargs['auto_projections'] = False
         kwargs['projections'] = [p.dict() for p in self.projections]
         return kwargs
@@ -204,16 +204,16 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
         # Return true if this contains any non-empty "ProjectionBlock"s
         return len(self) > 0
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any):
         if isinstance(other, Projections):
             return self.__dict__ == other.__dict__
         return False
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: int):
         self._populate_blocks()
         return self.blocks[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: int, value: ProjectionsBlockType):
         self.blocks[key] = value
 
     def divisions(self, spin: Spin) -> List[int]:
@@ -234,9 +234,9 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
         return divs
 
     @property
-    def spin_channels(self) -> List[Spin]:
+    def spin_channels(self) -> list[Spin]:
         """Generate a list of the spin channels that are present in this set of projections."""
-        out = []
+        out: list[Spin] = []
         for spin in Spin:
             if any([b.spin == spin for b in self.blocks]):
                 out.append(spin)
@@ -255,7 +255,9 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
                 # Construct num_bands
                 b.num_bands = b.num_wann
                 if include_above:
-                    b.num_bands += self.num_extra_bands[spin]
+                    n_extra = self.num_extra_bands[spin]
+                    assert n_extra is not None
+                    b.num_bands += n_extra
 
                 # Construct exclude_bands
                 while wann_counter in self.exclude_bands[spin]:
@@ -316,6 +318,8 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
                 except KeyError:
                     raise AssertionError(
                         'Initialize `ProjectionBlocks.num_occ_bands` before calling `ProjectionBlocks.to_merge()`')
+                if n_occ_bands is None:
+                    raise ValueError(f'`num_occ_bands` is not set for spin = {block.spin}')
                 if max(block.include_bands) <= n_occ_bands:
                     filled = True
                 elif min(block.include_bands) > n_occ_bands:
@@ -333,18 +337,21 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
 class ExplicitProjections(Projections[ExplicitProjectionsBlock]):
     """A set of projections with explicitly specified projections."""
 
-    @classmethod
-    def fromlist(cls,
-                 list_of_projections: List[List[Union[str, Dict[str, Any]]]],
-                 spins: List[Spin],
-                 atoms: Atoms):
-        """Create a set of projections from a list of projections."""
-        if not all([isinstance(p, list) for p in list_of_projections]):
-            raise ValueError('`list_of_projections` must be a list of lists')
-        blocks = [ExplicitProjectionsBlock(projections=p, spin=s, num_wann=num_wann_from_projections(
-            p, atoms)) for p, s in zip(list_of_projections, spins) if len(p) > 0]
-        # TODO achieve the above via a model validator to populate the projections
-        return cls(blocks=blocks, atoms=atoms)
+    @model_validator(mode="before")
+    def calculate_num_wann(cls, dct: dict[str, Any]) -> dict[str, Any]:
+        """Ensure that each projection block has a `num_wann` argument.
+
+        This validator allows the auto-generation of `num_wann` for each
+        `ExplicitProjectionsBlock`. It is a validator of this class, and not
+        of `ExplicitProjectionsBlock`, because it relies on the global information
+        provided by the `Projections` class (namely, the `atoms` attribute).
+        """
+        for block in dct.get('blocks', []):
+            if isinstance(block, dict):
+                projections = block.get('projections', [])
+                num_wann = num_wann_from_projections(projections, dct['atoms'])
+                block['num_wann'] = num_wann
+        return dct
 
 
 class ImplicitProjections(Projections[ImplicitProjectionsBlock]):

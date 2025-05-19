@@ -10,7 +10,7 @@ from koopmans.process_io import IOModel
 from ._process import Process
 
 WANNIER_JL_UUID = "2b19380a-1f7e-4d7d-b1b8-8aa60b3321c9"
-WANNIER_JL_REV = "e75841df"
+WANNIER_JL_REV = "65245c59"
 
 
 def load_wannierjl():
@@ -123,19 +123,18 @@ class WannierJLSplitProcess(Process[WannierJLSplitInput, WannierJLSplitOutput]):
         load_wannierjl()
 
         # Construct the julia indices (need to do this so that the following mrwf interface finds a match)
-        prefix = self.inputs.wannier90_input_file.with_suffix("").name
         julia_indices = jl.seval("[" + ', '.join([str(i) for i in self.inputs.indices]) + "]")
         julia_outdirs = jl.seval("[" + ', '.join([f'"{self.directory / d}"' for d in self.inputs.outdirs]) + "]")
 
         # Perform the parallel transport algorithm to split the manifolds
-        args = [str(self.inputs.wannier90_input_file.with_suffix("")),
-                julia_indices,
-                julia_outdirs,]
-        if self.inputs.cubic_mmn_file is not None:
-            args.append(str(self.inputs.cubic_mmn_file))
-        jl.Wannier.Tools.mrwf(*args)
+        cubic_mmn_file = str(self.inputs.cubic_mmn_file) if self.inputs.cubic_mmn_file else None
+        jl.Wannier.Tools.mrwf(str(self.inputs.wannier90_input_file.with_suffix("")),
+                              julia_indices,
+                              julia_outdirs,
+                              cubic_mmn_file)
 
         # Save the output
+        prefix = self.inputs.wannier90_input_file.with_suffix("").name
         self.outputs = WannierJLSplitOutput(
             blocks=[
                 {'amn_file': File(self, f'{d}/{prefix}.amn'),

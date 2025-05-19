@@ -355,10 +355,10 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
                 koopmans_ham_files: Dict[BlockID, File]
                 if self.parameters.spin_polarized:
                     koopmans_ham_files = {
-                        BlockID(filled=True, spin="up"): File(final_koopmans_calc, Path('ham_occ_1.dat')),
-                        BlockID(filled=False, spin="up"): File(final_koopmans_calc, Path('ham_emp_1.dat')),
-                        BlockID(filled=True, spin="down"): File(final_koopmans_calc, Path('ham_occ_2.dat')),
-                        BlockID(filled=False, spin="down"): File(final_koopmans_calc, Path('ham_emp_2.dat'))
+                        BlockID(filled=True, spin=Spin.UP): File(final_koopmans_calc, Path('ham_occ_1.dat')),
+                        BlockID(filled=False, spin=Spin.UP): File(final_koopmans_calc, Path('ham_emp_1.dat')),
+                        BlockID(filled=True, spin=Spin.DOWN): File(final_koopmans_calc, Path('ham_occ_2.dat')),
+                        BlockID(filled=False, spin=Spin.DOWN): File(final_koopmans_calc, Path('ham_emp_2.dat'))
                     }
                 else:
                     koopmans_ham_files = {BlockID(filled=True): File(final_koopmans_calc, Path('ham_occ_1.dat')),
@@ -1225,10 +1225,10 @@ class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
 
             # Store the Hamitonian files
             if self.parameters.spin_polarized:
-                hr_file_ids = [BlockID(filled=True, spin='up'),
-                               BlockID(filled=False, spin='up'),
-                               BlockID(filled=True, spin='down'),
-                               BlockID(filled=False, spin='down')]
+                hr_file_ids = [BlockID(filled=True, spin=Spin.UP),
+                               BlockID(filled=False, spin=Spin.UP),
+                               BlockID(filled=True, spin=Spin.DOWN),
+                               BlockID(filled=False, spin=Spin.DOWN)]
             else:
                 hr_file_ids = [BlockID(filled=True), BlockID(filled=False)]
 

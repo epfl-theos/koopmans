@@ -10,7 +10,8 @@ Written by Riccardo De Gennaro Nov 2020
 import copy
 from enum import Enum
 from functools import partial
-from typing import Annotated, Any, Dict, List, Optional, Type, TypeVar
+from typing import (Annotated, Any, Dict, List, Optional, Sequence, Type,
+                    TypeVar)
 
 import numpy as np
 import numpy.typing as npt
@@ -300,11 +301,15 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                     hr_files[subwf.block.id] = subwf.outputs.hr_file
 
             # Construct a new Projections object with the finalized blocks
-            new_projections = self.projections.__class__(
-                blocks=[b[0] for b in finalized_blocks_and_outputs],
-                atoms=self.atoms,
-                num_occ_bands=self.projections.num_occ_bands,
-            )
+            if len(finalized_blocks_and_outputs) != len(self.projections):
+                new_projections = self.projections.__class__(
+                    blocks=[b[0] for b in finalized_blocks_and_outputs],
+                    atoms=self.atoms,
+                    num_occ_bands=self.projections.num_occ_bands,
+                    exclude_bands=self.projections.exclude_bands,
+                )
+            else:
+                new_projections = self.projections
 
             # Store the outputs of the finalized blocks
             for block, outputs in finalized_blocks_and_outputs:
@@ -312,20 +317,22 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                 hr_files[block.id] = outputs.hr_file
                 centers_files[block.id] = outputs.centers_file
                 u_files[block.id] = outputs.u_file
+                u_dis_files[block.id] = outputs.u_dis_file
                 nnkp_files[block.id] = outputs.nnkp_file
                 wannier90_calculations.append(outputs.wannier90_calculation)
 
             # Merging Hamiltonian files, U matrix files, centers files if necessary
-            for block_id, blocks in new_projections.to_merge(merge_occ_and_empty=self._merge_occ_and_empty).items():
+            for merged_block_id, blocks in new_projections.to_merge(
+                    merge_occ_and_empty=self._merge_occ_and_empty).items():
                 if len(blocks) == 1:
-                    # If there is only one block, we don't need to merge anything
-                    calc = blocks[0].w90_calc
-                    if calc.parameters.write_hr:
-                        hr_files[block_id] = File(calc, calc.prefix + '_hr.dat')
-                    if calc.parameters.write_u_matrices:
-                        u_files[block_id] = File(calc, calc.prefix + '_u.mat')
-                    if calc.parameters.write_xyz:
-                        centers_files[block_id] = File(calc, calc.prefix + '_centres.xyz')
+                    # If the set of blocks to merge only contains one block, we don't need to merge anything. In this
+                    # case, the "merged" outputs are just the outputs of that single block
+                    [block] = blocks
+                    hr_files[merged_block_id] = hr_files[block.id]
+                    u_files[merged_block_id] = u_files[block.id]
+                    u_dis_files[merged_block_id] = u_dis_files[block.id]
+                    centers_files[merged_block_id] = centers_files[block.id]
+
                 else:
                     # Fetching the list of calculations for this block
                     src_calcs: List[calculators.Wannier90Calculator] = [
@@ -338,11 +345,11 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                                                      src_files=[File(calc, calc.prefix + '_hr.dat')
                                                                 for calc in src_calcs],
                                                      dst_file=f'{prefix}_hr.dat')
-                        merge_hr_proc.name = f'merge_{block_id.label}_wannier_hamiltonian'
+                        merge_hr_proc.name = f'merge_{merged_block_id.label}_wannier_hamiltonian'
                         status = self.run_steps(merge_hr_proc)
                         if status != Status.COMPLETED:
                             return
-                        hr_files[block_id] = merge_hr_proc.outputs.dst_file
+                        hr_files[merged_block_id] = merge_hr_proc.outputs.dst_file
 
                     if MergeableFile.U in self._files_to_merge:
                         # Merging the U (rotation matrix) files
@@ -350,11 +357,11 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                                                     src_files=[File(calc, calc.prefix + '_u.mat')
                                                                for calc in src_calcs],
                                                     dst_file=f'{prefix}_u.mat')
-                        merge_u_proc.name = f'merge_{block_id.label}_wannier_u'
+                        merge_u_proc.name = f'merge_{merged_block_id.label}_wannier_u'
                         status = self.run_steps(merge_u_proc)
                         if status != Status.COMPLETED:
                             return
-                        u_files[block_id] = merge_u_proc.outputs.dst_file
+                        u_files[merged_block_id] = merge_u_proc.outputs.dst_file
 
                     if MergeableFile.CENTERS in self._files_to_merge:
                         # Merging the wannier centers files
@@ -362,11 +369,11 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                             merge_function=partial(merge_wannier_centers_file_contents, atoms=self.atoms),
                             src_files=[File(calc, calc.prefix + '_centres.xyz') for calc in src_calcs],
                             dst_file=f'{prefix}_centres.xyz')
-                        merge_centers_proc.name = f'merge_{block_id.label}_wannier_centers'
+                        merge_centers_proc.name = f'merge_{merged_block_id.label}_wannier_centers'
                         status = self.run_steps(merge_centers_proc)
                         if status != Status.COMPLETED:
                             return
-                        centers_files[block_id] = merge_centers_proc.outputs.dst_file
+                        centers_files[merged_block_id] = merge_centers_proc.outputs.dst_file
 
             if MergeableFile.U_DIS in self._files_to_merge:
                 # For the last block (per spin channel), extend the U_dis matrix file if necessary
@@ -380,7 +387,7 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                 if self._merge_occ_and_empty:
                     raise NotImplementedError("Need to work out what to do here")
 
-                for block_id, block in final_label_blocks:
+                for merged_block_id, block in final_label_blocks:
                     u_dis_file = None
                     num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
                     num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
@@ -390,7 +397,7 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                             u_dis_file = File(calc_with_u_dis, calc_with_u_dis.prefix + '_u_dis.mat')
                         else:
                             # First, calculate how many empty bands we have
-                            spin = block_id.spin
+                            spin = merged_block_id.spin
                             if spin != Spin.NONE:
                                 nbnd_occ = self.number_of_electrons(spin)
                             else:
@@ -401,18 +408,18 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                             nwann_tot = sum([p.num_wann for p in block])
 
                             # Finally, construct and run a Process to perform the file manipulation
-                            filling_label = '' if block_id.filled else '_emp'
+                            filling_label = '' if merged_block_id.filled else '_emp'
                             extend_function = partial(extend_wannier_u_dis_file_content, nbnd=nbnd_tot, nwann=nwann_tot)
                             extend_proc = ExtendProcess(extend_function=extend_function,
                                                         src_file=File(calc_with_u_dis,
                                                                       calc_with_u_dis.prefix + '_u_dis.mat'),
                                                         dst_file=calc_with_u_dis.prefix + f'{filling_label}_u_dis.mat')
-                            extend_proc.name = f'extend_{block_id.label}_wannier_u_dis'
+                            extend_proc.name = f'extend_{merged_block_id.label}_wannier_u_dis'
                             status = self.run_steps(extend_proc)
                             if status != Status.COMPLETED:
                                 return
                             u_dis_file = extend_proc.outputs.dst_file
-                    u_dis_files[block_id] = u_dis_file
+                    u_dis_files[merged_block_id] = u_dis_file
 
         dos = None
         bs_list = []
@@ -643,7 +650,7 @@ class WannierizeAndSplitBlockOutput(IOModel):
     """Output model for the WannierizeAndSplitBlockWorkflow."""
 
     block_outputs: List[WannierizeBlockOutput]
-    blocks: List[ProjectionsBlock]
+    blocks: Sequence[ProjectionsBlock]
     u_file: File | None = None
     u_dis_file: File | None = None
     centers_file: File | None = None

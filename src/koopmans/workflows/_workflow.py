@@ -1093,8 +1093,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         # Finally, generate a SettingsDict for every single kind of calculator, regardless of whether or not there was
         # a corresponding block in the json file
         calculator_parameters = {}
-        w90_block_projs: List = []
-        w90_block_spins: List[Spin] = []
+        w90_block_projs: list[dict[str, Any]] = []
         for block, settings_class in settings_classes.items():
             # Read the block and add the resulting calculator to the calcs_dct
             dct = calcdict.pop(block, {})
@@ -1115,21 +1114,23 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 # Likewise, if we are not spin-polarized, don't store the spin-dependent w90 blocks
                 if parameters.spin_polarized is not ('up' in block or 'down' in block):
                     continue
-                projs = dct.pop('projections', [[]])
-                w90_block_projs += projs
                 if 'up' in block:
-                    w90_block_spins += [Spin.UP for _ in range(len(projs))]
+                    block_spin = Spin.UP
                 elif 'down' in block:
-                    w90_block_spins += [Spin.DOWN for _ in range(len(projs))]
+                    block_spin = Spin.DOWN
                 else:
-                    w90_block_spins += [Spin.NONE for _ in range(len(projs))]
+                    block_spin = Spin.NONE
+                projs = dct.pop('projections', [[]])
+
+                # Add the spin information
+                w90_block_projs += [{'spin': block_spin, 'projections': proj_block} for proj_block in projs]
 
             calculator_parameters[block] = settings_class(**dct)
 
         # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
         # object but it is provided in the w90 subdictionary)
-        if w90_block_projs != [[]]:
-            kwargs['projections'] = ExplicitProjections.fromlist(w90_block_projs, w90_block_spins, atoms)
+        if w90_block_projs != []:
+            kwargs['projections'] = ExplicitProjections(blocks=w90_block_projs, atoms=atoms)
 
         kwargs['pseudopotentials'] = bigdct.pop('pseudopotentials', {})
 
