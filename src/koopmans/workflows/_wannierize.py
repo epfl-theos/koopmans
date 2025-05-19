@@ -33,8 +33,9 @@ from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         merge_wannier_centers_file_contents,
                                         merge_wannier_hr_file_contents,
                                         merge_wannier_u_file_contents)
-from koopmans.processes.wjl import (WannierJLCheckNNKPProcess,
-                                    WannierJLGenerateCubicNNKPProcess)
+from koopmans.processes.wjl import (WannierJLCheckNeighborsProcess,
+                                    WannierJLGenerateNeighborsProcess,
+                                    WannierJLSplitProcess)
 from koopmans.projections import (BlockID, ImplicitProjectionsBlock,
                                   Projections, ProjectionsBlock)
 from koopmans.status import Status
@@ -254,7 +255,7 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                     # Need to split
                     subworkflow_class = WannierizeAndSplitBlockWorkflow
                     kwargs['groups'] = groups
-                    kwargs['files_to_merge'] = self._files_to_merge
+                    kwargs['files_to_merge'] = self._files_to_merge + [MergeableFile.HR]
                     minimize = self.parameters.init_orbitals == 'mlwfs'
                 else:
                     subworkflow_class = WannierizeBlockWorkflow
@@ -510,14 +511,16 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
 class WannierizeBlockOutput(IOModel):
     """Output model for the WannierizeBlockWorkflow."""
 
-    hr_file: File
-    centers_file: File
-    u_file: File
+    hr_file: File | None = None
+    centers_file: File | None = None
+    u_file: File | None = None
     u_dis_file: File | None = None
     amn_file: File | None = None
     eig_file: File | None = None
     mmn_file: File | None = None
     nnkp_file: File | None = None
+    chk_file: File
+    wannier90_input_file: File
     wannier90_calculation: calculators.Wannier90Calculator
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -616,12 +619,16 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
 
         centers_file = File(calc_w90, calc_w90.prefix + '_centres.xyz') if calc_w90.parameters.write_xyz else None
         u_dis_file: File | None = File(calc_w90, calc_w90.prefix + '_u_dis.mat')
+        chk_file = File(calc_w90, calc_w90.prefix + '.chk')
+        wannier90_input_file = File(calc_w90, calc_w90.prefix + '.win')
+
         if not u_dis_file.exists():  # type: ignore
             u_dis_file = None
-        self.outputs = self.output_model(hr_file=hr_file, u_file=u_file, centers_file=centers_file,
-                                         amn_file=self.amn_file, eig_file=self.eig_file, mmn_file=self.mmn_file,
-                                         nnkp_file=self.nnkp_file, wannier90_calculation=calc_w90,
-                                         u_dis_file=u_dis_file)
+        self.outputs = WannierizeBlockOutput(hr_file=hr_file, u_file=u_file, centers_file=centers_file,
+                                             amn_file=self.amn_file, eig_file=self.eig_file, mmn_file=self.mmn_file,
+                                             nnkp_file=self.nnkp_file, wannier90_calculation=calc_w90,
+                                             u_dis_file=u_dis_file, chk_file=chk_file,
+                                             wannier90_input_file=wannier90_input_file)
 
         self.status = Status.COMPLETED
 
@@ -649,7 +656,7 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockOutput]):
     output_model = WannierizeAndSplitBlockOutput
 
     def __init__(self, *args, pw_outdir: File, block: ProjectionsBlock, groups: List[List[int]],
-                 force_nspin2=False, minimize=True, files_to_merge: List[MergeableFile] = [], **kwargs):
+                 force_nspin2: bool = False, minimize: bool = True, files_to_merge: List[MergeableFile] = [], **kwargs):
         self.pw_outdir = pw_outdir
         self.block = block
         self.groups = groups
@@ -661,7 +668,8 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockOutput]):
     def _run(self) -> None:
         # Perform a Block Wannierization
         wannierize_wf = WannierizeBlockWorkflow.fromparent(
-            self, pw_outdir=self.pw_outdir, block=self.block, force_nspin2=self._force_nspin2, minimize=self.minimize)
+            self, pw_outdir=self.pw_outdir, block=self.block, force_nspin2=self._force_nspin2, minimize=self.minimize,
+            write_u_matrices=True)
         wannierize_wf.name = f'wannierize-{self.block.id}'
         wannierize_wf.proceed()
         if wannierize_wf.status != Status.COMPLETED:
@@ -669,72 +677,103 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockOutput]):
 
         # Check that the .nnkp file has the bvectors needed by the parallel transport algorithm
         # For some oblique cells this is not the case by default and we need to construct a cubic .nnkp file
-        check_nnkp_process = WannierJLCheckNNKPProcess()
+        check_nnkp_process = WannierJLCheckNeighborsProcess(
+            wannier90_input_file=wannierize_wf.outputs.wannier90_input_file,
+            chk_file=wannierize_wf.outputs.chk_file
+        )
         check_nnkp_process.name = 'check_wjl_compatibility'
         status = self.run_steps(check_nnkp_process)
         if status != Status.COMPLETED:
             return
 
         # Create a cubic nnkp
-        w90_input_file = File(wannierize_wf.outputs.wannier90_calculation,
-                              wannierize_wf.outputs.wannier90_calculation.prefix + '.win')
-        if check_nnkp_process.outputs.missing_bvectors and False:
+        if not check_nnkp_process.outputs.has_cubic_neighbors:
             # The .nnkp file is missing some b-vectors that wjl will require to perform the parallel transport, so
             # we must regenerate it
-            generate_nnkp_process = WannierJLGenerateCubicNNKPProcess(wannier_input_file=w90_input_file)
+            generate_nnkp_process = WannierJLGenerateNeighborsProcess(
+                wannier90_input_file=wannierize_wf.outputs.wannier90_input_file)
             status = self.run_steps(generate_nnkp_process)
             if status != Status.COMPLETED:
                 return
 
             calc_p2w: calculators.PW2WannierCalculator = self.new_calculator(
-                'pw2wannier', spin_component=self.block.spin)
+                'pw2wannier', spin_component=self.block.spin, atom_proj=False)
             calc_p2w.prefix = 'pw2wannier90-cubic'
             calc_p2w.link(self.pw_outdir, calc_p2w.parameters.outdir, symlink=True)
             calc_p2w.link(generate_nnkp_process.outputs.nnkp_file, calc_p2w.parameters.seedname + '.nnkp')
             status = self.run_steps(calc_p2w)
             if status != Status.COMPLETED:
                 return
-            amn_file = File(calc_p2w, calc_p2w.parameters.seedname + '.amn')
-            eig_file = File(calc_p2w, calc_p2w.parameters.seedname + '.eig')
-            mmn_file = File(calc_p2w, calc_p2w.parameters.seedname + '.mmn')
+            cubic_nnkp_file = File(calc_p2w, calc_p2w.parameters.seedname + '.nnkp')
+            cubic_mmn_file = File(calc_p2w, calc_p2w.parameters.seedname + '.mmn')
         else:
             # The files from the original Wannierization should be sufficient for wjl to perform the parallel transport
-            assert wannierize_wf.outputs.amn_file is not None
-            amn_file = wannierize_wf.outputs.amn_file
-            assert wannierize_wf.outputs.eig_file is not None
-            eig_file = wannierize_wf.outputs.eig_file
-            assert wannierize_wf.outputs.mmn_file is not None
-            mmn_file = wannierize_wf.outputs.mmn_file
+            cubic_nnkp_file = None
+            cubic_mmn_file = None
 
         # Determine how to split the blocks
         assert isinstance(self.block, ImplicitProjectionsBlock)
         new_blocks = self.block.split(self.groups)
 
         # Split the blocks using `wjl`
-        calc_wjl = self.new_calculator('wjl', indices=self.groups, outdirs=[
-                                       new_block.label for new_block in new_blocks])
-        calc_wjl.prefix = 'split'
+        split_process = WannierJLSplitProcess(
+            indices=self.groups,
+            outdirs=[new_block.label for new_block in new_blocks],
+            wannier90_input_file=wannierize_wf.outputs.wannier90_input_file,
+            chk_file=wannierize_wf.outputs.chk_file,
+            cubic_nnkp_file=cubic_nnkp_file,
+            cubic_mmn_file=cubic_mmn_file
+        )
 
-        # Providing the files that `wjl`` expects
-        w90_chk_file = File(wannierize_wf.outputs.wannier90_calculation,
-                            wannierize_wf.outputs.wannier90_calculation.prefix + '.chk')
-        for f in [w90_input_file, w90_chk_file, mmn_file, amn_file, eig_file]:
-            assert f is not None
-            calc_wjl.link(f, calc_wjl.prefix + f.suffix, symlink=True)
-
-        status = self.run_steps(calc_wjl)
+        status = self.run_steps(split_process)
         if status != Status.COMPLETED:
             return
 
+        # Merge the u_dis files
+        u_dis_file = None
+        if MergeableFile.U_DIS in self._files_to_merge:
+
+            assert wannierize_wf.outputs.u_file is not None
+            _, kpoint_list, _ = utils.parse_wannier_u_file_contents(wannierize_wf.outputs.u_file.read_text())
+
+            def combine_u_dis_files(list_of_file_contents: list[str]) -> str:
+                # Parse the contents of the U dis files (dimension nkpts x n_bands x n_wann)
+                u_dis_matrices = [utils.parse_wannier_amn_file_contents(
+                    f, check_square=False) for f in list_of_file_contents]
+
+                # Concatenate the U dis matrices along the n_wann axis
+                merged_u_dis_matrix = np.concatenate(u_dis_matrices, axis=2)
+
+                # U_dis files are expected to be of shape (nkpts x n_wann x n_bands)
+                merged_u_dis_matrix = np.transpose(merged_u_dis_matrix, (0, 2, 1))
+
+                # Return the merged U dis matrix as a string
+                return utils.generate_wannier_u_file_contents(merged_u_dis_matrix, kpoint_list)
+
+            merge_u_dis_process = MergeProcess(
+                merge_function=combine_u_dis_files,
+                src_files=[b.u_file for b in split_process.outputs.blocks],
+                dst_file="wannier90_u_dis.mat"
+            )
+
+            merge_u_dis_process.name = 'merge_u_dis'
+
+            status = self.run_steps(merge_u_dis_process)
+            if status != Status.COMPLETED:
+                return
+
+            u_dis_file = merge_u_dis_process.outputs.dst_file
+
         # Construct workflows to Wannierize each subblock
-        subwfs = []
-        for new_block, wjl_outdir in zip(new_blocks, calc_wjl.parameters.outdirs):
+        subwfs: List[WannierizeBlockWorkflow] = []
+        for new_block, block_files in zip(new_blocks, split_process.outputs.blocks):
             # Wannierize without preprocessing and without disentanglement
-            wjl_files = {f"{ext}_file": File(calc_wjl, f"{wjl_outdir}/{calc_wjl.name}.{ext}")
-                         for ext in ["amn", "eig", "mmn"]}
             wf = WannierizeBlockWorkflow.fromparent(self,
                                                     block=new_block,
-                                                    **wjl_files
+                                                    amn_file=block_files.amn_file,
+                                                    eig_file=block_files.eig_file,
+                                                    mmn_file=block_files.mmn_file,
+                                                    write_u_matrices=True,
                                                     )
             wf.name = f'wannierize-{new_block.id}'
             subwfs.append(wf)
@@ -746,71 +785,47 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockOutput]):
             return
 
         # Conbine the U matrices
-        def combine_u_matrices(list_of_files: List[str]) -> str:
-            """Combine the U matrices from the three-step Wannierization process.
-
-            `list_of_files` should contain:
-            - The U matrix from the wannierize_all step
-            - The U matrices from the parallel transport step
-            - The U matrices from the wannierize blocks step
-            """
-            num_blocks = len(new_blocks)
-            if len(list_of_files) != 1 + 2 * num_blocks:
-                raise ValueError("Unexpected number of files to merge")
-
-            # Split the files into their respective types
-            wannierize_all_file = list_of_files[0]
-            parallel_transport_files = list_of_files[1:num_blocks + 1]
-            wannierize_blocks_files = list_of_files[num_blocks + 1:]
-
-            u_wannierize_all, kpts, _ = utils.parse_wannier_u_file_contents(wannierize_all_file)
-
-            u_merged = np.zeros(u_wannierize_all.shape, dtype=u_wannierize_all.dtype)
-            i_start = 0
-            for parallel_transport_file, wannierize_blocks_file \
-                    in zip(parallel_transport_files, wannierize_blocks_files):
-                # Read the U matrix from the parallel transport file
-                u_parallel_transport = utils.parse_wannier_amn_file_contents(parallel_transport_file)
-
-                # Read the U matrix from the wannierize blocks file
-                u_wannierize_block, _, _ = utils.parse_wannier_u_file_contents(wannierize_blocks_file)
-
-                # Perform the sum U{kln} = sum_m (U_PT)_{klm} (U_block)_{kmn}
-                u_block = np.einsum('klm,kmn->kln', u_parallel_transport, u_wannierize_block)
-
-                # Add it to  the diagonal of u_merged
-                block_length = u_block.shape[1]
-                u_merged[:, i_start:i_start + block_length, i_start:i_start + block_length] = u_block
-                i_start += block_length
-
-            # Perform (U_all)_{kml} (U_merged)_{kln}
-            u_final = np.einsum('kml,kln->kmn', u_wannierize_all, u_merged)
-
-            # Convert the final U matrix to a string
-            return utils.generate_wannier_u_file_contents(u_final, kpts)
-
+        u_file = None
         if MergeableFile.U in self._files_to_merge:
-            src_files = [wannierize_wf.outputs.u_file]
-            src_files += [File(calc_wjl, f"{wjl_outdir}/{calc_wjl.name}.amn")
-                          for wjl_outdir in calc_wjl.parameters.outdirs]
-            src_files += [subwf.outputs.u_file for subwf in subwfs]
+            def combine_u_matrices(file_contents: List[str]) -> str:
+                u_contents = [utils.parse_wannier_u_file_contents(f) for f in file_contents]
+
+                # Get the k-point information
+                _, kpts, n_kpts = u_contents[0]
+
+                # Work out the total number of Wannier functions
+                n_wann: int = sum([u[0].shape[1] for u in u_contents])
+
+                # Construct the block-diagonal U matrix
+                u_merged = np.zeros((n_kpts, n_wann, n_wann), dtype=np.complex128)
+                i_start = 0
+                for umat, _, _ in u_contents:
+                    u_merged[:, i_start: i_start + umat.shape[1], i_start:i_start + umat.shape[1]] = umat
+                    i_start += umat.shape[1]
+
+                return utils.generate_wannier_u_file_contents(u_merged, kpts)
+
             merge_u_process = MergeProcess(merge_function=combine_u_matrices,
-                                           src_files=src_files,
-                                           dst_file=src_files[0].name)
+                                           src_files=[subwf.outputs.u_file for subwf in subwfs],
+                                           dst_file='wannier90_u.mat')
             merge_u_process.name = 'merge_u'
 
             status = self.run_steps(merge_u_process)
             if status != Status.COMPLETED:
                 return
 
+            u_file = merge_u_process.outputs.dst_file
+
         # Merge the wannier centers files
         centers_file = None
         if MergeableFile.CENTERS in self._files_to_merge:
             centers_files = [subwf.outputs.centers_file for subwf in subwfs]
+            assert isinstance(centers_files[0], File)
+            dst_file = centers_files[0].name
             merge_centers_proc = MergeProcess(
                 merge_function=partial(merge_wannier_centers_file_contents, atoms=self.atoms),
                 src_files=centers_files,
-                dst_file=centers_files[0].name)
+                dst_file=dst_file)
             merge_centers_proc.name = 'merge_centers'
             status = self.run_steps(merge_centers_proc)
             if status != Status.COMPLETED:
@@ -821,9 +836,11 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockOutput]):
         if MergeableFile.HR in self._files_to_merge:
             # Merging the wannier_hr (Hamiltonian) files
             hr_files = [subwf.outputs.hr_file for subwf in subwfs]
+            assert isinstance(hr_files[0], File)
+            dst_file = hr_files[0].name
             merge_hr_proc = MergeProcess(merge_function=merge_wannier_hr_file_contents,
                                          src_files=hr_files,
-                                         dst_file=hr_files[0].name)
+                                         dst_file=dst_file)
             merge_hr_proc.name = 'merge_hamiltonian'
             status = self.run_steps(merge_hr_proc)
             if status != Status.COMPLETED:
@@ -832,8 +849,8 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockOutput]):
 
         self.outputs = WannierizeAndSplitBlockOutput(block_outputs=[subwf.outputs for subwf in subwfs],
                                                      blocks=new_blocks,
-                                                     u_file=merge_u_process.outputs.dst_file,
-                                                     u_dis_file=wannierize_wf.outputs.u_dis_file,
+                                                     u_file=u_file,
+                                                     u_dis_file=u_dis_file,
                                                      centers_file=centers_file,
                                                      hr_file=hr_file)
 

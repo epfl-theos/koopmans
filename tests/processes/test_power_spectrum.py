@@ -7,11 +7,11 @@ import pytest  # noqa: F401
 from ase_koopmans import Atoms
 
 from koopmans import utils
-from koopmans.bands import VariationalOrbitals
 from koopmans.engines.localhost import LocalhostEngine
 from koopmans.files import LocalFile
 from koopmans.processes.power_spectrum import (
     ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
+from koopmans.variational_orbitals import VariationalOrbitals
 
 
 def test_extract_coefficients_from_xml_process(tmpdir, datadir, check_patch):

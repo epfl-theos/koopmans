@@ -136,7 +136,7 @@ class MergeOutputModel(IOModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class MergeProcess(Process):
+class MergeProcess(Process[MergeInputModel, MergeOutputModel]):
     """Generic process for merging the contents of multiple Wannier files (e.g. hr, u, centers)."""
 
     input_model = MergeInputModel

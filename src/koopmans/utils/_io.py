@@ -337,14 +337,14 @@ def parse_wannier_u_file_contents(content: str) -> Tuple[npt.NDArray[np.complex1
     return umat, kpts, nk
 
 
-def parse_wannier_amn_file_contents(content: str) -> npt.NDArray[np.complex128]:
+def parse_wannier_amn_file_contents(content: str, check_square: bool = True) -> npt.NDArray[np.complex128]:
     """Parse the contents of a wannier amn file."""
     lines = content.split('\n')
     nw, nk, nw2 = [int(x) for x in lines[1].split()]
-    if nw != nw2:
+    if nw != nw2 and check_square:
         raise ValueError("Malformed wannier amn file (A^k is not square)")
 
-    amn = np.empty((nk, nw, nw), dtype=complex)
+    amn = np.empty((nk, nw, nw2), dtype=complex)
 
     for line in lines[2:-1]:
         [i, j, k, re, im] = line.split()

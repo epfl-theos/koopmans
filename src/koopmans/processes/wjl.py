@@ -1,81 +1,147 @@
 """Processes for calling WannierJL."""
 
+
 import juliapkg
 from juliacall import Main as jl
-from pydantic import ConfigDict
 
 from koopmans.files import File
 from koopmans.process_io import IOModel
 
 from ._process import Process
 
-
-class WannierJLSplitVCInput(IOModel):
-    pass
-
-
-class WannierJLSplitVCOutput(IOModel):
-    pass
+WANNIER_JL_UUID = "2b19380a-1f7e-4d7d-b1b8-8aa60b3321c9"
+WANNIER_JL_REV = "e75841df"
 
 
-class WannierJLSplitVCProcess(Process[WannierJLSplitVCInput, WannierJLSplitVCOutput]):
-
-    def _run(self):
-        pass
-
-
-class WannierJLCheckNNKPInput(IOModel):
-    pass
+def load_wannierjl():
+    """Load the WannierJL julia module."""
+    juliapkg.add("Wannier", uuid=WANNIER_JL_UUID, rev=WANNIER_JL_REV)
+    juliapkg.resolve()
+    jl.seval("using Wannier")
 
 
-class WannierJLCheckNNKPOutput(IOModel):
+class WannierJLCheckNeighborsInput(IOModel):
+    """Input model for the WannierJLCheckNeighborsProcess."""
 
-    missing_bvectors: bool
-
-
-class WannierJLCheckNNKPProcess(Process[WannierJLCheckNNKPInput, WannierJLCheckNNKPOutput]):
-
-    input_model = WannierJLCheckNNKPInput
-    output_model = WannierJLCheckNNKPOutput
-
-    def _run(self):
-        self.outputs = self.output_model(missing_bvectors=True)
+    wannier90_input_file: File
+    chk_file: File
 
 
-class WannierJLGenerateCubicNNKPInput(IOModel):
-    wannier_input_file: File
+class WannierJLCheckNeighborsOutput(IOModel):
+    """Output model for the WannierJLCheckNeighborsProcess."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-
-class WannierJLGenerateCubicNNKPOutput(IOModel):
-    nnkp_file: File
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    has_cubic_neighbors: bool
 
 
-class WannierJLGenerateCubicNNKPProcess(Process[WannierJLGenerateCubicNNKPInput, WannierJLGenerateCubicNNKPOutput]):
+class WannierJLCheckNeighborsProcess(Process[WannierJLCheckNeighborsInput, WannierJLCheckNeighborsOutput]):
+    """Process for checking if the default set of b-vectors contains six cubic nearest neighbors."""
 
-    input_model = WannierJLGenerateCubicNNKPInput
-    output_model = WannierJLGenerateCubicNNKPOutput
+    input_model = WannierJLCheckNeighborsInput
+    output_model = WannierJLCheckNeighborsOutput
 
     def _run(self):
         # Load the Wannier julia module
-        juliapkg.add("Wannier", uuid="2b19380a-1f7e-4d7d-b1b8-8aa60b3321c9", rev="bvec_cubic")
-        juliapkg.resolve()
-        jl.seval("using Wannier")
+        load_wannierjl()
 
-        # Parse the Wannier input file
-        win = jl.read_win(str(self.inputs.wannier_input_file))
+        # Read the Wannier files
+        model = jl.read_w90_with_chk(str(self.inputs.wannier90_input_file.with_suffix("")), str(self.inputs.chk_file))
 
-        # Construct the reciprocal lattice
-        reciprocal_lattice = jl.Wannier.get_recip_lattice(win.unit_cell_cart)
+        # Check if the default set of b-vectors contains six cubic nearest neighbors
+        has_cubic_neighbors = jl.Wannier.has_cubic_neighbors(model.kstencil)
 
-        # Generate the k-point stencil
-        kstencil = jl.Wannier.get_bvectors_nearest(win.kpoints, win.mp_grid, reciprocal_lattice)
+        # Save the output
+        self.outputs = self.output_model(has_cubic_neighbors=has_cubic_neighbors)
 
-        # Write the nnkp file
+
+class WannierJLGenerateNeighborsInput(IOModel):
+    """Input model for the WannierJLGenerateNeighborsProcess."""
+
+    wannier90_input_file: File
+
+
+class WannierJLGenerateNeighborsOutput(IOModel):
+    """Output model for the WannierJLGenerateNeighborsProcess."""
+
+    nnkp_file: File
+
+
+class WannierJLGenerateNeighborsProcess(Process[WannierJLGenerateNeighborsInput, WannierJLGenerateNeighborsOutput]):
+    """Process for generating a nnkp file with six cubic nearest neighbors."""
+
+    input_model = WannierJLGenerateNeighborsInput
+    output_model = WannierJLGenerateNeighborsOutput
+
+    def _run(self):
+        # Load the Wannier julia module
+        load_wannierjl()
+
+        # Define the output nnkp file
         nnkp_file = File(self, 'cubic.nnkp')
-        jl.write_nnkp(str(nnkp_file), kstencil, win.num_wann)
 
+        # Generate the nnkp file
+        jl.Wannier.write_nnkp_cubic(str(nnkp_file), str(self.inputs.wannier90_input_file))
+
+        # Save the output
         self.outputs = self.output_model(nnkp_file=nnkp_file)
+
+
+class WannierJLSplitInput(IOModel):
+    """Input model for the WannierJLSplitProcess."""
+
+    indices: list[list[int]]
+    outdirs: list[str]
+    wannier90_input_file: File
+    chk_file: File
+    cubic_nnkp_file: File | None = None
+    cubic_mmn_file: File | None = None
+
+
+class WannierJLSplitBlockOutput(IOModel):
+    """Output for one block within the WannierJLSplitProcess."""
+
+    amn_file: File
+    eig_file: File
+    mmn_file: File
+    u_file: File
+    win_file: File
+
+
+class WannierJLSplitOutput(IOModel):
+    """Output model for the WannierJLSplitProcess."""
+
+    blocks: list[WannierJLSplitBlockOutput]
+
+
+class WannierJLSplitProcess(Process[WannierJLSplitInput, WannierJLSplitOutput]):
+    """Process for splitting a Wannier manifold into multiple blocks using WannierJL."""
+
+    input_model = WannierJLSplitInput
+    output_model = WannierJLSplitOutput
+
+    def _run(self):
+        # Load the Wannier julia module
+        load_wannierjl()
+
+        # Construct the julia indices (need to do this so that the following mrwf interface finds a match)
+        prefix = self.inputs.wannier90_input_file.with_suffix("").name
+        julia_indices = jl.seval("[" + ', '.join([str(i) for i in self.inputs.indices]) + "]")
+        julia_outdirs = jl.seval("[" + ', '.join([f'"{self.directory / d}"' for d in self.inputs.outdirs]) + "]")
+
+        # Perform the parallel transport algorithm to split the manifolds
+        args = [str(self.inputs.wannier90_input_file.with_suffix("")),
+                julia_indices,
+                julia_outdirs,]
+        if self.inputs.cubic_mmn_file is not None:
+            args.append(str(self.inputs.cubic_mmn_file))
+        jl.Wannier.Tools.mrwf(*args)
+
+        # Save the output
+        self.outputs = WannierJLSplitOutput(
+            blocks=[
+                {'amn_file': File(self, f'{d}/{prefix}.amn'),
+                 'eig_file': File(self, f'{d}/{prefix}.eig'),
+                 'mmn_file': File(self, f'{d}/{prefix}.mmn'),
+                 'u_file': File(self, f'{d}/{prefix}_split.amn'),
+                 'win_file': File(self, f'{d}/{prefix}.win')}
+                for d in self.inputs.outdirs]
+        )

@@ -164,6 +164,11 @@ class File:
         assert isinstance(other, Path) or isinstance(other, str)
         return File(self.parent_process, self.name / other)
 
+    def with_suffix(self, suffix: str) -> File:
+        """Return a new File with the given suffix."""
+        new_name = self.name.with_suffix(suffix)
+        return File(self.parent_process, new_name)
+
 
 class ParentProcessPlaceholder(HasDirectory):
     """Placeholder parent_process for Files that don't have a Workflow/Process/Calculator as a parent_process.
