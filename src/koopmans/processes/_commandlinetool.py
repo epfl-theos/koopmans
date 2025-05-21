@@ -1,17 +1,16 @@
 import subprocess
 from abc import abstractmethod
+from typing import Generic
 
-from koopmans.commands import Command
-
-from ._process import Process
+from ._process import InputModel, OutputModel, Process
 
 
-class CommandLineTool(Process):
+class CommandLineTool(Process[InputModel, OutputModel], Generic[InputModel, OutputModel]):
     """A Process that involves running a command on the command line."""
 
     @property
     @abstractmethod
-    def command(self) -> Command:
+    def command(self) -> str:
         """Return the command the executes the process."""
         ...
 
@@ -23,7 +22,7 @@ class CommandLineTool(Process):
     def _run(self):
         with self.engine.chdir(self.directory):
             # Run the command within self.directory
-            ierr = subprocess.call(str(self.command), shell=True)
+            ierr = subprocess.call(self.command, shell=True)
             if ierr > 0:
                 raise OSError(f'`{self.command}` exited with exit code {ierr}')
         self._set_outputs()

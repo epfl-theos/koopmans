@@ -10,7 +10,7 @@ from ase_koopmans import Atoms
 from ase_koopmans.dft.dos import DOS
 from ase_koopmans.spectrum.band_structure import BandStructure
 from numpy.typing import NDArray
-from pydantic import ConfigDict, Field
+from pydantic import Field
 
 from koopmans import utils
 from koopmans.files import File
@@ -27,7 +27,7 @@ from ._utils import crys_to_cart, extract_hr, latt_vect
 class UnfoldAndInterpolateInputs(IOModel):
     """Input model for the `UnfoldAndInterpolateProcess`."""
 
-    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
+    model_config = {"frozen": True, **IOModel.model_config}
 
     atoms: UIAtoms = \
         Field(..., description='An ASE Atoms object augmented with supercell information')
@@ -62,7 +62,7 @@ class UnfoldAndInterpolateOutputs(IOModel):
 
     band_structure: BandStructure
     dos: Optional[DOS] = None
-    model_config = ConfigDict(arbitrary_types_allowed=True, frozen=True)
+    model_config = {"frozen": True, **IOModel.model_config}
 
 
 class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndInterpolateOutputs]):

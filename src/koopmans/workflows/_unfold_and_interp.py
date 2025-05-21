@@ -11,7 +11,6 @@ from typing import Dict, List, Literal, Optional
 import numpy as np
 from ase_koopmans.dft.dos import DOS
 from ase_koopmans.spectrum.band_structure import BandStructure
-from pydantic import ConfigDict
 
 from koopmans import calculators, utils
 from koopmans.files import File
@@ -30,7 +29,6 @@ class UnfoldAndInterpolateOutput(IOModel):
     band_structure: BandStructure
     dos: Optional[DOS]
     smooth_dft_ham_files: Optional[Dict[BlockID, File]]
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class UnfoldAndInterpolateWorkflow(Workflow):

@@ -13,8 +13,13 @@
     },
     "engine": {
         "from_scratch": true,
-        "npool": 4
+        "commands": {
+            "pw": {
+                "npool": 4
+            }
+        }
     },
+
     "atoms": {
        "cell_parameters": {
          "periodic": true,

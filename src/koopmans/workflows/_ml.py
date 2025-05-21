@@ -1,8 +1,6 @@
 """Machine learning workflows for koopmans."""
 from typing import Any, Dict, List
 
-from pydantic import ConfigDict
-
 from koopmans import calculators
 from koopmans.files import File
 from koopmans.process_io import IOModel
@@ -35,7 +33,6 @@ class PowerSpectrumDecompositionOutput(IOModel):
     """Output model for the PowerSpectrumDecompositionWorkflow."""
 
     descriptors: List[File]
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionOutput]):
@@ -142,7 +139,6 @@ class ConvertOrbitalFilesToXMLOutput(IOModel):
 
     total_density: File
     orbital_densities: List[File]
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ConvertOrbitalFilesToXMLWorkflow(Workflow[ConvertOrbitalFilesToXMLOutput]):

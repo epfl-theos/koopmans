@@ -830,7 +830,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
         self.atoms = self.atoms[mask]
 
-    def run_steps(self, steps: ProcessProtocol | Sequence[ProcessProtocol]) -> Status:
+    def run_steps(self, steps: ProcessProtocol | Sequence[ProcessProtocol], additional_flags: list[str] = []) -> Status:
         """Run a sequence of steps in the workflow.
 
         Run either a step or sequence (i.e. list) of steps. If a list is provided, the steps must be able to be run
@@ -866,7 +866,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             if status == Status.NOT_STARTED:
                 # Run the step
                 logger.info(f'Submitting {step.directory} ({step.__class__.__name__})')
-                self.engine.run(step)
+                self.engine.run(step, additional_flags=additional_flags)
             else:
                 logger.info(f'Step {step.name} is already {status}')
 

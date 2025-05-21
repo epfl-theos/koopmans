@@ -1,7 +1,6 @@
 """projwfc.x calculator module for koopmans."""
 
 import copy
-import os
 import re
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -14,7 +13,6 @@ from ase_koopmans.spectrum.dosdata import GridDOSData
 from upf_tools import UPFDict
 
 from koopmans import pseudopotentials
-from koopmans.commands import Command, ParallelCommand
 from koopmans.files import File
 from koopmans.settings import ProjwfcSettingsDict
 
@@ -26,6 +24,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
 
     ext_in = '.pri'
     ext_out = '.pro'
+    code = "projwfc"
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
         # Define the valid settings
@@ -35,9 +34,6 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         # Initialize first using the ASE parent and then CalculatorExt
         Projwfc.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
-
-        if not isinstance(self.command, Command):
-            self.command = ParallelCommand(os.environ.get('ASE_PROJWFC_COMMAND', self.command))
 
         # We need pseudopotentials and pseudo dir in order to work out the number of valence electrons for each
         # element, and therefore what pDOS files to expect. We also need spin-polarized to know if the pDOS files will

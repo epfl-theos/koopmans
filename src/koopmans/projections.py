@@ -6,9 +6,10 @@ from ase_koopmans import Atoms
 from ase_koopmans.io.wannier90 import (list_to_formatted_str,
                                        num_wann_from_projections,
                                        proj_string_to_dict)
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import model_validator
 
 from koopmans import calculators
+from koopmans.base import BaseModel
 from koopmans.utils import SpinOptions, SpinType
 
 
@@ -18,7 +19,7 @@ class BlockID(BaseModel):
     label: Optional[str] = None
     filled: Optional[bool] = None
     spin: SpinType = None
-    model_config = ConfigDict(frozen=True)
+    model_config = {"frozen": True, **BaseModel.model_config}
 
     def __str__(self):
         if self.label is None:
