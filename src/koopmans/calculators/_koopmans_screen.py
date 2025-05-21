@@ -5,7 +5,6 @@ from ase_koopmans import Atoms
 from ase_koopmans.calculators.espresso import KoopmansScreen
 
 from koopmans import settings, utils
-from koopmans.commands import ParallelCommandWithPostfix
 
 from ._calculator import CalculatorABC, KCWannCalculator
 
@@ -15,6 +14,7 @@ class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
 
     ext_in = '.ksi'
     ext_out = '.kso'
+    code = "kcw_screen"
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
         # Define the valid settings
@@ -24,8 +24,6 @@ class KoopmansScreenCalculator(KCWannCalculator, KoopmansScreen, CalculatorABC):
         KoopmansScreen.__init__(self, atoms=atoms)
         KCWannCalculator.__init__(self, *args, **kwargs)
         super().__init__(*args, **kwargs)
-
-        self.command = ParallelCommandWithPostfix(f'kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out} 2>&1')
 
     def _pre_calculate(self):
         # Check eps infinity

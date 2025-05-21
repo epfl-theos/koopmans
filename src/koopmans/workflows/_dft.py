@@ -135,8 +135,6 @@ class DFTBandsOutput(IOModel):
     band_structure: BandStructure
     dos: DOSCollection | None
 
-    model_config = {'arbitrary_types_allowed': True}
-
 
 class DFTBandsWorkflow(DFTWorkflow[DFTBandsOutput]):
     """Workflow for calculating the band structure and projected density of states using pw.x."""

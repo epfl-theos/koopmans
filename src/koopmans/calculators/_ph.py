@@ -4,7 +4,6 @@ import numpy as np
 from ase_koopmans import Atoms
 from ase_koopmans.calculators.espresso import EspressoPh
 
-from koopmans.commands import ParallelCommand
 from koopmans.settings import PhSettingsDict
 
 from ._calculator import CalculatorABC, CalculatorExt
@@ -15,6 +14,7 @@ class PhCalculator(CalculatorExt, EspressoPh, CalculatorABC):
 
     ext_in = '.phi'
     ext_out = '.pho'
+    code = "ph"
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
         self.parameters = PhSettingsDict()
@@ -23,8 +23,6 @@ class PhCalculator(CalculatorExt, EspressoPh, CalculatorABC):
         # Initialise first using the ASE parent and then CalculatorExt
         EspressoPh.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
-
-        self.command = ParallelCommand(f'ph.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out} 2>&1')
 
     def is_converged(self):
         """Return True; a ph calculation is never not "converged"."""
