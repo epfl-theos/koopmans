@@ -196,6 +196,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
         self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2, spin_polarized=self.parameters.spin_polarized,
                            filling=filling, groups=groups, tolerances=tols)
 
+        assert self.bands is not None
         if self.parameters.alpha_from_file:
             # Reading alpha values from file
             self.bands.alphas = self.read_alphas_from_file()
