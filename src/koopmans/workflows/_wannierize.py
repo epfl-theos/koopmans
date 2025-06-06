@@ -194,6 +194,7 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                     if len(block) == 1:
                         # If there is only one block, we don't need to merge anything
                         calc = block[0].w90_calc
+                        assert calc is not None
                         if calc.parameters.write_hr:
                             hr_files[block_id] = File(calc, calc.prefix + '_hr.dat')
                         if calc.parameters.write_u_matrices:
@@ -252,6 +253,7 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                     num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
                     if num_bands > num_wann and self.parameters.method == 'dfpt':
                         calc_with_u_dis = block[-1].w90_calc
+                        assert calc_with_u_dis is not None
                         if len(block) == 1:
                             u_dis_file = File(calc_with_u_dis, calc_with_u_dis.prefix + '_u_dis.mat')
                         else:
@@ -264,7 +266,10 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                             nbnd_tot = self.calculator_parameters['pw'].nbnd - nbnd_occ
 
                             # Second, calculate how many empty wannier functions we have
-                            nwann_tot = sum([p.num_wann for p in block])
+                            nwann_tot = 0
+                            for p in block:
+                                assert p.num_wann is not None
+                                nwann_tot += p.num_wann
 
                             # Finally, construct and run a Process to perform the file manipulation
                             filling_label = '' if block_id.filled else '_emp'
