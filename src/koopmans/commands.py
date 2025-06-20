@@ -26,7 +26,7 @@ class Command(object):
         if isinstance(value, Command):
             value = str(value)
         if value is not None:
-            self.__set__(value)
+            self._init_from_string(value)
 
         # Accepts setting of public attributes as kwargs
         for k, v in kwargs.items():
@@ -35,7 +35,7 @@ class Command(object):
                 '_'), f'Do not attempt to set private variables via {self.__class__.__name__}.__init__()'
             setattr(self, k, v)
 
-    def __set__(self, value: str):
+    def _init_from_string(self, value: str) -> None:
         self.flags = ''
         if isinstance(value, str):
             if value.startswith(('srun', 'mpirun')):
@@ -51,6 +51,9 @@ class Command(object):
                 self.path = Path()
         else:
             raise NotImplementedError(f'`{self.__class__.__name__}` must be set via a string')
+
+    def __set__(self, instance, value: str):
+        self._init_from_string(value)
 
     def __repr__(self):
         return ' '.join([str(self.path / self.executable), self.flags, self.suffix]).replace('  ', ' ')
@@ -97,7 +100,7 @@ class ParallelCommand(Command):
         self.mpi_command: str = ''
         super().__init__(*args, **kwargs)
 
-    def __set__(self, value: str):
+    def _init_from_string(self, value: str):
         if isinstance(value, str):
             default_mpi_command = os.environ.get('PARA_PREFIX', None)
             if value.startswith('srun') or value.startswith('mpirun'):
@@ -124,7 +127,7 @@ class ParallelCommand(Command):
             else:
                 self.mpi_command = ''
                 rest_of_command = value
-            super().__set__(rest_of_command)
+            super()._init_from_string(rest_of_command)
         else:
             raise NotImplementedError(f'`{self.__class__.__name__}` must be set via a string')
 

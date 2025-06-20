@@ -200,10 +200,8 @@ class CalculatorExt(utils.HasDirectory):
 
     def _pre_calculate(self):
         """Perform any necessary pre-calculation steps before running the calculation."""
-        # First, remove the directory (all files that the calculation will use must be linked, not manually
-        # copied to the calculation directory)
         if self.directory.exists():
-            utils.remove(self.directory)
+            raise FileExistsError(self.directory + ' should not exist')
 
         # By default, check the corresponding program is installed
         self.check_code_is_installed()

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 
-from ase.calculators.calculator import CalculationFailed
+from ase_koopmans.calculators.calculator import CalculationFailed
 
 from koopmans import workflows
 

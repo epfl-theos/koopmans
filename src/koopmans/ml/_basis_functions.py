@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.special import sph_harm
+from scipy.special import sph_harm_y
 
 
 def phi(r: np.ndarray, l: int, alpha: float) -> np.ndarray:
@@ -16,7 +16,7 @@ def g(r: np.ndarray, n: int, n_max: int, l, betas: np.ndarray, alphas: np.ndarra
 
 def real_spherical_harmonics(theta: np.ndarray, phi: np.ndarray, l: int, m: int) -> np.ndarray:
     """Calculate Y_lm from eq. (20) in Himanen et al 2020."""
-    Y = sph_harm(abs(m), l, phi, theta)
+    Y = sph_harm_y(abs(m), l, phi, theta)
     if m < 0:
         Y = np.sqrt(2) * (-1)**m * Y.imag
     elif m > 0:
