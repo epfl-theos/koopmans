@@ -3,8 +3,6 @@
 from pathlib import Path
 from typing import Dict
 
-from pydantic import ConfigDict
-
 from koopmans.files import File
 from koopmans.process_io import IOModel
 from koopmans.processes.merge_evc import MergeEVCProcess
@@ -18,7 +16,6 @@ class FoldToSupercellOutputs(IOModel):
     """Output model for the FoldToSupercellWorkflow."""
 
     kcp_files: Dict[str, File]
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class FoldToSupercellWorkflow(Workflow):

@@ -8,7 +8,6 @@ from ase_koopmans.calculators.espresso import KoopmansHam
 from ase_koopmans.dft.kpoints import BandPath
 
 from koopmans import settings, utils
-from koopmans.commands import ParallelCommand
 
 from ._calculator import CalculatorABC, KCWannCalculator, ReturnsBandStructure
 
@@ -18,6 +17,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
 
     ext_in = '.khi'
     ext_out = '.kho'
+    code = "kcw_ham"
 
     def __init__(self, atoms: Atoms, alphas: Optional[List[float]] = None, *args, **kwargs):
         # Define the valid settings
@@ -26,8 +26,6 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
         # Initialize using the ASE parent, and then CalculatorExt
         KoopmansHam.__init__(self, atoms=atoms)
         KCWannCalculator.__init__(self, *args, **kwargs)
-
-        self.command = ParallelCommand(f'kcw.x -in PREFIX{self.ext_in} > PREFIX{self.ext_out} 2>&1')
 
         # Store the alphas
         self.alphas = alphas

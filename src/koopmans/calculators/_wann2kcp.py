@@ -1,11 +1,8 @@
 """wann2kcp calculator module for koopmans."""
 
-import os
-
 from ase_koopmans import Atoms
 from ase_koopmans.calculators.espresso import Wann2KCP
 
-from koopmans.commands import ParallelCommand
 from koopmans.settings import Wann2KCPSettingsDict
 
 from ._calculator import CalculatorABC, CalculatorExt
@@ -16,6 +13,7 @@ class Wann2KCPCalculator(CalculatorExt, Wann2KCP, CalculatorABC):
 
     ext_in = '.wki'
     ext_out = '.wko'
+    code = "wann2kcp"
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
         self.parameters = Wann2KCPSettingsDict()
@@ -23,8 +21,6 @@ class Wann2KCPCalculator(CalculatorExt, Wann2KCP, CalculatorABC):
         # Initialize first using the ASE parent and then CalculatorExt
         Wann2KCP.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
-
-        self.command = ParallelCommand(os.environ.get('ASE_WANN2KCP_COMMAND', self.command))
 
     def is_converged(self):
         """Return True; a Wann2KCP calculation is never not "converged"."""

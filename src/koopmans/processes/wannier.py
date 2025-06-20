@@ -6,7 +6,6 @@ from typing import Callable, List
 
 import numpy as np
 from ase_koopmans import Atoms
-from pydantic import ConfigDict
 
 from koopmans import utils
 from koopmans.files import File
@@ -126,14 +125,12 @@ class MergeInputModel(IOModel):
 
     src_files: List[File]
     dst_file: Path
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MergeOutputModel(IOModel):
     """Output model for a `MergeProcess`."""
 
     dst_file: File
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MergeProcess(Process):
@@ -165,14 +162,12 @@ class ExtendInputModel(IOModel):
 
     src_file: File
     dst_file: Path
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ExtendOutputModel(IOModel):
     """Output model for an `ExtendProcess`."""
 
     dst_file: File
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ExtendProcess(Process):

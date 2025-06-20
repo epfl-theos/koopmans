@@ -1,14 +1,11 @@
 """pw calculator module for koopmans."""
 
-import os
-
 import numpy as np
 from ase_koopmans import Atoms
 from ase_koopmans.calculators.espresso import Espresso
 from ase_koopmans.dft.kpoints import BandPath
 
 from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
-from koopmans.commands import Command, ParallelCommandWithPostfix
 from koopmans.settings import PWSettingsDict
 
 from ._calculator import CalculatorABC, CalculatorExt, ReturnsBandStructure
@@ -19,6 +16,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
 
     ext_in = '.pwi'
     ext_out = '.pwo'
+    code = "pw"
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
         # Define the valid settings
@@ -27,10 +25,6 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
         # Initialize first using the ASE parent and then CalculatorExt
         Espresso.__init__(self, atoms=atoms)
         CalculatorExt.__init__(self, *args, **kwargs)
-
-        if not isinstance(self.command, Command):
-            self.command = ParallelCommandWithPostfix(os.environ.get(
-                'ASE_ESPRESSO_COMMAND', self.command))
 
     def _pre_calculate(self):
         # Update ibrav and celldms

@@ -123,11 +123,6 @@ def mock_calculator_is_complete(self):
     return (self.directory / f'{self.prefix}{self.ext_out}').is_file()
 
 
-def mock_calculator_check_code_is_installed(self):
-    """Make sure that a MockCalc does not attempt to check if the code is installed."""
-    pass
-
-
 def mock_calculator_read_results(self) -> None:
     """Make sure that a MockCalc does not attempt to read results."""
     raise AssertionError('A MockCalc should not attempt to read results')
@@ -185,7 +180,6 @@ def monkeypatch_mock(monkeypatch):
               KoopmansHamCalculator, ProjwfcCalculator]:
         monkeypatch.setattr(c, '_calculate', mock_calculator__calculate)
         monkeypatch.setattr(c, 'is_complete', mock_calculator_is_complete)
-        monkeypatch.setattr(c, 'check_code_is_installed', mock_calculator_check_code_is_installed)
         monkeypatch.setattr(c, 'read_results', mock_calculator_read_results)
 
     patch_generate_dos(ProjwfcCalculator, monkeypatch)
