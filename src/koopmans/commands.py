@@ -278,9 +278,9 @@ class Wann2KCPConfig(ParallelCommandConfig):
 
     executable: str = "wann2kcp.x"
     stdin: str = "PREFIX.wki"
-    stdout: str | None = None
+    stdout: str | None = "PREFIX.wko"
     stderr: str | None = None
-    stdin_redirection_string: ClassVar[str] = ""
+    stdin_redirection_string: ClassVar[str] = "-in"
     ase_env_var: ClassVar[str] = "ASE_WANN2KCP_COMMAND"
 
     @property
@@ -372,46 +372,36 @@ class CommandConfigs(BaseModel):
 
     mpi_executable: str = Field("mpirun", description="MPI executable to use for parallel execution.")
     kcw_ham: KCWHamConfig = Field(
-        default_factory=lambda: KCWHamConfig(),
         description="Configuration for the kcw.x code when running `calculation='ham'`; "
         "defaults to `ASE_KCW_HAMILTONIAN_COMMAND` if set."
     )
     kcw_screen: KCWScreenConfig = Field(
-        default_factory=lambda: KCWScreenConfig(),
         description="Configuration for the kcw.x code when running `calculation='screen'`; "
         "defaults to `ASE_KCW_SCREENING_COMMAND` if set."
     )
     kcw_wannier: KCWWannierConfig = Field(
-        default_factory=lambda: KCWWannierConfig(),
         description="Configuration for the kcw.x code when running `calculation='wann2kcw'`; "
         "defaults to `ASE_KCW_WANNIER_COMMAND` if set."
     )
     kcp: KCPConfig = Field(
-        default_factory=lambda: KCPConfig(),
         description="Configuration for the kcp.x code; defaults to `ASE_KCP_COMMAND` if set."
     )
     ph: PhConfig = Field(
-        default_factory=lambda: PhConfig(),
         description="Configuration for the ph.x code; defaults to `ASE_PH_COMMAND` if set."
     )
     projwfc: ProjwfcConfig = Field(
-        default_factory=lambda: ProjwfcConfig(),
         description="Configuration for the projwfc.x code; defaults to `ASE_PROJWFC_COMMAND` if set."
     )
     pw2wannier90: PW2Wannier90Config = Field(
-        default_factory=lambda: PW2Wannier90Config(),
         description="Configuration for the pw2wannier90.x code; defaults to `ASE_PW2WANNIER90_COMMAND` if set."
     )
     pw: PWConfig = Field(
-        default_factory=lambda: PWConfig(),
         description="Configuration for the pw.x code; defaults to `ASE_PW_COMMAND` if set."
     )
     wann2kcp: Wann2KCPConfig = Field(
-        default_factory=lambda: Wann2KCPConfig(),
         description="Configuration for the wann2kcp.x code; defaults to `ASE_WANN2KCP_COMMAND` if set."
     )
     wannier90: Wannier90Config = Field(
-        default_factory=lambda: Wannier90Config(),
         description="Configuration for the wannier90.x code; defaults to `ASE_WANNIER90_COMMAND` if set."
     )
 
@@ -438,12 +428,16 @@ class CommandConfigs(BaseModel):
         data["mpi_executable"] = mpi_executable
 
         for name, field in cls.__pydantic_fields__.items():
+            # Make sure an empty dictionary is provided by default
+            data[name] = data.get(name, {})
+
             # Check if the field corresponds to a ParallelCommandConfig
             subclass = field.annotation
             if subclass is None or not issubclass(subclass, ParallelCommandConfig):
                 continue
 
-            code_settings = data.get(name, {})
+            # Propagate mpi_executable and num_tasks to the configuration
+            code_settings = data[name]
             if isinstance(code_settings, dict):
                 # Only propagate to configurations if they were not provided explicitly or were
                 # provided as a dictionary (in which case the mpi_executable propagation is convenient)
