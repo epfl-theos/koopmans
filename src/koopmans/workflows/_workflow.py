@@ -1123,8 +1123,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
         # Engine
         if 'engine' not in kwargs:
-            engine_parameters = settings.EngineSettingsDict(**bigdct.pop('engine', {}))
-            kwargs['engine'] = LocalhostEngine(**engine_parameters)
+            kwargs['engine'] = LocalhostEngine(**bigdct.pop('engine', {}))
         else:
             engine_parameters = bigdct.pop('engine', {})
             for k, v in engine_parameters.items():

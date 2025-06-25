@@ -59,7 +59,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
 
         # Store the original w90 calculations
         w90_calcs = [c for c in self.calculations if isinstance(c, calculators.Wannier90Calculator)
-                     and c.command.flags == ''][-len(self.projections):]
+                     and " -pp " not in c.command][-len(self.projections):]
 
         if self.calculator_parameters['ui'].do_smooth_interpolation and self._smooth_dft_ham_files is None:
 
