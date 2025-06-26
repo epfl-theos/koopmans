@@ -39,7 +39,7 @@ def test_cli_run_si(script_runner, workflow_patch, tmpdir, datadir):
     """Test `koopmans run si.json`."""
     with chdir(tmpdir):
         shutil.copy(datadir / "json" / "si.json", tmpdir)
-        result = script_runner.run(["koopmans", "run", "-t", "si.json"])
+        result = script_runner.run(["koopmans", "run", "si.json"])
     assert result.success
 
 
