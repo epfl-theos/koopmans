@@ -1,7 +1,8 @@
 """Pydantic model for inputs/outputs of Processes."""
 
 import numpy as np
-from pydantic import BaseModel
+
+from koopmans.base import BaseModel
 
 
 class IOModel(BaseModel):

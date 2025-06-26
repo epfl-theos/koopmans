@@ -68,6 +68,7 @@ class CalculatorExt(utils.HasDirectory):
     ext_in: str = ''
     ext_out: str = ''
     parent_process: Workflow | None
+    code: str = ''
 
     def __init__(self, parent_process=None, engine=None, skip_qc: bool = False, **kwargs: Any):
         super().__init__(parent_process=parent_process, engine=engine)
@@ -203,9 +204,6 @@ class CalculatorExt(utils.HasDirectory):
         if self.directory.exists():
             raise FileExistsError(self.directory + ' should not exist')
 
-        # By default, check the corresponding program is installed
-        self.check_code_is_installed()
-
         # Copy over all files linked to this calculation
         self._fetch_linked_files()
 
@@ -246,18 +244,6 @@ class CalculatorExt(utils.HasDirectory):
             # Some calculators (e.g. wann2kc) can't reconstruct atoms from an input file
             self.atoms = calc.atoms
             self.atoms.calc = self
-
-    def check_code_is_installed(self):
-        """Check that the corresponding code is installed."""
-        if self.command.path == Path():
-            executable_with_path = utils.find_executable(self.command.executable)
-            if executable_with_path is None:
-                raise OSError(f'`{self.command.executable}` is not installed')
-            self.command.path = executable_with_path.parent
-        else:
-            if not (self.command.path / self.command.executable).is_file():
-                raise OSError(f'`{self.command.executable}` is not installed')
-        return
 
     def write_alphas(self):
         """Write the screening parameters to a file."""

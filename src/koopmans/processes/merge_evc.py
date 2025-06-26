@@ -3,7 +3,6 @@
 from typing import List
 
 import numpy as np
-from pydantic import ConfigDict
 
 from koopmans.files import File
 
@@ -17,24 +16,22 @@ class MergeEVCInputs(IOModel):
     kgrid: List[int]
     src_files: List[File]
     dest_filename: str
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MergeEVCOutputs(IOModel):
     """Output model for a `MergeEVCProcess`."""
 
     merged_file: File
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class MergeEVCProcess(CommandLineTool):
+class MergeEVCProcess(CommandLineTool[MergeEVCInputs, MergeEVCOutputs]):
     """Commandline tool for running merge_evc.x."""
 
     input_model = MergeEVCInputs
     output_model = MergeEVCOutputs
 
     @property
-    def command(self):
+    def command(self) -> str:
         """Return the command that this process runs."""
         input_files = [f'input_{i}.dat' for i in range(len(self.inputs.src_files))]
         return ' '.join([f'merge_evc.x -nr {np.prod(self.inputs.kgrid)}']

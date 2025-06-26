@@ -7,7 +7,6 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from ase_koopmans.dft import DOS
-from pydantic import ConfigDict
 
 from koopmans import utils
 from koopmans.bands import Band, Bands
@@ -36,7 +35,6 @@ class KoopmansDSCFOutputs(IOModel):
     final_calc: KoopmansCPCalculator
     wannier_hamiltonian_files: Dict[BlockID, File] | None = None
     smooth_dft_ham_files: Dict[BlockID, File] | None = None
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
@@ -196,6 +194,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
         self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2, spin_polarized=self.parameters.spin_polarized,
                            filling=filling, groups=groups, tolerances=tols)
 
+        assert self.bands is not None
         if self.parameters.alpha_from_file:
             # Reading alpha values from file
             self.bands.alphas = self.read_alphas_from_file()
@@ -394,7 +393,6 @@ class CalculateScreeningViaDSCFOutput(IOModel):
     """Pydantic model for the outputs of a `CalculateScreeningViaDSCF` workflow."""
 
     n_electron_restart_dir: File
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
@@ -479,7 +477,6 @@ class DeltaSCFIterationOutputs(IOModel):
     converged: bool
     n_electron_restart_dir: File
     dummy_outdirs: Dict[Tuple[int, int], File | None]
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
@@ -654,7 +651,6 @@ class OrbitalDeltaSCFOutputs(IOModel):
     alpha: float
     error: float
     dummy_outdir: File | None
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
