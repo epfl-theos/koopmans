@@ -14,7 +14,6 @@ from typing import Any, Dict, List, Optional, TypeVar
 from ase_koopmans.dft.kpoints import BandPath
 from ase_koopmans.spectrum.band_structure import BandStructure
 from ase_koopmans.spectrum.doscollection import GridDOSCollection
-from pydantic import ConfigDict
 
 # isort: off
 import koopmans.mpl_config  # noqa: F401
@@ -50,7 +49,6 @@ class WannierizeOutput(IOModel):
     preprocessing_calculations: List[calculators.Wannier90Calculator]
     nscf_calculation: calculators.PWCalculator
     wannier90_calculations: List[calculators.Wannier90Calculator]
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class WannierizeWorkflow(Workflow[WannierizeOutput]):
@@ -399,7 +397,6 @@ class WannierizeBlockOutput(IOModel):
     u_matrices_file: File | None = None
     wannier90_calculation: calculators.Wannier90Calculator
     preprocessing_calculation: calculators.Wannier90Calculator
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
@@ -436,8 +433,7 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
         calc_w90_pp: calculators.Wannier90Calculator = self.new_calculator(
             calc_type, init_orbitals=init_orbs, **self.block.w90_kwargs)
         calc_w90_pp.prefix = 'wannier90_preproc'
-        calc_w90_pp.command.flags = '-pp'
-        status = self.run_steps(calc_w90_pp)
+        status = self.run_steps(calc_w90_pp, additional_flags=['-pp'])
         if status != Status.COMPLETED:
             return
 
