@@ -372,7 +372,10 @@ class CommandConfigs(BaseModel):
     fields during the model validators
     """
 
-    mpi_executable: str = Field("mpirun", description="MPI executable to use for parallel execution.")
+    mpi_executable: str = Field(
+        default="mpirun",
+        description="MPI executable to use for parallel execution."
+    )
     kcw_ham: KCWHamConfig = Field(
         default_factory=lambda: KCWHamConfig(),  # type: ignore
         description="Configuration for the kcw.x code when running `calculation='ham'`; "
