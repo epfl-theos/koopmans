@@ -440,6 +440,9 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
         # 2) standard pw2wannier90 calculation
         calc_p2w: calculators.PW2WannierCalculator = self.new_calculator('pw2wannier', spin_component=self.block.spin)
         calc_p2w.prefix = 'pw2wannier90'
+        if calc_w90_pp.parameters.wannier_plot:
+            # If we want to plot the Wannier functions, we need to write the UNK files
+            calc_p2w.parameters.write_unk = True
         calc_p2w.link(self.pw_outdir, calc_p2w.parameters.outdir, symlink=True)
         calc_p2w.link(File(calc_w90_pp, calc_w90_pp.prefix + '.nnkp'), calc_p2w.parameters.seedname + '.nnkp')
         status = self.run_steps(calc_p2w)
@@ -451,8 +454,14 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
             self.new_calculator(calc_type, init_orbitals=init_orbs,
                                 bands_plot=self.parameters.calculate_bands, **self.block.w90_kwargs)
         calc_w90.prefix = 'wannier90'
+
+        # Link the pw2wannier90 output files
         for ext in ['.eig', '.amn', '.mmn']:
             calc_w90.link(File(calc_p2w, calc_p2w.parameters.seedname + ext), calc_w90.prefix + ext, symlink=True)
+        if calc_w90.parameters.wannier_plot:
+            for src in File(calc_p2w, '.').glob('UNK*'):
+                calc_w90.link(src, src.name, symlink=True)
+
         status = self.run_steps(calc_w90)
         if status != Status.COMPLETED:
             return
