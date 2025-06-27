@@ -60,7 +60,7 @@ class ExtractCoefficientsFromXMLProcess(Process):
         # Compute the decomposition
         orbital_files, total_files = ml.compute_decomposition(
             alpha_file=alpha_file, beta_file=beta_file,
-            **self.inputs.dict())
+            **self.inputs.model_dump())
 
         # Write the files
         for name, content in list(orbital_files.items()) + list(total_files.items()):
