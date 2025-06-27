@@ -440,6 +440,9 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
         # 2) standard pw2wannier90 calculation
         calc_p2w: calculators.PW2WannierCalculator = self.new_calculator('pw2wannier', spin_component=self.block.spin)
         calc_p2w.prefix = 'pw2wannier90'
+        if calc_w90_pp.parameters.wannier_plot:
+            # If we want to plot the Wannier functions, we need to write the UNK files
+            calc_p2w.parameters.write_unk = True
         calc_p2w.link(self.pw_outdir, calc_p2w.parameters.outdir, symlink=True)
         calc_p2w.link(File(calc_w90_pp, calc_w90_pp.prefix + '.nnkp'), calc_p2w.parameters.seedname + '.nnkp')
         status = self.run_steps(calc_p2w)
@@ -456,10 +459,6 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
         for ext in ['.eig', '.amn', '.mmn']:
             calc_w90.link(File(calc_p2w, calc_p2w.parameters.seedname + ext), calc_w90.prefix + ext, symlink=True)
         if calc_w90.parameters.wannier_plot:
-            # Linking .unk files
-            if not calc_p2w.parameters.write_unk:
-                raise ValueError('In order to plot the Wannier functions, the `write_unk` flag for `pw2wannier90` '
-                                 'must be set to True ')
             for src in File(calc_p2w, '.').glob('UNK*'):
                 calc_w90.link(src, src.name, symlink=True)
 
