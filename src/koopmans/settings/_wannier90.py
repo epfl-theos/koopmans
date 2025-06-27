@@ -93,7 +93,8 @@ class Wannier90SettingsDict(SettingsDict):
                         v = proj_string_to_dict(v)
                     assert isinstance(v, dict)
                     for k in v.keys():
-                        if k not in ['site', 'csite', 'fsite', 'ang_mtm', 'zaxis', 'xaxis', 'radial', 'zona']:
+                        if k not in ['site', 'cartesian_site', 'fractional_site', 'ang_mtm', 'zaxis', 'xaxis', 'radial',
+                                     'zona']:
                             raise KeyError(f'Unrecognized key `{k}` in the w90 projections block')
                     value[i] = v
             if key == 'exclude_bands' and isinstance(value, str):

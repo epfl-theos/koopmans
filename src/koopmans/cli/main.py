@@ -3,7 +3,6 @@
 """Main Koopmans CLI."""
 
 import argparse
-import json
 import re
 import sys
 from pathlib import Path
@@ -15,9 +14,10 @@ from koopmans.logging_config import setup_logging
 from koopmans.utils import print_alert
 
 DEFAULT_ENGINE = 'localhost'
+AVAILABLE_ENGINES = ['localhost', 'aiida']
 
 
-def _custom_exception_hook(exception_type, exception_value, traceback):
+def _custom_exception_hook(exception_type, exception_value, traceback):  # noqa: W0613
     # Adding spaces to the error name so that it is easier to read
     spaced_text = re.sub(r'([a-z])([A-Z])', r'\1 \2', exception_type.__name__)
     spaced_text = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1 \2', spaced_text)
@@ -25,33 +25,42 @@ def _custom_exception_hook(exception_type, exception_value, traceback):
     print_alert('caution', str(exception_value), header=spaced_text, indent=1)
 
 
-class ListPseudoAction(argparse.Action):
-    """An action to list the available pseudopotential libraries."""
+def initialize_engine(engine_arg: str, engine_config: str | None) -> Engine:
+    """Initialize the engine based on the command line arguments."""
+    if engine_arg == 'localhost':
+        engine = LocalhostEngine()
+    elif engine_arg == 'aiida':
+        raise NotImplementedError("AiiDA engine is not yet implemented")
+        # Uncomment the following lines once aiida_koopmans is available
+        # from aiida_koopmans.engine.aiida import AiiDAEngine
+        # if engine_config is not None:
+        #     with open(engine_config, 'r') as f:
+        #         engine_config = json.load(f)
+        # else:
+        #     engine_config = None
+        # engine = AiiDAEngine(configuration=engine_config)
+    else:
+        raise NotImplementedError(f"Unknown engine '{engine_arg}'")
+    return engine
 
-    def __call__(self, parser, namespace, values, option_string=None):
-        """List the available pseudopotential libraries."""
-        engine_name = getattr(namespace, 'engine', DEFAULT_ENGINE)
-        engine_config = getattr(namespace, 'engine_config', None)
-        engine = initialize_engine(engine_name, engine_config)
 
-        for p in sorted(engine.available_pseudo_libraries()):
-            print(p)
+def list_pseudo(namespace: argparse.Namespace):
+    """List the available pseudopotential libraries."""
+    engine = initialize_engine(namespace.engine, getattr(namespace, 'engine_config', None))
+
+    for p in sorted(engine.available_pseudo_libraries()):
+        print(p)
 
 
-class InstallPseudoAction(argparse.Action):
-    """An action to install a pseudopotential file."""
+def install_pseudo(namespace: argparse.Namespace):
+    """Install a pseudopotential file."""
+    engine = initialize_engine(namespace.engine, getattr(namespace, 'engine_config', None))
 
-    def __call__(self, parser, namespace, values, option_string=None):
-        """Install a pseudopotential file."""
-        engine_name = getattr(parser, 'engine', DEFAULT_ENGINE)
-        engine_config = getattr(parser, 'engine_config', None)
-        engine = initialize_engine(engine_name, engine_config)
-
-        for f in parser.file:
-            pseudo_file = Path(f).resolve()
-            if not pseudo_file.exists():
-                raise FileNotFoundError(f"File {pseudo_file} does not exist")
-            engine.install_pseudopotential(pseudo_file, library=parser.library)
+    for f in namespace.files:
+        pseudo_file = Path(f).resolve()
+        if not pseudo_file.exists():
+            raise FileNotFoundError(f"File {pseudo_file} does not exist")
+        engine.install_pseudopotential(pseudo_file, library=namespace.library)
 
 
 class UninstallPseudoAction(argparse.Action):
@@ -67,21 +76,27 @@ class UninstallPseudoAction(argparse.Action):
             engine.uninstall_pseudopotential_library(value)
 
 
-def initialize_engine(engine_arg: str, engine_config: str | None) -> Engine:
-    """Initialize the engine based on the command line arguments."""
-    if engine_arg == 'localhost':
-        engine = LocalhostEngine()
-    elif engine_arg == 'aiida':
-        from aiida_koopmans.engine.aiida import AiiDAEngine
-        if engine_config is not None:
-            with open(engine_config, 'r') as f:
-                engine_config = json.load(f)
-        else:
-            engine_config = None
-        engine = AiiDAEngine(configuration=engine_config)
-    else:
-        raise NotImplementedError(f"Unknown engine '{engine_arg}'")
-    return engine
+def run_workflow(namespace: argparse.Namespace):
+    """Run a Koopmans workflow based on the provided JSON file."""
+    # Use custom traceback behavior by default
+    if namespace.traceback:
+        sys.tracebacklimit = 0
+        sys.excepthook = _custom_exception_hook
+
+    # Create the engine
+    engine = None
+    if namespace.engine:
+        engine = initialize_engine(namespace.engine, getattr(namespace, 'engine_config', None))
+
+    # If requested, set up logging
+    if namespace.log:
+        setup_logging()
+
+    # Reading in JSON file
+    workflow = read(namespace.json, engine=engine)
+
+    # Run workflow
+    workflow.run()
 
 
 def main():
@@ -102,7 +117,7 @@ def main():
                         help="show the program's version number and exit")
 
     def add_engine_flag(p):
-        p.add_argument('--engine', choices=['localhost', 'aiida'], default=DEFAULT_ENGINE,
+        p.add_argument('--engine', choices=AVAILABLE_ENGINES, default=DEFAULT_ENGINE,
                        help="specify the execution engine")
 
     # koopmans run
@@ -114,6 +129,7 @@ def main():
     add_engine_flag(run_parser)
     run_parser.add_argument('--engine_config', type=str, default='engine.json',
                             help='Specify the engine configuration file (default: engine.json)')
+    run_parser.set_defaults(func=run_workflow, log=False, traceback=False)
 
     # koopmans pseudos
     pseudos_parser = subparsers.add_parser("pseudos", help="list, install, and uninstall pseudopotentials")
@@ -121,15 +137,15 @@ def main():
 
     # koopmans pseudos list
     pseudos_list = pseudos_subparsers.add_parser("list", help="list available pseudopotential libraries")
-    pseudos_list.set_defaults(action=ListPseudoAction)
     add_engine_flag(pseudos_list)
+    pseudos_list.set_defaults(func=list_pseudo)
 
     # koopmans pseudos install
     pseudos_install = pseudos_subparsers.add_parser("install", help="install a local pseudopotential file")
-    pseudos_install.add_argument('file', type=str, help="the local .upf file to install", nargs='+')
+    pseudos_install.add_argument('files', type=str, help="the local .upf file to install", nargs='+', metavar="file")
     pseudos_install.add_argument('--library', type=str, nargs='?',
                                  help="the custom library to put the pseudopotential in", default="CustomPseudos")
-    pseudos_install.set_defaults(action=InstallPseudoAction)
+    pseudos_install.set_defaults(func=install_pseudo)
     add_engine_flag(pseudos_install)
 
     # koopmans pseudos uninstall
@@ -138,40 +154,11 @@ def main():
         'library', type=str, help="the pseudopotential library to uninstall", nargs='+', action=UninstallPseudoAction)
     add_engine_flag(pseudos_uninstall)
 
-    # Hide traceback
-    sys.tracebacklimit = 0
-    default_excepthook, sys.excepthook = sys.excepthook, _custom_exception_hook
-
     # Parse arguments
     args = parser.parse_args()
 
-    if args.command is None:
+    # Call the action
+    if hasattr(args, "func"):
+        args.func(args)
+    else:
         parser.print_help()
-        parser.exit()
-
-    # Create the engine
-    if getattr(args, 'engine', None):
-        engine = initialize_engine(args.engine, getattr(args, 'engine_config', None))
-
-    # For koopmans pseudo list, perform the action and exit
-    if args.command == 'pseudos':
-        if hasattr(args, 'action'):
-            args.action.__call__(parser, args, None, None)
-        else:
-            pseudos_parser.print_help()
-        parser.exit()
-
-    # Restore traceback behavior if requested
-    if args.traceback:
-        sys.tracebacklimit = None
-        sys.excepthook = default_excepthook
-
-    # If requested, set up logging
-    if args.log:
-        setup_logging()
-
-    # Reading in JSON file
-    workflow = read(args.json, engine=engine)
-
-    # Run workflow
-    workflow.run()

@@ -101,7 +101,6 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
     name: str
     kpoints: Kpoints
     pseudopotentials: OrderedDict[str, UPFDict]
-    pseudo_dir: Path
     projections: ProjectionBlocks
     ml_model: Optional[AbstractMLModel]
     snapshots: List[Atoms]
@@ -605,7 +604,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
             # Check symmetry of the system
             dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=False)
-            if dataset is None or dataset['number'] not in range(195, 231):
+            if dataset is None or dataset.number not in range(195, 231):
                 utils.warn('This system is not cubic and will therefore not have a uniform dielectric tensor. However, '
                            'the image-correction schemes that are currently implemented assume a uniform dielectric. '
                            'Proceed with caution')
@@ -1350,6 +1349,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             ax_dos = axes[1]
         else:
             ax_bs = None
+            ax_dos = None
 
         # Plot the band structure
         defaults = {'colors': colors, 'emin': self.plotting.Emin, 'emax': self.plotting.Emax}
