@@ -44,7 +44,7 @@ def silicon() -> Dict[str, Any]:
     from koopmans.projections import ProjectionBlocks
 
     si: Atoms = bulk('Si')
-    pdict = [{'fsite': [0.25, 0.25, 0.25], 'ang_mtm': 'sp3'}]
+    pdict = [{'fractional_site': [0.25, 0.25, 0.25], 'ang_mtm': 'sp3'}]
     si_projs = ProjectionBlocks.fromlist([pdict, pdict], spins=[None, None], atoms=si)
     kpoints = Kpoints(grid=[2, 2, 2], path='GXG', cell=si.cell)
     return {'atoms': si,
