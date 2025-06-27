@@ -5,10 +5,12 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Generator, Literal, Optional, overload
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 from upf_tools import UPFDict
 
 from koopmans import utils
+from koopmans.base import BaseModel
+from koopmans.commands import CommandConfigs
 from koopmans.files import File
 from koopmans.processes import ProcessProtocol
 from koopmans.status import Status
@@ -18,7 +20,7 @@ class Engine(BaseModel, ABC):
     """An abstract base class for representing engines that run workflows."""
 
     from_scratch: bool = True
-    npool: Optional[int] = None
+    commands: CommandConfigs = Field(default_factory=lambda: CommandConfigs())
     keep_tmpdirs: bool = True
     statuses: dict[str, Status] = Field(default_factory=dict)
 
@@ -55,7 +57,7 @@ class Engine(BaseModel, ABC):
         self._step_message(uid, '⏭️ ', 'already complete  ')
 
     @abstractmethod
-    def run(self, step: ProcessProtocol) -> None:
+    def run(self, step: ProcessProtocol, additional_flags: list[str] = []) -> None:
         """Run a step of the workflow."""
         ...
 

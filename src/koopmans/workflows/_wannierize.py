@@ -18,7 +18,6 @@ import numpy.typing as npt
 from ase_koopmans.dft.kpoints import BandPath
 from ase_koopmans.spectrum.band_structure import BandStructure
 from ase_koopmans.spectrum.doscollection import GridDOSCollection
-from pydantic import ConfigDict
 
 # isort: off
 import koopmans.mpl_config  # noqa: F401
@@ -60,7 +59,6 @@ class WannierizeOutput(IOModel):
     nscf_calculation: calculators.PWCalculator
     wannier90_calculations: List[calculators.Wannier90Calculator]
     projections: Projections
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MergeableFile(Enum):
@@ -393,6 +391,7 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                     num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
                     if num_bands > num_wann:
                         calc_with_u_dis = block[-1].w90_calc
+                        assert calc_with_u_dis is not None
                         if len(block) == 1:
                             u_dis_file = File(calc_with_u_dis, calc_with_u_dis.prefix + '_u_dis.mat')
                         else:
@@ -405,7 +404,10 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                             nbnd_tot = self.calculator_parameters['pw'].nbnd - nbnd_occ
 
                             # Second, calculate how many empty wannier functions we have
-                            nwann_tot = sum([p.num_wann for p in block])
+                            nwann_tot = 0
+                            for p in block:
+                                assert p.num_wann is not None
+                                nwann_tot += p.num_wann
 
                             # Finally, construct and run a Process to perform the file manipulation
                             filling_label = '' if merged_block_id.filled else '_emp'
@@ -529,7 +531,6 @@ class WannierizeBlockOutput(IOModel):
     chk_file: File
     wannier90_input_file: File
     wannier90_calculation: calculators.Wannier90Calculator
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
@@ -566,8 +567,7 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
             calc_w90_pp = self.new_calculator(calc_type, **self.block.w90_kwargs)
             assert isinstance(calc_w90_pp, calculators.Wannier90Calculator)
             calc_w90_pp.prefix = 'wannier90_preproc'
-            calc_w90_pp.command.flags = '-pp'
-            status = self.run_steps(calc_w90_pp)
+            status = self.run_steps(calc_w90_pp, additional_flags=['-pp'])
             if status != Status.COMPLETED:
                 return
 
@@ -575,6 +575,9 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
             calc_p2w: calculators.PW2WannierCalculator = self.new_calculator(
                 'pw2wannier', spin_component=self.block.spin)
             calc_p2w.prefix = 'pw2wannier90'
+            if calc_w90_pp.parameters.wannier_plot:
+                # If we want to plot the Wannier functions, we need to write the UNK files
+                calc_p2w.parameters.write_unk = True
             calc_p2w.link(self.pw_outdir, calc_p2w.parameters.outdir, symlink=True)
             calc_p2w.link(File(calc_w90_pp, calc_w90_pp.prefix + '.nnkp'), calc_p2w.parameters.seedname + '.nnkp')
             status = self.run_steps(calc_p2w)
@@ -593,6 +596,9 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
         for f in [self.amn_file, self.eig_file, self.mmn_file, self.nnkp_file]:
             if f is not None:
                 calc_w90.link(f, calc_w90.prefix + f.suffix, symlink=True)
+        if calc_w90.parameters.wannier_plot:
+            for src in File(calc_p2w, '.').glob('UNK*'):
+                calc_w90.link(src, src.name, symlink=True)
         status = self.run_steps(calc_w90)
         if status != Status.COMPLETED:
             return

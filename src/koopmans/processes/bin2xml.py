@@ -2,9 +2,6 @@
 
 from pathlib import Path
 
-from pydantic import ConfigDict
-
-from koopmans.commands import Command
 from koopmans.files import File
 from koopmans.process_io import IOModel
 
@@ -15,14 +12,12 @@ class Bin2XMLInput(IOModel):
     """Input for a `Bin2XMLProcess`."""
 
     binary: File
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class Bin2XMLOutput(IOModel):
     """Output for a `Bin2XMLProcess`."""
 
     xml: File
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class Bin2XMLProcess(CommandLineTool):
@@ -43,7 +38,7 @@ class Bin2XMLProcess(CommandLineTool):
     @property
     def command(self):
         """Return the command that this process runs."""
-        return Command(executable='bin2xml.x', suffix='input.dat output.xml')
+        return 'bin2xml.x input.dat output.xml'
 
     def _set_outputs(self):
         xml_filepointer = File(self, Path("output.xml"))

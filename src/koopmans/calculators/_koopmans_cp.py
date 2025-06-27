@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import copy
 import math
-import os
 import pickle
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -18,7 +17,6 @@ from scipy.linalg import block_diag
 
 from koopmans import pseudopotentials, settings, utils, variational_orbitals
 from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
-from koopmans.commands import ParallelCommand
 from koopmans.files import File
 
 from ._calculator import (CalculatorABC, CalculatorCanEnforceSpinSym,
@@ -82,6 +80,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
 
     ext_in = '.cpi'
     ext_out = '.cpo'
+    code = 'kcp'
 
     def __init__(self, atoms: Atoms, alphas: Optional[List[List[float]]] = None,
                  filling: Optional[List[List[bool]]] = None, **kwargs):
@@ -103,9 +102,6 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 self.parameters.nelup = self.parameters.nelec // 2
             if 'neldw' not in self.parameters:
                 self.parameters.neldw = self.parameters.nelec // 2
-
-        if not isinstance(self.command, ParallelCommand):
-            self.command = ParallelCommand(os.environ.get('ASE_ESPRESSO_KCP_COMMAND', self.command))
 
         if alphas is not None:
             self.alphas = alphas

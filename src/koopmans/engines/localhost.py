@@ -13,7 +13,7 @@ from upf_tools import UPFDict
 from koopmans import utils
 from koopmans.calculators import (Calc, ImplementedCalc, PhCalculator,
                                   ProjwfcCalculator, ReturnsBandStructure)
-from koopmans.commands import ParallelCommandWithPostfix
+from koopmans.commands import CommandConfig
 from koopmans.files import File, LocalFile
 from koopmans.processes import Process, ProcessProtocol
 from koopmans.pseudopotentials import (element_from_pseudo_filename,
@@ -32,7 +32,7 @@ class LocalhostEngine(Engine):
         super().__init__(*args, **kwargs)
         self.statuses = {}
 
-    def run(self, step: ProcessProtocol):
+    def run(self, step: ProcessProtocol, additional_flags: list[str] = []):
         """Run a step."""
         self._step_running_message(step)
 
@@ -41,10 +41,13 @@ class LocalhostEngine(Engine):
             assert isinstance(step, utils.HasDirectory)
             self.rmdir(File(step, ''))
 
-        # Update postfix if relevant
-        if self.npool and isinstance(getattr(step, 'command', None), ParallelCommandWithPostfix):
-            assert hasattr(step, 'command')
-            step.command.postfix = f'-npool {self.npool}'
+        if isinstance(step, ImplementedCalc):
+            # Determine the command to run the step based on the configuration of the code in question
+            command_config: CommandConfig | None = getattr(self.commands, step.code, None)
+            if command_config is None:
+                raise ValueError(f'The configuration for {step.code} is missing from {self.__class__.__name__}.codes')
+            step.command = command_config.command(additional_flags=additional_flags)
+
         try:
             step.run()
         except CalculationFailed:

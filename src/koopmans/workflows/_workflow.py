@@ -102,7 +102,6 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
     name: str
     kpoints: Kpoints
     pseudopotentials: OrderedDict[str, UPFDict]
-    pseudo_dir: Path
     projections: Projections | None
     ml_model: Optional[AbstractMLModel]
     snapshots: List[Atoms]
@@ -618,7 +617,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
             # Check symmetry of the system
             dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=False)
-            if dataset is None or dataset['number'] not in range(195, 231):
+            if dataset is None or dataset.number not in range(195, 231):
                 utils.warn('This system is not cubic and will therefore not have a uniform dielectric tensor. However, '
                            'the image-correction schemes that are currently implemented assume a uniform dielectric. '
                            'Proceed with caution')
@@ -845,7 +844,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
         self.atoms = self.atoms[mask]
 
-    def run_steps(self, steps: ProcessProtocol | Sequence[ProcessProtocol]) -> Status:
+    def run_steps(self, steps: ProcessProtocol | Sequence[ProcessProtocol], additional_flags: list[str] = []) -> Status:
         """Run a sequence of steps in the workflow.
 
         Run either a step or sequence (i.e. list) of steps. If a list is provided, the steps must be able to be run
@@ -881,7 +880,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             if status == Status.NOT_STARTED:
                 # Run the step
                 logger.info(f'Submitting {step.directory} ({step.__class__.__name__})')
-                self.engine.run(step)
+                self.engine.run(step, additional_flags=additional_flags)
             else:
                 logger.info(f'Step {step.name} is already {status}')
 
@@ -1140,8 +1139,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
         # Engine
         if 'engine' not in kwargs:
-            engine_parameters = settings.EngineSettingsDict(**bigdct.pop('engine', {}))
-            kwargs['engine'] = LocalhostEngine(**engine_parameters)
+            kwargs['engine'] = LocalhostEngine(**bigdct.pop('engine', {}))
         else:
             engine_parameters = bigdct.pop('engine', {})
             for k, v in engine_parameters.items():
@@ -1370,6 +1368,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             ax_dos = axes[1]
         else:
             ax_bs = None
+            ax_dos = None
 
         # Plot the band structure
         defaults = {'colors': colors, 'emin': self.plotting.Emin, 'emax': self.plotting.Emax}

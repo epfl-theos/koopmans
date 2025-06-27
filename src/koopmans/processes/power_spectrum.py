@@ -4,7 +4,6 @@ from typing import List
 
 import numpy as np
 from ase_koopmans.cell import Cell
-from pydantic import ConfigDict
 
 from koopmans import ml
 from koopmans.files import File
@@ -26,7 +25,6 @@ class ExtractCoefficientsFromXMLInput(IOModel):
     cell: Cell
     orbital_densities_xml: List[File]
     bands: List[VariationalOrbital]
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ExtractCoefficientsFromXMLOutput(IOModel):
@@ -36,7 +34,6 @@ class ExtractCoefficientsFromXMLOutput(IOModel):
     precomputed_betas: File
     total_coefficients: List[File]
     orbital_coefficients: List[File]
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ExtractCoefficientsFromXMLProcess(Process):
@@ -63,7 +60,7 @@ class ExtractCoefficientsFromXMLProcess(Process):
         # Compute the decomposition
         orbital_files, total_files = ml.compute_decomposition(
             alpha_file=alpha_file, beta_file=beta_file,
-            **self.inputs.dict())
+            **self.inputs.model_dump())
 
         # Write the files
         for name, content in list(orbital_files.items()) + list(total_files.items()):
@@ -88,14 +85,12 @@ class ComputePowerSpectrumInput(IOModel):
     l_max: int
     orbital_coefficients: File
     total_coefficients: File
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class ComputePowerSpectrumOutput(IOModel):
     """Output model for the `ComputePowerSpectrumProcess`."""
 
     power_spectrum: File
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 def read_coeff_matrix(coeff_orb: np.ndarray, coeff_tot: np.ndarray, n_max: int, l_max: int) -> np.ndarray:

@@ -8,7 +8,6 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 from ase_koopmans.dft import DOS
 from ase_koopmans.spectrum.band_structure import BandStructure
-from pydantic import ConfigDict
 
 from koopmans import utils
 from koopmans.calculators import (KoopmansCPCalculator, PWCalculator,
@@ -41,7 +40,6 @@ class KoopmansDSCFOutputs(IOModel):
     smooth_dft_ham_files: Dict[BlockID, File] | None = None
     band_structure: BandStructure | None = None
     density_of_states: DOS | None = None
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
@@ -200,6 +198,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
         self.variational_orbitals = VariationalOrbitals.empty(spin_polarized=self.parameters.spin_polarized,
                                                               filling=filling, groups=groups, tolerances=tols)
 
+        assert self.variational_orbitals is not None
         if self.parameters.alpha_from_file:
             # Reading alpha values from file
             self.variational_orbitals.alphas = self.read_alphas_from_file()
@@ -403,7 +402,6 @@ class CalculateScreeningViaDSCFOutput(IOModel):
     """Pydantic model for the outputs of a `CalculateScreeningViaDSCF` workflow."""
 
     n_electron_restart_dir: File
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
@@ -488,7 +486,6 @@ class DeltaSCFIterationOutputs(IOModel):
     converged: bool
     n_electron_restart_dir: File
     dummy_outdirs: Dict[Tuple[int, int], File | None]
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
@@ -547,10 +544,10 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
             if status != Status.COMPLETED:
                 return
 
-        # Update the bands' self-Hartree and energies (assuming spin-symmetry)
+        # Update the variational orbitals' self-Hartree and energies (assuming spin-symmetry)
         self.variational_orbitals.self_hartrees = trial_calc.results['orbital_data']['self-Hartree']
 
-        # Group the bands
+        # Group the variational orbitals
         self.variational_orbitals.assign_groups(allow_reassignment=True)
 
         skipped_orbitals = []
@@ -566,6 +563,8 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
                         return
 
                     descriptors = psfit_workflow.outputs.descriptors
+                else:
+                    raise NotImplementedError()
             else:
                 descriptors = self._precomputed_descriptors
             for var_orb, power_spectrum in zip(self.variational_orbitals.to_solve, descriptors):
@@ -664,7 +663,6 @@ class OrbitalDeltaSCFOutputs(IOModel):
     alpha: float
     error: float
     dummy_outdir: File | None
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):

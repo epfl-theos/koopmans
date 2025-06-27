@@ -12,7 +12,11 @@
     },
     "engine": {
         "from_scratch": true,
-        "npool": 4
+        "commands": {
+            "pw": {
+                "npool": 4
+            }
+        }
     },
     "atoms": {
         "cell_parameters": {
@@ -40,8 +44,8 @@
         },
         "w90": {
             "bands_plot": true,
-            "projections": [[{"fsite": [ 0.25, 0.25, 0.25 ], "ang_mtm": "sp3"}],
-                            [{"fsite": [ 0.25, 0.25, 0.25 ], "ang_mtm": "sp3"}]],
+            "projections": [[{"fractional_site": [ 0.25, 0.25, 0.25 ], "ang_mtm": "sp3"}],
+                            [{"fractional_site": [ 0.25, 0.25, 0.25 ], "ang_mtm": "sp3"}]],
             "dis_froz_max": 10.6,
             "dis_win_max": 16.9
         },

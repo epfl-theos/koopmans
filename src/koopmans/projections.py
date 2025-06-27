@@ -7,10 +7,11 @@ from typing import Any, Dict, Generic, List, Optional, Sequence, TypeVar
 from ase_koopmans import Atoms
 from ase_koopmans.io.wannier90 import (list_to_formatted_str,
                                        num_wann_from_projections)
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import Field, model_validator
 from wannier90_input.models.parameters import Projection
 
 from koopmans import calculators
+from koopmans.base import BaseModel
 from koopmans.utils import Spin
 
 
@@ -36,7 +37,7 @@ class BlockID(BaseModel):
     filled: Optional[bool] = None
     spin: Spin = Spin.NONE
     unique: bool = Field(default=False, description="Whether or not this block spans the entire system")
-    model_config = ConfigDict(frozen=True)
+    model_config = {"frozen": True, **BaseModel.model_config}
 
     @model_validator(mode="before")
     def _set_label(cls, data: dict[str, Any]):
@@ -69,8 +70,6 @@ class ProjectionsBlock(BaseModel):
     include_bands: Optional[List[int]] = None
     exclude_bands: Optional[List[int]] = None
     w90_calc: calculators.Wannier90Calculator | None = None
-
-    model_config = ConfigDict(frozen=False, arbitrary_types_allowed=True, extra="forbid")
 
     @model_validator(mode="before")
     def _set_label(cls, data: dict[str, Any]):
@@ -184,8 +183,6 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
     exclude_bands: Dict[Spin, List[int]] = Field(default_factory=lambda: {k: [] for k in Spin})
     num_extra_bands: Dict[Spin, int | None] = Field(default_factory=lambda: {k: 0 for k in Spin})
     num_occ_bands: Dict[Spin, int | None] = Field(default_factory=lambda: {k: None for k in Spin})
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __repr__(self) -> str:
         out = self.__class__.__name__ + '('

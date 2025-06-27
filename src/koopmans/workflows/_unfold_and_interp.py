@@ -11,7 +11,6 @@ from typing import Dict, Optional
 import numpy as np
 from ase_koopmans.dft.dos import DOS
 from ase_koopmans.spectrum.band_structure import BandStructure
-from pydantic import ConfigDict
 
 from koopmans import calculators, utils
 from koopmans.files import File
@@ -31,7 +30,6 @@ class UnfoldAndInterpolateOutput(IOModel):
     band_structure: BandStructure
     dos: Optional[DOS]
     smooth_dft_ham_files: Optional[Dict[BlockID, File]]
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class UnfoldAndInterpolateWorkflow(Workflow):
@@ -65,7 +63,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
 
         # Store the original w90 calculations
         w90_calcs = [c for c in self.calculations if isinstance(c, calculators.Wannier90Calculator)
-                     and c.command.flags == ''][-len(self.projections):]
+                     and " -pp " not in c.command][-len(self.projections):]
 
         if self.calculator_parameters['ui'].do_smooth_interpolation and self._smooth_dft_ham_files is None:
 

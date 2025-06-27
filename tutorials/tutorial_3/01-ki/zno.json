@@ -12,9 +12,14 @@
         "eps_inf": 5.3
     },
     "engine": {
-        "from_scratch": false,
-        "npool": 4
+        "from_scratch": true,
+        "commands": {
+            "pw": {
+                "npool": 4
+            }
+        }
     },
+
     "atoms": {
        "cell_parameters": {
          "periodic": true,

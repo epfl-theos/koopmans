@@ -22,7 +22,7 @@ classifiers = [
 ]
 dependencies = [
     "matplotlib>=3.5.1",
-    "scipy>=0.18.1",
+    "scipy>=1.15.0",
     "numpy>=1.21",
     "argparse>=1.1",
     "pandas>=1.0.0",
@@ -30,7 +30,7 @@ dependencies = [
     "pybtex>=0.24",
     "spglib>=1.9",
     "upf-tools>=0.1.9",
-    "ase-koopmans==0.1.8",
+    "ase-koopmans==0.1.11",
     "scikit-learn>=1.0",
     "deepdiff>=5.8.1",
     "pydantic>=2.7.0",
@@ -69,9 +69,17 @@ docs = [
 julia = [
     "juliacall"
 ]
+lint = [
+    "pylint",
+    "flake8",
+]
 
 [project.scripts]
 koopmans = "koopmans.cli.main:main"
+
+[tool.pylint]
+   max-line-length = 120
+   fail-on = ["W4901", "W4902", "W4903", "W4904", "W4905", "W4906", "W6001"]
 
 [tool.flake8]
    max-line-length=120
@@ -103,7 +111,9 @@ filterwarnings = [
     "ignore:This system is not cubic and will therefore not have a uniform dielectric tensor. However, the image-correction schemes that are currently implemented assume a uniform dielectric. Proceed with caution:UserWarning",
     'ignore:Small box parameters `nrb` not provided in input:UserWarning',
     'ignore:The computed screening parameter is greater than 1. Proceed with caution.:UserWarning',
-    'ignore:Predicting screening parameters with machine-learning is an experimental feature; proceed with caution:UserWarning'
+    'ignore:Predicting screening parameters with machine-learning is an experimental feature; proceed with caution:UserWarning',
+    'error::DeprecationWarning:koopmans',
+    'error::DeprecationWarning:ase_koopmans',
 ]
 addopts = "--show-capture=no --capture=sys --strict-markers --tb=short -rfEs --basetemp=tests/tmp"
 markers = [

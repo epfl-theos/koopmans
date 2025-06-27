@@ -29,7 +29,8 @@ def test_singlepoint_h2o_all_dscf(water, workflow_patch, tmp_path, sys2file):
                       'alpha_numsteps': 2,
                       'orbital_groups_self_hartree_tol': 100.0
                       }
-        wf = workflows.SinglepointWorkflow(parameters=parameters, **water)
+        kwargs = water | {'ecutwfc': 30}  # We run into convergence issues with the default 20 Ry
+        wf = workflows.SinglepointWorkflow(parameters=parameters, **kwargs)
         wf.run()
 
 
