@@ -30,7 +30,7 @@ dependencies = [
     "pybtex>=0.24",
     "spglib>=1.9",
     "upf-tools>=0.1.9",
-    "ase-koopmans@git+https://github.com/elinscott/ase_koopmans.git#egg=removing_more_deprecated_python",
+    "ase-koopmans@git+https://github.com/elinscott/ase_koopmans.git#removing_more_deprecated_python",
     "scikit-learn>=1.0",
     "deepdiff>=5.8.1",
     "pydantic>=2.7.0",
