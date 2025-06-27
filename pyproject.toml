@@ -107,7 +107,7 @@ filterwarnings = [
     'ignore:The computed screening parameter is greater than 1. Proceed with caution.:UserWarning',
     'ignore:Predicting screening parameters with machine-learning is an experimental feature; proceed with caution:UserWarning',
     'error::DeprecationWarning:koopmans',
-    'error::DeprecationWarning:ase-koopmans',
+    'error::DeprecationWarning:ase_koopmans',
 ]
 addopts = "--show-capture=no --capture=sys --strict-markers --tb=short -rfEs --basetemp=tests/tmp"
 markers = [
