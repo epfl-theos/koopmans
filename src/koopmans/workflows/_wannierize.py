@@ -451,8 +451,18 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
             self.new_calculator(calc_type, init_orbitals=init_orbs,
                                 bands_plot=self.parameters.calculate_bands, **self.block.w90_kwargs)
         calc_w90.prefix = 'wannier90'
+
+        # Link the pw2wannier90 output files
         for ext in ['.eig', '.amn', '.mmn']:
             calc_w90.link(File(calc_p2w, calc_p2w.parameters.seedname + ext), calc_w90.prefix + ext, symlink=True)
+        if calc_w90.parameters.wannier_plot:
+            # Linking .unk files
+            if not calc_p2w.parameters.write_unk:
+                raise ValueError('In order to plot the Wannier functions, the `write_unk` flag for `pw2wannier90` '
+                                 'must be set to True ')
+            for src in File(calc_p2w, '.').glob('UNK*'):
+                calc_w90.link(src, src.name, symlink=True)
+
         status = self.run_steps(calc_w90)
         if status != Status.COMPLETED:
             return
