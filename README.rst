@@ -97,7 +97,7 @@ Calculations are run with the command
 
    koopmans <seed>.json
 
-where <seed>.json is the ``koopmans`` input file. For more details, refer to the `online documentation <https://koopmans-docs.readthedocs.io>`_.
+where <seed>.json is the ``koopmans`` input file. For more details, refer to the `online documentation <https://koopmans-functionals.org>`_.
 
 Parallelism
 ^^^^^^^^^^^
