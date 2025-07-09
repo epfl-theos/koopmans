@@ -11,8 +11,6 @@ from koopmans.utils import HasDirectory
 if TYPE_CHECKING:
     from koopmans.engines import Engine
 
-logger = logging.getLogger(__name__)
-
 
 class File:
     """An abstract way of representing a file.
@@ -67,6 +65,7 @@ class File:
     def copy_to(self, dst: File, exist_ok=False):
         """Copy this file to another."""
         assert self._engine is not None
+        logger = logging.getLogger(__name__)
         logger.info(f'Copying {self.aspath()} to {dst.aspath()}')
         self._engine.copy_file(self, dst, exist_ok=exist_ok)
 
@@ -78,24 +77,28 @@ class File:
     def read_text(self) -> str:
         """Read text from this file."""
         assert self._engine is not None
+        logger = logging.getLogger(__name__)
         logger.info(f'Reading text from {self.aspath()}')
         return self._engine.read_file(self, binary=False)
 
     def read_bytes(self) -> bytes:
         """Read bytes from this file."""
         assert self._engine is not None
+        logger = logging.getLogger(__name__)
         logger.info(f'Reading bytes from {self.aspath()}')
         return self._engine.read_file(self, binary=True)
 
     def write_text(self, content: str):
         """Write text to this file."""
         assert self._engine is not None
+        logger = logging.getLogger(__name__)
         logger.info(f'Writing text to {self.aspath()}')
         self._engine.write_file(content, self)
 
     def write_bytes(self, content: bytes):
         """Write bytes to this file."""
         assert self._engine is not None
+        logger = logging.getLogger(__name__)
         logger.info(f'Writing bytes to {self.aspath()}')
         self._engine.write_file(content, self)
 
@@ -113,6 +116,7 @@ class File:
         """Symbolically link this file to another file."""
         # Create a symbolic link at self that points to target
         assert self._engine is not None
+        logger = logging.getLogger(__name__)
         logger.info(f'Creating symlink from {self.aspath()} to {target.aspath()}')
         self._engine.link_file(target, self, overwrite=overwrite, recursive=recursive)
 
@@ -123,11 +127,13 @@ class File:
             self._engine.rmdir(self)
         else:
             self._engine.unlink_file(self)
+        logger = logging.getLogger(__name__)
         logger.info(f'Removing {self.aspath()}')
 
     def mkdir(self, *args, **kwargs):
         """Create this directory."""
         assert self._engine is not None
+        logger = logging.getLogger(__name__)
         logger.info(f'Creating directory {self.aspath()}')
         self._engine.mkdir(self, *args, **kwargs)
 

@@ -1,9 +1,6 @@
 """Processes for calling WannierJL."""
 
 
-import juliapkg
-from juliacall import Main as jl
-
 from koopmans.files import File
 from koopmans.process_io import IOModel
 
@@ -13,8 +10,20 @@ WANNIER_JL_UUID = "2b19380a-1f7e-4d7d-b1b8-8aa60b3321c9"
 WANNIER_JL_REV = "65245c59"
 
 
+def import_julia():
+    """Attempt to import the julia package and the Main module from juliacall."""
+    try:
+        import juliapkg
+        from juliacall import Main as jl
+    except ImportError:
+        raise ImportError("The installed version of `koopmans` does not contain support for `WannierJL`. "
+                          "Run `pip install koopmans[julia]` to enable this functionality.")
+    return juliapkg, jl
+
+
 def load_wannierjl():
     """Load the WannierJL julia module."""
+    juliapkg, jl = import_julia()
     juliapkg.add("Wannier", uuid=WANNIER_JL_UUID, rev=WANNIER_JL_REV)
     juliapkg.resolve()
     jl.seval("using Wannier")
@@ -42,6 +51,7 @@ class WannierJLCheckNeighborsProcess(Process[WannierJLCheckNeighborsInput, Wanni
     def _run(self):
         # Load the Wannier julia module
         load_wannierjl()
+        _, jl = import_julia()
 
         # Read the Wannier files
         model = jl.read_w90_with_chk(str(self.inputs.wannier90_input_file.with_suffix("")), str(self.inputs.chk_file))
@@ -74,6 +84,7 @@ class WannierJLGenerateNeighborsProcess(Process[WannierJLGenerateNeighborsInput,
     def _run(self):
         # Load the Wannier julia module
         load_wannierjl()
+        _, jl = import_julia()
 
         # Define the output nnkp file
         nnkp_file = File(self, 'cubic.nnkp')
@@ -121,6 +132,7 @@ class WannierJLSplitProcess(Process[WannierJLSplitInput, WannierJLSplitOutput]):
     def _run(self):
         # Load the Wannier julia module
         load_wannierjl()
+        _, jl = import_julia()
 
         # Construct the julia indices (need to do this so that the following mrwf interface finds a match)
         julia_indices = jl.seval("[" + ', '.join([str(i) for i in self.inputs.indices]) + "]")

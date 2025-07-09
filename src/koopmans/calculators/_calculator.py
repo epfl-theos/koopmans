@@ -3,7 +3,7 @@
 The central objects defined in this submodule are CalculatorABC and CalculatorExt, designed to extend
 ASE calculators to have several additional useful features.
 
-We can create a new 'extended' version of a preexisting ASE calculator via
+We can create a new 'extended' version of a pre-existing ASE calculator via
     class ExtendedCalc(CalculatorExt, ASECalc, CalculatorABC):
         pass
 
@@ -12,7 +12,6 @@ Note: multiple-inheritance is anti-pattern and should be removed.
 
 from __future__ import annotations
 
-import copy
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -215,15 +214,8 @@ class CalculatorExt(utils.HasDirectory):
         This method should NOT be overwritten by child classes. Child classes should only modify _pre_calculate() and
         _post_calculate() to perform any necessary pre- and post-calculation steps.
         """
-        # ASE expects self.command to be a string
-        command = copy.deepcopy(self.command)
-        self.command = str(command)
-
         # Perform the calculation
         super().calculate()
-
-        # Restore self.command
-        self.command = command
 
     def read_input(self, input_file: Optional[Path] = None):
         """Read the input file and store its parameters."""

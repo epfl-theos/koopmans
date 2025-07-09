@@ -12,13 +12,14 @@ import numpy as np
 from ase_koopmans.dft.dos import DOS
 from ase_koopmans.spectrum.band_structure import BandStructure
 
-from koopmans import calculators, utils
+from koopmans import calculators
 from koopmans.files import File
 from koopmans.process_io import IOModel
 from koopmans.processes.ui import UnfoldAndInterpolateProcess, generate_dos
 from koopmans.projections import BlockID
 from koopmans.status import Status
 from koopmans.utils import Spin
+from koopmans.utils.warnings import warn
 
 from ._wannierize import WannierizeWorkflow
 from ._workflow import Workflow
@@ -149,10 +150,10 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                                   for e in [np.sort(ekn.flatten()) for ekn in merged_dos.e_skn]])
             if merged_dos.width < 5 * median_eval_gap:
                 merged_dos = None
-                utils.warn('The DOS will not be plotted, because the Brillouin zone is too poorly sampled for the '
-                           'specified value of smearing. In order to generate a DOS, increase the k-point density '
-                           '(`kpath_density` in the `setup` `k_points` subblock) and/or the smearing (`degauss` '
-                           'in the `plot` block)')
+                warn('The DOS will not be plotted, because the Brillouin zone is too poorly sampled for the '
+                     'specified value of smearing. In order to generate a DOS, increase the k-point density '
+                     '(`kpath_density` in the `setup` `k_points` subblock) and/or the smearing (`degauss` '
+                     'in the `plot` block)')
         else:
             merged_dos = None
 

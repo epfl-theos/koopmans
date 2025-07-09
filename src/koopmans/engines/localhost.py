@@ -74,7 +74,7 @@ class LocalhostEngine(Engine):
         """
         pass
 
-    def get_status(self, step: ProcessProtocol) -> Status:
+    def _get_status(self, step: ProcessProtocol) -> Status:
         """Get the status of a step."""
         if not self.from_scratch:
             to_run = True
@@ -107,13 +107,21 @@ class LocalhostEngine(Engine):
 
         return self.statuses[step.uid]
 
-    def set_status(self, step: ProcessProtocol, status: Status):
+    def _set_status(self, step: ProcessProtocol, status: Status):
         """Set the status of a step."""
         self.statuses[step.uid] = status
 
-    def update_statuses(self) -> None:
+    def _update_statuses(self) -> None:
         """Update the statuses of all steps."""
         pass
+
+    def _steps_are_running(self) -> bool:
+        """Check if any steps are currently running.
+
+        Because localhost blocks until the step is complete, there are never any steps running when python
+        code is being executed. This method therefore always returns False.
+        """
+        return False
 
     def get_pseudopotential(self,
                             library: str,

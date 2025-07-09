@@ -216,8 +216,8 @@ def _indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = 
     previous_indent = indent
 
 
-def print_alert(kind, message, header=None, indent=-1, **kwargs):
-    """Print an alert message with a specific kind following markdown Github alerts."""
+def create_alert(kind: str, message: str, header: str | None = None, indent: int = -1) -> str:
+    """Create an alert message with a specific kind following markdown Github alerts."""
     allowed_kinds = {'note': "ℹ️ ", 'tip': "💡", 'important': "❕", 'warning': "🚨", 'caution': "❗"}
     if kind not in allowed_kinds:
         raise ValueError('`kind` must be one of ' + '/'.join(allowed_kinds.keys()))
@@ -225,7 +225,7 @@ def print_alert(kind, message, header=None, indent=-1, **kwargs):
         if indent < 0:
             indent = previous_indent
         header = "" if header is None else header + ': ' if message else header
-        indented_print('\n' + allowed_kinds[kind] + ' ' + header + message + '\n', indent, **kwargs)
+        return '\n' + allowed_kinds[kind] + ' ' + header + message + '\n'
     else:
         if indent >= 0:
             width = 120 - indent
@@ -237,7 +237,12 @@ def print_alert(kind, message, header=None, indent=-1, **kwargs):
                              textwrap.fill(str(message), width=width, initial_indent='> ', subsequent_indent='> '),
                              ""
                              ])
-        indented_print(message, indent=indent)
+        return message
+
+
+def print_alert(kind: str, message: str, header: str | None = None, indent: int = -1, **kwargs):
+    """Print an alert message with a specific kind following markdown Github alerts."""
+    indented_print(create_alert(kind, message, header, indent), indent=indent, **kwargs)
 
 
 def generate_wannier_hr_file_contents(ham: np.ndarray, rvect: List[List[int]], weights: List[int]) -> str:

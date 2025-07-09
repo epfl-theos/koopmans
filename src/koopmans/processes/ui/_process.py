@@ -18,6 +18,7 @@ from koopmans.kpoints import kpath_to_dict
 from koopmans.process_io import IOModel
 from koopmans.settings import (PlotSettingsDict,
                                UnfoldAndInterpolateSettingsDict)
+from koopmans.utils.warnings import warn
 
 from .._process import Process
 from ._atoms import UIAtoms
@@ -218,7 +219,7 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
             self._phases = [float(line.split()[0]) + float(line.split()[1]) * 1j for line in lines]
         except FileNotFoundError:
             if self.inputs.parameters.w90_input_sc:
-                utils.warn('file `wf_phases.dat` not found; phases are ignored')
+                warn('file `wf_phases.dat` not found; phases are ignored')
             self._phases = []
         return
 

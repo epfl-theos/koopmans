@@ -40,6 +40,7 @@ from koopmans.projections import (BlockID, ImplicitProjectionsBlock,
                                   Projections, ProjectionsBlock)
 from koopmans.status import Status
 from koopmans.utils import Spin
+from koopmans.utils.warnings import IncommensurateProjectionsWarning, warn
 
 from ._workflow import Workflow
 
@@ -108,7 +109,7 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                 # with the number of electrons in this spin channel. Note that this code can be replaced when we have
                 # an algorithm for occ-emp separation within Wannier90
                 num_bands_occ = self.number_of_electrons(spin)
-                if not spin:
+                if spin == Spin.NONE:
                     num_bands_occ //= 2
                 divs = self.projections.divisions(spin)
                 cumulative_divs = [sum(divs[:i + 1]) for i in range(len(divs))]
@@ -116,13 +117,13 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                     message = 'The provided Wannier90 projections are not commensurate with the number of ' \
                               'electrons; divide your list of projections into sublists that represent blocks ' \
                               'of bands to Wannierize separately'
-                    utils.warn(message)
+                    warn(message, IncommensurateProjectionsWarning)
 
                 # Compare the number of bands from PW to Wannier90
                 num_bands_w90 = self.projections.num_bands(spin=spin)
                 if num_bands_w90 > pw_params.nbnd:
-                    utils.warn(f'You have provided more bands to the `Wannier90 calculator` ({num_bands_w90}) '
-                               f'than the preceeding PW calculation ({pw_params.nbnd})')
+                    warn(f'You have provided more bands to the `Wannier90 calculator` ({num_bands_w90}) '
+                         f'than the preceeding PW calculation ({pw_params.nbnd})')
                     pw_params.nbnd = num_bands_w90
                 elif num_bands_w90 == pw_params.nbnd:
                     pass
@@ -444,8 +445,8 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                 dos = copy.deepcopy(calc_dos.results['dos'])
             else:
                 # Skip if the pseudos don't have the requisite PP_PSWFC blocks
-                utils.warn('Some of the pseudopotentials do not have `PP_PSWFC` blocks, which means a projected DOS '
-                           'calculation is not possible. Skipping...')
+                warn('Some of the pseudopotentials do not have `PP_PSWFC` blocks, which means a projected DOS '
+                     'calculation is not possible. Skipping...')
 
             # Select those calculations that generated a band structure (and are part of this wannierize workflow)
             i_scf = [i for i, c in enumerate(self.calculations) if isinstance(

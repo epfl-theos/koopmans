@@ -10,7 +10,7 @@ from koopmans.io import read, write
 from koopmans.kpoints import Kpoints
 from koopmans.pseudopotentials import local_libraries
 from koopmans.settings import WorkflowSettingsDict
-from koopmans.utils import warn
+from koopmans.utils.warnings import warn
 from koopmans.workflows import SinglepointWorkflow
 
 

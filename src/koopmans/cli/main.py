@@ -3,6 +3,8 @@
 """Main Koopmans CLI."""
 
 import argparse
+import json
+import logging
 import os
 import re
 import sys
@@ -14,6 +16,7 @@ from koopmans.engines import Engine, LocalhostEngine
 from koopmans.io import read
 from koopmans.logging_config import setup_logging
 from koopmans.utils import print_alert
+from koopmans.utils.warnings import configure_warnings
 
 # Disabling the auto-loading of the juliacall ipython extension prior to loading ipdb
 # isort: off
@@ -44,15 +47,15 @@ def initialize_engine(engine_arg: str, engine_config: str | None) -> Engine:
     if engine_arg == 'localhost':
         engine = LocalhostEngine()
     elif engine_arg == 'aiida':
-        raise NotImplementedError("AiiDA engine is not yet implemented")
-        # Uncomment the following lines once aiida_koopmans is available
-        # from aiida_koopmans.engine.aiida import AiiDAEngine
-        # if engine_config is not None:
-        #     with open(engine_config, 'r') as f:
-        #         engine_config = json.load(f)
-        # else:
-        #     engine_config = None
-        # engine = AiiDAEngine(configuration=engine_config)
+        # raise NotImplementedError("AiiDA engine is not yet implemented")
+        # Uncomment the following lines once aiida-koopmans is available
+        from aiida_koopmans.engine.aiida import AiiDAEngine, AiiDAStepData
+        if engine_config is not None:
+            with open(engine_config, 'r') as f:
+                engine_config = json.load(f)
+        else:
+            engine_config = None
+        engine = AiiDAEngine(step_data=AiiDAStepData(configuration=engine_config))
     else:
         raise NotImplementedError(f"Unknown engine '{engine_arg}'")
     return engine
@@ -99,13 +102,19 @@ def run_workflow(namespace: argparse.Namespace):
 
     # If requested, set up logging
     if namespace.log:
-        setup_logging()
+        level = logging.DEBUG if namespace.debug else logging.INFO
+        setup_logging(level=level)
+
+    # Configure the warnings
+    configure_warnings()
 
     # Reading in JSON file
     workflow = read(namespace.json, engine=engine)
 
     # Run workflow
     workflow.run()
+
+    print("Workflow complete 🎉")
 
 
 def main():
@@ -135,6 +144,7 @@ def main():
                             help='a single JSON file containing the workflow and code settings')
     run_parser.add_argument('-t', '--traceback', action='store_true', help='enable traceback')
     run_parser.add_argument('-l', '--log', action='store_true', help='enable logging')
+    run_parser.add_argument('-d', '--debug', action='store_true', help='enable debug logging')
     run_parser.add_argument('--pdb', action='store_true', help='enable interactive debugging')
     add_engine_flag(run_parser)
     run_parser.add_argument('--engine_config', type=str, default='engine.json',

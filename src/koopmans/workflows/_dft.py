@@ -7,10 +7,11 @@ from typing import TypeVar
 from ase_koopmans.spectrum.band_structure import BandStructure
 from ase_koopmans.spectrum.doscollection import DOSCollection
 
-from koopmans import calculators, utils
+from koopmans import calculators
 from koopmans.files import File
 from koopmans.process_io import IOModel
 from koopmans.status import Status
+from koopmans.utils.warnings import warn
 
 from ._workflow import Workflow, spin_symmetrize
 
@@ -185,8 +186,8 @@ class DFTBandsWorkflow(DFTWorkflow[DFTBandsOutput]):
                 dos._energies -= bs.reference
         else:
             # Skip if the pseudos don't have the requisite PP_PSWFC blocks
-            utils.warn('Some of the pseudopotentials do not have `PP_PSWFC` blocks, which means a projected DOS '
-                       'calculation is not possible. Skipping...')
+            warn('Some of the pseudopotentials do not have `PP_PSWFC` blocks, which means a projected DOS '
+                 'calculation is not possible. Skipping...')
             dos = None
 
         # Plot the band structure and DOS

@@ -8,7 +8,8 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from koopmans.files import File
-from koopmans.utils import Spin, warn
+from koopmans.utils import Spin
+from koopmans.utils.warnings import warn
 
 
 class VariationalOrbital(BaseModel):

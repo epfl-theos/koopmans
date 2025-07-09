@@ -1,30 +1,32 @@
 """Logging configuration for `koopmans`."""
 
-import inspect
 import logging
 from pathlib import Path
 
 
 class FormatterWithLineNo(logging.Formatter):
-    """Logging formatter with line number information."""
+    """Logging formatter that includes the file name and line number."""
 
-    def format(self, record):  # noqa: A003
-        """Format the log message, adding the file name and line number where the log was called."""
-        stack = inspect.stack()
-        frame = stack[10]
-        file_name = Path(frame.filename).relative_to(Path(__file__).parents[2])
-        line_number = frame.lineno
-
-        # Add file name and line number to the log message
+    def format(self, record) -> str:
+        """Format the log message with file name and line number."""
         original_message = super().format(record)
-        return f'{record.levelname} - {original_message} - {file_name}:{line_number}'
+        return f'{record.levelname} - {original_message} - {record.pathname}:{record.lineno}'
 
 
 def setup_logging(level=logging.INFO, filename='koopmans.log'):
     """Set up logging."""
-    file_handler = logging.FileHandler(filename, mode='w')
+    # Remove pre-existing log files
+    if Path(filename).exists():
+        Path(filename).unlink()
+
+    file_handler = logging.FileHandler(filename, mode='a')
     file_handler.setFormatter(FormatterWithLineNo())
 
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
+
+    # Clear existing handlers (i.e. those added by AiiDA)
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+
     root_logger.addHandler(file_handler)

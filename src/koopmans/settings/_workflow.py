@@ -116,7 +116,13 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None),
             Setting('block_wannierization_threshold',
                     'blocks of bands separated by this threshold will be Wannierized separately',
-                    float, None, None)]
+                    float, None, None),
+            Setting('max_time',
+                    'maximum time in seconds to wait for the workflow to complete; if None, no timeout is applied',
+                    (int, float), None, None),
+            Setting('wait_time',
+                    'time in seconds to wait between checking the status of in-progress calculations',
+                    (int, float), 5, None)]
 
         # Defer storing init_empty_orbitals...
         init_empty_orbitals = kwargs.pop('init_empty_orbitals', 'same')

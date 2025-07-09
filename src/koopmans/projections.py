@@ -5,8 +5,7 @@ from abc import ABC
 from typing import Any, Dict, Generic, List, Optional, Sequence, TypeVar
 
 from ase_koopmans import Atoms
-from ase_koopmans.io.wannier90 import (list_to_formatted_str,
-                                       num_wann_from_projections)
+from ase_koopmans.io.wannier90 import num_wann_from_projections
 from pydantic import Field, model_validator
 from wannier90_input.models.parameters import Projection
 
@@ -268,8 +267,8 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
                     upper_bound = self.num_bands(spin=spin)
                 to_exclude = [i for i in range(1, upper_bound + 1) if i not in band_indices]
                 b.include_bands = list(band_indices)
-                if len(to_exclude) > 0:
-                    b.exclude_bands = list_to_formatted_str(to_exclude)
+                if to_exclude:
+                    b.exclude_bands = to_exclude
 
                 # Construct the ID
                 if not b.unique:

@@ -4,7 +4,7 @@ from ase_koopmans import Atoms
 from ase_koopmans.calculators.wannier90 import Wannier90
 
 from koopmans.settings import Wannier90SettingsDict
-from koopmans.utils import CalculatorNotConvergedWarning, warn
+from koopmans.utils.warnings import CalculatorNotConvergedWarning, warn
 
 from ._calculator import CalculatorABC, CalculatorExt
 

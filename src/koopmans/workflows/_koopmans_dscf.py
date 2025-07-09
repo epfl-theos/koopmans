@@ -1,6 +1,5 @@
 """Workflow for performing KI and KIPZ calculations with kcp.x."""
 
-import logging
 import shutil
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -18,6 +17,7 @@ from koopmans.projections import BlockID
 from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.status import Status
 from koopmans.utils import Spin
+from koopmans.utils.warnings import warn
 from koopmans.variational_orbitals import (VariationalOrbital,
                                            VariationalOrbitals)
 
@@ -27,8 +27,6 @@ from ._ml import PowerSpectrumDecompositionWorkflow
 from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
 from ._wannierize import MergeableFile, WannierizeWorkflow
 from ._workflow import Workflow, spin_symmetrize
-
-logger = logging.getLogger(__name__)
 
 
 class KoopmansDSCFOutputs(IOModel):
@@ -459,8 +457,8 @@ class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
                     converged = True
                 else:
                     # Do the subsequent loop
-                    utils.warn('The screening parameters for a KI calculation with no empty states will converge '
-                               'instantly; to save computational time set `alpha_numsteps == 1`')
+                    warn('The screening parameters for a KI calculation with no empty states will converge '
+                         'instantly; to save computational time set `alpha_numsteps == 1`')
 
             parent = iteration_wf.outputs.n_electron_restart_dir.parent_process
             assert isinstance(parent, KoopmansCPCalculator)
@@ -469,8 +467,8 @@ class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
             variational_orbital_files = {}
 
         if not converged:
-            utils.warn('The screening parameters have been calculated but are not necessarily self-consistent. '
-                       'You may want to increase `alpha_numsteps` to obtain a more accurate result.')
+            warn('The screening parameters have been calculated but are not necessarily self-consistent. '
+                 'You may want to increase `alpha_numsteps` to obtain a more accurate result.')
 
         self.outputs = CalculateScreeningViaDSCFOutput(
             n_electron_restart_dir=iteration_wf.outputs.n_electron_restart_dir)
@@ -861,11 +859,11 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
         if alpha < -0.1:
             raise ValueError(failure_message.format('less than 0'))
         elif alpha < 0:
-            utils.warn(warning_message.format('less than 0'))
+            warn(warning_message.format('less than 0'))
         elif alpha > 1.1:
             raise ValueError(failure_message.format('greater than 1'))
         elif alpha > 1:
-            utils.warn(warning_message.format('greater than 1'))
+            warn(warning_message.format('greater than 1'))
 
         self.outputs = self.output_model(alpha=alpha, error=error, dummy_outdir=dummy_outdir)
 
@@ -956,7 +954,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
             if mp1 is None:
                 raise ValueError('Could not find 1st order Makov-Payne energy')
             if mp2 is None:
-                # utils.warn('Could not find 2nd order Makov-Payne energy; applying first order only')
+                # warn('Could not find 2nd order Makov-Payne energy; applying first order only')
                 mp_energy = mp1
             else:
                 mp_energy = mp1 + mp2
