@@ -24,7 +24,6 @@ dependencies = [
     "matplotlib>=3.5.1",
     "scipy>=1.15.0",
     "numpy>=1.21",
-    "argparse>=1.1",
     "pandas>=1.0.0",
     "typing>=3.6",
     "pybtex>=0.24",
@@ -36,7 +35,6 @@ dependencies = [
     "pydantic>=2.7.0",
     "dill>=0.3.8",
     "tabulate==0.9.0",
-    "toml",
     "ipdb",
     "wannier90_input",
 ]
