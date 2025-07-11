@@ -427,6 +427,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
     def run(self):
         """Run the workflow."""
+        assert self.engine is not None
+
         self.print_preamble()
 
         if not self.parent_process:
@@ -976,7 +978,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                         # Copy the entire variational_orbitals object
                         self.parent_process.variational_orbitals = self.variational_orbitals
 
-    def print(self, *args, **kwargs):
+    def print(self, *args, **kwargs) -> None:
         """Print information in a tidy way."""
         utils.indented_print(*args, **kwargs)
 
