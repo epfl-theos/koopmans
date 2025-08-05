@@ -42,7 +42,7 @@ from upf_tools import UPFDict
 
 from koopmans import calculators, settings, utils
 from koopmans.engines import Engine, LocalhostEngine
-from koopmans.files import File, LocalFile, ParentProcessPlaceholder
+from koopmans.files import File, ParentProcessPlaceholder
 from koopmans.kpoints import Kpoints
 from koopmans.ml import AbstractMLModel, MLModel, OccEmpMLModels
 from koopmans.process_io import IOModel
@@ -449,7 +449,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
             while self.engine.steps_are_running():
                 logger.info('Steps are running; waiting for them to complete...')
-                time.sleep(self.parameters.wait_time)
+                self.wait()
                 if self.parameters.max_time is not None and time.time() - start_time > self.parameters.max_time:
                     self.status = Status.FAILED
                     raise ValueError('Workflow failed to complete within the specified time')
@@ -458,6 +458,13 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             self._teardown()
 
         self.status = Status.COMPLETED
+
+    def wait(self):
+        """Wait while calculations are running.
+
+        While waiting, the engine might perform other actions such as fetching remote files etc.
+        """
+        self.engine.wait(seconds=self.parameters.wait_time)
 
     def _pre_run(self):
         """Run checks and actions before running the workflow."""
@@ -622,7 +629,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
             # Check symmetry of the system
             dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=False)
-            if dataset is None or dataset.number not in range(195, 231):
+            if dataset is None or dataset['number'] not in range(195, 231):
                 warn('This system is not cubic and will therefore not have a uniform dielectric tensor. However, '
                      'the image-correction schemes that are currently implemented assume a uniform dielectric. '
                      'Proceed with caution')
@@ -803,14 +810,14 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         # Create the calculator
         calc = calc_class(atoms=copy.deepcopy(self.atoms), **all_kwargs)
 
+        # Link the engine
+        calc.engine = self.engine
+
         # Link the pseudopotentials if relevant
         if calculator_parameters.is_valid('pseudo_dir') or isinstance(calc, calculators.KoopmansHamCalculator):
             for pseudo in self.pseudopotentials.values():
-                calc.link(LocalFile(pseudo.filename), Path('pseudopotentials') / pseudo.filename.name, symlink=True)
+                calc.link_pseudopotential(pseudo.filename, Path('pseudopotentials') / pseudo.filename.name)
             calc.parameters.pseudo_dir = 'pseudopotentials'
-
-        # Link the engine
-        calc.engine = self.engine
 
         return calc
 
@@ -1463,6 +1470,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         from koopmans.io import write
 
         assert self.status == Status.COMPLETED
+        assert self.engine is not None
 
         # Save workflow to file
         write(self, self.name + '.pkl')
@@ -1475,6 +1483,9 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         # Removing tmpdirs
         if not self.engine.keep_tmpdirs:
             self._remove_tmpdirs()
+
+        # Engine-dependent teardown
+        self.engine._teardown()
 
     def number_of_electrons(self, spin: Spin = Spin.NONE, params: Optional[settings.SettingsDict] = None) -> int:
         """Return the number of electrons in a particular spin channel."""

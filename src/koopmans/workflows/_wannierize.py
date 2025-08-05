@@ -36,8 +36,9 @@ from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
 from koopmans.processes.wjl import (WannierJLCheckNeighborsProcess,
                                     WannierJLGenerateNeighborsProcess,
                                     WannierJLSplitProcess)
-from koopmans.projections import (BlockID, ImplicitProjectionsBlock,
-                                  Projections, ProjectionsBlock)
+from koopmans.projections import (BlockID, ExplicitProjections,
+                                  ImplicitProjectionsBlock, Projections,
+                                  ProjectionsBlock)
 from koopmans.status import Status
 from koopmans.utils import Spin
 from koopmans.utils.warnings import IncommensurateProjectionsWarning, warn
@@ -113,10 +114,10 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                     num_bands_occ //= 2
                 divs = self.projections.divisions(spin)
                 cumulative_divs = [sum(divs[:i + 1]) for i in range(len(divs))]
-                if num_bands_occ not in cumulative_divs:
+                if num_bands_occ not in cumulative_divs and isinstance(self.projections, ExplicitProjections):
                     message = 'The provided Wannier90 projections are not commensurate with the number of ' \
-                              'electrons; divide your list of projections into sublists that represent blocks ' \
-                              'of bands to Wannierize separately'
+                              'electrons; divide your list of projections into sublists ' \
+                              'that represent blocks of bands to Wannierize separately'
                     warn(message, IncommensurateProjectionsWarning)
 
                 # Compare the number of bands from PW to Wannier90
@@ -606,27 +607,14 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
         self.block.w90_calc = calc_w90
 
         if self.variational_orbitals is not None:
-            # Add centers and spreads info to self.bands
-            if self.block.spin is None:
-                remaining_bands = [b for b in self.variational_orbitals if b.center is None and b.spin == 0]
-            else:
-                if self.block.spin == 'up':
-                    i_spin = 0
-                else:
-                    i_spin = 1
-                remaining_bands = [b for b in self.variational_orbitals if b.center is None and b.spin == i_spin]
+            # Add centers and spreads info to self.variational_orbitals
+            remaining_bands = [b for b in self.variational_orbitals if b.center is None and b.spin == self.block.spin]
 
             centers = calc_w90.results['centers']
             spreads = calc_w90.results['spreads']
             for band, center, spread in zip(remaining_bands, centers, spreads):
                 band.center = center
                 band.spread = spread
-
-                if self.block.spin is None and len(self.variational_orbitals.get(spin=1)) > 0:
-                    # Copy over spin-up results to spin-down
-                    [match] = [b for b in self.variational_orbitals if b.index == band.index and b.spin == 1]
-                    match.center = center
-                    match.spread = spread
 
         hr_file = File(calc_w90, calc_w90.prefix + '_hr.dat') if calc_w90.parameters.write_hr else None
         u_file = File(calc_w90, calc_w90.prefix + '_u.mat') if calc_w90.parameters.write_u_matrices else None
@@ -693,7 +681,10 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockOutput]):
         # For some oblique cells this is not the case by default and we need to construct a cubic .nnkp file
         check_nnkp_process = WannierJLCheckNeighborsProcess(
             wannier90_input_file=wannierize_wf.outputs.wannier90_input_file,
-            chk_file=wannierize_wf.outputs.chk_file
+            chk_file=wannierize_wf.outputs.chk_file,
+            mmn_file=wannierize_wf.outputs.mmn_file,
+            amn_file=wannierize_wf.outputs.amn_file,
+            eig_file=wannierize_wf.outputs.eig_file,
         )
         check_nnkp_process.name = 'check_wjl_compatibility'
         status = self.run_steps(check_nnkp_process)
@@ -735,6 +726,9 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockOutput]):
             outdirs=[new_block.label for new_block in new_blocks],
             wannier90_input_file=wannierize_wf.outputs.wannier90_input_file,
             chk_file=wannierize_wf.outputs.chk_file,
+            mmn_file=wannierize_wf.outputs.mmn_file,
+            amn_file=wannierize_wf.outputs.amn_file,
+            eig_file=wannierize_wf.outputs.eig_file,
             cubic_nnkp_file=cubic_nnkp_file,
             cubic_mmn_file=cubic_mmn_file
         )

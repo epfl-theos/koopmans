@@ -1,5 +1,8 @@
 """Processes for calling WannierJL."""
 
+from functools import lru_cache
+
+from pydantic import field_validator
 
 from koopmans.files import File
 from koopmans.process_io import IOModel
@@ -10,6 +13,7 @@ WANNIER_JL_UUID = "2b19380a-1f7e-4d7d-b1b8-8aa60b3321c9"
 WANNIER_JL_REV = "65245c59"
 
 
+@lru_cache
 def import_julia():
     """Attempt to import the julia package and the Main module from juliacall."""
     try:
@@ -21,12 +25,13 @@ def import_julia():
     return juliapkg, jl
 
 
+@lru_cache
 def load_wannierjl():
     """Load the WannierJL julia module."""
     juliapkg, jl = import_julia()
     juliapkg.add("Wannier", uuid=WANNIER_JL_UUID, rev=WANNIER_JL_REV)
-    juliapkg.resolve()
     jl.seval("using Wannier")
+    return jl
 
 
 class WannierJLCheckNeighborsInput(IOModel):
@@ -34,6 +39,9 @@ class WannierJLCheckNeighborsInput(IOModel):
 
     wannier90_input_file: File
     chk_file: File
+    mmn_file: File
+    amn_file: File
+    eig_file: File
 
 
 class WannierJLCheckNeighborsOutput(IOModel):
@@ -50,8 +58,16 @@ class WannierJLCheckNeighborsProcess(Process[WannierJLCheckNeighborsInput, Wanni
 
     def _run(self):
         # Load the Wannier julia module
-        load_wannierjl()
-        _, jl = import_julia()
+        jl = load_wannierjl()
+
+        # Link the files locally
+        File(self, 'wannier90.win').symlink_to(self.inputs.wannier90_input_file)
+        File(self, 'wannier90.chk').symlink_to(self.inputs.chk_file)
+        File(self, 'wannier90.mmn').symlink_to(self.inputs.mmn_file)
+        File(self, 'wannier90.amn').symlink_to(self.inputs.amn_file)
+        File(self, 'wannier90.eig').symlink_to(self.inputs.eig_file)
+
+        print([f for f in self.directory.rglob('*')])  # Debugging line to see the files in the directory
 
         # Read the Wannier files
         model = jl.read_w90_with_chk(str(self.inputs.wannier90_input_file.with_suffix("")), str(self.inputs.chk_file))
@@ -83,8 +99,7 @@ class WannierJLGenerateNeighborsProcess(Process[WannierJLGenerateNeighborsInput,
 
     def _run(self):
         # Load the Wannier julia module
-        load_wannierjl()
-        _, jl = import_julia()
+        jl = load_wannierjl()
 
         # Define the output nnkp file
         nnkp_file = File(self, 'cubic.nnkp')
@@ -103,8 +118,20 @@ class WannierJLSplitInput(IOModel):
     outdirs: list[str]
     wannier90_input_file: File
     chk_file: File
+    mmn_file: File
+    amn_file: File
+    eig_file: File
     cubic_nnkp_file: File | None = None
     cubic_mmn_file: File | None = None
+
+    @field_validator("wannier90_input_file", "chk_file", "mmn_file", "amn_file", "eig_file", "cubic_nnkp_file",
+                     "cubic_mmn_file", mode="after")
+    @classmethod
+    def exists(cls, value: File | None) -> File | None:
+        """Ensure the Wannier90 input file exists."""
+        if value is not None and not value.exists():
+            raise FileNotFoundError(f"{value} does not exist.")
+        return value
 
 
 class WannierJLSplitBlockOutput(IOModel):
@@ -115,6 +142,14 @@ class WannierJLSplitBlockOutput(IOModel):
     mmn_file: File
     u_file: File
     win_file: File
+
+    @field_validator("amn_file", "eig_file", "mmn_file", "u_file", mode="after")
+    @classmethod
+    def exists(cls, value: File | None) -> File | None:
+        """Ensure the Wannier90 input file exists."""
+        if value is not None and not value.exists():
+            raise FileNotFoundError(f"{value} does not exist.")
+        return value
 
 
 class WannierJLSplitOutput(IOModel):
@@ -131,8 +166,7 @@ class WannierJLSplitProcess(Process[WannierJLSplitInput, WannierJLSplitOutput]):
 
     def _run(self):
         # Load the Wannier julia module
-        load_wannierjl()
-        _, jl = import_julia()
+        jl = load_wannierjl()
 
         # Construct the julia indices (need to do this so that the following mrwf interface finds a match)
         julia_indices = jl.seval("[" + ', '.join([str(i) for i in self.inputs.indices]) + "]")
@@ -146,13 +180,12 @@ class WannierJLSplitProcess(Process[WannierJLSplitInput, WannierJLSplitOutput]):
                               cubic_mmn_file)
 
         # Save the output
-        prefix = self.inputs.wannier90_input_file.with_suffix("").name
+        prefix = str(self.inputs.wannier90_input_file.with_suffix("").name)
         self.outputs = WannierJLSplitOutput(
-            blocks=[
-                {'amn_file': File(self, f'{d}/{prefix}.amn'),
-                 'eig_file': File(self, f'{d}/{prefix}.eig'),
-                 'mmn_file': File(self, f'{d}/{prefix}.mmn'),
-                 'u_file': File(self, f'{d}/{prefix}_split.amn'),
-                 'win_file': File(self, f'{d}/{prefix}.win')}
-                for d in self.inputs.outdirs]
+            blocks=[{'amn_file': File(self, d) / (prefix + ".amn"),
+                     'eig_file': File(self, d) / (prefix + ".eig"),
+                     'mmn_file': File(self, d) / (prefix + ".mmn"),
+                     'u_file': File(self, d) / (prefix + "_split.amn"),
+                     'win_file': File(self, d) / (prefix + ".win")}
+                    for d in self.inputs.outdirs]
         )

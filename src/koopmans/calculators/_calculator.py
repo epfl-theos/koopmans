@@ -272,6 +272,8 @@ class CalculatorExt(utils.HasDirectory):
     def link(self, src: File, dest_filename: File | Path | str | None = None,
              symlink: bool = False, recursive_symlink: bool = False, overwrite: bool = False):
         """Link a file to the calculator. When that calculation runs, it will fetch that file."""
+        if not src.exists():
+            raise FileNotFoundError(f'Cannot link to `{src}` because it does not exist')
         if dest_filename is None:
             dest_filename = src.name
         if isinstance(dest_filename, File):
@@ -281,6 +283,16 @@ class CalculatorExt(utils.HasDirectory):
                     'as their `parent_process`')
             dest_filename = dest_filename.name
         self.linked_files[str(dest_filename)] = (src, symlink, recursive_symlink, overwrite)
+
+    def link_pseudopotential(self, src: str, dest: str) -> None:
+        """Link a pseudopotential file to the calculator.
+
+        This is engine-dependent because for some engines we don't want to simply link pseudopotential
+        files like we do for other files.
+        """
+        if self.engine is None:
+            raise ValueError('Cannot link a pseudopotential to a calculator without first setting its engine')
+        self.engine.link_pseudopotential(self, Path(src), Path(dest))
 
 
 class CalculatorABC(ABC, Generic[TCalc]):

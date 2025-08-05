@@ -78,28 +78,28 @@ class File:
         """Read text from this file."""
         assert self._engine is not None
         logger = logging.getLogger(__name__)
-        logger.info(f'Reading text from {self.aspath()}')
+        logger.info(f'Reading text from {self.aspath()}', stacklevel=2)
         return self._engine.read_file(self, binary=False)
 
     def read_bytes(self) -> bytes:
         """Read bytes from this file."""
         assert self._engine is not None
         logger = logging.getLogger(__name__)
-        logger.info(f'Reading bytes from {self.aspath()}')
+        logger.info(f'Reading bytes from {self.aspath()}', stacklevel=2)
         return self._engine.read_file(self, binary=True)
 
     def write_text(self, content: str):
         """Write text to this file."""
         assert self._engine is not None
         logger = logging.getLogger(__name__)
-        logger.info(f'Writing text to {self.aspath()}')
+        logger.info(f'Writing text to {self.aspath()}', stacklevel=2)
         self._engine.write_file(content, self)
 
     def write_bytes(self, content: bytes):
         """Write bytes to this file."""
         assert self._engine is not None
         logger = logging.getLogger(__name__)
-        logger.info(f'Writing bytes to {self.aspath()}')
+        logger.info(f'Writing bytes to {self.aspath()}', stacklevel=2)
         self._engine.write_file(content, self)
 
     def rglob(self, pattern: str) -> Generator[File, None, None]:
@@ -117,7 +117,7 @@ class File:
         # Create a symbolic link at self that points to target
         assert self._engine is not None
         logger = logging.getLogger(__name__)
-        logger.info(f'Creating symlink from {self.aspath()} to {target.aspath()}')
+        logger.info(f'Creating symlink from {self.aspath()} to {target.aspath()}', stacklevel=2)
         self._engine.link_file(target, self, overwrite=overwrite, recursive=recursive)
 
     def unlink(self):
@@ -141,6 +141,21 @@ class File:
         """Return true if the file is a directory."""
         assert self._engine is not None
         return self._engine.file_is_dir(self)
+
+    def rename(self, dst: File) -> None:
+        """Rename this file, replicating the behavior of Path.rename."""
+        assert self._engine is not None
+        return self._engine.rename_file(self, dst)
+
+    @property
+    def stem(self) -> str:
+        """Return the stem of the file, replicating the behavior of Path.stem."""
+        return self.name.stem
+
+    def with_stem(self, stem: str) -> File:
+        """Return a new File with the given stem."""
+        new_name = self.name.with_stem(stem)
+        return File(self.parent_process, new_name)
 
     def __eq__(self, other):
         if not isinstance(other, File):

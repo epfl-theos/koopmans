@@ -64,13 +64,13 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
         if self._outputs is None:
             raise ValueError('Process has no outputs because it has not been run yet')
         logger = logging.getLogger(__name__)
-        logger.info(f'Querying outputs of {self.directory}')
+        logger.debug(f'Querying outputs of {self.directory}', stacklevel=2)
         return self._outputs
 
     @outputs.setter
     def outputs(self, value: OutputModel):
         logger = logging.getLogger(__name__)
-        logger.info(f'Setting outputs of {self.directory}')
+        logger.info(f'Setting outputs of {self.directory}', stacklevel=2)
         self._outputs = value
 
     def _pre_run(self):

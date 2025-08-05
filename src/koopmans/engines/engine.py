@@ -145,6 +145,11 @@ class Engine(BaseModel, ABC):
         """Return a set of available pseudopotential libraries."""
         ...
 
+    @abstractmethod
+    def link_pseudopotential(self, step, src: Path, dest: Path) -> None:
+        """Link a pseudopotential file to the provided step."""
+        ...
+
     @overload
     @abstractmethod
     def read_file(self, file: File, binary: Literal[True]) -> bytes:
@@ -217,4 +222,19 @@ class Engine(BaseModel, ABC):
     @abstractmethod
     def rmdir(self, directory: File) -> None:
         """Remove a directory; should mimic Path.rmdir."""
+        ...
+
+    @abstractmethod
+    def rename_file(self, src: File, dst: File) -> None:
+        """Rename a file; should mimic Path.rename."""
+        ...
+
+    @abstractmethod
+    def wait(self, seconds: float) -> None:
+        """Wait for a specified amount of time, possibly performing background tasks while doing so."""
+        ...
+
+    @abstractmethod
+    def _teardown(self) -> None:
+        """Perform any necessary engine-specific cleanup actions when the workflow is completed."""
         ...

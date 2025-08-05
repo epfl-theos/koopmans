@@ -21,7 +21,7 @@ from koopmans.status import Status
 from koopmans.utils import Spin
 from koopmans.utils.warnings import warn
 
-from ._wannierize import WannierizeWorkflow
+from ._wannierize import MergeableFile, WannierizeWorkflow
 from ._workflow import Workflow
 
 
@@ -53,7 +53,6 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         - a smooth WannierizeWorkflow (if required)
         - an UnfoldAndInterpolateProcess for occ states
         - an UnfoldAndInterpolateProcess for emp states
-        - an UnfoldAndInterpolateProcess to merge occ and emp results
         """
         if self.projections is None:
             raise ValueError(f'{self.__class__.__name__} requires projections but none were provided.')
@@ -64,12 +63,13 @@ class UnfoldAndInterpolateWorkflow(Workflow):
 
         # Store the original w90 calculations
         w90_calcs = [c for c in self.calculations if isinstance(c, calculators.Wannier90Calculator)
-                     and " -pp " not in c.command][-len(self.projections):]
+                     and " -pp " not in c.command]
 
         if self.calculator_parameters['ui'].do_smooth_interpolation and self._smooth_dft_ham_files is None:
 
             assert self.kpoints.grid is not None
-            wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kpoints.grid)
+            wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kpoints.grid,
+                                                             files_to_merge=[MergeableFile.HR])
             wannier_workflow.kpoints.grid = [x * y for x, y in zip(self.kpoints.grid,
                                              self.calculator_parameters['ui'].smooth_int_factor)]
 
@@ -79,6 +79,13 @@ class UnfoldAndInterpolateWorkflow(Workflow):
 
             # Save the smooth DFT Hamiltonian files
             self._smooth_dft_ham_files = wannier_workflow.outputs.hr_files
+
+            # Update self.projections
+            self.projections = wannier_workflow.outputs.projections
+
+        # If there were multiple sets of Wannierization steps run in the past, we only want the
+        # most recent one
+        w90_calcs = w90_calcs[-len(self.projections):]
 
         process: UnfoldAndInterpolateProcess
         if self.parameters.spin_polarized:

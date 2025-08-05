@@ -1,6 +1,7 @@
 """Module that defines variational orbitals and their properties."""
 
 import itertools
+import logging
 from typing import Dict, List, Optional, Union
 
 import numpy as np
@@ -216,7 +217,58 @@ class VariationalOrbitals(BaseModel):
         for o, v in zip(self, [v for subarray in value for v in subarray]):
             o.group = v
 
-    def assign_groups(self, sort_by: str = 'self_hartree', tol: Optional[float] = None,
+    def _assign_groups_fcluster(self, data, default_tol: float, revised_tol: Optional[float] = None):
+        tol = revised_tol if revised_tol is not None else default_tol
+        if tol < 0.01 * default_tol:
+            raise Exception('Clustering algorithm failed; could not find a clustering with well-separated groups even '
+                            'for much smaller thresholds')
+
+        from scipy.cluster.hierarchy import fcluster, linkage
+
+        # Complete linkage clustering
+        Z = linkage(data, method='complete')
+        labels = fcluster(Z, t=tol, criterion='distance')
+
+        # Check the sets have spreads that are separated by at least 2 * tol
+        clustered_data = [data[labels == i] for i in set(labels)]
+        clusters_edges = [(np.min(c, axis=0), np.max(c, axis=0)) for c in clustered_data]
+
+        well_separated = True
+        for i, cluster_edges in enumerate(clusters_edges):
+            other_cluster_edges = clusters_edges[:i] + clusters_edges[i + 1:]
+
+            if any([np.abs(edge - other_edge).sum() < 2 * tol for edge in cluster_edges for other_edge in
+                    other_cluster_edges]):
+                # The clusters are not well-separated
+                well_separated = False
+                break
+
+        logger = logging.getLogger(__name__)
+        if well_separated:
+            if revised_tol != default_tol:
+                warn(f'It was not possible to group orbitals with a tolerance of '
+                     f'{default_tol:.2e} eV. A grouping was found for a revised tolerance of {revised_tol:.2e} eV. '
+                     f'If you want to group more orbitals together, increase the default tolerance.')
+                logger.info(f'Orbitals groups found using a decreased tolerance of {tol:.2e} eV')
+
+            # Reorder labels to start from 1
+            mapping = {}
+            max_label = 0
+            for label in labels:
+                if label not in mapping:
+                    max_label += 1
+                    mapping[label] = max_label
+
+            return [mapping[label] for label in labels]
+        else:
+            new_tol = 0.9 * tol
+            logger.debug(f'Clusters not well-separated; trying with a reduced tolerance of {new_tol:.2e} eV')
+
+            return self._assign_groups_fcluster(data=data,
+                                                default_tol=default_tol,
+                                                revised_tol=new_tol)
+
+    def assign_groups(self, sort_by: str = 'self_hartree',
                       allow_reassignment: bool = False):
         """Cluster the orbitals into groups based on the specified attribute."""
         if self.tolerances == {}:
@@ -227,81 +279,32 @@ class VariationalOrbitals(BaseModel):
             return ValueError(f'Cannot sort orbitals according to {sort_by}; valid choices are'
                               + '/'.join(self.tolerances.keys()))
 
-        # By default use the settings provided when VariationalOrbitals() was initialized
-        tol = tol if tol is not None else self.tolerances[sort_by]
+        logger = logging.getLogger(__name__)
+        logger.info(f'Grouping orbitals by {sort_by} with tolerance {self.tolerances[sort_by]:.2e} eV')
 
-        # Separate the orbitals into different subsets, where we don't want any grouping of orbitals belonging to
-        # different subsets
-        if self.spin_polarized:
-            unassigned_sets = [[o for o in self if o.filled == filled and o.spin == spin]
-                               for spin in self.spin_channels for filled in [True, False]]
-        else:
-            # Separate by filling and focus only on the first spin channel
-            selected_spin = self.spin_channels[0]
-            unassigned_sets = [[o for o in self if o.filled == filled and o.spin == selected_spin]
-                               for filled in [True, False]]
+        # Construct an array to use for clustering. By adding spin and filled as extra dimensions, we ensure that
+        # orbitals with different spins or filling will not be grouped together.
+        all_spin_values = [s for s in Spin]
+        tol = self.tolerances[sort_by]
+        data = np.array([[getattr(o, sort_by), all_spin_values.index(
+            o.spin), -2 * tol if o.filled else 2 * tol] for o in self])
 
-        def points_are_close(p0: VariationalOrbital, p1: VariationalOrbital, factor: Union[int, float] = 1) -> bool:
-            # Determine if two orbitals are "close"
-            assert tol is not None
-            return abs(getattr(p0, sort_by) - getattr(p1, sort_by)) < tol * factor
+        # Find the groups
+        groups = self._assign_groups_fcluster(data=data, default_tol=tol, revised_tol=tol)
 
-        group = 0
-        for unassigned in unassigned_sets:
-            while len(unassigned) > 0:
-                # Select one band
-                guess = unassigned[0]
+        # Assign the groups
+        for orbital, group in zip(self.orbitals, groups):
+            orbital.group = group
 
-                # Find the neighborhood of adjacent orbitals (with 2x larger threshold)
-                neighborhood = [o for o in unassigned if points_are_close(guess, o)]
-
-                # Find the center of that neighborhood
-                av = np.mean([getattr(o, sort_by) for o in neighborhood])
-                center = VariationalOrbital(**{sort_by: av})
-
-                # Find a revised neighborhood close to the center (using a factor of 0.5 because we want points that
-                # are on opposite sides of the neighborhood to be within "tol" of each other which means they can be
-                # at most 0.5*tol away from the neighborhood center
-                neighborhood = [o for o in unassigned if points_are_close(center, o, 0.5)]
-
-                # Check the neighborhood is isolated
-                wider_neighborhood = [o for o in unassigned if points_are_close(center, o)]
-
-                if neighborhood != wider_neighborhood:
-                    if self.tolerances[sort_by] and tol < 0.01 * self.tolerances[sort_by]:
-                        # We have recursed too deeply, abort
-                        raise Exception('Clustering algorithm failed')
-                    else:
-                        self.assign_groups(sort_by, tol=0.9 * tol if tol else None,
-                                           allow_reassignment=allow_reassignment)
-                        return
-
-                for o in neighborhood:
-                    unassigned.remove(o)
-
-                    if allow_reassignment:
-                        # Perform the reassignment
-                        o.group = group
-                    else:
-                        # Check previous values exist
-                        if o.group is None:
-                            o.group = group
-                        # Check the new grouping matches the old grouping
-                        if o.group != group:
-                            raise Exception('Clustering algorithm found different grouping')
-
-                # Move on to next group
-                group += 1
-
-        if not self.spin_polarized and self.n_spin == 2:
-            for o in self.get(spin=self.spin_channels[1]):
-                [match] = [o_op for o_op in self.get(spin=self.spin_channels[0]) if o_op.index == o.index]
-                o.group = match.group
-
-        if tol != self.tolerances[sort_by]:
-            warn(f'It was not possible to group orbitals with the {sort_by} tolerance of '
-                 f'{self.tolerances[sort_by]:.2e} eV. A grouping was found for a tolerance of {tol:.2e} eV.\n'
-                 f'Try a larger tolerance to group more orbitals together')
+        # Logging
+        for spin_groups in self.groups:
+            for group in sorted(set(spin_groups)):
+                orbitals = self.get(group=group)
+                logger.info(f'  Group {group}: {len(orbitals)} orbitals')
+                for o in orbitals:
+                    occ_str = 'occ' if o.filled else 'emp'
+                    logger.info(
+                        f'    Orbital {o.index} (spin {o.spin}, {occ_str}): {sort_by} = {getattr(o, sort_by):.2e}')
 
         return
 

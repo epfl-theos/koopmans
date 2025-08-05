@@ -190,13 +190,15 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
             spins = [Spin.UP, Spin.DOWN] if self.parameters.spin_polarized else [Spin.NONE]
             for spin in spins:
                 wannier_files_to_link_by_spin.append({})
-                unique = isinstance(self.projections, ImplicitProjections)
-                if unique:
-                    # Use a unique Wannierization of occupied + empty
+                if isinstance(self.projections, ImplicitProjections):
                     fillings = [None]
+                    unique = True
+                    emp_str = ""
                 else:
-                    # The Wannierization is done separately for occupied and empty
                     fillings = [True, False]
+                    unique = False
+                    emp_str = "_emp"
+
                 for filled in fillings:
                     block_id = BlockID(filled=filled, spin=spin, unique=unique)
                     for f in [wf_workflow.outputs.u_files[block_id],
@@ -210,10 +212,10 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
 
                     dft_ham_files[block_id] = wf_workflow.outputs.hr_files[block_id]
 
-                # Empty/Unique manifolds might also have a disentanglement file than we need to copy
+                # Empty/unique manifolds might also have a disentanglement file than we need to copy
                 if wf_workflow.outputs.u_dis_files[block_id] is not None:
-                    emp_str = "" if filled is None else "_emp"
-                    wannier_files_to_link_by_spin[-1][f'wannier90{emp_str}_u_dis.mat'] = \
+                    u_dis_file = f"wannier90_{emp_str}u_dis.mat"
+                    wannier_files_to_link_by_spin[-1][u_dis_file] = \
                         wf_workflow.outputs.u_dis_files[block_id]
 
         else:
