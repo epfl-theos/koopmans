@@ -202,11 +202,15 @@ class KCWScreenConfig(ParallelCommandConfig):
     stderr: str | None = None
     stdin_redirection_string: ClassVar[str] = "-in"
     ase_env_var: ClassVar[str] = "ASE_KCW_SCREEN_COMMAND"
+    npool: int | None = Field(None, description="Number of pools to use for parallel execution.")
 
     @property
     def options_str(self) -> str:
         """Return the string of options to provide to the executable."""
-        return ''
+        options: list[str] = []
+        if self.npool is not None:
+            options.append(f"-npool {self.npool}")
+        return ' '.join(options)
 
 
 class KCWWannierConfig(ParallelCommandConfig):
