@@ -722,6 +722,13 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             if not self.ml.r_min < self.ml.r_max:
                 raise ValueError(f"`r_min` is larger or equal to `r_max = {self.ml.r_max}`.")
 
+        # Check that if spin-polarized but no magnetization, that starting magnetizations have been provided
+        if self.parameters.spin_polarized and all(self.atoms.get_initial_magnetic_moments() == 0.0):
+            raise ValueError("You have requested a spin-polarized calculation but have not provided any"
+                             "magnetization information. Please specify either `tot_magnetization` or "
+                             "`starting_magnetization(*)` keywords in the `pw` or `kcp` calculator "
+                             "parameters.")
+
     def new_calculator(self,
                        calc_type: str,
                        kpts: Optional[Union[List[int], BandPath]] = None,
