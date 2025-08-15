@@ -425,10 +425,11 @@ class CommandConfigs(BaseModel):
     )
 
     @model_validator(mode="before")
+    @classmethod
     def default_mpi_executable(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Use the provided `mpi_executable` for all codes."""
         # The default value
-        mpi_executable = cls.__pydantic_fields__['mpi_executable'].default
+        mpi_executable = cls.model_fields['mpi_executable'].default
 
         # PARA_PREFIX takes precedence over the default value
         para_prefix = os.environ.get("PARA_PREFIX", None)
@@ -446,7 +447,7 @@ class CommandConfigs(BaseModel):
 
         data["mpi_executable"] = mpi_executable
 
-        for name, field in cls.__pydantic_fields__.items():
+        for name, field in cls.model_fields.items():
             # Check if the field corresponds to a ParallelCommandConfig
             subclass = field.annotation
             if subclass is None or not issubclass(subclass, ParallelCommandConfig):
@@ -462,9 +463,10 @@ class CommandConfigs(BaseModel):
         return data
 
     @model_validator(mode="before")
+    @classmethod
     def get_env_vars(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Set the configurations based on the corresponding environment variables, if present."""
-        for name, field in cls.__pydantic_fields__.items():
+        for name, field in cls.model_fields.items():
             # Check if the field corresponds to a CommandConfig
             subclass = field.annotation
             if subclass is None or not issubclass(subclass, CommandConfig):
