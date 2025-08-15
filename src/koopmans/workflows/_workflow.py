@@ -296,17 +296,22 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 {k: v for k, v in calculator_parameters['pw'].items() if k.startswith('starting_magnetization')})
             if starting_mags:
                 labels = [a.symbol + str(a.tag) if a.tag > 0 else a.symbol for a in self.atoms]
-                starting_magmoms: Dict[str, float] = {}
-                for i, (l, p) in enumerate(self.pseudopotentials.items()):
-                    mag = starting_mags.pop(f'starting_magnetization({i + 1})', 0.0)
+                starting_magmoms: dict[str, float] = OrderedDict()
+                i = 0
+                for label in labels:
+                    if label in starting_magmoms:
+                        continue
+                    i += 1
+                    mag = starting_mags.pop(f'starting_magnetization({i})', 0.0)
                     if abs(mag) < 1.0:
                         # If |mag| < 1, QE interprets this as site magnetization *per valence electron*, whereas ASE
                         # expects simply the site magnetization
+                        p = self.pseudopotentials[label]
                         valence = p['header']['z_valence']
-                        starting_magmoms[l] = mag * valence
+                        starting_magmoms[label] = mag * valence
                     else:
                         # If |mag| >= 1, QE interprets this as site magnetization
-                        starting_magmoms[l] = mag
+                        starting_magmoms[label] = mag
                 atoms.set_initial_magnetic_moments([starting_magmoms[label] for label in labels])
             elif tot_mag != 0:
                 atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
