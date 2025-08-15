@@ -292,6 +292,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                     else:
                         # If |mag| >= 1, QE interprets this as site magnetization
                         starting_magmoms[l] = mag
+                import ipdb
+                ipdb.set_trace()
                 atoms.set_initial_magnetic_moments([starting_magmoms[label] for label in labels])
             elif tot_mag != 0:
                 atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])

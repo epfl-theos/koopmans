@@ -608,13 +608,15 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
 
         if self.variational_orbitals is not None:
             # Add centers and spreads info to self.variational_orbitals
-            remaining_bands = [b for b in self.variational_orbitals if b.center is None and b.spin == self.block.spin]
+            exclude_bands = calc_w90.parameters.exclude_bands or []
+            orbs = [b for b in self.variational_orbitals if b.spin == self.block.spin
+                    and b.index not in exclude_bands]
 
             centers = calc_w90.results['centers']
             spreads = calc_w90.results['spreads']
-            for band, center, spread in zip(remaining_bands, centers, spreads):
-                band.center = center
-                band.spread = spread
+            for orb, center, spread in zip(orbs, centers, spreads):
+                orb.center = center
+                orb.spread = spread
 
         hr_file = File(calc_w90, calc_w90.prefix + '_hr.dat') if calc_w90.parameters.write_hr else None
         u_file = File(calc_w90, calc_w90.prefix + '_u.mat') if calc_w90.parameters.write_u_matrices else None

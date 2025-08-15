@@ -207,7 +207,7 @@ class VariationalOrbitals(BaseModel):
         return [[o.index for o in self if o.spin == spin] for spin in self.spin_channels]
 
     @property
-    def groups(self):
+    def groups(self) -> list[list[int]]:
         """Return a list of the groups of each orbital."""
         return [[o.group for o in self if o.spin == spin] for spin in self.spin_channels]
 
@@ -217,59 +217,7 @@ class VariationalOrbitals(BaseModel):
         for o, v in zip(self, [v for subarray in value for v in subarray]):
             o.group = v
 
-    def _assign_groups_fcluster(self, data, default_tol: float, revised_tol: Optional[float] = None):
-        tol = revised_tol if revised_tol is not None else default_tol
-        if tol < 0.01 * default_tol:
-            raise Exception('Clustering algorithm failed; could not find a clustering with well-separated groups even '
-                            'for much smaller thresholds')
-
-        from scipy.cluster.hierarchy import fcluster, linkage
-
-        # Complete linkage clustering
-        Z = linkage(data, method='complete')
-        labels = fcluster(Z, t=tol, criterion='distance')
-
-        # Check the sets have spreads that are separated by at least 2 * tol
-        clustered_data = [data[labels == i] for i in set(labels)]
-        clusters_edges = [(np.min(c, axis=0), np.max(c, axis=0)) for c in clustered_data]
-
-        well_separated = True
-        for i, cluster_edges in enumerate(clusters_edges):
-            other_cluster_edges = clusters_edges[:i] + clusters_edges[i + 1:]
-
-            if any([np.abs(edge - other_edge).sum() < 2 * tol for edge in cluster_edges for other_edge in
-                    other_cluster_edges]):
-                # The clusters are not well-separated
-                well_separated = False
-                break
-
-        logger = logging.getLogger(__name__)
-        if well_separated:
-            if revised_tol != default_tol:
-                warn(f'It was not possible to group orbitals with a tolerance of '
-                     f'{default_tol:.2e} eV. A grouping was found for a revised tolerance of {revised_tol:.2e} eV. '
-                     f'If you want to group more orbitals together, increase the default tolerance.')
-                logger.info(f'Orbitals groups found using a decreased tolerance of {tol:.2e} eV')
-
-            # Reorder labels to start from 1
-            mapping = {}
-            max_label = 0
-            for label in labels:
-                if label not in mapping:
-                    max_label += 1
-                    mapping[label] = max_label
-
-            return [mapping[label] for label in labels]
-        else:
-            new_tol = 0.9 * tol
-            logger.debug(f'Clusters not well-separated; trying with a reduced tolerance of {new_tol:.2e} eV')
-
-            return self._assign_groups_fcluster(data=data,
-                                                default_tol=default_tol,
-                                                revised_tol=new_tol)
-
-    def assign_groups(self, sort_by: str = 'self_hartree',
-                      allow_reassignment: bool = False):
+    def assign_groups(self, sort_by: str = 'self_hartree', blocks: Optional[List[List[int]]] = None):
         """Cluster the orbitals into groups based on the specified attribute."""
         if self.tolerances == {}:
             # Do not perform clustering
@@ -279,22 +227,40 @@ class VariationalOrbitals(BaseModel):
             return ValueError(f'Cannot sort orbitals according to {sort_by}; valid choices are'
                               + '/'.join(self.tolerances.keys()))
 
+        tol = self.tolerances[sort_by]
         logger = logging.getLogger(__name__)
-        logger.info(f'Grouping orbitals by {sort_by} with tolerance {self.tolerances[sort_by]:.2e} eV')
+        logger.info(f'Grouping orbitals by {sort_by} with tolerance {tol:.2e} eV')
 
         # Construct an array to use for clustering. By adding spin and filled as extra dimensions, we ensure that
         # orbitals with different spins or filling will not be grouped together.
-        all_spin_values = [s for s in Spin]
-        tol = self.tolerances[sort_by]
-        data = np.array([[getattr(o, sort_by), all_spin_values.index(
-            o.spin), -2 * tol if o.filled else 2 * tol] for o in self])
 
+        # Select the subsets
+        if blocks is None:
+            subset_tuples = [(o.spin, o.filled, o.index) for o in self]
+        elif set([b for block in blocks for b in block]) != set([o.index for o in self]):
+            raise ValueError("The provided blocks do not match the indices of the orbitals.")
+        else:
+            subset_tuples = []
+            for orb in self:
+                block_index = next(i for i, block in enumerate(blocks) if orb.index in block)
+                subset_tuples.append((orb.spin, block_index, orb.filled))
+
+        min_group_index = 0
         # Find the groups
-        groups = self._assign_groups_fcluster(data=data, default_tol=tol, revised_tol=tol)
+        for subset in sorted(set(subset_tuples)):
+            orbitals = [o for o, s in zip(self, subset_tuples, strict=True) if s == subset]
+            data = [[getattr(o, sort_by)] for o in orbitals]
 
-        # Assign the groups
-        for orbital, group in zip(self.orbitals, groups):
-            orbital.group = group
+            # Find the groups
+            if len(data) == 1:
+                groups = [1]
+            else:
+                groups = _assign_groups_fcluster(data=np.array(data), default_tol=tol, revised_tol=tol)
+
+            # Assign the groups
+            for orbital, group in zip(orbitals, groups):
+                orbital.group = group + min_group_index
+            min_group_index += max(groups)
 
         # Logging
         for spin_groups in self.groups:
@@ -455,3 +421,55 @@ class VariationalOrbitals(BaseModel):
     def predicted_alpha_history(self, spin: Spin = Spin.NONE) -> pd.DataFrame:
         """Return a dataframe that contains the history of the predicted screening parameters."""
         return self._create_dataframe('predicted_alpha', spin=spin)
+
+
+def _assign_groups_fcluster(data, default_tol: float, revised_tol: Optional[float] = None) -> list[int]:
+    tol = revised_tol if revised_tol is not None else default_tol
+    if tol < 0.01 * default_tol:
+        raise Exception('Clustering algorithm failed; could not find a clustering with well-separated groups even '
+                        'for much smaller thresholds')
+
+    from scipy.cluster.hierarchy import fcluster, linkage
+
+    # Complete linkage clustering
+    Z = linkage(data, method='complete')
+    labels = fcluster(Z, t=tol, criterion='distance')
+
+    # Check the sets have spreads that are separated by at least 2 * tol
+    clustered_data = [data[labels == i] for i in set(labels)]
+    clusters_edges = [(np.min(c, axis=0), np.max(c, axis=0)) for c in clustered_data]
+
+    well_separated = True
+    for i, cluster_edges in enumerate(clusters_edges):
+        other_cluster_edges = clusters_edges[:i] + clusters_edges[i + 1:]
+
+        if any([np.abs(edge - other_edge).sum() < 2 * tol for edge in cluster_edges for other_edge in
+                other_cluster_edges]):
+            # The clusters are not well-separated
+            well_separated = False
+            break
+
+    logger = logging.getLogger(__name__)
+    if well_separated:
+        if revised_tol != default_tol:
+            warn(f'It was not possible to group orbitals with a tolerance of '
+                 f'{default_tol:.2e} eV. A grouping was found for a revised tolerance of {revised_tol:.2e} eV. '
+                 f'If you want to group more orbitals together, increase the default tolerance.')
+            logger.info(f'Orbitals groups found using a decreased tolerance of {tol:.2e} eV')
+
+        # Reorder labels to start from 1
+        mapping = {}
+        max_label = 0
+        for label in labels:
+            if label not in mapping:
+                max_label += 1
+                mapping[label] = max_label
+
+        return [mapping[label] for label in labels]
+    else:
+        new_tol = 0.9 * tol
+        logger.debug(f'Clusters not well-separated; trying with a reduced tolerance of {new_tol:.2e} eV')
+
+        return _assign_groups_fcluster(data=data,
+                                       default_tol=default_tol,
+                                       revised_tol=new_tol)

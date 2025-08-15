@@ -49,7 +49,7 @@ def initialize_engine(engine_arg: str, engine_config: str | None) -> Engine:
     elif engine_arg == 'aiida':
         # raise NotImplementedError("AiiDA engine is not yet implemented")
         # Uncomment the following lines once aiida-koopmans is available
-        from aiida_koopmans.engine.aiida import AiiDAEngine, AiiDAStepsData
+        from aiida_koopmans.engine import AiiDAEngine, AiiDAStepsData
         if engine_config is not None:
             with open(engine_config, 'r') as f:
                 engine_config = json.load(f)

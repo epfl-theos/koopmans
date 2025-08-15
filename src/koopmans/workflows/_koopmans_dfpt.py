@@ -218,6 +218,13 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                     wannier_files_to_link_by_spin[-1][u_dis_file] = \
                         wf_workflow.outputs.u_dis_files[block_id]
 
+                if unique:
+                    # Also add the separated occupied and empty Hamiltonian files to dft_ham_files
+                    for filled in [True, False]:
+                        block_id = BlockID(filled=filled, spin=spin, unique=False)
+                        dft_ham_files[block_id] = wf_workflow.outputs.hr_files[block_id]
+
+            blocks = [p.include_bands for p in wf_workflow.outputs.projections]
         else:
             # Run PW
             self.print('Initialization of density and variational orbitals', style='heading')
@@ -236,6 +243,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
 
             init_pw = pw_workflow.calculations[0]
             wannier_files_to_link_by_spin = [{}, {}] if self.parameters.spin_polarized else [{}]
+            blocks = []
 
         spin_components = [1, 2] if self.parameters.spin_polarized else [1]
 
@@ -265,7 +273,8 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
             if self.parameters.calculate_alpha:
                 if self.parameters.dfpt_coarse_grid is None:
                     screen_wf = ComputeScreeningViaDFPTWorkflow.fromparent(
-                        self, wannier_files_to_link=wannier_files_to_link, spin_component=spin_component)
+                        self, wannier_files_to_link=wannier_files_to_link, spin_component=spin_component,
+                        blocks=blocks)
                     screen_wf.name += spin_suffix
                     screen_wfs.append(screen_wf)
             else:
@@ -394,15 +403,17 @@ class ComputeScreeningViaDFPTWorkflow(Workflow[ComputeScreeningViaDFPTOutputs]):
 
     output_model = ComputeScreeningViaDFPTOutputs
 
-    def __init__(self, *args, spin_component: int, wannier_files_to_link: Dict[str, File], **kwargs):
+    def __init__(self, *args, spin_component: int, wannier_files_to_link: Dict[str, File],
+                 blocks: list[list[int]] | None = None, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._wannier_files_to_link = wannier_files_to_link
         self._spin_component = spin_component
+        self._blocks = blocks
 
     def _run(self):
         # Group the variational orbitals by spread
-        self.variational_orbitals.assign_groups(sort_by='spread', allow_reassignment=True)
+        self.variational_orbitals.assign_groups(sort_by='spread', blocks=self._blocks)
 
         if len(self.variational_orbitals.to_solve) == len(self.variational_orbitals):
             # If there is no orbital grouping, do all orbitals in one calculation

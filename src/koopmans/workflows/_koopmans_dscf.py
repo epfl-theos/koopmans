@@ -546,7 +546,7 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
         self.variational_orbitals.self_hartrees = trial_calc.results['orbital_data']['self-Hartree']
 
         # Group the variational orbitals
-        self.variational_orbitals.assign_groups(allow_reassignment=True)
+        self.variational_orbitals.assign_groups()
 
         skipped_orbitals = []
         # Calculate the power spectrum if required
