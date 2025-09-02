@@ -129,7 +129,7 @@ These individual projections (either as dictionaries or as strings) must be prov
 We can achieve both of the above via the list-of-lists syntax. Consider the following example for the wannierization of bulk ZnO
 
 .. literalinclude:: ../tutorials/tutorial_3/01-ki/zno.json
-  :lines: 47-55
+  :lines: 54-62
   :dedent:
 
 In ZnO, the bands form several distinct blocks. The first block of occupied bands have Zn 3s character, the next Zn 3p, then O 2s, and finally Zn 3d hybridized with O 2p. The first empty bands have Zn 4s character. You can see this reflected in the way the projections have been specified. If we were to run the workflow with this configuration, it will run five separate Wannierizations, one for each sub-list.
@@ -161,8 +161,7 @@ This subblock contains keywords specific to ``kcp.x``, a modified version of ``c
 
 The kcw subblock
 ~~~~~~~~~~~~~~~~
-This subblock contains keywords specific to ``kcw.x`` (see the `list of valid kcw.x keywords <https://www.quantum-espresso.org/Doc/INPUT_KCW.html>`_). Non-experts will never need to change these keywords.
-
+This subblock contains keywords specific to ``kcw.x`` (see the `list of valid kcw.x keywords <https://www.quantum-espresso.org/Doc/INPUT_kcw.html>`_). Non-experts will never need to change these keywords.
 
 The ui subblock
 ~~~~~~~~~~~~~~~
