@@ -185,12 +185,16 @@ class KCWHamConfig(ParallelCommandConfig):
     stdout: str | None = "PREFIX.kho"
     stderr: str | None = None
     stdin_redirection_string: ClassVar[str] = "-in"
+    pd: bool = Field(False, description="Use pencil decomposition.")
     ase_env_var: ClassVar[str] = "ASE_KCW_HAM_COMMAND"
 
     @property
     def options_str(self) -> str:
         """Return the string of options to provide to the executable."""
-        return ''
+        options: list[str] = []
+        if self.pd:
+            options.append(f"-pd {self.pd}")
+        return ' '.join(options)
 
 
 class KCWScreenConfig(ParallelCommandConfig):
@@ -201,12 +205,19 @@ class KCWScreenConfig(ParallelCommandConfig):
     stdout: str | None = "PREFIX.kso"
     stderr: str | None = None
     stdin_redirection_string: ClassVar[str] = "-in"
+    npool: int | None = Field(None, description="Number of pools to use for parallel execution.")
+    pd: bool = Field(False, description="Use pencil decomposition.")
     ase_env_var: ClassVar[str] = "ASE_KCW_SCREEN_COMMAND"
 
     @property
     def options_str(self) -> str:
         """Return the string of options to provide to the executable."""
-        return ''
+        options: list[str] = []
+        if self.npool is not None:
+            options.append(f"-npool {self.npool}")
+        if self.pd:
+            options.append(f"-pd {self.pd}")
+        return ' '.join(options)
 
 
 class KCWWannierConfig(ParallelCommandConfig):
@@ -217,12 +228,19 @@ class KCWWannierConfig(ParallelCommandConfig):
     stdout: str | None = "PREFIX.w2ko"
     stderr: str | None = None
     stdin_redirection_string: ClassVar[str] = "-in"
+    npool: int | None = Field(None, description="Number of pools to use for parallel execution.")
+    pd: bool = Field(False, description="Use pencil decomposition.")
     ase_env_var: ClassVar[str] = "ASE_KCW_WANNIER_COMMAND"
 
     @property
     def options_str(self) -> str:
         """Return the string of options to provide to the executable."""
-        return ''
+        options: list[str] = []
+        if self.npool is not None:
+            options.append(f"-npool {self.npool}")
+        if self.pd:
+            options.append(f"-pd {self.pd}")
+        return ' '.join(options)
 
 
 class KCPConfig(ParallelCommandConfig):
@@ -265,6 +283,8 @@ class ProjwfcConfig(ParallelCommandConfig):
     stdout: str | None = "PREFIX.pro"
     stderr: str | None = None
     stdin_redirection_string: ClassVar[str] = "-in"
+    npool: int | None = Field(None, description="Number of pools to use for parallel execution.")
+    pd: bool = Field(False, description="Use pencil decomposition.")
     ase_env_var: ClassVar[str] = "ASE_PROJWFC_COMMAND"
 
     @property
