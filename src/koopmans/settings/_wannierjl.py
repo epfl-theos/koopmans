@@ -1,10 +1,13 @@
-from pathlib import Path
+"""Settings for WannierJL."""
+
 from typing import Any
 
 from ._utils import SettingsDict
 
 
 class WannierJLSettingsDict(SettingsDict):
+    """Settings dictionary for a WannierJL calculation."""
+
     def __init__(self, **kwargs) -> None:
 
         super().__init__(valid=['task', 'nval', 'outdir-val', 'outdir-cond', 'run-disentangle', 'run-optrot',
