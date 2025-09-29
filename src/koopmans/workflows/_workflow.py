@@ -1144,7 +1144,9 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
         # object but it is provided in the w90 subdictionary)
         if w90_block_projs != []:
-            kwargs['projections'] = ExplicitProjections(blocks=w90_block_projs, atoms=atoms)
+            # Suppress type-checking because mypy does not understand that pydantic will cast blocks appropriately
+            # to the desired type
+            kwargs['projections'] = ExplicitProjections(blocks=w90_block_projs, atoms=atoms)  # type: ignore[arg-type]
 
         kwargs['pseudopotentials'] = bigdct.pop('pseudopotentials', {})
 

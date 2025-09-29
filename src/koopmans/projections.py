@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Dict, Generic, List, Optional, Sequence, TypeVar
+from typing import Any, Dict, Generic, List, Optional, Sequence, TypeVar, cast
 
 from ase_koopmans import Atoms
 from ase_koopmans.io.wannier90 import num_wann_from_projections
@@ -179,9 +179,9 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
 
     blocks: list[ProjectionsBlockType]
     atoms: Atoms
-    exclude_bands: Dict[Spin, List[int]] = Field(default_factory=lambda: {k: [] for k in Spin})
-    num_extra_bands: Dict[Spin, int | None] = Field(default_factory=lambda: {k: 0 for k in Spin})
-    num_occ_bands: Dict[Spin, int | None] = Field(default_factory=lambda: {k: None for k in Spin})
+    exclude_bands: Dict[Spin, list[int]] = Field(default_factory=lambda: {k: list[int]() for k in Spin})
+    num_extra_bands: Dict[Spin, int | None] = Field(default_factory=lambda: {k: cast(int | None, 0) for k in Spin})
+    num_occ_bands: Dict[Spin, int | None] = Field(default_factory=lambda: {k: cast(int | None, None) for k in Spin})
 
     def __repr__(self) -> str:
         out = self.__class__.__name__ + '('

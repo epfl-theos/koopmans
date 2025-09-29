@@ -284,7 +284,7 @@ class CalculatorExt(utils.HasDirectory):
             dest_filename = dest_filename.name
         self.linked_files[str(dest_filename)] = (src, symlink, recursive_symlink, overwrite)
 
-    def link_pseudopotential(self, src: str, dest: str) -> None:
+    def link_pseudopotential(self, src: str | Path, dest: str | Path) -> None:
         """Link a pseudopotential file to the calculator.
 
         This is engine-dependent because for some engines we don't want to simply link pseudopotential
@@ -292,7 +292,11 @@ class CalculatorExt(utils.HasDirectory):
         """
         if self.engine is None:
             raise ValueError('Cannot link a pseudopotential to a calculator without first setting its engine')
-        self.engine.link_pseudopotential(self, Path(src), Path(dest))
+        if not isinstance(src, Path):
+            src = Path(src)
+        if not isinstance(dest, Path):
+            dest = Path(dest)
+        self.engine.link_pseudopotential(self, src, dest)
 
 
 class CalculatorABC(ABC, Generic[TCalc]):
