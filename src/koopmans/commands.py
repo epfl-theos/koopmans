@@ -290,7 +290,12 @@ class ProjwfcConfig(ParallelCommandConfig):
     @property
     def options_str(self) -> str:
         """Return the string of options to provide to the executable."""
-        return ''
+        options: list[str] = []
+        if self.npool is not None:
+            options.append(f"-npool {self.npool}")
+        if self.pd:
+            options.append(f"-pd {self.pd}")
+        return ' '.join(options)
 
 
 class Wann2KCPConfig(ParallelCommandConfig):
