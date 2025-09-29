@@ -1,2 +1,3 @@
 graft src/koopmans/pseudopotentials
 include src/koopmans/references.bib
+include src/koopmans/juliapkg.json

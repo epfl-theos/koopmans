@@ -6,20 +6,22 @@ Originally written by Riccardo De Gennaro as the standalone 'unfolding and inter
 Integrated within koopmans by Edward Linscott Jan 2021
 """
 
-from typing import Dict, List, Literal, Optional
+from typing import Dict, Optional
 
 import numpy as np
 from ase_koopmans.dft.dos import DOS
 from ase_koopmans.spectrum.band_structure import BandStructure
 
-from koopmans import calculators, utils
+from koopmans import calculators
 from koopmans.files import File
 from koopmans.process_io import IOModel
 from koopmans.processes.ui import UnfoldAndInterpolateProcess, generate_dos
 from koopmans.projections import BlockID
 from koopmans.status import Status
+from koopmans.utils import Spin
+from koopmans.utils.warnings import warn
 
-from ._wannierize import WannierizeWorkflow
+from ._wannierize import MergeableFile, WannierizeWorkflow
 from ._workflow import Workflow
 
 
@@ -51,20 +53,23 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         - a smooth WannierizeWorkflow (if required)
         - an UnfoldAndInterpolateProcess for occ states
         - an UnfoldAndInterpolateProcess for emp states
-        - an UnfoldAndInterpolateProcess to merge occ and emp results
         """
+        if self.projections is None:
+            raise ValueError(f'{self.__class__.__name__} requires projections but none were provided.')
+
         # Transform self.atoms back to the primitive cell
         if self.parameters.method == 'dscf':
             self.supercell_to_primitive()
 
         # Store the original w90 calculations
         w90_calcs = [c for c in self.calculations if isinstance(c, calculators.Wannier90Calculator)
-                     and " -pp " not in c.command][-len(self.projections):]
+                     and " -pp " not in c.command]
 
         if self.calculator_parameters['ui'].do_smooth_interpolation and self._smooth_dft_ham_files is None:
 
             assert self.kpoints.grid is not None
-            wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kpoints.grid)
+            wannier_workflow = WannierizeWorkflow.fromparent(self, scf_kgrid=self.kpoints.grid,
+                                                             files_to_merge=[MergeableFile.HR])
             wannier_workflow.kpoints.grid = [x * y for x, y in zip(self.kpoints.grid,
                                              self.calculator_parameters['ui'].smooth_int_factor)]
 
@@ -75,16 +80,22 @@ class UnfoldAndInterpolateWorkflow(Workflow):
             # Save the smooth DFT Hamiltonian files
             self._smooth_dft_ham_files = wannier_workflow.outputs.hr_files
 
-        process: UnfoldAndInterpolateProcess
-        spins: List[Literal[None, "up", "down", "spinor"]]
-        if self.parameters.spin_polarized:
-            spins = ['up', 'down']
-        else:
-            spins = [None]
+            # Update self.projections
+            self.projections = wannier_workflow.outputs.projections
 
-        assert self.bands is not None
+        # If there were multiple sets of Wannierization steps run in the past, we only want the
+        # most recent one
+        w90_calcs = w90_calcs[-len(self.projections):]
+
+        process: UnfoldAndInterpolateProcess
+        if self.parameters.spin_polarized:
+            spins = [Spin.UP, Spin.DOWN]
+        else:
+            spins = [Spin.NONE]
+
+        assert self.variational_orbitals is not None
         processes = []
-        for spin, band_filling in zip(spins, self.bands.filling):
+        for spin, orb_filling in zip(spins, self.variational_orbitals.filling):
             # Extract the centers and spreads corresponding to this particular spin
             centers = np.array([center for c, p in zip(w90_calcs, self.projections)
                                for center in c.results['centers'] if p.spin == spin])
@@ -104,7 +115,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                     # For dfpt, self.bands correspond to the primitive cell so band_filling is already the correct
                     # dimensions
                     ngrid = 1
-                mask = np.array(band_filling[::ngrid]) == filled
+                mask = np.array(orb_filling[::ngrid]) == filled
 
                 # Add the smooth DFT Hamiltonian file if relevant
                 if self.calculator_parameters['ui'].do_smooth_interpolation:
@@ -146,10 +157,10 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                                   for e in [np.sort(ekn.flatten()) for ekn in merged_dos.e_skn]])
             if merged_dos.width < 5 * median_eval_gap:
                 merged_dos = None
-                utils.warn('The DOS will not be plotted, because the Brillouin zone is too poorly sampled for the '
-                           'specified value of smearing. In order to generate a DOS, increase the k-point density '
-                           '(`kpath_density` in the `setup` `k_points` subblock) and/or the smearing (`degauss` '
-                           'in the `plot` block)')
+                warn('The DOS will not be plotted, because the Brillouin zone is too poorly sampled for the '
+                     'specified value of smearing. In order to generate a DOS, increase the k-point density '
+                     '(`kpath_density` in the `setup` `k_points` subblock) and/or the smearing (`degauss` '
+                     'in the `plot` block)')
         else:
             merged_dos = None
 

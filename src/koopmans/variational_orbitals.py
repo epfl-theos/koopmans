@@ -1,0 +1,475 @@
+"""Module that defines variational orbitals and their properties."""
+
+import itertools
+import logging
+from typing import Dict, List, Optional, Union
+
+import numpy as np
+import pandas as pd
+from pydantic import BaseModel, Field
+
+from koopmans.files import File
+from koopmans.utils import Spin
+from koopmans.utils.warnings import warn
+
+
+class VariationalOrbital(BaseModel):
+    """A class that defines a variational orbital. To be renamed from "Band" to "VariationalOrbital" in the future."""
+
+    index: int
+    spin: Spin = Spin.NONE
+    filled: bool = True
+    group: int
+    alpha_history: List[float] = Field(default_factory=list)
+    error_history: List[float] = Field(default_factory=list)
+    predicted_alpha: Optional[float] = None
+    self_hartree: Optional[float] = None
+    spread: Optional[float] = None
+    center: Optional[np.ndarray] = None
+    power_spectrum: Optional[File] = None
+    model_config = {'arbitrary_types_allowed': True}
+
+    @classmethod
+    def fromdict(cls, dct):
+        """Construct a Band object from a dictionary."""
+        alpha_history = dct.pop('alpha_history')
+        error_history = dct.pop('error_history')
+        var_orb = cls(**dct)
+        var_orb.alpha_history = alpha_history
+        var_orb.error_history = error_history
+        return var_orb
+
+    def todict(self) -> dict:
+        """Convert the Band object to a dictionary."""
+        dct = self.__dict__
+        dct['__koopmans_name__'] = self.__class__.__name__
+        dct['__koopmans_module__'] = self.__class__.__module__
+        return dct
+
+    def __eq__(self, other):
+        if not isinstance(other, VariationalOrbital):
+            return False
+        return self.__dict__ == other.__dict__
+
+    def __repr__(self) -> str:
+        info = f'{self.__class__.__name__}(index={self.index}, spin={self.spin}, filled={self.filled}, ' \
+               + f'group={self.group}'
+        for attr in ['alpha', 'self_hartree', 'spread', 'center']:
+            val = getattr(self, attr, None)
+            if val:
+                info += f', {attr.replace("_", "-")}={val}'
+        return info + ')'
+
+    @property
+    def alpha(self) -> float:
+        """The screening parameter for this variational orbital."""
+        if len(self.alpha_history) == 0:
+            raise AttributeError('VariationalOrbital does not have screening parameters')
+        return self.alpha_history[-1]
+
+    @alpha.setter
+    def alpha(self, value: Optional[float]):
+        if value is not None:
+            assert isinstance(value, float)
+            self.alpha_history.append(value)
+
+    @property
+    def error(self):
+        """The error in piecewise linearity for this variational orbital."""
+        if len(self.error_history) == 0:
+            raise AttributeError('VariationalOrbital does not have error data')
+        return self.error_history[-1]
+
+    @error.setter
+    def error(self, value: Optional[float]):
+        if value is not None:
+            assert isinstance(value, float)
+            self.error_history.append(value)
+
+
+class VariationalOrbitals(BaseModel):
+    """A class to store a list of VariationalOrbital objects."""
+
+    orbitals: List[VariationalOrbital] = Field(default_factory=list)
+    n_spin: int = 1
+    spin_polarized: bool = False
+    tolerances: Dict[str, float] = Field(default_factory=dict)
+
+    model_config = {'arbitrary_types_allowed': True, 'extra': 'forbid'}
+
+    @classmethod
+    def empty(cls,
+              filling: list[list[bool]],
+              groups: Optional[list[list[int]]] = None,
+              spin_polarized: bool = False,
+              tolerances: Dict[str, float] = {}) -> 'VariationalOrbitals':
+        """Create an empty VariationalOrbitals object."""
+        orbitals = []
+        n_spin = len(filling)
+        n_orbitals = len(filling[0])
+        if groups:
+            if len(groups) != n_spin:
+                raise ValueError('Shape mismatch between filling and groups')
+        spins = [Spin.UP, Spin.DOWN] if n_spin == 2 else [Spin.NONE]
+        for i_spin, (spin, filling_spin) in enumerate(zip(spins, filling)):
+            for i_orb, f_orb in enumerate(filling_spin):
+                if groups is None:
+                    group = i_orb + i_spin * n_orbitals if spin_polarized else i_orb
+                else:
+                    group = groups[i_spin][i_orb]
+                orbitals.append(VariationalOrbital(index=i_orb + i_spin * n_orbitals + 1,
+                                                   spin=spin, group=group, filled=f_orb))
+        return cls(orbitals=orbitals, n_spin=n_spin, spin_polarized=spin_polarized, tolerances=tolerances)
+
+    def __iter__(self):
+        for o in self.orbitals:
+            yield o
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}([\n  ' + '\n  '.join([str(o) for o in self]) + '\n])'
+
+    def __len__(self) -> int:
+        return len(self.orbitals)
+
+    @property
+    def n_orbitals(self) -> int:
+        """Return the number of orbitals for a single spin channel."""
+        return len(self.get(spin=self.spin_channels[0]))
+
+    @classmethod
+    def fromlist(cls, orbitals: List[VariationalOrbital]):
+        """Construct a Bands object from a dictionary."""
+        raise NotImplementedError('TODO')
+        # return orbitals
+
+    def get(self, spin: Spin | None = None, filled: Optional[bool] = None, group: Optional[int] = None,
+            to_solve: Optional[bool] = None) -> List[VariationalOrbital]:
+        """Return all orbitals that match the specified criteria."""
+        if spin is None:
+            spin = self.spin_channels[0]
+        if to_solve:
+            selected_orbs = self.to_solve
+        else:
+            selected_orbs = self
+        if filled is not None:
+            selected_orbs = [o for o in selected_orbs if o.filled == filled]
+        if group is not None:
+            selected_orbs = [o for o in selected_orbs if o.group == group]
+        if spin != Spin.NONE:
+            selected_orbs = [o for o in selected_orbs if o.spin == spin]
+
+        if len(selected_orbs) == 0:
+            raise ValueError(f'No orbitals found matching the criteria: spin={spin}, filled={filled}, group={group}')
+
+        return selected_orbs
+
+    def __getitem__(self, key):
+        return self.orbitals[key]
+
+    def num(self, filled: bool | None = None, spin: Spin | None = None):
+        """Return the number of bands that match the specified criteria."""
+        return len(self.get(filled=filled, spin=spin))
+
+    def index(self, orbital: VariationalOrbital) -> int:
+        """Return the index of the specified orbital."""
+        if orbital not in self.orbitals:
+            raise ValueError(f"{orbital} is not in {self}")
+        [i_match] = [i for i, b in enumerate(self.orbitals) if b == orbital]
+        return i_match
+
+    def _check_array_shape_match(self, array, array_name):
+        assert len(array) == self.n_spin, f'{self.__class__.__name__}.{array_name} must be length {self.n_spin} ' \
+            f'but you provided an array of length {len(array)}'
+        for i, subarray in enumerate(array):
+            assert len(subarray) == self.n_orbitals, f'{self.__class__.__name__}.{array_name}[{i}] must be length ' \
+                f'{self.n_orbitals} but you provided an array with length {len(subarray)}. The file_alpharef files ' \
+                'should reflect the number of states in the supercell.'
+
+    @property
+    def spin_channels(self) -> list[Spin]:
+        """Return a list of the different spin channels."""
+        return [Spin.UP, Spin.DOWN] if self.n_spin == 2 else [Spin.NONE]
+
+    @property
+    def filling(self) -> List[List[bool]]:
+        """Return the filling of each orbital."""
+        return [[o.filled for o in self if o.spin == spin] for spin in self.spin_channels]
+
+    @filling.setter
+    def filling(self, value: List[List[bool]]):
+        self._check_array_shape_match(value, 'filling')
+        for o, v in zip(self, [v for subarray in value for v in subarray]):
+            o.filled = v
+
+    @property
+    def indices(self):
+        """Return a list of the indices of each orbital."""
+        return [[o.index for o in self if o.spin == spin] for spin in self.spin_channels]
+
+    @property
+    def groups(self) -> list[list[int]]:
+        """Return a list of the groups of each orbital."""
+        return [[o.group for o in self if o.spin == spin] for spin in self.spin_channels]
+
+    @groups.setter
+    def groups(self, value: List[List[int]]):
+        self._check_array_shape_match(value, 'groups')
+        for o, v in zip(self, [v for subarray in value for v in subarray]):
+            o.group = v
+
+    def assign_groups(self, sort_by: str = 'self_hartree', blocks: Optional[List[List[int]]] = None):
+        """Cluster the orbitals into groups based on the specified attribute."""
+        if self.tolerances == {}:
+            # Do not perform clustering
+            return
+
+        if sort_by not in self.tolerances:
+            return ValueError(f'Cannot sort orbitals according to {sort_by}; valid choices are'
+                              + '/'.join(self.tolerances.keys()))
+
+        tol = self.tolerances[sort_by]
+        logger = logging.getLogger(__name__)
+        logger.info(f'Grouping orbitals by {sort_by} with tolerance {tol:.2e} eV')
+
+        # Construct an array to use for clustering. By adding spin and filled as extra dimensions, we ensure that
+        # orbitals with different spins or filling will not be grouped together.
+
+        # Select the subsets
+        if blocks is None:
+            subset_tuples = [(o.spin, o.filled, o.index) for o in self]
+        elif set([b for block in blocks for b in block]) != set([o.index for o in self]):
+            raise ValueError("The provided blocks do not match the indices of the orbitals.")
+        else:
+            subset_tuples = []
+            for orb in self:
+                block_index = next(i for i, block in enumerate(blocks) if orb.index in block)
+                subset_tuples.append((orb.spin, block_index, orb.filled))
+
+        min_group_index = 0
+        # Find the groups
+        for subset in sorted(set(subset_tuples)):
+            orbitals = [o for o, s in zip(self, subset_tuples, strict=True) if s == subset]
+            data = [[getattr(o, sort_by)] for o in orbitals]
+
+            # Find the groups
+            if len(data) == 1:
+                groups = [1]
+            else:
+                groups = _assign_groups_fcluster(data=np.array(data), default_tol=tol, revised_tol=tol)
+
+            # Assign the groups
+            for orbital, group in zip(orbitals, groups):
+                orbital.group = group + min_group_index
+            min_group_index += max(groups)
+
+        # Logging
+        for spin_groups in self.groups:
+            for group in sorted(set(spin_groups)):
+                orbitals = self.get(group=group)
+                logger.info(f'  Group {group}: {len(orbitals)} orbitals')
+                for o in orbitals:
+                    occ_str = 'occ' if o.filled else 'emp'
+                    logger.info(
+                        f'    Orbital {o.index} (spin {o.spin}, {occ_str}): {sort_by} = {getattr(o, sort_by):.2e}')
+
+        return
+
+    @property
+    def to_solve(self):
+        """Dynamically generate a list of orbitals that require solving explicitly."""
+        # If groups have not been assigned...
+        if None in [o.group for o in self]:
+            if self.spin_polarized:
+                # ... and spin-polarized, solve all orbitals
+                return self.get()
+            else:
+                # ... and not spin-polarized, solve one spin channel only
+                return self.get(spin=self.spin_channels[0])
+
+        # If not, work out which orbitals to solve explicitly
+        groups_found = set([])
+        to_solve = []
+
+        for orb in [o for spin in self.spin_channels for o in self.get(spin=spin)[::-1] if o.filled] \
+                + [o for spin in self.spin_channels for o in self.get(spin=spin) if not o.filled]:
+            # Looping through the filled orbitals from "highest" to "lowest" (first high spin then low spin), then empty
+            # orbitals from "lowest" to "highest" (but note since these are variational orbitals "highest" and "lowest")
+            # is not especially meaningful, unless we happen to be using KS orbitals as variational orbitals...
+            if orb.group not in groups_found:
+                groups_found.add(orb.group)
+                to_solve.append(orb)
+
+        if groups_found != set([b.group for b in self]):
+            raise ValueError('Splitting of orbitals into groups failed')
+
+        return sorted(to_solve, key=lambda x: (x.spin, x.index))
+
+    @property
+    def self_hartrees(self) -> List[float]:
+        """Return the self-Hartree energies for each band."""
+        return [b.self_hartree for b in self]
+
+    @self_hartrees.setter
+    def self_hartrees(self, value: List[List[float]]) -> None:
+        self._check_array_shape_match(value, 'self_hartrees')
+        for b, v in zip(self, [v for subarray in value for v in subarray]):
+            b.self_hartree = v
+
+    @property
+    def predicted_alphas(self) -> List[List[float]]:
+        """Return the predicted screening parameters for each band."""
+        return [[b.predicted_alpha for b in self if b.spin == spin] for spin in self.spin_channels]
+
+    @property
+    def power_spectrum(self) -> List[List[float]]:
+        """Return the power spectra of the bands."""
+        return [b.power_spectrum for b in self]
+
+    def update_attrib_with_history(self, name: str, value: Union[float, List[List[float]], np.ndarray, pd.DataFrame],
+                                   group=None) -> None:
+        """Set the orbitals' screening parameters/errors to the value provided.
+
+        For this generic function,
+         - "value" can be a scalar, a list, or a pandas DataFrame of the alpha_history
+         - if "group" is provided then it applies this value to the orbitals belonging to this group only
+        """
+        if isinstance(value, pd.DataFrame):
+            assert group is None, 'Cannot update only one group via a pandas DataFrame'
+            if self.spin_polarized:
+                raise NotImplementedError()
+            else:
+                tmp_arr = np.transpose(value.values)
+                array = [tmp_arr for _ in range(self.n_spin)]
+
+            for spin, s_array in zip(self.spin_channels, array):
+                for b, history in zip(self.get(spin=spin), s_array):
+                    # Make sure to exclude NaNs
+                    setattr(b, f'{name}_history', [a for a in history.tolist() if not np.isnan(a)])
+            return
+
+        if isinstance(value, float):
+            value = [[value for _ in range(self.n_orbitals)] for _ in self.spin_channels]
+
+        self._check_array_shape_match(value, name)
+        for b, v in zip(self, [v for subarray in value for v in subarray]):
+            if group:
+                if b.group != group:
+                    continue
+            setattr(b, name, v)
+
+    @property
+    def alphas(self):
+        """Return a list of screening parameters for each band.
+
+        Uses the most recent iteration for which all bands have a screening parameter.
+        """
+        i = min([len(b.alpha_history) for b in self]) - 1
+        if i == -1:
+            raise AttributeError()
+        return [[b.alpha_history[i] for b in self if b.spin == spin] for spin in self.spin_channels]
+
+    @alphas.setter
+    def alphas(self, value):
+        self.update_attrib_with_history('alpha', value)
+
+    @property
+    def errors(self):
+        """Return a list of the errors of each band."""
+        return [b.error for b in self]
+
+    @errors.setter
+    def errors(self, value):
+        self.update_errors(value)
+
+    def update_errors(self, value, group=None):
+        """Update the errors for the bands."""
+        self.update_attrib_with_history('error', value)
+
+    def _create_dataframe(self, attr, spin: Spin = Spin.NONE, only_to_solve=True) -> pd.DataFrame:
+        """Generate a dataframe containing the requested attribute, sorting the bands first by index, then by spin."""
+        if self.spin_polarized and spin == Spin.NONE:
+            if only_to_solve:
+                blist = self.to_solve
+            else:
+                blist = self
+
+            columns = pd.MultiIndex.from_tuples([(f'spin {str(b.spin)}', b.index) for b in blist])
+            band_subset = sorted(blist, key=lambda x: (x.spin, x.index))
+        else:
+            columns = [b.index for b in self.get(spin=spin, to_solve=only_to_solve)]
+            band_subset = self.get(spin=spin, to_solve=only_to_solve)
+
+        if isinstance(getattr(band_subset[0], attr), list):
+            # Create an array of values padded with NaNs
+            arr = np.array(list(itertools.zip_longest(*[getattr(b, attr) for b in band_subset], fillvalue=np.nan)))
+        else:
+            arr = np.array([[getattr(b, attr) for b in band_subset]])
+        if arr.size == 0:
+            df = pd.DataFrame(columns=columns)
+        else:
+            df = pd.DataFrame(arr, columns=columns)
+        return df
+
+    def alpha_history(self, spin: Spin = Spin.NONE) -> pd.DataFrame:
+        """Return a dataframe that contains the history of the screening parameters."""
+        return self._create_dataframe('alpha_history', spin=spin)
+
+    def error_history(self, spin: Spin = Spin.NONE) -> pd.DataFrame:
+        """Return a dataframe that contains the history of the errors."""
+        return self._create_dataframe('error_history', spin=spin)
+
+    def predicted_alpha_history(self, spin: Spin = Spin.NONE) -> pd.DataFrame:
+        """Return a dataframe that contains the history of the predicted screening parameters."""
+        return self._create_dataframe('predicted_alpha', spin=spin)
+
+
+def _assign_groups_fcluster(data, default_tol: float, revised_tol: Optional[float] = None) -> list[int]:
+    tol = revised_tol if revised_tol is not None else default_tol
+    if tol < 0.01 * default_tol:
+        raise Exception('Clustering algorithm failed; could not find a clustering with well-separated groups even '
+                        'for much smaller thresholds')
+
+    from scipy.cluster.hierarchy import fcluster, linkage
+
+    # Complete linkage clustering
+    Z = linkage(data, method='complete')
+    labels = fcluster(Z, t=tol, criterion='distance')
+
+    # Check the sets have spreads that are separated by at least 2 * tol
+    clustered_data = [data[labels == i] for i in set(labels)]
+    clusters_edges = [(np.min(c, axis=0), np.max(c, axis=0)) for c in clustered_data]
+
+    well_separated = True
+    for i, cluster_edges in enumerate(clusters_edges):
+        other_cluster_edges = clusters_edges[:i] + clusters_edges[i + 1:]
+
+        if any([np.abs(edge - other_edge).sum() < 2 * tol for edge in cluster_edges for other_edge in
+                other_cluster_edges]):
+            # The clusters are not well-separated
+            well_separated = False
+            break
+
+    logger = logging.getLogger(__name__)
+    if well_separated:
+        if revised_tol != default_tol:
+            warn(f'It was not possible to group orbitals with a tolerance of '
+                 f'{default_tol:.2e} eV. A grouping was found for a revised tolerance of {revised_tol:.2e} eV. '
+                 f'If you want to group more orbitals together, increase the default tolerance.')
+            logger.info(f'Orbitals groups found using a decreased tolerance of {tol:.2e} eV')
+
+        # Reorder labels to start from 1
+        mapping = {}
+        max_label = 0
+        for label in labels:
+            if label not in mapping:
+                max_label += 1
+                mapping[label] = max_label
+
+        return [mapping[label] for label in labels]
+    else:
+        new_tol = 0.9 * tol
+        logger.debug(f'Clusters not well-separated; trying with a reduced tolerance of {new_tol:.2e} eV')
+
+        return _assign_groups_fcluster(data=data,
+                                       default_tol=default_tol,
+                                       revised_tol=new_tol)

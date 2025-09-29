@@ -22,9 +22,11 @@ class Wannier90SettingsDict(SettingsDict):
                                 'bands_plot', 'mp_grid', 'kpoint_path', 'projections', 'write_hr',
                                 'write_u_matrices', 'write_xyz', 'wannier_plot', 'wannier_plot_list',
                                 'gamma_only', 'spin', 'use_ws_distance', 'translate_home_cell',
-                                'translation_centre_frac', 'write_tb'],
+                                'translation_centre_frac', 'write_tb', 'auto_projections', 'dis_proj_max',
+                                'dis_froz_proj', "dis_num_iter"],
                          defaults={'num_iter': 10000, 'conv_tol': 1.e-10, 'conv_window': 5,
-                                   'write_hr': True, 'guiding_centres': True, 'gamma_only': False},
+                                   'write_hr': True, 'guiding_centres': True, 'gamma_only': False,
+                                   'auto_projections': False},
                          **kwargs)
 
     def update(self, *args, **kwargs) -> None:
@@ -91,11 +93,6 @@ class Wannier90SettingsDict(SettingsDict):
                 for i, v in enumerate(value):
                     if isinstance(v, str):
                         v = proj_string_to_dict(v)
-                    assert isinstance(v, dict)
-                    for k in v.keys():
-                        if k not in ['site', 'cartesian_site', 'fractional_site', 'ang_mtm', 'zaxis', 'xaxis', 'radial',
-                                     'zona']:
-                            raise KeyError(f'Unrecognized key `{k}` in the w90 projections block')
                     value[i] = v
             if key == 'exclude_bands' and isinstance(value, str):
                 value = formatted_str_to_list(value)

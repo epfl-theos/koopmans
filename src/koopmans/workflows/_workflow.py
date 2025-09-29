@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import sys
+import time
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -40,28 +41,27 @@ from ase_koopmans.spectrum.dosdata import GridDOSData
 from upf_tools import UPFDict
 
 from koopmans import calculators, settings, utils
-from koopmans.bands import Bands
 from koopmans.engines import Engine, LocalhostEngine
-from koopmans.files import File, LocalFile, ParentProcessPlaceholder
+from koopmans.files import File, ParentProcessPlaceholder
 from koopmans.kpoints import Kpoints
 from koopmans.ml import AbstractMLModel, MLModel, OccEmpMLModels
 from koopmans.process_io import IOModel
 from koopmans.processes import Process, ProcessProtocol
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
-from koopmans.projections import ProjectionBlocks
-from koopmans.pseudopotentials import (nelec_from_pseudos,
+from koopmans.projections import (ExplicitProjections, ImplicitProjections,
+                                  Projections)
+from koopmans.pseudopotentials import (nelec_from_pseudos, nwfcs_from_pseudos,
                                        pseudopotential_library_citations)
 from koopmans.references import bib_data
 from koopmans.status import Status
-from koopmans.utils import SpinType
+from koopmans.utils import Spin
+from koopmans.utils.warnings import warn
+from koopmans.variational_orbitals import VariationalOrbitals
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 W = TypeVar('W', bound='Workflow')
 OutputModel = TypeVar('OutputModel', bound=IOModel)
-
-
-logger = logging.getLogger(__name__)
 
 
 class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
@@ -101,7 +101,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
     name: str
     kpoints: Kpoints
     pseudopotentials: OrderedDict[str, UPFDict]
-    projections: ProjectionBlocks
+    projections: Projections | None
     ml_model: Optional[AbstractMLModel]
     snapshots: List[Atoms]
     version: str
@@ -113,15 +113,15 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
     __slots__ = utils.HasDirectory.__slots__ + ['atoms', 'parameters', 'calculator_parameters', 'name', 'kpoints',
                                                 'pseudopotentials', 'projections', 'ml_model', 'snapshots',
                                                 'version', 'calculations', 'processes',
-                                                'steps', 'plotting', 'ml', '_bands', 'step_counter', 'print_indent',
-                                                'status', '_outputs']
+                                                'steps', 'plotting', 'ml', '_variational_orbitals', 'step_counter',
+                                                'print_indent', 'status', '_outputs']
 
     def __init__(self,
                  atoms: Atoms,
                  engine: Engine,
                  pseudopotentials: OrderedDict[str, UPFDict | str] = OrderedDict(),
                  kpoints: Optional[Kpoints] = None,
-                 projections: Optional[ProjectionBlocks] = None,
+                 projections: Optional[Projections] = None,
                  name: Optional[str] = None,
                  parameters: Union[Dict[str, Any], settings.WorkflowSettingsDict] = {},
                  calculator_parameters: Optional[Union[Dict[str, Dict[str, Any]],
@@ -166,20 +166,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         self.calculations: List[calculators.Calc] = []
         self.processes: List[Process] = []
         self.steps: List = []
-        self._bands: Optional[Bands] = None
-
-        if projections is None:
-            proj_list: List[List[Any]]
-            spins: List[SpinType]
-            if self.parameters.spin_polarized:
-                proj_list = [[], []]
-                spins = ['up', 'down']
-            else:
-                proj_list = [[]]
-                spins = [None]
-            self.projections = ProjectionBlocks.fromlist(proj_list, spins=spins, atoms=self.atoms)
-        else:
-            self.projections = projections
+        self._variational_orbitals: Optional[VariationalOrbitals] = None
 
         self.plotting = settings.PlotSettingsDict(**plotting)
         for key, value in kwargs.items():
@@ -219,7 +206,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         if all(self.atoms.pbc):
             # By default, use ASE's default bandpath for this cell (see
             # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
-            default_path = self.atoms.cell.bandpath().path
+            default_path = self.atoms.cell.bandpath(eps=1e-10).path
         else:
             default_path = 'G'
         if kpoints is None:
@@ -280,14 +267,12 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         if self.parameters.task != 'ui' and autogenerate_settings:
             # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
             # and the kcp settings
-            nelec = nelec_from_pseudos(self.atoms, self.pseudopotentials)
-            tot_charge = calculator_parameters['pw'].get(
-                'tot_charge', calculator_parameters['kcp'].get('tot_charge', 0))
-            nelec -= tot_charge
-            tot_mag = calculator_parameters['pw'].get(
-                'tot_magnetization', calculator_parameters['kcp'].get('tot_charge', nelec % 2))
-            nelup = int(nelec / 2 + tot_mag / 2)
-            neldw = int(nelec / 2 - tot_mag / 2)
+            kcp_params = calculator_parameters['kcp']
+            nelec = self.number_of_electrons(Spin.NONE, kcp_params)
+            nelup = self.number_of_electrons(Spin.UP, kcp_params)
+            neldw = self.number_of_electrons(Spin.DOWN, kcp_params)
+            tot_charge = nelec_from_pseudos(self.atoms, self.pseudopotentials) - nelec
+            tot_mag = nelup - neldw
 
             # Setting up the magnetic moments
             starting_mags = {k: v for k, v in calculator_parameters['kcp'].items(
@@ -307,12 +292,14 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                     else:
                         # If |mag| >= 1, QE interprets this as site magnetization
                         starting_magmoms[l] = mag
+                import ipdb
+                ipdb.set_trace()
                 atoms.set_initial_magnetic_moments([starting_magmoms[label] for label in labels])
             elif tot_mag != 0:
                 atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
 
             # Work out the number of bands
-            nbnd = calculator_parameters['kcp'].get('nbnd', nelec // 2 + nelec % 2)
+            nbnd = calculator_parameters.get('pw', calculator_parameters['kcp']).get('nbnd', nelec // 2 + nelec % 2)
             generated_keywords = {'nelec': nelec, 'tot_charge': tot_charge, 'tot_magnetization': tot_mag,
                                   'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd}
         else:
@@ -323,7 +310,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         for block, params in calculator_parameters.items():
             # Apply auto-generated keywords
             for k, v in generated_keywords.items():
-                # Skipping nbnd for kcp -- it is valid according to ASE but it is not yet properly implemented
+                # Skipping nbnd for kcp; if necessary it will be generated later
                 if k == 'nbnd' and block == 'kcp':
                     continue
                 if k in params.valid and k not in params:
@@ -331,15 +318,15 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
             # Various checks for the wannier90 blocks
             if block.startswith('w90'):
-                if 'projections' in params or 'projections_blocks' in params:
+                if 'projections' in params:
                     raise ValueError(f'You have provided projection information in the '
                                      f'`calculator_parameters[{block}]` argument to `{self.__class__.__name__}`. '
                                      'Please instead specify projections via the `projections` argument')
                 for kw in ['exclude_bands', 'num_wann', 'num_bands', 'projections']:
                     if kw in params:
-                        utils.warn(f'`{kw}` will be overwritten by the workflow; it is best to not specify this '
-                                   'keyword and to instead double-check the keyword in the various `.win` files '
-                                   'generated by the workflow.')
+                        warn(f'`{kw}` will be overwritten by the workflow; it is best to not specify this '
+                             'keyword and to instead double-check the keyword in the various `.win` files '
+                             'generated by the workflow.')
 
             # Replace "nelec" as a unit with its numerical value, for any settings that are specified implicitly in
             # terms of nelec
@@ -351,15 +338,42 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         # If atoms has a calculator, overwrite the kpoints and pseudopotentials variables and then detach the
         # calculator
         if atoms.calc is not None:
-            utils.warn(f'You have initialized a `{self.__class__.__name__}` object with an atoms object that '
-                       'possesses a calculator. This calculator will be ignored.')
+            warn(f'You have initialized a `{self.__class__.__name__}` object with an atoms object that '
+                 'possesses a calculator. This calculator will be ignored.')
             self.atoms.calc = None
+
+        # Projections
+        auto = [self.calculator_parameters[s].auto_projections for s in ['w90', 'w90_up', 'w90_down']]
+        if any(auto):
+            if self.parameters.spin_polarized:
+                spins = [Spin.UP, Spin.DOWN]
+            else:
+                spins = [Spin.NONE]
+            if self.calculator_parameters['pw2wannier'].atom_proj_ext:
+                # proj_dir = self.calculator_parameters['pw2wannier'].get(
+                #     'atom_proj_dir', self.parameters.pseudo_directory)
+                raise NotImplementedError('Need to re-implement this')
+                # num_wann = [nwfcs_from_projectors(self.atoms, self.pseudopotentials) for _ in spins]
+            else:
+                num_wann = [nwfcs_from_pseudos(self.atoms, self.pseudopotentials) for _ in spins]
+            self.projections = ImplicitProjections.from_block_lengths(num_wann, spins, self.atoms)
+
+            # Also override various pw2wannier and w90 settings
+            self.calculator_parameters['pw2wannier'].atom_proj = True
+            for spin in spins:
+                label = 'w90' if spin == Spin.NONE else f'w90_{spin.value}'
+                self.calculator_parameters[label].guiding_centres = False
+                self.calculator_parameters[label].dis_froz_proj = True
+                if self.calculator_parameters[label].dis_proj_max is None:
+                    self.calculator_parameters[label].dis_proj_max = 0.95
+        else:
+            self.projections = projections
 
         # Adding excluded_bands info to self.projections
         if self.projections:
-            for spin in ['up', 'down', None]:
+            for spin in [Spin.UP, Spin.DOWN, Spin.NONE]:
                 label = 'w90'
-                if spin:
+                if spin != Spin.NONE:
                     label += f'_{spin}'
                 self.projections.exclude_bands[spin] = self.calculator_parameters[label].get('exclude_bands', [])
 
@@ -367,8 +381,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         from koopmans import __version__
         self.version = version if version is not None else __version__
         if self.version != __version__:
-            utils.warn(f'You are using version {__version__} of `koopmans`, but this workflow was generated with '
-                       f'version {self.version}. Proceed with caution.')
+            warn(f'You are using version {__version__} of `koopmans`, but this workflow was generated with '
+                 f'version {self.version}. Proceed with caution.')
 
     def __eq__(self, other: Any):
         if self.__class__ != other.__class__:
@@ -415,8 +429,9 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
     def run(self):
         """Run the workflow."""
+        assert self.engine is not None
+
         self.print_preamble()
-        attempts = 0
 
         if not self.parent_process:
             bf = '**' if sys.stdout.isatty() else ''
@@ -426,21 +441,32 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 self._remove_tmpdirs()
             self._run_sanity_checks()
 
+        start_time = time.time()
+
         while self.status != Status.COMPLETED:
-            # Reset the step counter each time we reattempt the workflow
+            logger = logging.getLogger(__name__)
+            logger.info(f'Proceeding with workflow {self.name} ({self.__class__.__name__})')
+
             self.proceed()
 
-            attempts += 1
-            if attempts == 1000:
-                self.status = Status.FAILED
-                raise ValueError('Workflow failed to complete after 1000 attempts')
-
-            self.engine.update_statuses()
+            while self.engine.steps_are_running():
+                logger.info('Steps are running; waiting for them to complete...')
+                self.wait()
+                if self.parameters.max_time is not None and time.time() - start_time > self.parameters.max_time:
+                    self.status = Status.FAILED
+                    raise ValueError('Workflow failed to complete within the specified time')
 
         if not self.parent_process and self.status == Status.COMPLETED:
             self._teardown()
 
         self.status = Status.COMPLETED
+
+    def wait(self):
+        """Wait while calculations are running.
+
+        While waiting, the engine might perform other actions such as fetching remote files etc.
+        """
+        self.engine.wait(seconds=self.parameters.wait_time)
 
     def _pre_run(self):
         """Run checks and actions before running the workflow."""
@@ -460,7 +486,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         step is completed. For such a workflow, the status of individual steps proceed immediately from `NOT_STARTED`
         to `COMPLETE` and `proceed()` will not exit until all the steps in the workflow are `COMPLETED`.
         """
-        logger.info(f'Running workflow {self.name} ({self.__class__.__name__})')
+        logger = logging.getLogger(__name__)
+        logger.info(f'Proceeding to the next step in the workflow {self.name} ({self.__class__.__name__})')
 
         self._pre_run()
 
@@ -474,7 +501,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             self._run()
 
         self._post_run()
-        logger.info(f'Exiting workflow {self.name} with status "{self.status.value}" ({self.__class__.__name__})')
+        logger.info(f'Exiting workflow {self.name} with status {self.status.name} ({self.__class__.__name__})')
 
     def _post_run(self):
         """Run checks and actions after running the workflow."""
@@ -559,8 +586,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             if self.parameters.frozen_orbitals is None:
                 self.parameters.frozen_orbitals = False
             if self.parameters.frozen_orbitals:
-                utils.warn('You have requested a ΔSCF calculation with frozen orbitals. This is unusual; proceed '
-                           'only if you know what you are doing')
+                warn('You have requested a ΔSCF calculation with frozen orbitals. This is unusual; proceed '
+                     'only if you know what you are doing')
 
         if self.parameters.functional == 'dft':
             self.parameters.calculate_alpha = False
@@ -576,20 +603,20 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 if self.parameters.gb_correction is None:
                     self.parameters.gb_correction = True
                 if not self.parameters.gb_correction:
-                    utils.warn('Gygi-Baldereschi corrections are not being used; do this with '
-                               'caution for periodic systems')
+                    warn('Gygi-Baldereschi corrections are not being used; do this with '
+                         'caution for periodic systems')
 
             elif self.parameters.method == 'dscf':
                 # For DSCF, we use mp_correction
                 if self.parameters.mp_correction is None:
                     self.parameters.mp_correction = True
                 if not self.parameters.mp_correction:
-                    utils.warn('Makov-Payne corrections are not being used; do this with '
-                               'caution for periodic systems')
+                    warn('Makov-Payne corrections are not being used; do this with '
+                         'caution for periodic systems')
 
                 if self.parameters.eps_inf is None:
-                    utils.warn('`eps_inf` missing in input; it will default to 1.0. Proceed with caution for periodic '
-                               'systems; consider setting `eps_inf == "auto"` to calculate it automatically.')
+                    warn('`eps_inf` missing in input; it will default to 1.0. Proceed with caution for periodic '
+                         'systems; consider setting `eps_inf == "auto"` to calculate it automatically.')
                     self.parameters.eps_inf = 1.0
 
             if self.parameters.mt_correction is None:
@@ -604,10 +631,10 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
             # Check symmetry of the system
             dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=False)
-            if dataset is None or dataset.number not in range(195, 231):
-                utils.warn('This system is not cubic and will therefore not have a uniform dielectric tensor. However, '
-                           'the image-correction schemes that are currently implemented assume a uniform dielectric. '
-                           'Proceed with caution')
+            if dataset is None or dataset['number'] not in range(195, 231):
+                warn('This system is not cubic and will therefore not have a uniform dielectric tensor. However, '
+                     'the image-correction schemes that are currently implemented assume a uniform dielectric. '
+                     'Proceed with caution')
 
         else:
             if self.parameters.gb_correction is None:
@@ -623,8 +650,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             if self.parameters.mt_correction is None:
                 self.parameters.mt_correction = True
             if not self.parameters.mt_correction:
-                utils.warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with '
-                           'caution')
+                warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with '
+                     'caution')
 
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] and not self.parameters.task.startswith('dft'):
             if len(self.projections) == 0:
@@ -636,34 +663,34 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                     raise ValueError('This calculation is spin-polarized; please provide spin-up and spin-down '
                                      'projections')
             else:
-                if spin_set != {None}:
+                if spin_set != {Spin.NONE}:
                     raise ValueError('This calculation is not spin-polarized; please do not provide spin-indexed '
                                      'projections')
 
         # Check the consistency between self.kpoints.gamma_only and KCP's do_wf_cmplx
         if not self.kpoints.gamma_only and self.calculator_parameters['kcp'].do_wf_cmplx is False:
-            utils.warn('`do_wf_cmplx = False` is not consistent with `gamma_only = False`. '
-                       'Changing `do_wf_cmplx` to `True`')
+            warn('`do_wf_cmplx = False` is not consistent with `gamma_only = False`. '
+                 'Changing `do_wf_cmplx` to `True`')
             self.calculator_parameters['kcp'].do_wf_cmplx = True
 
         # Make sanity checks for the ML model
         if self.ml.predict or self.ml.train or self.ml.test:
-            utils.warn("Predicting screening parameters with machine-learning is an experimental feature; proceed with "
-                       "caution")
+            warn("Predicting screening parameters with machine-learning is an experimental feature; proceed with "
+                 "caution")
             if self.ml_model is None:
                 raise ValueError("You have requested to train or predict with a machine-learning model, but no model "
                                  "is attached to this workflow. Either set `ml:train` or `predict` to `True` when "
                                  "initializing the workflow, or directly add a model to the workflow's `ml_model` "
                                  "attribute")
             if self.ml_model.estimator_type != self.ml.estimator:
-                utils.warn(f'The estimator type of the loaded ML model (`{self.ml_model.estimator_type}`) does not '
-                           f'match the estimator type specified in the Workflow settings (`{self.ml.estimator}`). '
-                           'Overriding...')
+                warn(f'The estimator type of the loaded ML model (`{self.ml_model.estimator_type}`) does not '
+                     f'match the estimator type specified in the Workflow settings (`{self.ml.estimator}`). '
+                     'Overriding...')
                 self.ml.estimator = self.ml_model.estimator_type
             if self.ml_model.descriptor_type != self.ml.descriptor:
-                utils.warn(f'The descriptor type of the loaded ML model (`{self.ml_model.descriptor_type}`) does not '
-                           f'match the descriptor type specified in the Workflow settings (`{self.ml.descriptor}`). '
-                           'Overriding...')
+                warn(f'The descriptor type of the loaded ML model (`{self.ml_model.descriptor_type}`) does not '
+                     f'match the descriptor type specified in the Workflow settings (`{self.ml.descriptor}`). '
+                     'Overriding...')
                 self.ml.descriptor = self.ml_model.descriptor_type
             if [self.ml.predict, self.ml.train, self.ml.test].count(True) > 1:
                 raise ValueError(
@@ -688,11 +715,11 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                     'Using the ML-prediction for using different initial orbitals for empty states than for occupied '
                     'states has not yet been implemented.')
             if self.parameters.spin_polarized:
-                utils.warn('Using the ML-prediction for spin-polarised systems has not yet been extensively tested.')
+                warn('Using the ML-prediction for spin-polarised systems has not yet been extensively tested.')
             if not all(self.atoms.pbc):
-                utils.warn('Using the ML-prediction for non-periodic systems has not yet been extensively tested.')
+                warn('Using the ML-prediction for non-periodic systems has not yet been extensively tested.')
             if self.parameters.orbital_groups:
-                utils.warn('Using orbital_groups has not yet been extensively tested.')
+                warn('Using orbital_groups has not yet been extensively tested.')
             if not np.all(self.atoms.cell.angles() == 90.0):
                 raise ValueError("The ML-workflow has only been implemented for simulation cells that have 90° angles")
 
@@ -711,7 +738,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 raise ValueError(
                     f"`r_min` has to be equal or larger than zero. The provided value is `r_min = {self.ml.r_min}`")
             if self.ml.r_min < 0.5:
-                utils.warn(
+                warn(
                     "Small values of `r_min` (<0.5) can lead to problems in the construction of the radial basis. "
                     f"The provided value is `r_min = {self.ml.r_min}`.")
             if not self.ml.r_min < self.ml.r_max:
@@ -744,6 +771,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             calc_class = calculators.PhCalculator
         elif calc_type == 'projwfc':
             calc_class = calculators.ProjwfcCalculator
+        elif calc_type == 'wjl':
+            calc_class = calculators.WannierJLCalculator
         else:
             raise ValueError(f'Cound not find a calculator of type `{calc_type}`')
 
@@ -783,14 +812,14 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         # Create the calculator
         calc = calc_class(atoms=copy.deepcopy(self.atoms), **all_kwargs)
 
+        # Link the engine
+        calc.engine = self.engine
+
         # Link the pseudopotentials if relevant
         if calculator_parameters.is_valid('pseudo_dir') or isinstance(calc, calculators.KoopmansHamCalculator):
             for pseudo in self.pseudopotentials.values():
-                calc.link(LocalFile(pseudo.filename), Path('pseudopotentials') / pseudo.filename.name, symlink=True)
+                calc.link_pseudopotential(pseudo.filename, Path('pseudopotentials') / pseudo.filename.name)
             calc.parameters.pseudo_dir = 'pseudopotentials'
-
-        # Link the engine
-        calc.engine = self.engine
 
         return calc
 
@@ -842,6 +871,8 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         """
         assert self.engine is not None
 
+        logger = logging.getLogger(__name__)
+
         # Convert steps to an immutable, covariant tuple
         if isinstance(steps, ProcessProtocol):
             steps = (steps,)
@@ -863,11 +894,10 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
 
             status = self.engine.get_status(step)
             if status == Status.NOT_STARTED:
-                # Run the step
                 logger.info(f'Submitting {step.directory} ({step.__class__.__name__})')
                 self.engine.run(step, additional_flags=additional_flags)
             else:
-                logger.info(f'Step {step.name} is already {status}')
+                logger.info(f'Step {step.uid} is {status.name}', stacklevel=2)
 
         for step in steps:
             if self.engine.get_status(step) == Status.COMPLETED:
@@ -929,12 +959,12 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         n_calculations = len(self.calculations)
         n_processes = len(self.processes)
 
-        # Link the bands
-        if self.parent_process.bands is not None:
+        # Link the variational orbitals
+        if self.parent_process.variational_orbitals is not None:
             if copy_outputs_to_parent:
-                self.bands = self.parent_process.bands
+                self.variational_orbitals = self.parent_process.variational_orbitals
             else:
-                self.bands = copy.deepcopy(self.parent_process.bands)
+                self.variational_orbitals = copy.deepcopy(self.parent_process.variational_orbitals)
 
         # Prepend the step counter to the subdirectory name
         subdirectory_str = self.name.replace(' ', '-').lower() if subdirectory is None else subdirectory
@@ -953,11 +983,11 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 self.parent_process.steps += self.steps[n_steps:]
 
                 if self.status == Status.COMPLETED:
-                    if self.bands is not None and self.parent_process.bands is None:
-                        # Copy the entire bands object
-                        self.parent_process.bands = self.bands
+                    if self.variational_orbitals is not None and self.parent_process.variational_orbitals is None:
+                        # Copy the entire variational_orbitals object
+                        self.parent_process.variational_orbitals = self.variational_orbitals
 
-    def print(self, *args, **kwargs):
+    def print(self, *args, **kwargs) -> None:
         """Print information in a tidy way."""
         utils.indented_print(*args, **kwargs)
 
@@ -994,14 +1024,14 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         return wf
 
     @property
-    def bands(self) -> Bands | None:
-        """The bands object associated with this workflow."""
-        return self._bands
+    def variational_orbitals(self) -> VariationalOrbitals | None:
+        """The variational_orbitals object associated with this workflow."""
+        return self._variational_orbitals
 
-    @bands.setter
-    def bands(self, value: Bands):
-        assert isinstance(value, Bands)
-        self._bands = value
+    @variational_orbitals.setter
+    def variational_orbitals(self, value: VariationalOrbitals):
+        assert isinstance(value, VariationalOrbitals)
+        self._variational_orbitals = value
 
     @classmethod
     def fromjson(cls, fname: str, override: Dict[str, Any] = {}, **kwargs):
@@ -1077,8 +1107,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         # Finally, generate a SettingsDict for every single kind of calculator, regardless of whether or not there was
         # a corresponding block in the json file
         calculator_parameters = {}
-        w90_block_projs: List = []
-        w90_block_spins: List[SpinType] = []
+        w90_block_projs: list[dict[str, Any]] = []
         for block, settings_class in settings_classes.items():
             # Read the block and add the resulting calculator to the calcs_dct
             dct = calcdict.pop(block, {})
@@ -1094,25 +1123,30 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                     if kpts.path != dct['kpath']:
                         raise ValueError('`kpath` in the `ui` block should match that provided in the `kpoints` block')
                     dct.pop('kpath')
-            elif block.startswith('w90'):
+            elif block.startswith('w90') and dct:
                 # If we are spin-polarized, don't store the spin-independent w90 block
                 # Likewise, if we are not spin-polarized, don't store the spin-dependent w90 blocks
                 if parameters.spin_polarized is not ('up' in block or 'down' in block):
                     continue
-                projs = dct.pop('projections', [[]])
-                w90_block_projs += projs
                 if 'up' in block:
-                    w90_block_spins += ['up' for _ in range(len(projs))]
+                    block_spin = Spin.UP
                 elif 'down' in block:
-                    w90_block_spins += ['down' for _ in range(len(projs))]
+                    block_spin = Spin.DOWN
                 else:
-                    w90_block_spins += [None for _ in range(len(projs))]
+                    block_spin = Spin.NONE
+                projs = dct.pop('projections', [[]])
+
+                # Add the spin information
+                w90_block_projs += [{'spin': block_spin, 'projections': proj_block} for proj_block in projs]
 
             calculator_parameters[block] = settings_class(**dct)
 
         # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
         # object but it is provided in the w90 subdictionary)
-        kwargs['projections'] = ProjectionBlocks.fromlist(w90_block_projs, w90_block_spins, atoms)
+        if w90_block_projs != []:
+            # Suppress type-checking because mypy does not understand that pydantic will cast blocks appropriately
+            # to the desired type
+            kwargs['projections'] = ExplicitProjections(blocks=w90_block_projs, atoms=atoms)  # type: ignore[arg-type]
 
         kwargs['pseudopotentials'] = bigdct.pop('pseudopotentials', {})
 
@@ -1280,11 +1314,13 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                 calcdct['ui'].update(**params_dict)
             elif code.startswith('w90'):
                 if '_' in code:
-                    spin = code.split('_')[1]
+                    [spin] = [s for s in Spin if s.value == code.split('_')[1]]
                     calcdct['w90'][spin] = params_dict
                 else:
-                    spin = None
+                    spin = Spin.NONE
                     calcdct['w90'] = params_dict
+                if self.projections is None:
+                    raise ValueError('Projections are required for the w90 calculator, but none were provided')
                 projections = self.projections.get_subset(spin)
                 if projections:
                     proj_kwarg = {'projections': [p.projections for p in projections]}
@@ -1438,6 +1474,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         from koopmans.io import write
 
         assert self.status == Status.COMPLETED
+        assert self.engine is not None
 
         # Save workflow to file
         write(self, self.name + '.pkl')
@@ -1451,19 +1488,26 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         if not self.engine.keep_tmpdirs:
             self._remove_tmpdirs()
 
-    def number_of_electrons(self, spin: Optional[str] = None) -> int:
+        # Engine-dependent teardown
+        self.engine._teardown()
+
+    def number_of_electrons(self, spin: Spin = Spin.NONE, params: Optional[settings.SettingsDict] = None) -> int:
         """Return the number of electrons in a particular spin channel."""
         nelec_tot = nelec_from_pseudos(self.atoms, self.pseudopotentials)
-        pw_params = self.calculator_parameters['pw']
+        if params is None:
+            params = self.calculator_parameters['pw']
+        nelec = nelec_tot - params.get('tot_charge', 0)
         if self.parameters.spin_polarized:
-            nelec = nelec_tot - pw_params.get('tot_charge', 0)
-            if spin == 'up':
-                nelec += pw_params.tot_magnetization
+            if spin == Spin.UP:
+                nelec += params.tot_magnetization
+            elif spin == Spin.DOWN:
+                nelec -= params.tot_magnetization
             else:
-                nelec -= pw_params.tot_magnetization
+                raise ValueError('When spin-polarized, `spin` must be either `Spin.UP` or `Spin.DOWN`')
             nelec = int(nelec // 2)
         else:
-            nelec = nelec_tot
+            if spin != Spin.NONE:
+                nelec //= 2
         return nelec
 
 
@@ -1520,6 +1564,7 @@ def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]
             'ui_occ': settings.UnfoldAndInterpolateSettingsDict(),
             'ui_emp': settings.UnfoldAndInterpolateSettingsDict(),
             'kcw_wannier': settings.Wann2KCSettingsDict(),
+            'wjl': settings.WannierJLSettingsDict(),
             'w90': settings.Wannier90SettingsDict(),
             'w90_up': settings.Wannier90SettingsDict(),
             'w90_down': settings.Wannier90SettingsDict(),
@@ -1539,6 +1584,7 @@ settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
                     'ui': settings.UnfoldAndInterpolateSettingsDict,
                     'ui_occ': settings.UnfoldAndInterpolateSettingsDict,
                     'ui_emp': settings.UnfoldAndInterpolateSettingsDict,
+                    'wjl': settings.WannierJLSettingsDict,
                     'w90': settings.Wannier90SettingsDict,
                     'w90_up': settings.Wannier90SettingsDict,
                     'w90_down': settings.Wannier90SettingsDict,

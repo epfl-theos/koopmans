@@ -1,15 +1,14 @@
 """Workflow for performing KI and KIPZ calculations with kcp.x."""
 
-import logging
 import shutil
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from ase_koopmans.dft import DOS
+from ase_koopmans.spectrum.band_structure import BandStructure
 
 from koopmans import utils
-from koopmans.bands import Band, Bands
 from koopmans.calculators import (KoopmansCPCalculator, PWCalculator,
                                   convert_flat_alphas_for_kcp)
 from koopmans.files import File
@@ -17,15 +16,17 @@ from koopmans.process_io import IOModel
 from koopmans.projections import BlockID
 from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.status import Status
+from koopmans.utils import Spin
+from koopmans.utils.warnings import warn
+from koopmans.variational_orbitals import (VariationalOrbital,
+                                           VariationalOrbitals)
 
 from ._folding import FoldToSupercellWorkflow
 from ._koopmans_cp_with_spin_swap import KoopmansCPWithSpinSwapWorkflow
 from ._ml import PowerSpectrumDecompositionWorkflow
 from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
-from ._wannierize import WannierizeWorkflow
+from ._wannierize import MergeableFile, WannierizeWorkflow
 from ._workflow import Workflow, spin_symmetrize
-
-logger = logging.getLogger(__name__)
 
 
 class KoopmansDSCFOutputs(IOModel):
@@ -35,6 +36,8 @@ class KoopmansDSCFOutputs(IOModel):
     final_calc: KoopmansCPCalculator
     wannier_hamiltonian_files: Dict[BlockID, File] | None = None
     smooth_dft_ham_files: Dict[BlockID, File] | None = None
+    band_structure: BandStructure | None = None
+    density_of_states: DOS | None = None
 
 
 class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
@@ -68,12 +71,11 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
         # If periodic, convert the kcp calculation into a Γ-only supercell calculation
         kcp_params = self.calculator_parameters['kcp']
         if all(self.atoms.pbc):
-            spins: List[Optional[str]]
             if self.parameters.spin_polarized:
-                spins = ['up', 'down']
+                spins = [Spin.UP, Spin.DOWN]
                 nelecs = [kcp_params.nelup, kcp_params.neldw]
             else:
-                spins = [None]
+                spins = [Spin.NONE]
                 nelecs = [kcp_params.nelec // 2]
 
             for spin, nelec in zip(spins, nelecs):
@@ -81,7 +83,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
                 nbands_occ = nelec
                 if self.projections:
                     label = 'w90'
-                    if spin:
+                    if spin != Spin.NONE:
                         label += f'_{spin}'
                     nbands_excl = len(self.calculator_parameters[label].get('exclude_bands', []))
                     if nbands_excl > 0:
@@ -155,7 +157,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
         if self.parameters.orbital_groups is not None:
             assert len(self.parameters.orbital_groups) == target_length
 
-        # Constructing the arrays required to initialize a Bands object
+        # Constructing the arrays required to initialize a VariationalOrbitals object
         if self.parameters.spin_polarized:
             if 'nbnd' in kcp_params:
                 n_emp_up = kcp_params.nbnd - kcp_params.nelup
@@ -183,24 +185,24 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
         if groups is not None:
             for g, f in zip(groups, filling):
                 assert len(g) == len(f), 'orbital_groups is the wrong dimension; its length should match the number ' \
-                    'of bands'
+                    'of variational orbitals'
 
-        # Initialize the bands object
+        # Initialize the variational_orbitals object
         tols: Dict[str, float] = {}
         for key in ['self_hartree', 'spread']:
             val = self.parameters.get(f'orbital_groups_{key}_tol', None)
             if val is not None:
                 tols[key] = val
-        self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2, spin_polarized=self.parameters.spin_polarized,
-                           filling=filling, groups=groups, tolerances=tols)
+        self.variational_orbitals = VariationalOrbitals.empty(spin_polarized=self.parameters.spin_polarized,
+                                                              filling=filling, groups=groups, tolerances=tols)
 
-        assert self.bands is not None
+        assert self.variational_orbitals is not None
         if self.parameters.alpha_from_file:
             # Reading alpha values from file
-            self.bands.alphas = self.read_alphas_from_file()
+            self.variational_orbitals.alphas = self.read_alphas_from_file()
         else:
             # Initializing alpha with a guess
-            self.bands.alphas = self.parameters.alpha_guess
+            self.variational_orbitals.alphas = self.parameters.alpha_guess
 
         # Raise errors if any UI keywords are provided but will be overwritten by the workflow
         for ui_keyword in ['kc_ham_file', 'w90_seedname', 'dft_ham_file', 'dft_smooth_ham_file']:
@@ -277,10 +279,10 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
 
         else:
             self.print('Skipping calculation of screening parameters', end='')
-            assert self.bands is not None
-            if len(self.bands.alpha_history()) == 0:
+            assert self.variational_orbitals is not None
+            if len(self.variational_orbitals.alpha_history()) == 0:
                 self.print('; reading values from file')
-                self.bands.alphas = self.read_alphas_from_file()
+                self.variational_orbitals.alphas = self.read_alphas_from_file()
             print_alpha_history(self)
 
             # In this case the final calculation will restart from the initialization calculations
@@ -315,11 +317,11 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
 
                 final_calc_type += '_final'
 
-                assert self.bands is not None
+                assert self.variational_orbitals is not None
                 if use_ml:
-                    alphas = self.bands.predicted_alphas
+                    alphas = self.variational_orbitals.predicted_alphas
                 else:
-                    alphas = self.bands.alphas
+                    alphas = self.variational_orbitals.alphas
 
                 calc = internal_new_kcp_calculator(self, final_calc_type, write_hr=True, alphas=alphas)
 
@@ -340,6 +342,8 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
                                      for f in ['evc01.dat', 'evc02.dat', 'evc0_empty1.dat', 'evc0_empty2.dat']}
 
         # Postprocessing
+        band_structure: BandStructure | None = None
+        dos: DOS | None = None
         smooth_dft_ham_files: Dict[BlockID, File] | None = None
         if all(self.atoms.pbc):
             if self.parameters.calculate_bands in [None, True] and self.projections and self.kpoints.path is not None:
@@ -348,10 +352,10 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
                 koopmans_ham_files: Dict[BlockID, File]
                 if self.parameters.spin_polarized:
                     koopmans_ham_files = {
-                        BlockID(filled=True, spin="up"): File(final_koopmans_calc, Path('ham_occ_1.dat')),
-                        BlockID(filled=False, spin="up"): File(final_koopmans_calc, Path('ham_emp_1.dat')),
-                        BlockID(filled=True, spin="down"): File(final_koopmans_calc, Path('ham_occ_2.dat')),
-                        BlockID(filled=False, spin="down"): File(final_koopmans_calc, Path('ham_emp_2.dat'))
+                        BlockID(filled=True, spin=Spin.UP): File(final_koopmans_calc, Path('ham_occ_1.dat')),
+                        BlockID(filled=False, spin=Spin.UP): File(final_koopmans_calc, Path('ham_emp_1.dat')),
+                        BlockID(filled=True, spin=Spin.DOWN): File(final_koopmans_calc, Path('ham_occ_2.dat')),
+                        BlockID(filled=False, spin=Spin.DOWN): File(final_koopmans_calc, Path('ham_emp_2.dat'))
                     }
                 else:
                     koopmans_ham_files = {BlockID(filled=True): File(final_koopmans_calc, Path('ham_occ_1.dat')),
@@ -367,13 +371,16 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
                 if ui_workflow.status != Status.COMPLETED:
                     return
                 smooth_dft_ham_files = ui_workflow.outputs.smooth_dft_ham_files
+                band_structure = ui_workflow.outputs.band_structure
+                dos = ui_workflow.outputs.dos
             else:
                 # Generate the DOS only
                 dos = DOS(self.calculations[-1], width=self.plotting.degauss, npts=self.plotting.nstep + 1)
                 self.calculations[-1].results['dos'] = dos
 
         self.outputs = self.output_model(variational_orbital_files=variational_orbital_files, final_calc=final_calc,
-                                         smooth_dft_ham_files=smooth_dft_ham_files)
+                                         smooth_dft_ham_files=smooth_dft_ham_files, band_structure=band_structure,
+                                         density_of_states=dos)
 
         self.status = Status.COMPLETED
 
@@ -442,16 +449,16 @@ class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
 
             converged = iteration_wf.outputs.converged or self.ml.predict
 
-            assert self.bands is not None
-            if self.parameters.functional == 'ki' and self.bands.num(filled=False) == 0:
+            assert self.variational_orbitals is not None
+            if self.parameters.functional == 'ki' and self.variational_orbitals.num(filled=False) == 0:
                 # For this case the screening parameters are guaranteed to converge instantly
                 if self.parameters.alpha_numsteps == 1:
                     # Print the "converged" message rather than the "determined but not necessarily converged" message
                     converged = True
                 else:
                     # Do the subsequent loop
-                    utils.warn('The screening parameters for a KI calculation with no empty states will converge '
-                               'instantly; to save computational time set `alpha_numsteps == 1`')
+                    warn('The screening parameters for a KI calculation with no empty states will converge '
+                         'instantly; to save computational time set `alpha_numsteps == 1`')
 
             parent = iteration_wf.outputs.n_electron_restart_dir.parent_process
             assert isinstance(parent, KoopmansCPCalculator)
@@ -460,8 +467,8 @@ class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
             variational_orbital_files = {}
 
         if not converged:
-            utils.warn('The screening parameters have been calculated but are not necessarily self-consistent. '
-                       'You may want to increase `alpha_numsteps` to obtain a more accurate result.')
+            warn('The screening parameters have been calculated but are not necessarily self-consistent. '
+                 'You may want to increase `alpha_numsteps` to obtain a more accurate result.')
 
         self.outputs = CalculateScreeningViaDSCFOutput(
             n_electron_restart_dir=iteration_wf.outputs.n_electron_restart_dir)
@@ -507,10 +514,10 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
             print_real_space_density = True
         else:
             print_real_space_density = False
-        assert self.bands is not None
+        assert self.variational_orbitals is not None
         trial_calc = internal_new_kcp_calculator(self, calc_presets=self.parameters.functional.replace('pkipz', 'ki'),
                                                  print_real_space_density=print_real_space_density,
-                                                 alphas=self.bands.alphas,
+                                                 alphas=self.variational_orbitals.alphas,
                                                  restart_from_wannier_pwscf=restart_from_wannier_pwscf)
 
         # Link the temporary files from the previous calculation
@@ -535,11 +542,11 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
             if status != Status.COMPLETED:
                 return
 
-        # Update the bands' self-Hartree and energies (assuming spin-symmetry)
-        self.bands.self_hartrees = trial_calc.results['orbital_data']['self-Hartree']
+        # Update the variational orbitals' self-Hartree and energies (assuming spin-symmetry)
+        self.variational_orbitals.self_hartrees = trial_calc.results['orbital_data']['self-Hartree']
 
-        # Group the bands
-        self.bands.assign_groups(allow_reassignment=True)
+        # Group the variational orbitals
+        self.variational_orbitals.assign_groups()
 
         skipped_orbitals = []
         # Calculate the power spectrum if required
@@ -558,34 +565,36 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
                     raise NotImplementedError()
             else:
                 descriptors = self._precomputed_descriptors
-            for band, power_spectrum in zip(self.bands.to_solve, descriptors):
-                band.power_spectrum = power_spectrum
+            for var_orb, power_spectrum in zip(self.variational_orbitals.to_solve, descriptors):
+                var_orb.power_spectrum = power_spectrum
 
         # Loop over removing/adding an electron from/to each orbital
-        assert self.bands is not None
-        for band in self.bands:
+        assert self.variational_orbitals is not None
+        for var_orb in self.variational_orbitals:
             # Working out what to print for the orbital heading (grouping skipped bands together)
-            if band in self.bands.to_solve or band == self.bands.get(spin=band.spin)[-1]:
-                if band not in self.bands.to_solve and (self.parameters.spin_polarized or band.spin == 0):
-                    skipped_orbitals.append(band.index)
+            if var_orb in self.variational_orbitals.to_solve \
+                    or var_orb == self.variational_orbitals.get(spin=var_orb.spin)[-1]:
+                if var_orb not in self.variational_orbitals.to_solve \
+                        and (self.parameters.spin_polarized or var_orb.spin == 0):
+                    skipped_orbitals.append(var_orb.index)
                 if len(skipped_orbitals) > 0:
                     skipped_orbitals = []
-                if band not in self.bands.to_solve:
+                if var_orb not in self.variational_orbitals.to_solve:
                     continue
-            elif not self.parameters.spin_polarized and band.spin == 1:
+            elif not self.parameters.spin_polarized and var_orb.spin == 1:
                 # In this case, skip over the bands entirely and don't include it in the printout about which
                 # bands we've skipped
                 continue
             else:
                 # Skip the bands which can copy the screening parameter from another
                 # calculation in the same orbital group
-                skipped_orbitals.append(band.index)
+                skipped_orbitals.append(var_orb.index)
                 continue
 
             # Use the ML model to predict the screening parameters
             if self.ml.predict or self.ml.test:
                 assert self.ml_model is not None
-                alpha_pred = self.ml_model.predict(band)
+                alpha_pred = self.ml_model.predict(var_orb)
             else:
                 alpha_pred = None
 
@@ -594,10 +603,11 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
                 error = None
             else:
                 # Calculate the screening parameters ab initio
-                assert isinstance(band.index, int)
-                dummy_outdir = self._dummy_outdirs.get((band.index, band.spin), None)
+                assert isinstance(var_orb.index, int)
+                dummy_outdir = self._dummy_outdirs.get((var_orb.index, var_orb.spin), None)
                 subwf = OrbitalDeltaSCFWorkflow.fromparent(
-                    self, band=band, trial_calc=trial_calc, dummy_outdir=dummy_outdir, i_sc=self._i_sc,
+                    self, variational_orbital=var_orb, trial_calc=trial_calc,
+                    dummy_outdir=dummy_outdir, i_sc=self._i_sc,
                     alpha_indep_calcs=self._alpha_indep_calcs
                 )
                 subwf.proceed()
@@ -605,10 +615,10 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
                     return
                 alpha = subwf.outputs.alpha
                 error = subwf.outputs.error
-                self._dummy_outdirs[(band.index, band.spin)] = subwf.outputs.dummy_outdir
+                self._dummy_outdirs[(var_orb.index, var_orb.spin)] = subwf.outputs.dummy_outdir
 
-            for b in self.bands:
-                if b == band or (b.group is not None and b.group == band.group):
+            for b in self.variational_orbitals:
+                if b == var_orb or (b.group is not None and b.group == var_orb.group):
                     if alpha:
                         b.alpha = alpha
                     if error:
@@ -619,7 +629,7 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
             # add alpha to training data
             if self.ml.train:
                 assert self.ml_model is not None
-                self.ml_model.add_training_data([band])
+                self.ml_model.add_training_data([var_orb])
                 # if the user wants to train on the fly, train the model after the calculation of each orbital
                 if self.ml.train_on_the_fly:
                     assert self.ml_model is not None
@@ -630,7 +640,7 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
             print_alpha_history(self)
 
         assert isinstance(self.ml.predict, bool)
-        converged = self.ml.predict or all([abs(b.error) < 1e-3 for b in self.bands])
+        converged = self.ml.predict or all([abs(b.error) < 1e-3 for b in self.variational_orbitals])
 
         if self.ml.train:
             # if the user doesn't want to train on the fly, train the model at the end of each snapshot
@@ -658,32 +668,34 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
 
     output_model = OrbitalDeltaSCFOutputs
 
-    def __init__(self, band: Band, trial_calc: KoopmansCPCalculator,
+    def __init__(self, variational_orbital: VariationalOrbital, trial_calc: KoopmansCPCalculator,
                  dummy_outdir: File | None, i_sc: int,
                  alpha_indep_calcs: List[KoopmansCPCalculator],
                  **kwargs):
         super().__init__(**kwargs)
-        self.band = band
+        self.variational_orbital = variational_orbital
         self._trial_calc = trial_calc
         self._dummy_outdir = dummy_outdir
         self._i_sc = i_sc
         self._alpha_indep_calcs = alpha_indep_calcs
 
         # Set a more instructive name
-        self.name = 'Orbital ' + str(self.band.index)
+        self.name = 'Orbital ' + str(self.variational_orbital.index)
         if self.parameters.spin_polarized:
-            self.name += ' Spin ' + str(self.band.spin + 1)
+            self.name += f' Spin {self.variational_orbital.spin}'
 
     def _run(self) -> None:
 
-        assert self.bands is not None
+        assert self.variational_orbitals is not None
+        spin_index = self.variational_orbitals.spin_channels.index(self.variational_orbital.spin)
 
         alpha_dep_calcs = [self._trial_calc]
 
         # Don't repeat if this particular alpha_i was converged
-        if hasattr(self.band, 'error') and abs(self.band.error) < self.parameters.alpha_conv_thr:
-            assert self.band.alpha is not None
-            self.outputs = self.output_model(alpha=self.band.alpha, error=self.band.error,
+        if hasattr(self.variational_orbital, 'error') \
+                and abs(self.variational_orbital.error) < self.parameters.alpha_conv_thr:
+            assert self.variational_orbital.alpha is not None
+            self.outputs = self.output_model(alpha=self.variational_orbital.alpha, error=self.variational_orbital.error,
                                              dummy_outdir=self._dummy_outdir)
             self.status = Status.COMPLETED
             return
@@ -691,16 +703,17 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
         # When we write/update the alpharef files in the work directory
         # make sure to include the fixed band alpha in file_alpharef.txt
         # rather than file_alpharef_empty.txt
-        if self.band.filled:
+        if self.variational_orbital.filled:
             index_empty_to_save = None
         else:
-            index_empty_to_save = self.band.index - self.bands.num(filled=True, spin=self.band.spin)
-            if self.parameters.spin_polarized and self.band.spin == 1:
-                index_empty_to_save += self.bands.num(filled=False, spin=0)
+            index_empty_to_save = self.variational_orbital.index - \
+                self.variational_orbitals.num(filled=True, spin=self.variational_orbital.spin)
+            if self.parameters.spin_polarized and self.variational_orbital.spin == 1:
+                index_empty_to_save += self.variational_orbitals.num(filled=False, spin=0)
 
         # Perform the fixed-band-dependent calculations
         if self.parameters.functional in ['ki', 'pkipz']:
-            if self.band.filled:
+            if self.variational_orbital.filled:
                 calc_types = ['dft_n-1']
             else:
                 if self._i_sc == 1:
@@ -709,7 +722,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
                     assert self._dummy_outdir is not None
                     calc_types = ['pz_print', 'dft_n+1']
         else:
-            if self.band.filled:
+            if self.variational_orbital.filled:
                 calc_types = ['kipz_n-1']
             else:
                 if self._i_sc == 1:
@@ -727,7 +740,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
                 #  - the KI calculations
                 #  - DFT calculations on empty variational orbitals
                 # We don't need to redo any of the others
-                if not self._trial_calc.has_empty_states() or self.band.filled:
+                if not self._trial_calc.has_empty_states() or self.variational_orbital.filled:
                     if self._i_sc > 1 and 'ki' not in calc_type:
                         self.print('No further calculations are required to calculate this screening parameter')
                         continue
@@ -737,32 +750,33 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
                 # in fact involve the fixing of that band (and thus for the
                 # 'fixed' band the corresponding alpha should be in
                 # file_alpharef_empty.txt)
-                alphas = self.bands.alphas
-                filling = self.bands.filling
-            elif not self.band.filled:
+                alphas = self.variational_orbitals.alphas
+                filling = self.variational_orbitals.filling
+            elif not self.variational_orbital.filled:
                 # In the case of empty orbitals, we gain an extra orbital in
                 # the spin-up channel, so we explicitly construct both spin
                 # channels for "alphas" and "filling"
-                alphas = self.bands.alphas
-                alphas[self.band.spin].append(alphas[self.band.spin][-1])
-                filling = self.bands.filling
-                assert self.band.index is not None
-                filling[self.band.spin][self.band.index - 1] = True
-                filling[self.band.spin].append(False)
+                alphas = self.variational_orbitals.alphas
+                alphas[spin_index].append(alphas[spin_index][-1])
+                filling = self.variational_orbitals.filling
+                assert self.variational_orbital.index is not None
+                filling[spin_index][self.variational_orbital.index - 1] = True
+                filling[spin_index].append(False)
             else:
-                alphas = self.bands.alphas
-                filling = self.bands.filling
+                alphas = self.variational_orbitals.alphas
+                filling = self.variational_orbitals.filling
 
             # Work out the index of the band that is fixed (noting that we will be throwing away all empty
             # bands)
-            fixed_band = min(self.band.index, self.bands.num(filled=True, spin=self.band.spin) + 1)
-            if self.parameters.spin_polarized and self.band.spin == 1:
-                fixed_band += self.bands.num(filled=True, spin=0)
+            fixed_band = min(self.variational_orbital.index, self.variational_orbitals.num(
+                filled=True, spin=self.variational_orbital.spin) + 1)
+            if self.parameters.spin_polarized and self.variational_orbital.spin == Spin.DOWN:
+                fixed_band += self.variational_orbitals.num(filled=True, spin=Spin.UP)
 
             # Set up calculator
             calc = internal_new_kcp_calculator(self, calc_type, alphas=alphas, filling=filling, fixed_band=fixed_band,
                                                index_empty_to_save=index_empty_to_save,
-                                               add_to_spin_up=(self.band.spin == 0))
+                                               add_to_spin_up=(self.variational_orbital.spin == Spin.UP))
 
             if calc.parameters.ndr == self._trial_calc.parameters.ndw:
                 calc.link(self._trial_calc.write_directory, calc.read_directory,
@@ -779,6 +793,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
 
             # Run kcp.x
             if calc.parameters.nelup < calc.parameters.neldw:
+                raise ValueError()
                 subwf = KoopmansCPWithSpinSwapWorkflow.fromparent(self, calc=calc)
                 subwf.proceed()
                 if subwf.status != Status.COMPLETED:
@@ -794,7 +809,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
             # calc.parameters.fixed_band to keep track of which band we held fixed, because for empty
             # orbitals, calc.parameters.fixed_band is always set to the LUMO but in reality we're fixing
             # the band corresponding # to index_empty_to_save from an earlier calculation
-            calc.fixed_band = self.band
+            calc.fixed_band = self.variational_orbital
 
             # Store the result
             # We store the results in one of two lists: alpha_indep_calcs and
@@ -809,7 +824,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
 
                     # The exception to this are KI calculations on empty states. When we update alpha, the
                     # empty manifold changes, which in turn affects the lambda values
-                    if self._trial_calc.has_empty_states() and not self.band.filled:
+                    if self._trial_calc.has_empty_states() and not self.variational_orbital.filled:
                         alpha_dep_calcs.append(calc)
                     else:
                         self._alpha_indep_calcs.append(calc)
@@ -828,13 +843,14 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
         # E(N) - E_i(N - 1) - lambda^alpha_ii(1)     (filled)
         # E_i(N + 1) - E(N) - lambda^alpha_ii(0)     (empty)
 
-        calcs = [c for c in alpha_dep_calcs + self._alpha_indep_calcs if c.fixed_band == self.band]
+        calcs = [c for c in alpha_dep_calcs + self._alpha_indep_calcs if c.fixed_band == self.variational_orbital]
 
         alpha, error = self.calculate_alpha_from_list_of_calcs(
-            calcs, self._trial_calc, self.band, filled=self.band.filled)
+            calcs, self._trial_calc, self.variational_orbital, filled=self.variational_orbital.filled)
 
         # Mixing
-        alpha = self.parameters.alpha_mixing * alpha + (1 - self.parameters.alpha_mixing) * self.band.alpha
+        alpha = self.parameters.alpha_mixing * alpha + \
+            (1 - self.parameters.alpha_mixing) * self.variational_orbital.alpha
 
         warning_message = 'The computed screening parameter is {0}. Proceed with caution.'
         failure_message = 'The computed screening parameter is significantly {0}. This should not ' \
@@ -843,11 +859,11 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
         if alpha < -0.1:
             raise ValueError(failure_message.format('less than 0'))
         elif alpha < 0:
-            utils.warn(warning_message.format('less than 0'))
+            warn(warning_message.format('less than 0'))
         elif alpha > 1.1:
             raise ValueError(failure_message.format('greater than 1'))
         elif alpha > 1:
-            utils.warn(warning_message.format('greater than 1'))
+            warn(warning_message.format('greater than 1'))
 
         self.outputs = self.output_model(alpha=alpha, error=error, dummy_outdir=dummy_outdir)
 
@@ -856,7 +872,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
     def calculate_alpha_from_list_of_calcs(self,
                                            calcs: List[KoopmansCPCalculator],
                                            trial_calc: KoopmansCPCalculator,
-                                           band: Band,
+                                           band: VariationalOrbital,
                                            filled: bool = True) -> Tuple[float, float]:
         """Calculate the screening parameter alpha from a list of calculations.
 
@@ -919,13 +935,17 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
         # Extract lambda from the base calculator
         assert band.index is not None
         iband = band.index - 1  # converting from 1-indexing to 0-indexing
-        lambda_a = trial_calc.results['lambda'][band.spin][iband, iband].real
-        lambda_0 = trial_calc.results['bare lambda'][band.spin][iband, iband].real
+        assert self.variational_orbitals is not None
+        ispin = self.variational_orbitals.spin_channels.index(band.spin)
+        lambda_a = trial_calc.results['lambda'][ispin][iband, iband].real
+        lambda_0 = trial_calc.results['bare lambda'][ispin][iband, iband].real
 
         # Obtaining alpha
         if (trial_calc.parameters.odd_nkscalfact and filled) \
                 or (trial_calc.parameters.odd_nkscalfact_empty and not filled):
-            alpha_guess = trial_calc.alphas[band.spin][iband]
+            assert self.variational_orbitals is not None
+            ispin = self.variational_orbitals.spin_channels.index(band.spin)
+            alpha_guess = trial_calc.alphas[ispin][iband]
         else:
             alpha_guess = trial_calc.parameters.nkscalfact
 
@@ -934,7 +954,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
             if mp1 is None:
                 raise ValueError('Could not find 1st order Makov-Payne energy')
             if mp2 is None:
-                # utils.warn('Could not find 2nd order Makov-Payne energy; applying first order only')
+                # warn('Could not find 2nd order Makov-Payne energy; applying first order only')
                 mp_energy = mp1
             else:
                 mp_energy = mp1 + mp2
@@ -1007,7 +1027,7 @@ def internal_new_kcp_calculator(workflow,
     """
     # By default, use the last row in the alpha table for the screening parameters
     if alphas is None:
-        alphas = workflow.bands.alphas
+        alphas = workflow.variational_orbitals.alphas
 
     # Generate a new kcp calculator copied from the master calculator
     calc: KoopmansCPCalculator = workflow.new_calculator('kcp', alphas=alphas, filling=filling)
@@ -1189,7 +1209,7 @@ class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
                 (all(self.atoms.pbc) and self.parameters.init_orbitals == 'kohn-sham'):
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x (pw.x only for Kohn-Sham states)
-            wannier_workflow = WannierizeWorkflow.fromparent(self)
+            wannier_workflow = WannierizeWorkflow.fromparent(self, files_to_merge=[MergeableFile.HR])
             if wannier_workflow.parameters.calculate_bands:
                 wannier_workflow.parameters.calculate_bands = \
                     not self.calculator_parameters['ui'].do_smooth_interpolation
@@ -1201,10 +1221,10 @@ class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
 
             # Store the Hamitonian files
             if self.parameters.spin_polarized:
-                hr_file_ids = [BlockID(filled=True, spin='up'),
-                               BlockID(filled=False, spin='up'),
-                               BlockID(filled=True, spin='down'),
-                               BlockID(filled=False, spin='down')]
+                hr_file_ids = [BlockID(filled=True, spin=Spin.UP),
+                               BlockID(filled=False, spin=Spin.UP),
+                               BlockID(filled=True, spin=Spin.DOWN),
+                               BlockID(filled=False, spin=Spin.DOWN)]
             else:
                 hr_file_ids = [BlockID(filled=True), BlockID(filled=False)]
 
@@ -1221,7 +1241,7 @@ class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
                 self, nscf_outdir=nscf_outdir,
                 hr_files=wannier_workflow.outputs.hr_files,
                 wannier90_calculations=wannier_workflow.outputs.wannier90_calculations,
-                wannier90_pp_calculations=wannier_workflow.outputs.preprocessing_calculations
+                wannier90_nnkp_files=wannier_workflow.outputs.nnkp_files
             )
             fold_workflow.proceed()
             if fold_workflow.status != Status.COMPLETED:
@@ -1282,8 +1302,9 @@ class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
                     self.print('Skipping the optimisation of the variational orbitals since they are invariant under '
                                'unitary transformations')
                 else:
-                    assert self.bands is not None
-                    calc = internal_new_kcp_calculator(self, 'pz_innerloop_init', alphas=self.bands.alphas)
+                    assert self.variational_orbitals is not None
+                    calc = internal_new_kcp_calculator(self, 'pz_innerloop_init',
+                                                       alphas=self.variational_orbitals.alphas)
 
                     # Use the KS eigenfunctions as initial guesses for the variational orbitals
                     calc.link(File(calc_dft, calc_dft.parameters.outdir),
@@ -1362,34 +1383,31 @@ class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
 def print_alpha_history(wf: Workflow):
     """Print out the history of the screening parameter α and the error ΔE - λ for each band."""
     # Printing out a progress summary
-    assert wf.bands is not None
+    assert wf.variational_orbitals is not None
     if not wf.ml.predict:
         wf.print('\n**α**')
         if wf.parameters.spin_polarized:
-            wf.print('\n**spin up**')
-            wf.print(wf.bands.alpha_history(spin=0).to_markdown(), wrap=False)
-            wf.print('\n**spin down**')
-            wf.print(wf.bands.alpha_history(spin=1).to_markdown(), wrap=False)
+            for spin in wf.variational_orbitals.spin_channels:
+                wf.print(f'\n**spin {spin}**')
+                wf.print(wf.variational_orbitals.alpha_history(spin=spin).to_markdown(), wrap=False)
         else:
-            wf.print(wf.bands.alpha_history().to_markdown(), wrap=False)
+            wf.print(wf.variational_orbitals.alpha_history().to_markdown(), wrap=False)
 
-    if None not in [b.predicted_alpha for b in wf.bands]:
+    if None not in [b.predicted_alpha for b in wf.variational_orbitals]:
         wf.print('\n**predicted α**')
         if wf.parameters.spin_polarized:
-            wf.print('\n**spin up**')
-            wf.print(wf.bands.predicted_alpha_history(spin=0).to_markdown(), wrap=False)
-            wf.print('\n**spin down**')
-            wf.print(wf.bands.predicted_alpha_history(spin=1).to_markdown(), wrap=False)
+            for spin in wf.variational_orbitals.spin_channels:
+                wf.print(f'\n**spin {spin}**')
+                wf.print(wf.variational_orbitals.predicted_alpha_history(spin=spin).to_markdown(), wrap=False)
         else:
-            wf.print(wf.bands.predicted_alpha_history().to_markdown(), wrap=False)
+            wf.print(wf.variational_orbitals.predicted_alpha_history().to_markdown(), wrap=False)
 
-    if not wf.bands.error_history().empty:
+    if not wf.variational_orbitals.error_history().empty:
         wf.print('\n**ΔE<sub>i</sub> - λ<sub>ii</sub> (eV)**')
         if wf.parameters.spin_polarized:
-            wf.print('\n**spin up**')
-            wf.print(wf.bands.error_history(spin=0).to_markdown(), wrap=False)
-            wf.print('\n**spin down**')
-            wf.print(wf.bands.error_history(spin=1).to_markdown(), wrap=False)
+            for spin in wf.variational_orbitals.spin_channels:
+                wf.print(f'\n**spin {spin}**')
+                wf.print(wf.variational_orbitals.error_history(spin=spin).to_markdown(), wrap=False)
         else:
-            wf.print(wf.bands.error_history().to_markdown(), wrap=False)
+            wf.print(wf.variational_orbitals.error_history().to_markdown(), wrap=False)
     wf.print('')

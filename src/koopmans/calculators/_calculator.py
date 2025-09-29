@@ -3,7 +3,7 @@
 The central objects defined in this submodule are CalculatorABC and CalculatorExt, designed to extend
 ASE calculators to have several additional useful features.
 
-We can create a new 'extended' version of a preexisting ASE calculator via
+We can create a new 'extended' version of a pre-existing ASE calculator via
     class ExtendedCalc(CalculatorExt, ASECalc, CalculatorABC):
         pass
 
@@ -12,7 +12,6 @@ Note: multiple-inheritance is anti-pattern and should be removed.
 
 from __future__ import annotations
 
-import copy
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -215,15 +214,8 @@ class CalculatorExt(utils.HasDirectory):
         This method should NOT be overwritten by child classes. Child classes should only modify _pre_calculate() and
         _post_calculate() to perform any necessary pre- and post-calculation steps.
         """
-        # ASE expects self.command to be a string
-        command = copy.deepcopy(self.command)
-        self.command = str(command)
-
         # Perform the calculation
         super().calculate()
-
-        # Restore self.command
-        self.command = command
 
     def read_input(self, input_file: Optional[Path] = None):
         """Read the input file and store its parameters."""
@@ -280,6 +272,8 @@ class CalculatorExt(utils.HasDirectory):
     def link(self, src: File, dest_filename: File | Path | str | None = None,
              symlink: bool = False, recursive_symlink: bool = False, overwrite: bool = False):
         """Link a file to the calculator. When that calculation runs, it will fetch that file."""
+        if not src.exists():
+            raise FileNotFoundError(f'Cannot link to `{src}` because it does not exist')
         if dest_filename is None:
             dest_filename = src.name
         if isinstance(dest_filename, File):
@@ -289,6 +283,20 @@ class CalculatorExt(utils.HasDirectory):
                     'as their `parent_process`')
             dest_filename = dest_filename.name
         self.linked_files[str(dest_filename)] = (src, symlink, recursive_symlink, overwrite)
+
+    def link_pseudopotential(self, src: str | Path, dest: str | Path) -> None:
+        """Link a pseudopotential file to the calculator.
+
+        This is engine-dependent because for some engines we don't want to simply link pseudopotential
+        files like we do for other files.
+        """
+        if self.engine is None:
+            raise ValueError('Cannot link a pseudopotential to a calculator without first setting its engine')
+        if not isinstance(src, Path):
+            src = Path(src)
+        if not isinstance(dest, Path):
+            dest = Path(dest)
+        self.engine.link_pseudopotential(self, src, dest)
 
 
 class CalculatorABC(ABC, Generic[TCalc]):

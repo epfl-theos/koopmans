@@ -18,8 +18,6 @@ from koopmans.process_io import IOModel
 InputModel = TypeVar('InputModel', bound=IOModel)
 OutputModel = TypeVar('OutputModel', bound=IOModel)
 
-logger = logging.getLogger(__name__)
-
 
 class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
     """Class that defines a Process.
@@ -48,11 +46,13 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
 
         self.linked_files: Dict[str, File] = {}
 
+        logger = logging.getLogger(__name__)
         logger.info(f'Creating an instance of {self.__class__.__name__}')
         logger.info(f'with inputs={self.inputs.model_dump()}')
 
     def run(self):
         """Run the process."""
+        logger = logging.getLogger(__name__)
         logger.info(f'Running {self.directory}')
         self._pre_run()
         self._run()
@@ -63,12 +63,14 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
         """Return the outputs of the process."""
         if self._outputs is None:
             raise ValueError('Process has no outputs because it has not been run yet')
-        logger.info(f'Querying outputs of {self.directory}')
+        logger = logging.getLogger(__name__)
+        logger.debug(f'Querying outputs of {self.directory}', stacklevel=2)
         return self._outputs
 
     @outputs.setter
     def outputs(self, value: OutputModel):
-        logger.info(f'Setting outputs of {self.directory}')
+        logger = logging.getLogger(__name__)
+        logger.info(f'Setting outputs of {self.directory}', stacklevel=2)
         self._outputs = value
 
     def _pre_run(self):

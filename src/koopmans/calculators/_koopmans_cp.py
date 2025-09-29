@@ -15,9 +15,10 @@ from ase_koopmans.calculators.espresso import Espresso_kcp
 from pandas.core.series import Series
 from scipy.linalg import block_diag
 
-from koopmans import bands, pseudopotentials, settings, utils
+from koopmans import pseudopotentials, settings, utils, variational_orbitals
 from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.files import File
+from koopmans.utils.warnings import warn
 
 from ._calculator import (CalculatorABC, CalculatorCanEnforceSpinSym,
                           CalculatorExt)
@@ -111,7 +112,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         # Give the calculator an attribute to keep track of which band has been held fixed, for calculations where
         # fixed_state = .true.. N.B. this differs from self.parameters.fixed_band in the case of empty orbitals (see
         # koopmans.workflows._koopmans_dscf.py for more details)
-        self.fixed_band: Optional[bands.Band] = None
+        self.fixed_band: Optional[variational_orbitals.VariationalOrbital] = None
 
         # Create a private attribute to keep track of whether the spin channels have been swapped
         self._spin_channels_are_swapped: bool = False
@@ -150,7 +151,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 and not self.parameters.fixed_state and len(self.results['eigenvalues']) > 0:
             rms_eigenval_difference = np.sqrt(np.mean(np.diff(self.results['eigenvalues'], axis=0)**2))
             if rms_eigenval_difference > 0.05:
-                utils.warn('Spin-up and spin-down eigenvalues differ substantially')
+                warn('Spin-up and spin-down eigenvalues differ substantially')
 
         # Swap the spin channels back
         if self._spin_channels_are_swapped:
@@ -255,11 +256,11 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
             self.parameters.nr2b = good_fft(nr2b)
             self.parameters.nr3b = good_fft(nr3b)
 
-            utils.warn('Small box parameters `nrb` not provided in input: these will be automatically set to safe '
-                       'default values. These values can probably be decreased, but this would require convergence '
-                       f'tests. Estimated real mesh dimension `(nr1, nr2, nr3) = {nr1} {nr2} {nr3}`. Small box '
-                       f'mesh dimension `(nr1b, nr2b, nr3b) = {self.parameters.nr1b} {self.parameters.nr2b} '
-                       f'{self.parameters.nr3b}`.')
+            warn('Small box parameters `nrb` not provided in input: these will be automatically set to safe '
+                 'default values. These values can probably be decreased, but this would require convergence '
+                 f'tests. Estimated real mesh dimension `(nr1, nr2, nr3) = {nr1} {nr2} {nr3}`. Small box '
+                 f'mesh dimension `(nr1b, nr2b, nr3b) = {self.parameters.nr1b} {self.parameters.nr2b} '
+                 f'{self.parameters.nr3b}`.')
 
     def is_complete(self) -> bool:
         """Check if the calculation is complete."""

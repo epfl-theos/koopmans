@@ -3,7 +3,7 @@
 import re
 from itertools import chain
 from pathlib import Path
-from typing import Dict, List, OrderedDict
+from typing import Callable, Dict, List, OrderedDict, TypeVar, Union
 
 from ase_koopmans import Atoms
 from upf_tools import UPFDict
@@ -45,17 +45,48 @@ def read_pseudo_file(filename: Path) -> UPFDict:
     return upf
 
 
-def nelec_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]) -> int:
+T = TypeVar('T', bound=Union[int, float])
+
+
+def quantity_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict],
+                          extract_quantity: Callable[[UPFDict], T]) -> T:
     """Determine the number of electrons in the system using information from pseudopotential files."""
-    valences_dct = {key: int(value['header']['z_valence']) for key, value in pseudopotentials.items()}
+    quantities = {key: extract_quantity(psp) for key, psp in pseudopotentials.items()}
 
     if len(set(atoms.get_tags())) > 1:
         labels = [s + str(t) if t > 0 else s for s, t in zip(atoms.symbols, atoms.get_tags())]
     else:
         labels = atoms.symbols
 
-    valences = [valences_dct[label] for label in labels]
-    return sum(valences)
+    quantity_by_atom: List[T] = [quantities[l] for l in labels]
+
+    total: T = sum(quantity_by_atom[1:], start=quantity_by_atom[0])
+
+    return total
+
+
+def extract_zvalence(UPFDict) -> int:
+    """Determine the number of valence electrons from a pseudopotential file."""
+    return int(UPFDict['header']['z_valence'])
+
+
+def nelec_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]) -> int:
+    """Determine the number of electrons in the system using information from pseudopotential files."""
+    return quantity_from_pseudos(atoms, pseudopotentials, extract_zvalence)
+
+
+def extract_nwfc(UPFDict) -> int:
+    """Determine the number of wavefunctions from a pseudopotential file."""
+    return sum([2 * int(wfc['l']) + 1 for wfc in UPFDict['pswfc']['chi']])
+
+
+def nwfcs_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]) -> int:
+    """Determine the number of wavefunctions in the system using information from pseudopotential files."""
+    for psp in pseudopotentials.values():
+        if psp['header'].get('number_of_wfc', 0) == 0:
+            raise ValueError(f'The pseudopotential {psp.filename} does not contain wavefunctions')
+
+    return quantity_from_pseudos(atoms, pseudopotentials, extract_nwfc)
 
 
 def expected_subshells(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]) -> Dict[str, List[str]]:

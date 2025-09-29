@@ -17,6 +17,7 @@ from ._pw2wannier import PW2WannierCalculator
 from ._wann2kc import Wann2KCCalculator
 from ._wann2kcp import Wann2KCPCalculator
 from ._wannier90 import Wannier90Calculator
+from ._wannierjl import WannierJLCalculator
 
 ImplementedCalc = (EnvironCalculator,
                    KoopmansCPCalculator,
@@ -27,6 +28,7 @@ ImplementedCalc = (EnvironCalculator,
                    PW2WannierCalculator,
                    Wann2KCPCalculator,
                    Wannier90Calculator,
+                   WannierJLCalculator,
                    Wann2KCCalculator)
 
 Calc = Union[EnvironCalculator,
@@ -38,6 +40,7 @@ Calc = Union[EnvironCalculator,
              PW2WannierCalculator,
              Wann2KCPCalculator,
              Wannier90Calculator,
+             WannierJLCalculator,
              Wann2KCCalculator]
 
 # To replace with Calc = Union[*ImplementedCalc] when Python 3.11 becomes the minimum requirement
@@ -51,4 +54,5 @@ CalcType = Union[Type[EnvironCalculator],
                  Type[PW2WannierCalculator],
                  Type[Wann2KCPCalculator],
                  Type[Wannier90Calculator],
+                 Type[WannierJLCalculator],
                  Type[Wann2KCCalculator]]

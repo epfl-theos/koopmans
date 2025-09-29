@@ -41,11 +41,11 @@ def water_snapshots(water) -> Dict[str, Any]:
 def silicon() -> Dict[str, Any]:
     """Generate bulk silicon."""
     from koopmans.kpoints import Kpoints
-    from koopmans.projections import ProjectionBlocks
+    from koopmans.projections import Projections
 
     si: Atoms = bulk('Si')
     pdict = [{'fractional_site': [0.25, 0.25, 0.25], 'ang_mtm': 'sp3'}]
-    si_projs = ProjectionBlocks.fromlist([pdict, pdict], spins=[None, None], atoms=si)
+    si_projs = Projections.fromlist([pdict, pdict], spins=[None, None], atoms=si)
     kpoints = Kpoints(grid=[2, 2, 2], path='GXG', cell=si.cell)
     return {'atoms': si,
             'engine': LocalhostEngine(keep_tmpdirs=False),
@@ -73,16 +73,18 @@ def ozone() -> Dict[str, Any]:
 def tio2() -> Dict[str, Any]:
     """Generate rutile TiO2."""
     from koopmans.kpoints import Kpoints
-    from koopmans.projections import ProjectionBlocks
+    from koopmans.projections import Projections
 
     a = 4.6
     c = 2.95
     atoms: Atoms = crystal(['Ti', 'O'], basis=[(0, 0, 0), (0.3, 0.3, 0.0)],
                            spacegroup=136, cellpar=[a, a, c, 90, 90, 90])
 
-    projs = ProjectionBlocks.fromlist([["Ti:l=0"], ["Ti:l=1"], ["O:l=0"], ["O:l=1"], ["Ti:l=2"]],
-                                      spins=[None, None, None, None, None],
-                                      atoms=atoms)
+    projs = Projections.fromlist(
+        [["Ti:l=0"], ["Ti:l=1"], ["O:l=0"], ["O:l=1"], ["Ti:l=2"]],
+        spins=[None, None, None, None, None],
+        atoms=atoms
+    )
 
     kpoints = Kpoints(grid=[2, 2, 2], path='GXG', cell=atoms.cell)
     return {'atoms': atoms,
@@ -98,11 +100,11 @@ def tio2() -> Dict[str, Any]:
 def gaas() -> Dict[str, Any]:
     """Generate bulk gallium arsenide."""
     from koopmans.kpoints import Kpoints
-    from koopmans.projections import ProjectionBlocks
+    from koopmans.projections import Projections
     atoms: Atoms = bulk('GaAs', crystalstructure='zincblende', a=5.6536)
-    gaas_projs = ProjectionBlocks.fromlist([["Ga: d"], ["As: sp3"], ["Ga: sp3"]],
-                                           spins=[None, None, None],
-                                           atoms=atoms)
+    gaas_projs = Projections.fromlist([["Ga: d"], ["As: sp3"], ["Ga: sp3"]],
+                                      spins=[None, None, None],
+                                      atoms=atoms)
     kpoints = Kpoints(grid=[2, 2, 2])
     return {'atoms': atoms,
             'engine': LocalhostEngine(keep_tmpdirs=False),

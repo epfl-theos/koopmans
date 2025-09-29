@@ -4,6 +4,7 @@ import contextlib
 import shutil
 from itertools import chain
 from pathlib import Path
+from time import sleep
 from typing import Generator, Literal, Optional, overload
 
 import yaml
@@ -74,7 +75,7 @@ class LocalhostEngine(Engine):
         """
         pass
 
-    def get_status(self, step: ProcessProtocol) -> Status:
+    def _get_status(self, step: ProcessProtocol) -> Status:
         """Get the status of a step."""
         if not self.from_scratch:
             to_run = True
@@ -107,13 +108,21 @@ class LocalhostEngine(Engine):
 
         return self.statuses[step.uid]
 
-    def set_status(self, step: ProcessProtocol, status: Status):
+    def _set_status(self, step: ProcessProtocol, status: Status):
         """Set the status of a step."""
         self.statuses[step.uid] = status
 
-    def update_statuses(self) -> None:
+    def _update_statuses(self) -> None:
         """Update the statuses of all steps."""
         pass
+
+    def _steps_are_running(self) -> bool:
+        """Check if any steps are currently running.
+
+        Because localhost blocks until the step is complete, there are never any steps running when python
+        code is being executed. This method therefore always returns False.
+        """
+        return False
 
     def get_pseudopotential(self,
                             library: str,
@@ -241,6 +250,10 @@ class LocalhostEngine(Engine):
         else:
             utils.symlink(source.aspath(), destination.aspath(), exist_ok=overwrite, force=overwrite)
 
+    def link_pseudopotential(self, step, src: Path, dest: Path) -> None:
+        """Link a pseudopotential file to the provided step using the default link functionality."""
+        step.link(LocalFile(src), dest, symlink=True)
+
     def file_exists(self, file: File) -> bool:
         """Return True if the file exists."""
         return file.aspath().exists()
@@ -293,6 +306,22 @@ class LocalhostEngine(Engine):
         except FileNotFoundError:
             installed_libraries = set()
         return local_libraries.union(installed_libraries)
+
+    def rename_file(self, src: File, dst: File) -> None:
+        """Rename a file."""
+        if not src.exists():
+            raise FileNotFoundError(f'Source file {src} does not exist')
+        if dst.exists():
+            raise FileExistsError(f'Destination file {dst} already exists')
+        src.aspath().rename(dst.aspath())
+        src.name = dst.name
+
+    def wait(self, seconds: float) -> None:
+        """Wait for a specified number of seconds."""
+        sleep(seconds)
+
+    def _teardown(self) -> None:
+        pass
 
 
 def load_old_calculator(calc):

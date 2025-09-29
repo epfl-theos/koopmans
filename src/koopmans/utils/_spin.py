@@ -1,4 +1,13 @@
-from typing import Literal
+from enum import Enum
 
-SpinOptions = [None, "up", "down", "spinor"]
-SpinType = Literal[None, "up", "down", "spinor"]
+
+class Spin(Enum):
+    """Different possibilities for the spin channel of a system."""
+
+    UP = "up"
+    DOWN = "down"
+    SPINOR = "spinor"
+    NONE = None
+
+    def __str__(self):
+        return str(self.value)
