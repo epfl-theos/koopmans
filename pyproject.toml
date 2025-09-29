@@ -62,6 +62,7 @@ docs = [
     "recommonmark>=0.7.1",
     "numpydoc>=1.4.0",
     "sphinx-pyproject>=0.1.0",
+    "myst-parser>=3.0.0",
 ]
 lint = [
     "pylint",
