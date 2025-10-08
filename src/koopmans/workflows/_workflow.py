@@ -234,7 +234,16 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                     raise ValueError(f'Invalid pseudopotential type: {pseudo_filename.__class__.__name__}')
         else:
             self.pseudopotentials = OrderedDict()
-            for element, tag in sorted(set([(a.symbol, a.tag) for a in self.atoms])):
+
+            # Work out the unique atom labels. This needs to be done like this rather than with set() to ensure
+            # the order is consistent with how the atoms appear in the input file
+            unique_labels = []
+            for a in self.atoms:
+                label_tuple: tuple[str, int] = (a.symbol, a.tag)
+                if label_tuple not in unique_labels:
+                    unique_labels.append(label_tuple)
+
+            for element, tag in unique_labels:
                 pseudo = self.engine.get_pseudopotential(library=self.parameters.pseudo_library, element=element)
 
                 pseudo_type = pseudo['header']['pseudo_type']
@@ -292,8 +301,6 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                     else:
                         # If |mag| >= 1, QE interprets this as site magnetization
                         starting_magmoms[l] = mag
-                import ipdb
-                ipdb.set_trace()
                 atoms.set_initial_magnetic_moments([starting_magmoms[label] for label in labels])
             elif tot_mag != 0:
                 atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
@@ -659,7 +666,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                                  'be provided')
             spin_set = set([p.spin for p in self.projections])
             if self.parameters.spin_polarized:
-                if spin_set != {'up', 'down'}:
+                if spin_set != {Spin.UP, Spin.DOWN}:
                     raise ValueError('This calculation is spin-polarized; please provide spin-up and spin-down '
                                      'projections')
             else:
@@ -1315,20 +1322,18 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             elif code.startswith('w90'):
                 if '_' in code:
                     [spin] = [s for s in Spin if s.value == code.split('_')[1]]
-                    calcdct['w90'][spin] = params_dict
+                    calcdct['w90'][spin.value] = params_dict
                 else:
                     spin = Spin.NONE
                     calcdct['w90'] = params_dict
-                if self.projections is None:
-                    raise ValueError('Projections are required for the w90 calculator, but none were provided')
-                projections = self.projections.get_subset(spin)
+                projections = self.projections.get_subset(spin) if self.projections else None
                 if projections:
                     proj_kwarg = {'projections': [p.projections for p in projections]}
                 else:
                     proj_kwarg = {}
 
-                if spin:
-                    calcdct['w90'][spin].update(**proj_kwarg)
+                if spin != Spin.NONE:
+                    calcdct['w90'][spin.value].update(**proj_kwarg)
                 else:
                     calcdct['w90'].update(**proj_kwarg)
             else:
@@ -1500,11 +1505,10 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         if self.parameters.spin_polarized:
             if spin == Spin.UP:
                 nelec += params.tot_magnetization
+                nelec //= 2
             elif spin == Spin.DOWN:
                 nelec -= params.tot_magnetization
-            else:
-                raise ValueError('When spin-polarized, `spin` must be either `Spin.UP` or `Spin.DOWN`')
-            nelec = int(nelec // 2)
+                nelec //= 2
         else:
             if spin != Spin.NONE:
                 nelec //= 2

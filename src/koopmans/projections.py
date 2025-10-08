@@ -334,6 +334,7 @@ class ExplicitProjections(Projections[ExplicitProjectionsBlock]):
     """A set of projections with explicitly specified projections."""
 
     @model_validator(mode="before")
+    @classmethod
     def calculate_num_wann(cls, dct: dict[str, Any]) -> dict[str, Any]:
         """Ensure that each projection block has a `num_wann` argument.
 
@@ -343,10 +344,25 @@ class ExplicitProjections(Projections[ExplicitProjectionsBlock]):
         provided by the `Projections` class (namely, the `atoms` attribute).
         """
         for block in dct.get('blocks', []):
+            projections: list[Projection] = block.get('projections', [])
+            block['num_wann'] = num_wann_from_projections(projections, dct['atoms'])
+        return dct
+
+    @model_validator(mode="before")
+    @classmethod
+    def convert_projection_strings_to_projections(cls, dct: dict[str, Any]) -> dict[str, Any]:
+        """Convert any projection strings to `Projection` objects.
+
+        Usually, we can rely on pydantic for this, but we need to do this earlier so that we can use
+        `Projections.number_of_orbitals()` to populate `num_wann` in the `calculate_num_wann` validator.
+        """
+        for block in dct.get('blocks', []):
             if isinstance(block, dict):
-                projections = block.get('projections', [])
-                num_wann = num_wann_from_projections(projections, dct['atoms'])
-                block['num_wann'] = num_wann
+                projections: list[Projection | str | dict[str, Any]] = block.get('projections', [])
+                block['projections'] = [Projection.from_string(p) if isinstance(p, str)
+                                        else Projection(**p) if isinstance(p, dict)
+                                        else p
+                                        for p in projections]
         return dct
 
 
