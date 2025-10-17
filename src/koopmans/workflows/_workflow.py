@@ -751,6 +751,14 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             if not self.ml.r_min < self.ml.r_max:
                 raise ValueError(f"`r_min` is larger or equal to `r_max = {self.ml.r_max}`.")
 
+        if self.parameters.initialize_with_smearing:
+            if self.calculator_parameters['pw'].occupations != 'smearing':
+                self.calculator_parameters['pw'].occupations = 'smearing'
+            if self.calculator_parameters['pw'].smearing is None:
+                self.calculator_parameters['pw'].smearing = 'cold'
+            if self.calculator_parameters['pw'].degauss is None:
+                self.calculator_parameters['pw'].degauss = 2e-3
+
     def new_calculator(self,
                        calc_type: str,
                        kpts: Optional[Union[List[int], BandPath]] = None,

@@ -25,7 +25,9 @@ def _set_label_from_filled_or_unique(cls: BaseModel, data: dict[str, Any]) -> di
             label = 'occ' if filled else 'emp'
         else:
             label = None
+
         data['label'] = label
+
     return data
 
 

@@ -179,6 +179,32 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
         if status != Status.COMPLETED:
             return
 
+        # If smearing was used, remove it for all subsequent calculations
+            # Remove smearing for all subsequent calculations
+        if self.parameters.initialize_with_smearing:
+            # Prevent all future calculations from using smearing
+            self.calculator_parameters['pw'].occupations = 'fixed'
+            self.calculator_parameters['pw'].smearing = None
+            self.calculator_parameters['pw'].degauss = None
+
+            # Run an scf calculation without smearing
+            calc_scf_no_smearing = self.new_calculator('pw')
+            calc_scf_no_smearing.parameters.occupations = 'fixed'
+            calc_scf_no_smearing.parameters.pop('nbnd', None)
+            calc_scf_no_smearing.prefix = 'scf_no_smearing'
+            calc_scf_no_smearing.parameters.restart_mode = 'restart'
+            calc_scf_no_smearing.link(File(calc_scf, calc_scf.parameters.outdir),
+                                      calc_scf_no_smearing.parameters.outdir)
+            if self._scf_kgrid:
+                calc_scf_no_smearing.parameters.kpts = self._scf_kgrid
+            status = self.run_steps(calc_scf_no_smearing)
+            if status != Status.COMPLETED:
+                return
+
+            # Overwrite the calc_scf variable so that it always corresponds to an scf calculation
+            # without smearing
+            calc_scf = calc_scf_no_smearing
+
         calc_nscf = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True)
         calc_nscf.prefix = 'nscf'
         calc_nscf.link(File(calc_scf, calc_scf.parameters.outdir))
@@ -190,13 +216,10 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
             # Run a "bands" calculation
             calc_pw_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpoints.path)
             calc_pw_bands.prefix = 'bands'
-            calc_pw_bands.parameters.prefix += '_bands'
 
             # Link the save directory so that the bands calculation can use the old density
-            calc_pw_bands.link(
-                File(calc_nscf, (calc_nscf.parameters.outdir / calc_nscf.parameters.prefix).with_suffix('.save')),
-                (calc_pw_bands.parameters.outdir / calc_pw_bands.parameters.prefix).with_suffix('.save')
-            )
+            calc_pw_bands.link(File(calc_scf, calc_scf.parameters.outdir), calc_pw_bands.parameters.outdir)
+
             status = self.run_steps(calc_pw_bands)
             if status != Status.COMPLETED:
                 return
@@ -274,7 +297,7 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                                                            pw_outdir=File(calc_nscf, calc_nscf.parameters.outdir),
                                                            **kwargs)
                 if len(self.projections) > 1:
-                    subworkflow.name = f'Wannierize {block.id.label.replace("_", " ").replace("block", "Block")}'
+                    subworkflow.name = f'Wannierize {str(block.id).replace("_", " ").replace("block", "Block")}'
                 else:
                     subworkflow.name = 'Wannierize'
                 block_subworkflows.append(subworkflow)

@@ -53,6 +53,10 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('spin_polarized',
                     'if True, the system will be allowed to break spin symmetry i.e. n^{up}(r) != n^{down}(r)',
                     bool, False, (True, False)),
+            Setting('initialize_with_smearing',
+                    'if True, the first step of the workflow will use smearing. This can help convergence in some '
+                    'difficult cases.',
+                    bool, False, (True, False)),
             Setting('fix_spin_contamination',
                     'if True, steps will be taken to try and avoid spin contamination. This is only sensible when '
                     'performing a non-spin-polarized calculation, and is turned on by default for such calculations',
