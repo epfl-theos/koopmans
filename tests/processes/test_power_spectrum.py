@@ -31,8 +31,7 @@ def test_extract_coefficients_from_xml_process(tmpdir, datadir, check_patch):
         r_cut = min(water.get_cell_lengths_and_angles()[:3])
 
         # say which bands we want to extract
-        n_bands = 1
-        bands_to_extract = VariationalOrbitals(n_bands=n_bands, n_spin=1, spin_polarized=False)
+        bands_to_extract = VariationalOrbitals.empty(filling=[[True]], spin_polarized=False)
 
         # provide the Wannier centers for the decomposition
         centers = np.array([[3.159166, -3.286943, -3.412441]])
