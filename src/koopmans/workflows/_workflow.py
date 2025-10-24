@@ -51,7 +51,9 @@ from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
 from koopmans.projections import (ExplicitProjections, ImplicitProjections,
                                   Projections)
-from koopmans.pseudopotentials import (nelec_from_pseudos, nwfcs_from_pseudos,
+from koopmans.pseudopotentials import (nelec_from_pseudos,
+                                       nwfcs_from_projectors,
+                                       nwfcs_from_pseudos,
                                        pseudopotential_library_citations)
 from koopmans.references import bib_data
 from koopmans.status import Status
@@ -357,10 +359,11 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             else:
                 spins = [Spin.NONE]
             if self.calculator_parameters['pw2wannier'].atom_proj_ext:
-                # proj_dir = self.calculator_parameters['pw2wannier'].get(
-                #     'atom_proj_dir', self.parameters.pseudo_directory)
-                raise NotImplementedError('Need to re-implement this')
-                # num_wann = [nwfcs_from_projectors(self.atoms, self.pseudopotentials) for _ in spins]
+                if self.calculator_parameters['pw2wannier'].atom_proj_dir is None:
+                    raise ValueError('`atom_proj_dir` must be specified when using `atom_proj_ext = True`')
+                projectors = OrderedDict([(k, Path(p.filename.with_suffix('.dat').name))
+                                         for k, p in self.pseudopotentials.items()])
+                num_wann = [nwfcs_from_projectors(self.atoms, projectors) for _ in spins]
             else:
                 num_wann = [nwfcs_from_pseudos(self.atoms, self.pseudopotentials) for _ in spins]
             self.projections = ImplicitProjections.from_block_lengths(num_wann, spins, self.atoms)

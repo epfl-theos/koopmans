@@ -46,11 +46,15 @@ def read_pseudo_file(filename: Path) -> UPFDict:
 
 
 T = TypeVar('T', bound=Union[int, float])
+P = TypeVar('P', bound=Union[UPFDict, Path])
 
 
-def quantity_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict],
-                          extract_quantity: Callable[[UPFDict], T]) -> T:
-    """Determine the number of electrons in the system using information from pseudopotential files."""
+def quantity_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, P],
+                          extract_quantity: Callable[[P], T]) -> T:
+    """Determine the number of electrons in the system using information from pseudopotential files.
+
+    Pseudopotentials can be a UPFDict or a Path to a Wannier90 projector file.
+    """
     quantities = {key: extract_quantity(psp) for key, psp in pseudopotentials.items()}
 
     if len(set(atoms.get_tags())) > 1:
@@ -87,6 +91,19 @@ def nwfcs_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]
             raise ValueError(f'The pseudopotential {psp.filename} does not contain wavefunctions')
 
     return quantity_from_pseudos(atoms, pseudopotentials, extract_nwfc)
+
+
+def extract_nwfc_from_projector_file(projector_file: Path) -> int:
+    """Extract the number of wavefunctions contained in a Wannier90 projector file."""
+    with open(projector_file, 'r') as f:
+        lines = f.readlines()
+
+    return sum(2 * int(l) + 1 for l in lines[1].split())
+
+
+def nwfcs_from_projectors(atoms: Atoms, wannoer90_projector_files: OrderedDict[str, Path]) -> int:
+    """Determine the number of wavefunctions in the system based on the Wannier90 projector files."""
+    return quantity_from_pseudos(atoms, wannoer90_projector_files, extract_nwfc_from_projector_file)
 
 
 def expected_subshells(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]) -> Dict[str, List[str]]:
