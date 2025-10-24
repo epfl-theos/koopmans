@@ -22,6 +22,17 @@ def import_julia():
     except ImportError:
         raise ImportError("The installed version of `koopmans` does not contain support for `WannierJL`. "
                           "Run `pip install koopmans[julia]` to enable this functionality.")
+
+    # Capturing stdout
+    jl.seval("""
+    function capture_stdio(f, output_file, args...; kwargs...)
+        result = nothing
+        redirect_stdio(stdout=output_file, stderr=output_file) do
+            result = f(args...; kwargs...)
+        end
+        return result
+    end
+    """)
     return juliapkg, jl
 
 
@@ -48,6 +59,7 @@ class WannierJLCheckNeighborsOutput(IOModel):
     """Output model for the WannierJLCheckNeighborsProcess."""
 
     has_cubic_neighbors: bool
+    julia_stdio: File
 
 
 class WannierJLCheckNeighborsProcess(Process[WannierJLCheckNeighborsInput, WannierJLCheckNeighborsOutput]):
@@ -67,16 +79,17 @@ class WannierJLCheckNeighborsProcess(Process[WannierJLCheckNeighborsInput, Wanni
         File(self, 'wannier90.amn').symlink_to(self.inputs.amn_file)
         File(self, 'wannier90.eig').symlink_to(self.inputs.eig_file)
 
-        print([f for f in self.directory.rglob('*')])  # Debugging line to see the files in the directory
-
         # Read the Wannier files
-        model = jl.read_w90_with_chk(str(self.inputs.wannier90_input_file.with_suffix("")), str(self.inputs.chk_file))
+        model = jl.capture_stdio(jl.read_w90_with_chk,
+                                 str(self.directory / "julia.out"),
+                                 str(self.inputs.wannier90_input_file.with_suffix("")), str(self.inputs.chk_file))
 
         # Check if the default set of b-vectors contains six cubic nearest neighbors
         has_cubic_neighbors = jl.Wannier.has_cubic_neighbors(model.kstencil)
 
         # Save the output
-        self.outputs = self.output_model(has_cubic_neighbors=has_cubic_neighbors)
+        self.outputs = self.output_model(has_cubic_neighbors=has_cubic_neighbors,
+                                         julia_stdio=File(self, "julia.out"))
 
 
 class WannierJLGenerateNeighborsInput(IOModel):
@@ -156,6 +169,7 @@ class WannierJLSplitOutput(IOModel):
     """Output model for the WannierJLSplitProcess."""
 
     blocks: list[WannierJLSplitBlockOutput]
+    julia_stdio: File
 
 
 class WannierJLSplitProcess(Process[WannierJLSplitInput, WannierJLSplitOutput]):
@@ -174,10 +188,12 @@ class WannierJLSplitProcess(Process[WannierJLSplitInput, WannierJLSplitOutput]):
 
         # Perform the parallel transport algorithm to split the manifolds
         cubic_mmn_file = str(self.inputs.cubic_mmn_file) if self.inputs.cubic_mmn_file else None
-        jl.Wannier.Tools.mrwf(str(self.inputs.wannier90_input_file.with_suffix("")),
-                              julia_indices,
-                              julia_outdirs,
-                              cubic_mmn_file)
+        jl.capture_stdio(jl.Wannier.Tools.mrwf,
+                         str(self.directory / "julia.out"),
+                         str(self.inputs.wannier90_input_file.with_suffix("")),
+                         julia_indices,
+                         julia_outdirs,
+                         cubic_mmn_file)
 
         # Save the output
         prefix = str(self.inputs.wannier90_input_file.with_suffix("").name)
@@ -187,5 +203,6 @@ class WannierJLSplitProcess(Process[WannierJLSplitInput, WannierJLSplitOutput]):
                      'mmn_file': File(self, d) / (prefix + ".mmn"),
                      'u_file': File(self, d) / (prefix + "_split.amn"),
                      'win_file': File(self, d) / (prefix + ".win")}
-                    for d in self.inputs.outdirs]
+                    for d in self.inputs.outdirs],
+            julia_stdio=File(self, "julia.out"),
         )
