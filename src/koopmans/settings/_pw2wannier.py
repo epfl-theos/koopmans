@@ -10,7 +10,7 @@ class PW2WannierSettingsDict(SettingsDict):
                                 'write_unk', 'reduce_unk', 'wan_mode', 'spin_component',
                                 'atom_proj', 'atom_proj_ext', 'atom_proj_dir'],
                          defaults={'outdir': 'TMP', 'prefix': 'kc', 'seedname': 'wann',
-                                   'wan_mode': 'standalone'},
+                                   'wan_mode': 'standalone', 'write_mmn': True},
                          are_paths=['outdir', 'atom_proj_dir'],
                          **kwargs)
 

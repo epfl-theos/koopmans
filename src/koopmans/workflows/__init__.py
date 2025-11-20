@@ -13,5 +13,6 @@ from ._ml import PowerSpectrumDecompositionWorkflow
 from ._singlepoint import SinglepointWorkflow
 from ._trajectory import TrajectoryWorkflow
 from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
-from ._wannierize import WannierizeBlockWorkflow, WannierizeWorkflow
+from ._wannierize import (WannierizeAndSplitBlockWorkflow,
+                          WannierizeBlockWorkflow, WannierizeWorkflow)
 from ._workflow import Workflow

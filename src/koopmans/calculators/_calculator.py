@@ -385,7 +385,7 @@ class CalculatorABC(ABC, Generic[TCalc]):
         # Update calc.directory and calc.parameters.prefix
         assert hasattr(calc, 'parent_process')
         if calc.parent_process is None:
-            base_directory = sanitized_filenames[0].parents[1]
+            base_directory = sanitized_filenames[0].parents[-1]
         else:
             base_directory = calc.parent_process.base_directory
         calc.directory = Path(os.path.relpath(sanitized_filenames[0].parent, base_directory))

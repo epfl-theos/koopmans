@@ -23,7 +23,7 @@ class Wannier90SettingsDict(SettingsDict):
                                 'write_u_matrices', 'write_xyz', 'wannier_plot', 'wannier_plot_list',
                                 'gamma_only', 'spin', 'use_ws_distance', 'translate_home_cell',
                                 'translation_centre_frac', 'write_tb', 'auto_projections', 'dis_proj_max',
-                                'dis_froz_proj', "dis_num_iter"],
+                                'dis_froz_proj', "dis_num_iter", "dis_proj_min"],
                          defaults={'num_iter': 10000, 'conv_tol': 1.e-10, 'conv_window': 5,
                                    'write_hr': True, 'guiding_centres': True, 'gamma_only': False,
                                    'auto_projections': False},

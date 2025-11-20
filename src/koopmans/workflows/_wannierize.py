@@ -611,7 +611,8 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
 
             self.amn_file = File(calc_p2w, calc_p2w.parameters.seedname + '.amn')
             self.eig_file = File(calc_p2w, calc_p2w.parameters.seedname + '.eig')
-            self.mmn_file = File(calc_p2w, calc_p2w.parameters.seedname + '.mmn')
+            if calc_p2w.parameters.write_mmn:
+                self.mmn_file = File(calc_p2w, calc_p2w.parameters.seedname + '.mmn')
             self.nnkp_file = File(calc_p2w, calc_p2w.parameters.seedname + '.nnkp')
 
         # Wannier90 calculation

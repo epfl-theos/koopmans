@@ -359,9 +359,10 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             else:
                 spins = [Spin.NONE]
             if self.calculator_parameters['pw2wannier'].atom_proj_ext:
-                if self.calculator_parameters['pw2wannier'].atom_proj_dir is None:
+                proj_dir = self.calculator_parameters['pw2wannier'].atom_proj_dir
+                if proj_dir is None:
                     raise ValueError('`atom_proj_dir` must be specified when using `atom_proj_ext = True`')
-                projectors = OrderedDict([(k, Path(p.filename.with_suffix('.dat').name))
+                projectors = OrderedDict([(k, proj_dir / p.filename.with_suffix('.dat').name)
                                          for k, p in self.pseudopotentials.items()])
                 num_wann = [nwfcs_from_projectors(self.atoms, projectors) for _ in spins]
             else:

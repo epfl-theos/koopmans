@@ -182,7 +182,10 @@ class LocalhostEngine(Engine):
             with open(config_file, 'r') as f:
                 config = yaml.safe_load(f)
         except FileNotFoundError:
-            config = {'installed_pseudopotentials': {}}
+            config = {}
+
+        if 'installed_pseudopotentials' not in config:
+            config['installed_pseudopotentials'] = {}
 
         if library not in config['installed_pseudopotentials']:
             config['installed_pseudopotentials'][library] = set([str(file.resolve())])
