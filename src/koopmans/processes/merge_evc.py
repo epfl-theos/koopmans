@@ -7,10 +7,10 @@ import numpy as np
 from koopmans.files import File
 
 from ._commandlinetool import CommandLineTool
-from ._process import IOModel
+from ._process import BaseModel
 
 
-class MergeEVCInputs(IOModel):
+class MergeEVCInputs(BaseModel):
     """Input model for a `MergeEVCProcess`."""
 
     kgrid: List[int]
@@ -18,7 +18,7 @@ class MergeEVCInputs(IOModel):
     dest_filename: str
 
 
-class MergeEVCOutputs(IOModel):
+class MergeEVCOutputs(BaseModel):
     """Output model for a `MergeEVCProcess`."""
 
     merged_file: File

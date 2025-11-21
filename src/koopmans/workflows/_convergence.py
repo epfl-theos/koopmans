@@ -11,7 +11,7 @@ from typing import (Any, Callable, Dict, Generic, List, Optional, Type,
 import numpy as np
 
 from koopmans import cell
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 
 from ._workflow import Workflow
@@ -245,7 +245,7 @@ def ConvergenceVariableFactory(conv_var, **kwargs) -> ConvergenceVariable:
                                   'construct your `ConvergenceWorkflow` using the `ConvergenceWorkflowFactory`')
 
 
-class ConvergenceOutputs(IOModel):
+class ConvergenceOutputs(BaseModel):
     """Pydantic model for the outputs of a `ConvergenceWorkflow`."""
 
     converged_values: Dict[str, Any]

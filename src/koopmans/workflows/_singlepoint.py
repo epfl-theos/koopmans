@@ -14,7 +14,7 @@ from pydantic import Field
 
 from koopmans.calculators import KoopmansCPCalculator
 from koopmans.files import File
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 from koopmans.projections import BlockID
 from koopmans.status import Status
 
@@ -26,7 +26,7 @@ from ._workflow import Workflow
 load_results_from_output = True
 
 
-class SinglepointOutputs(IOModel):
+class SinglepointOutputs(BaseModel):
     """Pydantic model for the outputs of a `SinglepointWorkflow`."""
 
     band_structures: Dict[str, BandStructure | None] = Field(default_factory=dict)

@@ -17,4 +17,3 @@ from ._wann2kc import Wann2KCSettingsDict
 from ._wann2kcp import Wann2KCPSettingsDict
 from ._wannier90 import Wannier90SettingsDict
 from ._wannierjl import WannierJLSettingsDict
-from ._workflow import WorkflowSettingsDict

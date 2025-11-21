@@ -10,7 +10,7 @@ from pydantic import Field, model_validator
 from wannier90_input.models.parameters import Projection
 
 from koopmans import calculators
-from koopmans.base import BaseModel
+from koopmans.pydantic import BaseModel
 from koopmans.utils import Spin
 
 

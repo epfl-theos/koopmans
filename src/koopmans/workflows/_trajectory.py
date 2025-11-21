@@ -2,14 +2,14 @@
 
 from typing import List
 
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 
 from ._koopmans_dscf import KoopmansDSCFOutputs, KoopmansDSCFWorkflow
 from ._workflow import Workflow
 
 
-class TrajectoryOutputs(IOModel):
+class TrajectoryOutputs(BaseModel):
     """Pydantic model for the outputs of a `TrajectoryWorkflow`."""
 
     snapshot_outputs: List[KoopmansDSCFOutputs]

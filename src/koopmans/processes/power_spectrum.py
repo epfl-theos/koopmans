@@ -9,10 +9,10 @@ from koopmans import ml
 from koopmans.files import File
 from koopmans.variational_orbitals import VariationalOrbital
 
-from ._process import IOModel, Process
+from ._process import BaseModel, Process
 
 
-class ExtractCoefficientsFromXMLInput(IOModel):
+class ExtractCoefficientsFromXMLInput(BaseModel):
     """Input model for the `ExtractCoefficientsFromXMLProcess`."""
 
     n_max: int
@@ -27,7 +27,7 @@ class ExtractCoefficientsFromXMLInput(IOModel):
     bands: List[VariationalOrbital]
 
 
-class ExtractCoefficientsFromXMLOutput(IOModel):
+class ExtractCoefficientsFromXMLOutput(BaseModel):
     """Output model for the `ExtractCoefficientsFromXMLProcess`."""
 
     precomputed_alphas: File
@@ -78,7 +78,7 @@ class ExtractCoefficientsFromXMLProcess(Process):
                                                         orbital_coefficients=orbital_coefficients)
 
 
-class ComputePowerSpectrumInput(IOModel):
+class ComputePowerSpectrumInput(BaseModel):
     """Input model for the `ComputePowerSpectrumProcess`."""
 
     n_max: int
@@ -87,7 +87,7 @@ class ComputePowerSpectrumInput(IOModel):
     total_coefficients: File
 
 
-class ComputePowerSpectrumOutput(IOModel):
+class ComputePowerSpectrumOutput(BaseModel):
     """Output model for the `ComputePowerSpectrumProcess`."""
 
     power_spectrum: File

@@ -7,7 +7,7 @@ from typing import Any, ClassVar
 from pydantic import Field, field_validator, model_validator
 from typing_extensions import Self
 
-from koopmans.base import BaseModel
+from koopmans.pydantic import BaseModel
 
 
 def _redirection_string(stdin: str, stdout: str | None, stderr: None | str = None,

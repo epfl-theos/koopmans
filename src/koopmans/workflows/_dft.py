@@ -9,14 +9,14 @@ from ase_koopmans.spectrum.doscollection import DOSCollection
 
 from koopmans import calculators
 from koopmans.files import File
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 from koopmans.utils.warnings import warn
 
 from ._workflow import Workflow, spin_symmetrize
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
-OutputModel = TypeVar('OutputModel', bound=IOModel)
+OutputModel = TypeVar('OutputModel', bound=BaseModel)
 
 
 class DFTWorkflow(Workflow[OutputModel]):
@@ -27,7 +27,7 @@ class DFTWorkflow(Workflow[OutputModel]):
         self.parameters.functional = 'dft'
 
 
-class DFTCPOutput(IOModel):
+class DFTCPOutput(BaseModel):
     """Output model for the DFTCPWorkflow."""
 
     pass
@@ -71,7 +71,7 @@ class DFTCPWorkflow(DFTWorkflow[DFTCPOutput]):
         return
 
 
-class DFTPWOutput(IOModel):
+class DFTPWOutput(BaseModel):
     """Output model for the DFTPWWorkflow."""
 
     pass
@@ -100,7 +100,7 @@ class DFTPWWorkflow(DFTWorkflow[DFTPWOutput]):
         return
 
 
-class DFTPhOutput(IOModel):
+class DFTPhOutput(BaseModel):
     """Output model for the DFTPhWorkflow."""
 
     pass
@@ -130,7 +130,7 @@ class DFTPhWorkflow(Workflow[DFTPhOutput]):
         return
 
 
-class DFTBandsOutput(IOModel):
+class DFTBandsOutput(BaseModel):
     """Output model for the DFTBandsWorkflow."""
 
     band_structure: BandStructure

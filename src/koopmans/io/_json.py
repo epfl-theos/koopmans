@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, TextIO, Type
 
 from koopmans import utils, workflows
-from koopmans.settings import WorkflowSettingsDict
+from koopmans.workflows.config import WorkflowConfig, Task
 
 
 def read_json(fd: TextIO, override: Dict[str, Any] = {}, **kwargs):
@@ -19,21 +19,21 @@ def read_json(fd: TextIO, override: Dict[str, Any] = {}, **kwargs):
     utils.update_nested_dict(bigdct, override)
 
     # Loading workflow settings
-    parameters = WorkflowSettingsDict(**utils.parse_dict(bigdct.get('workflow', {})))
+    parameters = WorkflowConfig(**bigdct.get('workflow', {}))
 
     workflow_cls: Type[workflows.Workflow]
-    if parameters.task == 'singlepoint':
+    if parameters.task == Task.SINGLEPOINT:
         workflow_cls = workflows.SinglepointWorkflow
-    elif parameters.task == 'wannierize':
+    elif parameters.task == Task.WANNIERIZE:
         workflow_cls = workflows.WannierizeWorkflow
-    elif parameters.task == 'dft_bands':
+    elif parameters.task == Task.DFT_BANDS:
         workflow_cls = workflows.DFTBandsWorkflow
-    elif parameters.task == 'dft_eps':
+    elif parameters.task == Task.DFT_EPS:
         workflow_cls = workflows.DFTPhWorkflow
-    elif parameters.task == 'trajectory':
+    elif parameters.task == Task.TRAJECTORY:
         workflow_cls = workflows.TrajectoryWorkflow
     else:
-        raise ValueError(f'Invalid task name `{parameters.task}`')
+        raise NotImplementedError(f'Need to implement `{parameters.task.value}`')
 
     return workflow_cls.fromjson(fd.name, override, **kwargs)
 

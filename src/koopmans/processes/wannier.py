@@ -10,7 +10,7 @@ from ase_koopmans import Atoms
 from koopmans import utils
 from koopmans.files import File
 
-from ._process import IOModel, Process
+from ._process import BaseModel, Process
 
 
 def merge_wannier_hr_file_contents(filecontents: List[str]) -> str:
@@ -120,14 +120,14 @@ def extend_wannier_u_dis_file_content(filecontent: str, nbnd: int, nwann: int) -
     return utils.generate_wannier_u_file_contents(udis_mat_large, kpts)
 
 
-class MergeInputModel(IOModel):
+class MergeInputModel(BaseModel):
     """Input model for a `MergeProcess`."""
 
     src_files: List[File]
     dst_file: Path
 
 
-class MergeOutputModel(IOModel):
+class MergeOutputModel(BaseModel):
     """Output model for a `MergeProcess`."""
 
     dst_file: File
@@ -157,14 +157,14 @@ class MergeProcess(Process[MergeInputModel, MergeOutputModel]):
         self.outputs = self.output_model(dst_file=dst_file)
 
 
-class ExtendInputModel(IOModel):
+class ExtendInputModel(BaseModel):
     """Input model for an `ExtendProcess`."""
 
     src_file: File
     dst_file: Path
 
 
-class ExtendOutputModel(IOModel):
+class ExtendOutputModel(BaseModel):
     """Output model for an `ExtendProcess`."""
 
     dst_file: File

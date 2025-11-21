@@ -13,8 +13,10 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
 from pathlib import Path
+from pydantic import Field, field_validator, model_validator
 from typing import (Any, Callable, Dict, Generator, Generic, List, Optional,
                     Sequence, Tuple, Type, TypeVar, Union)
+from typing_extensions import Self
 
 import dill
 import numpy as np
@@ -27,6 +29,7 @@ import matplotlib.pyplot as plt
 # isort: on
 
 from ase_koopmans import Atoms
+from ase_koopmans.cell import Cell
 from ase_koopmans.build.supercells import make_supercell
 from ase_koopmans.dft.dos import DOS
 from ase_koopmans.dft.kpoints import BandPath
@@ -41,11 +44,12 @@ from ase_koopmans.spectrum.dosdata import GridDOSData
 from upf_tools import UPFDict
 
 from koopmans import calculators, settings, utils
+from koopmans.calculators.parameters import CalculatorsInputParameters
 from koopmans.engines import Engine, LocalhostEngine
 from koopmans.files import File, ParentProcessPlaceholder
 from koopmans.kpoints import Kpoints
 from koopmans.ml import AbstractMLModel, MLModel, OccEmpMLModels
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 from koopmans.processes import Process, ProcessProtocol
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
@@ -60,193 +64,182 @@ from koopmans.status import Status
 from koopmans.utils import Spin
 from koopmans.utils.warnings import warn
 from koopmans.variational_orbitals import VariationalOrbitals
-
-T = TypeVar('T', bound='calculators.CalculatorExt')
-W = TypeVar('W', bound='Workflow')
-OutputModel = TypeVar('OutputModel', bound=IOModel)
+from .config import WorkflowConfig, Task
 
 
-class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
-    r"""Abstract base class that defines a Koopmans workflow.
 
-    Parameters
-    ----------
-    atoms : Atoms
-        an ASE ``Atoms`` object defining the atomic positions, cell, etc
-    pseudopotentials : OrderedDict[str, UPFDict]
-        a dictionary mapping atom labels to pseudopotential objects
-    kpoints : koopmans.kpoints.Kpoints
-        a dataclass defining the k-point sampling and paths
-    projections : ProjectionsBlocks
-        The projections to be used in the Wannierization
-    name : str
-        a name for the workflow
-    parameters : Dict[str, Any] | koopmans.settings.WorkflowSettingsDict
-        a dictionary specifying any workflow settings to use; note that a simpler alternative is to provide workflow
-        settings as keyword arguments
-    calculator_parameters : Dict[str, koopmans.settings.SettingsDict]
-        a dictionary containing calculator-specific settings; as for the parameters, it is usually simpler to specify
-        these individually as keyword arguments
-    plotting : koopmans.settings.PlotSettingsDict
-        a dictionary containing settings specific to plotting; again, it is usually simpler to specify these
-        individually as keyword arguments
-    autogenerate_settings : bool
-        if True (the default), autogenerate various calculator settings; the only scenario where you do not want to do
-        this is when creating a new workflow from a .kwf file
-    **kwargs
-        any valid workflow, calculator, or plotting settings e.g. ``{"functional": "ki", "ecutwfc": 50.0}``
-    """
-
-    atoms: Atoms
-    parameters: settings.WorkflowSettingsDict
-    calculator_parameters: Dict[str, settings.SettingsDict]
-    name: str
+class WorkflowInput(BaseModel):
+    config: WorkflowConfig
+    atoms: Atoms = Field('an ASE ``Atoms`` object defining the atomic positions, cell, etc')
+    pseudopotentials: OrderedDict[str, UPFDict] = Field('a dictionary mapping atom labels to pseudopotential objects')
     kpoints: Kpoints
-    pseudopotentials: OrderedDict[str, UPFDict]
-    projections: Projections | None
-    ml_model: Optional[AbstractMLModel]
+    projections: ExplicitProjections | ImplicitProjections | None = None
+    calculator_parameters: CalculatorsInputParameters = Field(default_factory=CalculatorsInputParameters)
+    plotting_config: settings.PlotSettingsDict = Field(default_factory=settings.PlotSettingsDict)
+    ml_config: settings.MLSettingsDict = Field(default_factory=settings.MLSettingsDict)
     snapshots: List[Atoms]
-    version: str
-    step_counter: int
-    print_indent: int
-    status: Status
-    engine: Engine | None
 
-    __slots__ = utils.HasDirectory.__slots__ + ['atoms', 'parameters', 'calculator_parameters', 'name', 'kpoints',
-                                                'pseudopotentials', 'projections', 'ml_model', 'snapshots',
-                                                'version', 'calculations', 'processes',
-                                                'steps', 'plotting', 'ml', '_variational_orbitals', 'step_counter',
-                                                'print_indent', 'status', '_outputs']
-
-    def __init__(self,
-                 atoms: Atoms,
-                 engine: Engine,
-                 pseudopotentials: OrderedDict[str, UPFDict | str] = OrderedDict(),
-                 kpoints: Optional[Kpoints] = None,
-                 projections: Optional[Projections] = None,
-                 name: Optional[str] = None,
-                 parameters: Union[Dict[str, Any], settings.WorkflowSettingsDict] = {},
-                 calculator_parameters: Optional[Union[Dict[str, Dict[str, Any]],
-                                                       Dict[str, settings.SettingsDict]]] = None,
-                 plotting: Union[Dict[str, Any], settings.PlotSettingsDict] = {},
-                 ml: Union[Dict[str, Any], settings.MLSettingsDict] = {},
-                 ml_model: Optional[MLModel] = None,
-                 snapshots: Optional[List[Atoms]] = None,
-                 autogenerate_settings: bool = True,
-                 version: Optional[str] = None,
-                 parent_process: Optional[Workflow] = None,
-                 **kwargs: Dict[str, Any]):
-
-        self._outputs: OutputModel | None = None
-        self.step_counter = 0
-        self.print_indent = 0
-        self.status = Status.NOT_STARTED
-
-        # Initialize the HasDirectory information (parent_process, base_directory, directory)
-        base_directory = None if parent_process else Path.cwd()
-        directory = None if parent_process else Path()
-        super().__init__(parent_process=parent_process, base_directory=base_directory, directory=directory,
-                         engine=engine)
-        if self.engine is None:
-            raise ValueError(
-                'Please provide an engine -- without one, a Workflow cannot be initialized as it does not know '
-                'e.g. how to load pseudopotentials')
-
-        # Parsing parameters
-        self.parameters = settings.WorkflowSettingsDict(**parameters)
-        for key, value in kwargs.items():
-            if self.parameters.is_valid(key):
-                self.parameters[key] = value
-        self.atoms: Atoms = atoms
-        self.snapshots = snapshots if snapshots is not None else [self.atoms]
-        if name:
-            self.name = name
-        else:
-            name_with_split_acroynms = re.sub(r'([a-z])([A-Z])', r'\1 \2',
-                                              self.__class__.__name__.replace('Workflow', ''))
-            self.name = re.sub(r'([A-Z])([A-Z][a-z])', r'\1 \2', name_with_split_acroynms)
-        self.calculations: List[calculators.Calc] = []
-        self.processes: List[Process] = []
-        self.steps: List = []
-        self._variational_orbitals: Optional[VariationalOrbitals] = None
-
-        self.plotting = settings.PlotSettingsDict(**plotting)
-        for key, value in kwargs.items():
-            if self.plotting.is_valid(key):
-                self.plotting[key] = value
-
-        self.ml = settings.MLSettingsDict(**ml)  # , task=self.parameters.task)
-        for key, value in kwargs.items():
-            if self.ml.is_valid(key):
-                self.ml[key] = value
-
-        # Initialize the MLModel
-        if ml_model is not None:
-            self.ml_model = ml_model
-        elif self.ml.train:
-            assert isinstance(self.ml.estimator, str)
-            assert isinstance(self.ml.descriptor, str)
-            if self.ml.occ_and_emp_together:
-                self.ml_model = MLModel(self.ml.estimator, self.ml.descriptor, engine=self.engine)
+    @model_validator(mode='before')
+    @classmethod
+    def setup_implicit_projections(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Set up the projections if they are implicit."""
+        calculator_parameters = data['calculator_parameters']
+        auto = [calculator_parameters[key].get('auto_projections', False) for key in ['w90', 'w90_up', 'w90_down'] if key in calculator_parameters]
+        if any(auto):
+            pseudopotentials = data['pseudopotentials']
+            atoms = data['atoms']
+            if data['config'].spin_polarized:
+                spins = [Spin.UP, Spin.DOWN]
             else:
-                self.ml_model = OccEmpMLModels(self.ml.estimator, self.ml.descriptor, engine=self.engine)
-        elif self.ml.predict or self.ml.test:
-            if self.ml.model_file is None:
-                raise ValueError('Cannot initialize a Workflow with `ml.predict = True` without providing a model via '
-                                 'the `ml.model_file` setting or the `ml_model` argument')
-            with open(self.ml.model_file, 'rb') as f:
-                self.ml_model = dill.load(f)
-            assert isinstance(self.ml_model, AbstractMLModel)
+                spins = [Spin.NONE]
+            if calculator_parameters['pw2wannier'].atom_proj_ext:
+                proj_dir = calculator_parameters['pw2wannier'].atom_proj_dir
+                if proj_dir is None:
+                    raise ValueError('`atom_proj_dir` must be specified when using `atom_proj_ext = True`')
+                projectors = OrderedDict([(k, proj_dir / p.filename.with_suffix('.dat').name)
+                                         for k, p in pseudopotentials.items()])
+                num_wann = [nwfcs_from_projectors(atoms, projectors) for _ in spins]
+            else:
+                num_wann = [nwfcs_from_pseudos(atoms, pseudopotentials) for _ in spins]
+            data['projections'] = ImplicitProjections.from_block_lengths(num_wann, spins, atoms)
 
-        else:
-            self.ml_model = None
+            # Also override various pw2wannier and w90 settings
+            calculator_parameters['pw2wannier'].atom_proj = True
+            for spin in spins:
+                label = 'w90' if spin == Spin.NONE else f'w90_{spin.value}'
+                calculator_parameters[label].guiding_centres = False
+                calculator_parameters[label].dis_froz_proj = True
+                if calculator_parameters[label].dis_proj_max is None:
+                    calculator_parameters[label].dis_proj_max = 0.95
+            data['calculator_parameters'] = calculator_parameters
+        return data
 
-        if all(self.atoms.pbc):
-            self.atoms.wrap(pbc=True)
+    @model_validator(mode='before')
+    @classmethod
+    def populate_snapshots(cls, values: dict[str, Any]) -> dict[str, Any]:
+        if values.get('snapshots', None) is None:
+            values['snapshots'] = [values['atoms']]
+        return values
 
-        # kpoints
-        if all(self.atoms.pbc):
+    @model_validator(mode="before")
+    @classmethod
+    def set_default_kpoints(cls, dct: dict[str, Any]) -> dict[str, Any]:
+        atoms = dct.get('atoms')
+        if not isinstance(atoms, Atoms):
+            raise ValueError('`atoms` must be an ASE `Atoms` object to set default k-points')
+        if not isinstance(atoms.cell, Cell):
+            raise ValueError('`atoms.cell` must be an ASE `Cell` object to set default k-points')
+        if all(atoms.pbc):
             # By default, use ASE's default bandpath for this cell (see
             # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
-            default_path = self.atoms.cell.bandpath(eps=1e-10).path
+            default_path = atoms.cell.bandpath(eps=1e-10).path
         else:
             default_path = 'G'
+        kpoints = dct.get('kpoints', None)
         if kpoints is None:
-            kpoints = Kpoints(path=default_path, gamma_only=False, cell=self.atoms.cell)
+            kpoints = Kpoints(path=default_path, gamma_only=False, cell=atoms.cell)
         elif kpoints.path is None:
-            kpoints.set_path(default_path, cell=self.atoms.cell)
-        self.kpoints = kpoints
+            kpoints.set_path(default_path, cell=atoms.cell)
+        dct['kpoints'] = kpoints
+        return dct
 
-        # Pseudopotentials and pseudo_dir
-        if self.parameters.pseudo_library is None:
-            raise NotImplementedError()
+    @field_validator('atoms', mode="before")
+    @classmethod
+    def wrap_atoms(cls, value: Atoms) -> Atoms:
+        if all(value.pbc):
+            value.wrap(pbc=True)
+        return value
 
-        if self.parameters.pseudo_library is None:
-            raise ValueError('No pseudopotential library was provided`')
-        elif pseudopotentials:
-            # Ensure pseudopotentials are converted to UPFDict objects
-            self.pseudopotentials = OrderedDict()
-            for symbol, pseudo_filename in sorted(pseudopotentials.items()):
-                if isinstance(pseudo_filename, str):
-                    self.pseudopotentials[symbol] = self.engine.get_pseudopotential(
-                        self.parameters.pseudo_library, filename=pseudo_filename)
-                elif isinstance(pseudo_filename, UPFDict):
-                    self.pseudopotentials[symbol] = pseudo_filename
-                else:
-                    raise ValueError(f'Invalid pseudopotential type: {pseudo_filename.__class__.__name__}')
-        else:
-            self.pseudopotentials = OrderedDict()
+    @model_validator(mode='before')
+    @classmethod
+    def add_excluded_bands_info_to_projections(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Add excluded_bands info to the Projections"""
+        projections = data.get('projections', None)
+        calculator_parameters = data['calculator_parameters']
+        if projections:
+            for spin in [Spin.UP, Spin.DOWN, Spin.NONE]:
+                label = 'w90'
+                if spin != Spin.NONE:
+                    label += f'_{spin}'
+                projections.exclude_bands[spin] = calculator_parameters[label].get('exclude_bands', [])
+            data['projections'] = projections
+        return data
 
+
+    @field_validator('atoms', mode='before')
+    @classmethod
+    def detach_atoms_calculator(cls, value: Atoms) -> Atoms:
+        if value.calc is not None:
+            warn(f'You have initialized a `{cls.__name__}` object with an atoms object that '
+                 'possesses a calculator. This calculator will be ignored.')
+            value.calc = None
+        return value
+    
+    @field_validator('calculator_parameters', mode='after')
+    @classmethod
+    def check_projections_provided_in_right_place(cls, value: Dict[str, settings.SettingsDict]) -> Dict[str, settings.SettingsDict]:
+        # Various checks for the wannier90 blocks
+        for block, params in value.items():
+            if block.startswith('w90'):
+                if 'projections' in params:
+                    raise ValueError(f'You have provided projection information in the '
+                                     f'`calculator_parameters[{block}]` argument to `{cls.__name__}`. '
+                                     'Please instead specify projections via the `projections` argument')
+        return value
+    
+    @field_validator('calculator_parameters', mode='after')
+    @classmethod
+    def warn_about_overwritten_keywords(cls, value: Dict[str, settings.SettingsDict]) -> Dict[str, settings.SettingsDict]:
+        for block, params in value.items():
+            if block.startswith('w90'):
+                for kw in ['exclude_bands', 'num_wann', 'num_bands', 'projections']:
+                    if kw in params:
+                        warn(f'`{kw}` will be overwritten by the workflow; it is best to not specify this '
+                             'keyword and to instead double-check the keyword in the various `.win` files '
+                             'generated by the workflow.')
+        return value
+
+OutputModel = TypeVar('OutputModel', bound=BaseModel)
+class Workflow(Process[WorkflowInput, OutputModel]):
+    """Abstract base class that defines a Koopmans workflow."""
+
+    input_model = WorkflowInput
+    version: str = Field('Version number used to create this workflow (becomes relevant when loading workflows from .kwf files)')
+    step_counter: int = 0
+    print_indent: int = 0
+    status: Status = Status.NOT_STARTED
+    engine: Engine | None
+    parent_process: Workflow[BaseModel] | None = None
+    calculations: List[calculators.CalculatorExt] = []
+    processes: List[ProcessProtocol] = []
+    steps: List = []
+    _variational_orbitals: VariationalOrbitals | None
+    ml_model: Optional[AbstractMLModel] = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def get_pseudopotentials(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Get the pseudopotentials, ensuring that they are coerced into UPFDict objects.
+        
+        Note this is done inside `Workflow` and not `WorkflowInput` because it requires access
+        to the engine and config."""
+        engine = data['engine']
+        atoms = data['input']['atoms']
+        pseudopotentials = data['input'].get('pseudopotentials', OrderedDict())
+        pseudo_library = data['config']['pseudo_library']
+
+        upfs = OrderedDict()
+        if pseudopotentials is None:
             # Work out the unique atom labels. This needs to be done like this rather than with set() to ensure
             # the order is consistent with how the atoms appear in the input file
             unique_labels = []
-            for a in self.atoms:
+            for a in atoms:
                 label_tuple: tuple[str, int] = (a.symbol, a.tag)
                 if label_tuple not in unique_labels:
                     unique_labels.append(label_tuple)
 
             for element, tag in unique_labels:
-                pseudo = self.engine.get_pseudopotential(library=self.parameters.pseudo_library, element=element)
+                pseudo = engine.get_pseudopotential(library=pseudo_library, element=element)
 
                 pseudo_type = pseudo['header']['pseudo_type']
                 if pseudo_type != 'NC':
@@ -254,146 +247,169 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
                                      f'{pseudo.filename} is {pseudo_type}')
 
                 symbol = element + str(tag) if tag > 0 else element
-                self.pseudopotentials[symbol] = pseudo
-
-        # Make sure calculator_parameters isn't missing any entries, and every entry corresponds to
-        # settings.SettingsDict objects
-        calculator_parameters = sanitize_calculator_parameters(calculator_parameters) if calculator_parameters \
-            is not None else generate_default_calculator_parameters()
-
-        # For any kwargs...
-        for key, value in kwargs.items():
-            match = False
-            # if they correspond to any valid calculator parameter, set it
-            for calc_params in calculator_parameters.values():
-                if calc_params.is_valid(key):
-                    calc_params[key] = value
-                    match = True
-            # if not a calculator, workflow, or plotting keyword, raise an error
-            if not match and not self.parameters.is_valid(key) and not self.plotting.is_valid(key) \
-                    and not self.ml.is_valid(key):
-                raise ValueError(f'`{key}` is not a valid setting')
-
-        # Before saving the calculator_parameters, automatically generate some keywords and perform some sanity checks
-        if self.parameters.task != 'ui' and autogenerate_settings:
-            # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
-            # and the kcp settings
-            kcp_params = calculator_parameters['kcp']
-            nelec = self.number_of_electrons(Spin.NONE, kcp_params)
-            nelup = self.number_of_electrons(Spin.UP, kcp_params)
-            neldw = self.number_of_electrons(Spin.DOWN, kcp_params)
-            tot_charge = nelec_from_pseudos(self.atoms, self.pseudopotentials) - nelec
-            tot_mag = nelup - neldw
-
-            # Setting up the magnetic moments
-            starting_mags = {k: v for k, v in calculator_parameters['kcp'].items(
-            ) if k.startswith('starting_magnetization')}
-            starting_mags.update(
-                {k: v for k, v in calculator_parameters['pw'].items() if k.startswith('starting_magnetization')})
-            if starting_mags:
-                labels = [a.symbol + str(a.tag) if a.tag > 0 else a.symbol for a in self.atoms]
-                starting_magmoms: Dict[str, float] = {}
-                for i, (l, p) in enumerate(self.pseudopotentials.items()):
-                    mag = starting_mags.pop(f'starting_magnetization({i + 1})', 0.0)
-                    if abs(mag) < 1.0:
-                        # If |mag| < 1, QE interprets this as site magnetization *per valence electron*, whereas ASE
-                        # expects simply the site magnetization
-                        valence = p['header']['z_valence']
-                        starting_magmoms[l] = mag * valence
-                    else:
-                        # If |mag| >= 1, QE interprets this as site magnetization
-                        starting_magmoms[l] = mag
-                atoms.set_initial_magnetic_moments([starting_magmoms[label] for label in labels])
-            elif tot_mag != 0:
-                atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
-
-            # Work out the number of bands
-            nbnd = calculator_parameters.get('pw', calculator_parameters['kcp']).get('nbnd', nelec // 2 + nelec % 2)
-            generated_keywords = {'nelec': nelec, 'tot_charge': tot_charge, 'tot_magnetization': tot_mag,
-                                  'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd}
+                upfs[symbol] = pseudo
         else:
-            generated_keywords = {}
-            nelec = 0
+            for symbol, pseudo_filename in sorted(pseudopotentials.items()):
+                if isinstance(pseudo_filename, str):
+                    upf = engine.get_pseudopotential(pseudo_library, filename=pseudo_filename)
+                elif isinstance(pseudo_filename, UPFDict):
+                    upf = pseudo_filename
+                else:
+                    raise ValueError(f'Invalid pseudopotential type: {pseudo_filename.__class__.__name__}')
+                upfs[symbol] = upf
+        data['input']['pseudopotentials'] = upfs
+        return data
+        
 
-        self.calculator_parameters = generate_default_calculator_parameters()
-        for block, params in calculator_parameters.items():
+    @model_validator(mode='before')
+    @classmethod
+    def create_ml_model(cls, data: dict[str, Any]) -> dict[str, Any]:
+        ml_config = data['inputs'].ml_config
+        ml_model = data['inputs'].get('ml_model', None)
+        engine = data['engine']
+        if ml_model is None:
+            if ml_config.train:
+                if ml_config.occ_and_emp_together:
+                    ml_model = MLModel(ml_config.estimator, ml_config.descriptor, engine=engine)
+                else:
+                    ml_model = OccEmpMLModels(ml_config.estimator, ml_config.descriptor, engine=engine)
+            elif ml_config.predict or ml_config.test:
+                if ml_config.model_file is None:
+                    raise ValueError('Cannot initialize a Workflow with `ml.predict = True` without providing a model via '
+                                     'the `ml.model_file` setting or the `ml_model` argument')
+                with open(ml_config.model_file, 'rb') as f:
+                    ml_model = dill.load(f)
+                assert isinstance(ml_model, AbstractMLModel)
+            data['ml_model'] = ml_model
+        return data
+
+    @field_validator('name', mode='before')
+    @classmethod
+    def set_name(cls, name: Optional[str]) -> str:
+        if name:
+            return name
+        name_with_split_acroynms = re.sub(r'([a-z])([A-Z])', r'\1 \2',
+                                          cls.__name__.replace('Workflow', ''))
+        return re.sub(r'([A-Z])([A-Z][a-z])', r'\1 \2', name_with_split_acroynms)
+    
+    @field_validator('version', mode='before')
+    @classmethod
+    def set_version(cls, version: Optional[str]) -> str:
+        from koopmans import __version__
+        return version if version is not None else __version__
+    
+    @field_validator('version', mode='after')
+    @classmethod
+    def check_version(cls, version: str) -> str:
+        from koopmans import __version__
+        if version != __version__:
+            warn(f'You are using version {__version__} of `koopmans`, but this workflow was generated with '
+                 f'version {version}. Proceed with caution.')
+        return version
+
+    @model_validator(mode="before")
+    @classmethod
+    def populate_calculator_parameters(cls, data: dict[str, Any]) -> dict[str, Any]:
+
+        if data['config'].task == Task.UI or data['autogenerate_settings']:
+            return data
+
+        # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
+        # and the kcp settings
+        calculator_parameters = data['inputs'].calculator_parameters
+        kcp_params = calculator_parameters.kcp
+        atoms = data['inputs'].atoms
+        pseudopotentials = data['inputs'].pseudopotentials
+        spin_polarized = data['config'].spin_polarized
+        nelec = _number_of_electrons(atoms, pseudopotentials, spin_polarized, Spin.NONE, kcp_params)
+        nelup = _number_of_electrons(atoms, pseudopotentials, spin_polarized, Spin.UP, kcp_params)
+        neldw = _number_of_electrons(atoms, pseudopotentials, spin_polarized, Spin.DOWN, kcp_params)
+        tot_charge = nelec_from_pseudos(atoms, pseudopotentials) - nelec
+        tot_mag = nelup - neldw
+
+        # Setting up the magnetic moments
+        starting_mags = {k: v for k, v in calculator_parameters['kcp'].items(
+        ) if k.startswith('starting_magnetization')}
+        starting_mags.update(
+            {k: v for k, v in calculator_parameters['pw'].items() if k.startswith('starting_magnetization')})
+        if starting_mags:
+            labels = [a.symbol + str(a.tag) if a.tag > 0 else a.symbol for a in atoms]
+            starting_magmoms: Dict[str, float] = {}
+            for i, (l, p) in enumerate(pseudopotentials.items()):
+                mag = starting_mags.pop(f'starting_magnetization({i + 1})', 0.0)
+                if abs(mag) < 1.0:
+                    # If |mag| < 1, QE interprets this as site magnetization *per valence electron*, whereas ASE
+                    # expects simply the site magnetization
+                    valence = p['header']['z_valence']
+                    starting_magmoms[l] = mag * valence
+                else:
+                    # If |mag| >= 1, QE interprets this as site magnetization
+                    starting_magmoms[l] = mag
+            atoms.set_initial_magnetic_moments([starting_magmoms[label] for label in labels])
+        elif tot_mag != 0:
+            atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
+        data['inputs'].atoms = atoms
+
+        # Work out the number of bands
+        nbnd = calculator_parameters.get('pw', calculator_parameters['kcp']).get('nbnd', nelec // 2 + nelec % 2)
+        generated_keywords = {'nelec': nelec, 'tot_charge': tot_charge, 'tot_magnetization': tot_mag,
+                              'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd}
+
+        for block, params in data['inputs'].calculator_parameters.items():
             # Apply auto-generated keywords
             for k, v in generated_keywords.items():
                 # Skipping nbnd for kcp; if necessary it will be generated later
                 if k == 'nbnd' and block == 'kcp':
                     continue
-                if k in params.valid and k not in params:
+                if k in params.model_fields:
                     setattr(params, k, v)
+        
+        return data
 
-            # Various checks for the wannier90 blocks
-            if block.startswith('w90'):
-                if 'projections' in params:
-                    raise ValueError(f'You have provided projection information in the '
-                                     f'`calculator_parameters[{block}]` argument to `{self.__class__.__name__}`. '
-                                     'Please instead specify projections via the `projections` argument')
-                for kw in ['exclude_bands', 'num_wann', 'num_bands', 'projections']:
-                    if kw in params:
-                        warn(f'`{kw}` will be overwritten by the workflow; it is best to not specify this '
-                             'keyword and to instead double-check the keyword in the various `.win` files '
-                             'generated by the workflow.')
+    @model_validator(mode='after')
+    def ensure_w90_config_and_spin_polarization_are_consistent(self) -> Self:
+        if self.config.spin_polarized != (self.inputs.calculator_parameters.w90 is None):
+            raise ValueError("Inconsistent spin polarization settings: for spin-polarized calculations, "
+                             "both 'w90_up' and 'w90_down' must be specified; for non-spin-polarized calculations, "
+                             "'w90' must be specified.")
+        return self
 
-            # Replace "nelec" as a unit with its numerical value, for any settings that are specified implicitly in
-            # terms of nelec
-            params.replace_nelec(nelec)
+    @model_validator(mode='before')
+    @classmethod
+    def extract_projections(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Adding the projections to the workflow kwargs.
+         
+        This is unusual in that this is an attribute of the workflow but can be specified within the w90 block
+        """
+        calc_configs = data['inputs'].calculator_parameters
+        atoms = data['inputs'].atoms
+        projections = data['inputs'].projections
+        spin_polarized = data['config'].spin_polarized
 
-            # Store the sanitized parameters
-            self.calculator_parameters[block] = params
+        if projections is None:
+            w90_block_projs: list[dict[str, Any]] = []
 
-        # If atoms has a calculator, overwrite the kpoints and pseudopotentials variables and then detach the
-        # calculator
-        if atoms.calc is not None:
-            warn(f'You have initialized a `{self.__class__.__name__}` object with an atoms object that '
-                 'possesses a calculator. This calculator will be ignored.')
-            self.atoms.calc = None
+            spins = [Spin.UP, Spin.DOWN] if spin_polarized else [Spin.NONE]
+            suffixes = ['up', 'down'] if spin_polarized else ['']
+            for spin, suffix in zip(spins, suffixes):
+                projs = data['inputs']['w90' + suffix].pop('projections', [[]])
 
-        # Projections
-        auto = [self.calculator_parameters[s].auto_projections for s in ['w90', 'w90_up', 'w90_down']]
-        if any(auto):
-            if self.parameters.spin_polarized:
-                spins = [Spin.UP, Spin.DOWN]
-            else:
-                spins = [Spin.NONE]
-            if self.calculator_parameters['pw2wannier'].atom_proj_ext:
-                proj_dir = self.calculator_parameters['pw2wannier'].atom_proj_dir
-                if proj_dir is None:
-                    raise ValueError('`atom_proj_dir` must be specified when using `atom_proj_ext = True`')
-                projectors = OrderedDict([(k, proj_dir / p.filename.with_suffix('.dat').name)
-                                         for k, p in self.pseudopotentials.items()])
-                num_wann = [nwfcs_from_projectors(self.atoms, projectors) for _ in spins]
-            else:
-                num_wann = [nwfcs_from_pseudos(self.atoms, self.pseudopotentials) for _ in spins]
-            self.projections = ImplicitProjections.from_block_lengths(num_wann, spins, self.atoms)
+                # Add the spin information
+                w90_block_projs += [{'spin': spin, 'projections': proj_block} for proj_block in projs]
 
-            # Also override various pw2wannier and w90 settings
-            self.calculator_parameters['pw2wannier'].atom_proj = True
-            for spin in spins:
-                label = 'w90' if spin == Spin.NONE else f'w90_{spin.value}'
-                self.calculator_parameters[label].guiding_centres = False
-                self.calculator_parameters[label].dis_froz_proj = True
-                if self.calculator_parameters[label].dis_proj_max is None:
-                    self.calculator_parameters[label].dis_proj_max = 0.95
-        else:
-            self.projections = projections
+            # Suppress type-checking because mypy does not understand that pydantic will cast blocks appropriately
+            # to the desired type
+            data['projections'] = ExplicitProjections(blocks=w90_block_projs, atoms=atoms)  # type: ignore[arg-type]
+        return data
+    
+    @field_validator('inputs', mode='before')
+    @classmethod
+    def coerce_inputs(cls, value: Union[WorkflowInput, dict[str, Any]]) -> WorkflowInput:
+        """Coerce `inputs` manually so coercion happens prior to any other before validators"""
+        if isinstance(value, dict):
+            return WorkflowInput(**value)
+        return value
 
-        # Adding excluded_bands info to self.projections
-        if self.projections:
-            for spin in [Spin.UP, Spin.DOWN, Spin.NONE]:
-                label = 'w90'
-                if spin != Spin.NONE:
-                    label += f'_{spin}'
-                self.projections.exclude_bands[spin] = self.calculator_parameters[label].get('exclude_bands', [])
-
-        # Version number (important when loading workflows from .kwf files)
-        from koopmans import __version__
-        self.version = version if version is not None else __version__
-        if self.version != __version__:
-            warn(f'You are using version {__version__} of `koopmans`, but this workflow was generated with '
-                 f'version {self.version}. Proceed with caution.')
 
     def __eq__(self, other: Any):
         if self.__class__ != other.__class__:
@@ -1080,98 +1096,11 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         # Loading plot settings
         kwargs['plotting'] = settings.PlotSettingsDict(**utils.parse_dict(bigdct.pop('plotting', {})))
 
-        # Loading workflow settings
-        parameters = settings.WorkflowSettingsDict(**utils.parse_dict(bigdct.pop('workflow', {})))
-
         # Loading ml settings
         kwargs['ml'] = settings.MLSettingsDict(**utils.parse_dict(bigdct.pop('ml', {})))  # , task=parameters['task'])
 
         # Loading kpoints
         kpts = Kpoints(**utils.parse_dict(bigdct.pop('kpoints', {})), cell=atoms.cell)
-
-        # Loading calculator-specific settings
-        calcdict = bigdct.pop('calculator_parameters', {})
-
-        # First, extract the w90 subdictionaries
-        if 'w90' in calcdict:
-            universal_settings = {k: v for k, v in calcdict['w90'].items() if k not in ['up', 'down']}
-            for spin in ['up', 'down']:
-                # Add any keywords in the spin subdictionary
-                calcdict[f'w90_{spin}'] = calcdict['w90'].pop(spin, {})
-                # Add any keywords in the main dictionary
-                calcdict[f'w90_{spin}'].update(universal_settings)
-
-        # Secondly, flatten the UI subdictionaries
-        if 'ui' in calcdict:
-            subdcts = {}
-            keys = ['occ', 'emp']
-            for key in keys:
-                # First, we must remove the occ and emp subdicts from the UI dict
-                if key in calcdict['ui']:
-                    subdcts[key] = calcdict['ui'].pop(key)
-
-            # Now, we add the ui_occ and ui_emp calculators to calculator_parameters
-            for key in keys:
-                if key in subdcts:
-                    # Add the corresponding subdict to the rest of the UI block
-                    calcdict[f'ui_{key}'] = dict(calcdict['ui'], **subdcts[key])
-                else:
-                    # Duplicate the UI block
-                    calcdict[f'ui_{key}'] = calcdict['ui']
-
-        # Third, flatten the kcw subdicts
-        kcw_blocks = calcdict.pop('kcw', {'ham': {}, 'screen': {}, 'wannier': {}})
-        calcdict.update(**{'kcw_' + k: v for k, v in kcw_blocks.items()})
-
-        # Finally, generate a SettingsDict for every single kind of calculator, regardless of whether or not there was
-        # a corresponding block in the json file
-        calculator_parameters = {}
-        w90_block_projs: list[dict[str, Any]] = []
-        for block, settings_class in settings_classes.items():
-            # Read the block and add the resulting calculator to the calcs_dct
-            dct = calcdict.pop(block, {})
-            if block.startswith('ui'):
-                # Dealing with redundancies in UI keywords
-                if 'sc_dim' in dct and kpts.grid is not None:
-                    # In this case, the sc_dim keyword is redundant
-                    if kpts.grid != dct['sc_dim']:
-                        raise ValueError(
-                            '`sc_dim` in the `ui` block should match the kpoints provided in the `kpoints` block')
-                    dct.pop('sc_dim')
-                if 'kpath' in dct and kpts.path is not None:
-                    if kpts.path != dct['kpath']:
-                        raise ValueError('`kpath` in the `ui` block should match that provided in the `kpoints` block')
-                    dct.pop('kpath')
-            elif block.startswith('w90') and dct:
-                # If we are spin-polarized, don't store the spin-independent w90 block
-                # Likewise, if we are not spin-polarized, don't store the spin-dependent w90 blocks
-                if parameters.spin_polarized is not ('up' in block or 'down' in block):
-                    continue
-                if 'up' in block:
-                    block_spin = Spin.UP
-                elif 'down' in block:
-                    block_spin = Spin.DOWN
-                else:
-                    block_spin = Spin.NONE
-                projs = dct.pop('projections', [[]])
-
-                # Add the spin information
-                w90_block_projs += [{'spin': block_spin, 'projections': proj_block} for proj_block in projs]
-
-            calculator_parameters[block] = settings_class(**dct)
-
-        # Adding the projections to the workflow kwargs (this is unusual in that this is an attribute of the workflow
-        # object but it is provided in the w90 subdictionary)
-        if w90_block_projs != []:
-            # Suppress type-checking because mypy does not understand that pydantic will cast blocks appropriately
-            # to the desired type
-            kwargs['projections'] = ExplicitProjections(blocks=w90_block_projs, atoms=atoms)  # type: ignore[arg-type]
-
-        kwargs['pseudopotentials'] = bigdct.pop('pseudopotentials', {})
-
-        # Convergence
-        if parameters.converge:
-            conv_block = settings.ConvergenceSettingsDict(**bigdct.pop('convergence', {}))
 
         # Engine
         if 'engine' not in kwargs:
@@ -1181,16 +1110,11 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
             for k, v in engine_parameters.items():
                 setattr(kwargs['engine'], k, v)
 
-        # Check for unexpected blocks
-        for block in bigdct:
-            raise ValueError(f'Unrecognized block `{block}` in the json input file')
-
         # Create the workflow. Note that any keywords provided in the calculator_parameters (i.e. whatever is left in
         # calcdict) are provided as kwargs
-        wf = cls(atoms, snapshots=snapshots, parameters=parameters, kpoints=kpts,
-                 calculator_parameters=calculator_parameters, **kwargs, **calcdict)
+        wf = cls(atoms=atoms, snapshots=snapshots, kpoints=kpts, **kwargs, **bigdct)
 
-        if parameters.converge:
+        if wf.config.converge:
             # Wrap the workflow in a convergence outer loop
             from koopmans.workflows import ConvergenceWorkflowFactory
             return ConvergenceWorkflowFactory(wf, **conv_block)
@@ -1509,22 +1433,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         self.engine._teardown()
 
     def number_of_electrons(self, spin: Spin = Spin.NONE, params: Optional[settings.SettingsDict] = None) -> int:
-        """Return the number of electrons in a particular spin channel."""
-        nelec_tot = nelec_from_pseudos(self.atoms, self.pseudopotentials)
-        if params is None:
-            params = self.calculator_parameters['pw']
-        nelec = nelec_tot - params.get('tot_charge', 0)
-        if self.parameters.spin_polarized:
-            if spin == Spin.UP:
-                nelec += params.tot_magnetization
-                nelec //= 2
-            elif spin == Spin.DOWN:
-                nelec -= params.tot_magnetization
-                nelec //= 2
-        else:
-            if spin != Spin.NONE:
-                nelec //= 2
-        return nelec
+        return _number_of_electrons(self.inputs.atoms, self.inputs.pseudopotentials, self.config.spin_polarized, spin, params)
 
 
 def read_atoms_dict(dct: Dict[str, Any]) -> Tuple[Atoms, List[Atoms]]:
@@ -1562,70 +1471,6 @@ def read_atoms_dict(dct: Dict[str, Any]) -> Tuple[Atoms, List[Atoms]]:
     return atoms, snapshots
 
 
-def generate_default_calculator_parameters() -> Dict[str, settings.SettingsDict]:
-    """Generate a dictionary of default calculator parameters.
-
-    This dictionary is to be used as the default value for 'calculator_parameters' when initializing a workflow
-    We create this dynamically in order for the .directory attributes to make sense
-    """
-    return {'kcp': settings.KoopmansCPSettingsDict(),
-            'kcw_ham': settings.KoopmansHamSettingsDict(),
-            'kcw_screen': settings.KoopmansScreenSettingsDict(),
-            'ph': settings.PhSettingsDict(),
-            'projwfc': settings.ProjwfcSettingsDict(),
-            'pw': settings.PWSettingsDict(),
-            'pw2wannier': settings.PW2WannierSettingsDict(),
-            'wann2kcp': settings.Wann2KCPSettingsDict(),
-            'ui': settings.UnfoldAndInterpolateSettingsDict(),
-            'ui_occ': settings.UnfoldAndInterpolateSettingsDict(),
-            'ui_emp': settings.UnfoldAndInterpolateSettingsDict(),
-            'kcw_wannier': settings.Wann2KCSettingsDict(),
-            'wjl': settings.WannierJLSettingsDict(),
-            'w90': settings.Wannier90SettingsDict(),
-            'w90_up': settings.Wannier90SettingsDict(),
-            'w90_down': settings.Wannier90SettingsDict(),
-            'plot': settings.PlotSettingsDict()}
-
-
-# Define which function to use to read each block
-settings_classes = {'kcp': settings.KoopmansCPSettingsDict,
-                    'kcw_ham': settings.KoopmansHamSettingsDict,
-                    'kcw_screen': settings.KoopmansScreenSettingsDict,
-                    'kcw_wannier': settings.Wann2KCSettingsDict,
-                    'ph': settings.PhSettingsDict,
-                    'projwfc': settings.ProjwfcSettingsDict,
-                    'pw': settings.PWSettingsDict,
-                    'pw2wannier': settings.PW2WannierSettingsDict,
-                    'wann2kcp': settings.Wann2KCPSettingsDict,
-                    'ui': settings.UnfoldAndInterpolateSettingsDict,
-                    'ui_occ': settings.UnfoldAndInterpolateSettingsDict,
-                    'ui_emp': settings.UnfoldAndInterpolateSettingsDict,
-                    'wjl': settings.WannierJLSettingsDict,
-                    'w90': settings.Wannier90SettingsDict,
-                    'w90_up': settings.Wannier90SettingsDict,
-                    'w90_down': settings.Wannier90SettingsDict,
-                    'plot': settings.PlotSettingsDict}
-
-
-def sanitize_calculator_parameters(dct_in: Union[Dict[str, Dict], Dict[str, settings.SettingsDict]]) \
-        -> Dict[str, settings.SettingsDict]:
-    """Convert a dictionary of calculator parameters to a dictionary of SettingsDict objects."""
-    dct_out: Dict[str, settings.SettingsDict] = {}
-    for k, cls in settings_classes.items():
-        dct: Union[Dict, settings.SettingsDict] = dct_in.get(k, {})
-        if isinstance(dct, settings.SettingsDict):
-            dct_out[k] = dct
-            if dct_out[k].directory == '':
-                dct_out[k].directory = Path.cwd()
-        else:
-            dct_out[k] = cls(**dct, directory=Path.cwd())
-
-    for k in dct_in.keys():
-        if k not in settings_classes:
-            raise ValueError(
-                f'Unrecognized calculator_parameters entry `{k}`: valid options are `'
-                + '`/`'.join(settings_classes.keys()) + '`')
-    return dct_out
 
 
 def header():
@@ -1730,3 +1575,21 @@ def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
         master_calc.link(f, dst_dir / f.name, symlink=True, overwrite=True)
     status = wf.run_steps(master_calc)
     return status
+
+def _number_of_electrons(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict], spin_polarized: bool, spin: Spin = Spin.NONE, params: Optional[settings.SettingsDict] = None) -> int:
+    """Return the number of electrons in a particular spin channel."""
+    nelec_tot = nelec_from_pseudos(atoms, pseudopotentials)
+    if params is None:
+        params = wf.calculator_parameters['pw']
+    nelec = nelec_tot - params.get('tot_charge', 0)
+    if spin_polarized:
+        if spin == Spin.UP:
+            nelec += params.tot_magnetization
+            nelec //= 2
+        elif spin == Spin.DOWN:
+            nelec -= params.tot_magnetization
+            nelec //= 2
+    else:
+        if spin != Spin.NONE:
+            nelec //= 2
+    return nelec

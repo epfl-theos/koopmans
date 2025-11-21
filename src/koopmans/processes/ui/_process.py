@@ -15,7 +15,7 @@ from pydantic import Field
 from koopmans import utils
 from koopmans.files import File
 from koopmans.kpoints import kpath_to_dict
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 from koopmans.settings import (PlotSettingsDict,
                                UnfoldAndInterpolateSettingsDict)
 from koopmans.utils.warnings import warn
@@ -25,10 +25,10 @@ from ._atoms import UIAtoms
 from ._utils import crys_to_cart, extract_hr, latt_vect
 
 
-class UnfoldAndInterpolateInputs(IOModel):
+class UnfoldAndInterpolateInputs(BaseModel):
     """Input model for the `UnfoldAndInterpolateProcess`."""
 
-    model_config = {"frozen": True, **IOModel.model_config}
+    model_config = {"frozen": True, **BaseModel.model_config}
 
     atoms: UIAtoms = \
         Field(..., description='An ASE Atoms object augmented with supercell information')
@@ -58,12 +58,12 @@ class UnfoldAndInterpolateInputs(IOModel):
         Field(default=PlotSettingsDict(), description='The plotting parameters (used when generating the DOS)')
 
 
-class UnfoldAndInterpolateOutputs(IOModel):
+class UnfoldAndInterpolateOutputs(BaseModel):
     """Output model for the `UnfoldAndInterpolateProcess`."""
 
     band_structure: BandStructure
     dos: Optional[DOS] = None
-    model_config = {"frozen": True, **IOModel.model_config}
+    model_config = {"frozen": True, **BaseModel.model_config}
 
 
 class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndInterpolateOutputs]):

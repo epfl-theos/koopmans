@@ -4,19 +4,19 @@ from pathlib import Path
 from typing import List
 
 from koopmans.files import File
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 
 from ._process import Process
 
 
-class ConvertFilesFromSpin2To1InputModel(IOModel):
+class ConvertFilesFromSpin2To1InputModel(BaseModel):
     """Input model for a `ConvertFilesFromSpin2To1` process."""
 
     spin_2_files: List[File]
     spin_1_files: List[Path]
 
 
-class ConvertFilesOutputModel(IOModel):
+class ConvertFilesOutputModel(BaseModel):
     """Output model for a `ConvertFilesFromSpinXtoY` process."""
 
     generated_files: List[File]
@@ -44,7 +44,7 @@ class ConvertFilesFromSpin2To1(Process[ConvertFilesFromSpin2To1InputModel, Conve
         self.outputs = self.output_model(generated_files=generated_files)
 
 
-class ConvertFilesFromSpin1To2InputModel(IOModel):
+class ConvertFilesFromSpin1To2InputModel(BaseModel):
     """Input model for a `ConvertFilesFromSpin1To2` process."""
 
     spin_1_files: List[File]
@@ -92,13 +92,13 @@ class ConvertFilesFromSpin1To2(Process[ConvertFilesFromSpin1To2InputModel, Conve
         self.outputs = self.output_model(generated_files=generated_files)
 
 
-class SwapSpinFilesInputModel(IOModel):
+class SwapSpinFilesInputModel(BaseModel):
     """Input model for a `SwapSpinFilesProcess`."""
 
     read_directory: File
 
 
-class SwapSpinFilesOutputModel(IOModel):
+class SwapSpinFilesOutputModel(BaseModel):
     """Output model for a `SwapSpinFilesProcess`."""
 
     write_directory: File

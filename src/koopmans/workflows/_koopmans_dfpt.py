@@ -9,7 +9,7 @@ from koopmans import pseudopotentials, utils
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
                                   Wann2KCCalculator, Wannier90Calculator)
 from koopmans.files import File, LocalFile
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 from koopmans.projections import BlockID, ImplicitProjections
 from koopmans.status import Status
 from koopmans.utils import Spin
@@ -21,7 +21,7 @@ from ._wannierize import MergeableFile, WannierizeWorkflow
 from ._workflow import Workflow
 
 
-class KoopmansDFPTOutputs(IOModel):
+class KoopmansDFPTOutputs(BaseModel):
     """Pydantic model for the outputs of a `KoopmansDFPTWorkflow`."""
 
     band_structure: BandStructure | None = None
@@ -392,7 +392,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
         return internal_new_calculator(self, calc_presets, **kwargs)
 
 
-class ComputeScreeningViaDFPTOutputs(IOModel):
+class ComputeScreeningViaDFPTOutputs(BaseModel):
     """Pydantic model for the outputs of the `ComputeScreeningViaDFPTWorkflow`."""
 
     pass

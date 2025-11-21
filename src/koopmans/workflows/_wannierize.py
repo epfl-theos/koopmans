@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 from koopmans import calculators, utils
 from koopmans.calculators import Wannier90Calculator
 from koopmans.files import File
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         extend_wannier_u_dis_file_content,
                                         merge_wannier_centers_file_contents,
@@ -48,7 +48,7 @@ from ._workflow import Workflow
 CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 
 
-class WannierizeOutput(IOModel):
+class WannierizeOutput(BaseModel):
     """Output model for the WannierizeWorkflow."""
 
     band_structures: List[BandStructure]
@@ -81,87 +81,87 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
 
     output_model = WannierizeOutput
 
-    def __init__(self, *args, force_nspin2: bool = False, scf_kgrid: List[float] | None = None,
-                 files_to_merge: List[MergeableFile] = [], merge_occ_and_empty: bool = False, **kwargs):
-        super().__init__(*args, **kwargs)
+    # def __init__(self, *args, force_nspin2: bool = False, scf_kgrid: List[float] | None = None,
+    #              files_to_merge: List[MergeableFile] = [], merge_occ_and_empty: bool = False, **kwargs):
+    #     super().__init__(*args, **kwargs)
 
-        if self.projections is None:
-            raise ValueError(f'{self.__class__.__name__} requires projections but none were provided.')
+    #     if self.projections is None:
+    #         raise ValueError(f'{self.__class__.__name__} requires projections but none were provided.')
 
-        pw_params = self.calculator_parameters['pw']
+    #     pw_params = self.calculator_parameters['pw']
 
-        if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
-                and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
-            pass
-        elif self.parameters.init_orbitals == 'kohn-sham' and self.parameters.init_empty_orbitals == 'kohn-sham':
-            pass
-        else:
-            raise NotImplementedError('`WannierizeWorkflow` only supports setting `init_orbitals` and '
-                                      '`init_empty_orbitals` to `mlwfs`/`projwfs`/`kohn-sham`')
+    #     if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
+    #             and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
+    #         pass
+    #     elif self.parameters.init_orbitals == 'kohn-sham' and self.parameters.init_empty_orbitals == 'kohn-sham':
+    #         pass
+    #     else:
+    #         raise NotImplementedError('`WannierizeWorkflow` only supports setting `init_orbitals` and '
+    #                                   '`init_empty_orbitals` to `mlwfs`/`projwfs`/`kohn-sham`')
 
-        # Sanity checks
-        if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
-                and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
+    #     # Sanity checks
+    #     if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
+    #             and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
 
-            spins: List[Spin] = [Spin.UP, Spin.DOWN] if self.parameters.spin_polarized else [Spin.NONE]
+    #         spins: List[Spin] = [Spin.UP, Spin.DOWN] if self.parameters.spin_polarized else [Spin.NONE]
 
-            for spin in spins:
-                # Work out where we have breaks between blocks of projections, and check that this is commensurate
-                # with the number of electrons in this spin channel. Note that this code can be replaced when we have
-                # an algorithm for occ-emp separation within Wannier90
-                num_bands_occ = self.number_of_electrons(spin)
-                if spin == Spin.NONE:
-                    num_bands_occ //= 2
-                divs = self.projections.divisions(spin)
-                cumulative_divs = [sum(divs[:i + 1]) for i in range(len(divs))]
-                if num_bands_occ not in cumulative_divs and isinstance(self.projections, ExplicitProjections):
-                    message = 'The provided Wannier90 projections are not commensurate with the number of ' \
-                              'electrons; divide your list of projections into sublists ' \
-                              'that represent blocks of bands to Wannierize separately'
-                    warn(message, IncommensurateProjectionsWarning)
+    #         for spin in spins:
+    #             # Work out where we have breaks between blocks of projections, and check that this is commensurate
+    #             # with the number of electrons in this spin channel. Note that this code can be replaced when we have
+    #             # an algorithm for occ-emp separation within Wannier90
+    #             num_bands_occ = self.number_of_electrons(spin)
+    #             if spin == Spin.NONE:
+    #                 num_bands_occ //= 2
+    #             divs = self.projections.divisions(spin)
+    #             cumulative_divs = [sum(divs[:i + 1]) for i in range(len(divs))]
+    #             if num_bands_occ not in cumulative_divs and isinstance(self.projections, ExplicitProjections):
+    #                 message = 'The provided Wannier90 projections are not commensurate with the number of ' \
+    #                           'electrons; divide your list of projections into sublists ' \
+    #                           'that represent blocks of bands to Wannierize separately'
+    #                 warn(message, IncommensurateProjectionsWarning)
 
-                # Compare the number of bands from PW to Wannier90
-                num_bands_w90 = self.projections.num_bands(spin=spin)
-                if num_bands_w90 > pw_params.nbnd:
-                    warn(f'You have provided more bands to the `Wannier90 calculator` ({num_bands_w90}) '
-                         f'than the preceeding PW calculation ({pw_params.nbnd})')
-                    pw_params.nbnd = num_bands_w90
-                elif num_bands_w90 == pw_params.nbnd:
-                    pass
-                else:
-                    # Update the projections_blocks to account for additional empty bands
-                    self.projections.num_extra_bands[spin] = pw_params.nbnd - num_bands_w90
+    #             # Compare the number of bands from PW to Wannier90
+    #             num_bands_w90 = self.projections.num_bands(spin=spin)
+    #             if num_bands_w90 > pw_params.nbnd:
+    #                 warn(f'You have provided more bands to the `Wannier90 calculator` ({num_bands_w90}) '
+    #                      f'than the preceeding PW calculation ({pw_params.nbnd})')
+    #                 pw_params.nbnd = num_bands_w90
+    #             elif num_bands_w90 == pw_params.nbnd:
+    #                 pass
+    #             else:
+    #                 # Update the projections_blocks to account for additional empty bands
+    #                 self.projections.num_extra_bands[spin] = pw_params.nbnd - num_bands_w90
 
-                # Sanity checking
-                assert pw_params.nbnd == self.projections.num_bands(spin=spin)
+    #             # Sanity checking
+    #             assert pw_params.nbnd == self.projections.num_bands(spin=spin)
 
-        # Spin-polarization
-        self._force_nspin2 = force_nspin2
-        if force_nspin2:
-            pw_params.nspin = 2
-        elif self.parameters.spin_polarized:
-            pw_params.nspin = 2
-        else:
-            pw_params.nspin = 1
+    #     # Spin-polarization
+    #     self._force_nspin2 = force_nspin2
+    #     if force_nspin2:
+    #         pw_params.nspin = 2
+    #     elif self.parameters.spin_polarized:
+    #         pw_params.nspin = 2
+    #     else:
+    #         pw_params.nspin = 1
 
-        # When running a smooth PW calculation the k-grid for the scf calculation
-        # must match the original k-grid
-        self._scf_kgrid = scf_kgrid
+    #     # When running a smooth PW calculation the k-grid for the scf calculation
+    #     # must match the original k-grid
+    #     self._scf_kgrid = scf_kgrid
 
-        # Calculate by default the band structure
-        if self.parameters.calculate_bands is None:
-            assert isinstance(self.kpoints.path, BandPath)
-            if len(self.kpoints.path.kpts) > 1:
-                self.parameters.calculate_bands = True
-            else:
-                self.parameters.calculate_bands = False
+    #     # Calculate by default the band structure
+    #     if self.parameters.calculate_bands is None:
+    #         assert isinstance(self.kpoints.path, BandPath)
+    #         if len(self.kpoints.path.kpts) > 1:
+    #             self.parameters.calculate_bands = True
+    #         else:
+    #             self.parameters.calculate_bands = False
 
-        # This workflow only makes sense for DFT, not an ODD
-        self.parameters.functional = 'dft'
+    #     # This workflow only makes sense for DFT, not an ODD
+    #     self.parameters.functional = 'dft'
 
-        # Save the attributes that define the behavior of the workflow when merging/extending files
-        self._files_to_merge = files_to_merge
-        self._merge_occ_and_empty = merge_occ_and_empty
+    #     # Save the attributes that define the behavior of the workflow when merging/extending files
+    #     self._files_to_merge = files_to_merge
+    #     self._merge_occ_and_empty = merge_occ_and_empty
 
     def _run(self) -> None:
         """Run the workflow."""
@@ -542,7 +542,7 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
         raise NotImplementedError()
 
 
-class WannierizeBlockOutput(IOModel):
+class WannierizeBlockOutput(BaseModel):
     """Output model for the WannierizeBlockWorkflow."""
 
     hr_file: File | None = None
@@ -667,7 +667,7 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
         return _internal_new_calculator(self, *args, **kwargs)
 
 
-class WannierizeAndSplitBlockOutput(IOModel):
+class WannierizeAndSplitBlockOutput(BaseModel):
     """Output model for the WannierizeAndSplitBlockWorkflow."""
 
     block_outputs: List[WannierizeBlockOutput]

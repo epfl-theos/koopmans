@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict
 
 from koopmans.files import File
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 from koopmans.processes.merge_evc import MergeEVCProcess
 from koopmans.projections import BlockID
 from koopmans.status import Status
@@ -12,7 +12,7 @@ from koopmans.status import Status
 from ._workflow import Workflow
 
 
-class FoldToSupercellOutputs(IOModel):
+class FoldToSupercellOutputs(BaseModel):
     """Output model for the FoldToSupercellWorkflow."""
 
     kcp_files: Dict[str, File]

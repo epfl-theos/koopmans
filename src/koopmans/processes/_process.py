@@ -13,10 +13,10 @@ import dill
 
 from koopmans import utils
 from koopmans.files import File
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 
-InputModel = TypeVar('InputModel', bound=IOModel)
-OutputModel = TypeVar('OutputModel', bound=IOModel)
+InputModel = TypeVar('InputModel', bound=BaseModel)
+OutputModel = TypeVar('OutputModel', bound=BaseModel)
 
 
 class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
@@ -32,7 +32,9 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
     output_model: Type[OutputModel]
 
     def __init__(self, name: str | None = None, **kwargs):
-        self.inputs: InputModel = self.input_model(**kwargs)
+        input_kwargs = {k: v for k, v in kwargs.items() if k in self.input_model.model_fields}
+        other_kwargs = {k: v for k, v in kwargs.items() if k not in input_kwargs}
+        self.inputs: InputModel = self.input_model(**input_kwargs)
         self._outputs: OutputModel | None = None
         if name is None:
             name_with_split_acronyms = re.sub(r'([a-z])([A-Z])', r'\1_\2',
@@ -42,7 +44,7 @@ class Process(utils.HasDirectory, ABC, Generic[InputModel, OutputModel]):
             self.name = name
 
         # Initialize the directory information
-        super().__init__()
+        super().__init__(**other_kwargs)
 
         self.linked_files: Dict[str, File] = {}
 

@@ -3,18 +3,18 @@
 from pathlib import Path
 
 from koopmans.files import File
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 
 from ._commandlinetool import CommandLineTool
 
 
-class Bin2XMLInput(IOModel):
+class Bin2XMLInput(BaseModel):
     """Input for a `Bin2XMLProcess`."""
 
     binary: File
 
 
-class Bin2XMLOutput(IOModel):
+class Bin2XMLOutput(BaseModel):
     """Output for a `Bin2XMLProcess`."""
 
     xml: File

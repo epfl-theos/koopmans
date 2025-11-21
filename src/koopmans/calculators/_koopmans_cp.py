@@ -12,7 +12,6 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 from ase_koopmans import Atoms
 from ase_koopmans.calculators.espresso import Espresso_kcp
-from pandas.core.series import Series
 from scipy.linalg import block_diag
 
 from koopmans import pseudopotentials, settings, utils, variational_orbitals
@@ -390,10 +389,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
         return self._alphas
 
     @alphas.setter
-    def alphas(self, val: Union[Series, List[List[float]]]):
-
-        if isinstance(val, Series):
-            val = val.to_numpy()
+    def alphas(self, val: List[List[float]]):
 
         assert len(val) == self.parameters.nspin, \
             f'Dimensions of {self.__class__.__name__}.alphas must match nspin = {self.parameters.nspin}'

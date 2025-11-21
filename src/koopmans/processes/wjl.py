@@ -5,7 +5,7 @@ from functools import lru_cache
 from pydantic import field_validator
 
 from koopmans.files import File
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 
 from ._process import Process
 
@@ -45,7 +45,7 @@ def load_wannierjl():
     return jl
 
 
-class WannierJLCheckNeighborsInput(IOModel):
+class WannierJLCheckNeighborsInput(BaseModel):
     """Input model for the WannierJLCheckNeighborsProcess."""
 
     wannier90_input_file: File
@@ -55,7 +55,7 @@ class WannierJLCheckNeighborsInput(IOModel):
     eig_file: File
 
 
-class WannierJLCheckNeighborsOutput(IOModel):
+class WannierJLCheckNeighborsOutput(BaseModel):
     """Output model for the WannierJLCheckNeighborsProcess."""
 
     has_cubic_neighbors: bool
@@ -92,13 +92,13 @@ class WannierJLCheckNeighborsProcess(Process[WannierJLCheckNeighborsInput, Wanni
                                          julia_stdio=File(self, "julia.out"))
 
 
-class WannierJLGenerateNeighborsInput(IOModel):
+class WannierJLGenerateNeighborsInput(BaseModel):
     """Input model for the WannierJLGenerateNeighborsProcess."""
 
     wannier90_input_file: File
 
 
-class WannierJLGenerateNeighborsOutput(IOModel):
+class WannierJLGenerateNeighborsOutput(BaseModel):
     """Output model for the WannierJLGenerateNeighborsProcess."""
 
     nnkp_file: File
@@ -124,7 +124,7 @@ class WannierJLGenerateNeighborsProcess(Process[WannierJLGenerateNeighborsInput,
         self.outputs = self.output_model(nnkp_file=nnkp_file)
 
 
-class WannierJLSplitInput(IOModel):
+class WannierJLSplitInput(BaseModel):
     """Input model for the WannierJLSplitProcess."""
 
     indices: list[list[int]]
@@ -147,7 +147,7 @@ class WannierJLSplitInput(IOModel):
         return value
 
 
-class WannierJLSplitBlockOutput(IOModel):
+class WannierJLSplitBlockOutput(BaseModel):
     """Output for one block within the WannierJLSplitProcess."""
 
     amn_file: File
@@ -165,7 +165,7 @@ class WannierJLSplitBlockOutput(IOModel):
         return value
 
 
-class WannierJLSplitOutput(IOModel):
+class WannierJLSplitOutput(BaseModel):
     """Output model for the WannierJLSplitProcess."""
 
     blocks: list[WannierJLSplitBlockOutput]

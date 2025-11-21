@@ -1,11 +1,9 @@
 """Module that defines variational orbitals and their properties."""
 
-import itertools
 import logging
 from typing import Dict, List, Optional, Union
 
 import numpy as np
-import pandas as pd
 from pydantic import BaseModel, Field
 
 from koopmans.files import File
@@ -325,7 +323,7 @@ class VariationalOrbitals(BaseModel):
         """Return the power spectra of the bands."""
         return [b.power_spectrum for b in self]
 
-    def update_attrib_with_history(self, name: str, value: Union[float, List[List[float]], np.ndarray, pd.DataFrame],
+    def update_attrib_with_history(self, name: str, value: Union[float, List[List[float]], np.ndarray],
                                    group=None) -> None:
         """Set the orbitals' screening parameters/errors to the value provided.
 
@@ -333,20 +331,6 @@ class VariationalOrbitals(BaseModel):
          - "value" can be a scalar, a list, or a pandas DataFrame of the alpha_history
          - if "group" is provided then it applies this value to the orbitals belonging to this group only
         """
-        if isinstance(value, pd.DataFrame):
-            assert group is None, 'Cannot update only one group via a pandas DataFrame'
-            if self.spin_polarized:
-                raise NotImplementedError()
-            else:
-                tmp_arr = np.transpose(value.values)
-                array = [tmp_arr for _ in range(self.n_spin)]
-
-            for spin, s_array in zip(self.spin_channels, array):
-                for b, history in zip(self.get(spin=spin), s_array):
-                    # Make sure to exclude NaNs
-                    setattr(b, f'{name}_history', [a for a in history.tolist() if not np.isnan(a)])
-            return
-
         if isinstance(value, float):
             value = [[value for _ in range(self.n_orbitals)] for _ in self.spin_channels]
 
@@ -384,43 +368,6 @@ class VariationalOrbitals(BaseModel):
     def update_errors(self, value, group=None):
         """Update the errors for the bands."""
         self.update_attrib_with_history('error', value)
-
-    def _create_dataframe(self, attr, spin: Spin = Spin.NONE, only_to_solve=True) -> pd.DataFrame:
-        """Generate a dataframe containing the requested attribute, sorting the bands first by index, then by spin."""
-        if self.spin_polarized and spin == Spin.NONE:
-            if only_to_solve:
-                blist = self.to_solve
-            else:
-                blist = self
-
-            columns = pd.MultiIndex.from_tuples([(f'spin {str(b.spin)}', b.index) for b in blist])
-            band_subset = sorted(blist, key=lambda x: (x.spin, x.index))
-        else:
-            columns = [b.index for b in self.get(spin=spin, to_solve=only_to_solve)]
-            band_subset = self.get(spin=spin, to_solve=only_to_solve)
-
-        if isinstance(getattr(band_subset[0], attr), list):
-            # Create an array of values padded with NaNs
-            arr = np.array(list(itertools.zip_longest(*[getattr(b, attr) for b in band_subset], fillvalue=np.nan)))
-        else:
-            arr = np.array([[getattr(b, attr) for b in band_subset]])
-        if arr.size == 0:
-            df = pd.DataFrame(columns=columns)
-        else:
-            df = pd.DataFrame(arr, columns=columns)
-        return df
-
-    def alpha_history(self, spin: Spin = Spin.NONE) -> pd.DataFrame:
-        """Return a dataframe that contains the history of the screening parameters."""
-        return self._create_dataframe('alpha_history', spin=spin)
-
-    def error_history(self, spin: Spin = Spin.NONE) -> pd.DataFrame:
-        """Return a dataframe that contains the history of the errors."""
-        return self._create_dataframe('error_history', spin=spin)
-
-    def predicted_alpha_history(self, spin: Spin = Spin.NONE) -> pd.DataFrame:
-        """Return a dataframe that contains the history of the predicted screening parameters."""
-        return self._create_dataframe('predicted_alpha', spin=spin)
 
 
 def _assign_groups_fcluster(data, default_tol: float, revised_tol: Optional[float] = None) -> list[int]:

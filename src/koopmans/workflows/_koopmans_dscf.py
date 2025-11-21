@@ -12,7 +12,7 @@ from koopmans import utils
 from koopmans.calculators import (KoopmansCPCalculator, PWCalculator,
                                   convert_flat_alphas_for_kcp)
 from koopmans.files import File
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 from koopmans.projections import BlockID
 from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.status import Status
@@ -29,7 +29,7 @@ from ._wannierize import MergeableFile, WannierizeWorkflow
 from ._workflow import Workflow, spin_symmetrize
 
 
-class KoopmansDSCFOutputs(IOModel):
+class KoopmansDSCFOutputs(BaseModel):
     """Pydantic model for the outputs of a `KoopmansDSCFWorkflow`."""
 
     variational_orbital_files: Dict[str, File]
@@ -396,7 +396,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
                 shutil.copy(savedir / f'evc_empty{ispin + 1}.dat', savedir / f'evc0_empty{ispin + 1}.dat')
 
 
-class CalculateScreeningViaDSCFOutput(IOModel):
+class CalculateScreeningViaDSCFOutput(BaseModel):
     """Pydantic model for the outputs of a `CalculateScreeningViaDSCF` workflow."""
 
     n_electron_restart_dir: File
@@ -478,7 +478,7 @@ class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
         return
 
 
-class DeltaSCFIterationOutputs(IOModel):
+class DeltaSCFIterationOutputs(BaseModel):
     """Pydantic model for the outputs of a `DeltaSCFIterationWorkflow`."""
 
     converged: bool
@@ -655,7 +655,7 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
         self.status = Status.COMPLETED
 
 
-class OrbitalDeltaSCFOutputs(IOModel):
+class OrbitalDeltaSCFOutputs(BaseModel):
     """Pydantic model for the outputs of the OrbitalDeltaSCFWorkflow."""
 
     alpha: float

@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 
 from koopmans import calculators
 from koopmans.files import File
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 from koopmans.processes.power_spectrum import (
     ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
 from koopmans.status import Status
@@ -11,7 +11,7 @@ from koopmans.status import Status
 from ._workflow import Workflow
 
 
-class SelfHartreeOutput(IOModel):
+class SelfHartreeOutput(BaseModel):
     """Output model for the SelfHartreeWorkflow."""
 
     descriptors: List[float]
@@ -29,7 +29,7 @@ class SelfHartreeWorkflow(Workflow[SelfHartreeOutput]):
         return
 
 
-class PowerSpectrumDecompositionOutput(IOModel):
+class PowerSpectrumDecompositionOutput(BaseModel):
     """Output model for the PowerSpectrumDecompositionWorkflow."""
 
     descriptors: List[File]
@@ -136,7 +136,7 @@ class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionOutp
             dct, calc_that_produced_orbital_densities=calc_that_produced_orbital_densities, **kwargs)
 
 
-class ConvertOrbitalFilesToXMLOutput(IOModel):
+class ConvertOrbitalFilesToXMLOutput(BaseModel):
     """Output model for the ConvertOrbitalFilesToXMLWorkflow."""
 
     total_density: File

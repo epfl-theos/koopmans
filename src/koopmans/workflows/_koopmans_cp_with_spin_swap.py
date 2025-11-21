@@ -2,14 +2,14 @@
 
 from koopmans.calculators import KoopmansCPCalculator
 from koopmans.files import File
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 from koopmans.processes.koopmans_cp import SwapSpinFilesProcess
 from koopmans.status import Status
 
 from ._workflow import Workflow
 
 
-class KoopmansCPWithSpinSwapOutput(IOModel):
+class KoopmansCPWithSpinSwapOutput(BaseModel):
     """Output model for the KoopmansCPWithSpinSwapWorkflow."""
 
     outdir: File

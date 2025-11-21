@@ -14,7 +14,7 @@ from ase_koopmans.spectrum.band_structure import BandStructure
 
 from koopmans import calculators
 from koopmans.files import File
-from koopmans.process_io import IOModel
+from koopmans.pydantic import BaseModel
 from koopmans.processes.ui import UnfoldAndInterpolateProcess, generate_dos
 from koopmans.projections import BlockID
 from koopmans.status import Status
@@ -25,7 +25,7 @@ from ._wannierize import MergeableFile, WannierizeWorkflow
 from ._workflow import Workflow
 
 
-class UnfoldAndInterpolateOutput(IOModel):
+class UnfoldAndInterpolateOutput(BaseModel):
     """Output model for the `UnfoldAndInterpolateWorkflow`."""
 
     band_structure: BandStructure
