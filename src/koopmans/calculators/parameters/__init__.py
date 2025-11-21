@@ -1,10 +1,14 @@
-from koopmans.pydantic import BaseModel
-from koopmans import settings
+from typing import Any
+
 from pydantic import Field, model_validator
 from typing_extensions import Self
-from typing import Any
+
+from koopmans import settings
+from koopmans.pydantic import BaseModel
+
 from .pw import PWInputParameters
 from .wannier90 import Wannier90InputParameters
+
 
 class CalculatorsInputParameters(BaseModel):
     """A collection of calculator configuration dictionaries."""
@@ -31,9 +35,10 @@ class CalculatorsInputParameters(BaseModel):
         if (self.w90_up is None) != (self.w90_down is None):
             raise ValueError("Both 'w90_up' and 'w90_down' must be specified together.")
         elif (self.w90 is None) != (self.w90_up is None):
-            raise ValueError("Either specify 'w90' for non-spin-polarized calculations or both 'w90_up' and 'w90_down' for spin-polarized calculations.")
+            raise ValueError(
+                "Either specify 'w90' for non-spin-polarized calculations or both 'w90_up' and 'w90_down' for spin-polarized calculations.")
         return self
-    
+
     @model_validator(mode='before')
     @classmethod
     def flatten_ui_occ_and_emp_subdictionaries(cls, data: dict[str, Any]) -> dict[str, Any]:
@@ -64,7 +69,7 @@ class CalculatorsInputParameters(BaseModel):
                 "projections": ...
             }
         ```
-        
+
         """
         if data['w90']:
             if 'up' not in data['w90'] and 'down' not in data['w90']:

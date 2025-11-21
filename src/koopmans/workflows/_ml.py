@@ -3,9 +3,9 @@ from typing import Any, Dict, List
 
 from koopmans import calculators
 from koopmans.files import File
-from koopmans.pydantic import BaseModel
 from koopmans.processes.power_spectrum import (
     ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
+from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 
 from ._workflow import Workflow

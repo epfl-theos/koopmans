@@ -14,9 +14,9 @@ from ase_koopmans.spectrum.band_structure import BandStructure
 
 from koopmans import calculators
 from koopmans.files import File
-from koopmans.pydantic import BaseModel
 from koopmans.processes.ui import UnfoldAndInterpolateProcess, generate_dos
 from koopmans.projections import BlockID
+from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 from koopmans.utils import Spin
 from koopmans.utils.warnings import warn

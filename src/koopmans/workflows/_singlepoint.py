@@ -14,8 +14,8 @@ from pydantic import Field
 
 from koopmans.calculators import KoopmansCPCalculator
 from koopmans.files import File
-from koopmans.pydantic import BaseModel
 from koopmans.projections import BlockID
+from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 
 from ._dft import DFTCPWorkflow, DFTPhWorkflow

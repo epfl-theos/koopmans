@@ -2,8 +2,8 @@
 
 from koopmans.calculators import KoopmansCPCalculator
 from koopmans.files import File
-from koopmans.pydantic import BaseModel
 from koopmans.processes.koopmans_cp import SwapSpinFilesProcess
+from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 
 from ._workflow import Workflow

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, TextIO, Type
 
 from koopmans import utils, workflows
-from koopmans.workflows.config import WorkflowConfig, Task
+from koopmans.workflows.config import Task, WorkflowConfig
 
 
 def read_json(fd: TextIO, override: Dict[str, Any] = {}, **kwargs):

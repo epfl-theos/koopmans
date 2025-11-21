@@ -27,7 +27,6 @@ import matplotlib.pyplot as plt
 from koopmans import calculators, utils
 from koopmans.calculators import Wannier90Calculator
 from koopmans.files import File
-from koopmans.pydantic import BaseModel
 from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         extend_wannier_u_dis_file_content,
                                         merge_wannier_centers_file_contents,
@@ -39,6 +38,7 @@ from koopmans.processes.wjl import (WannierJLCheckNeighborsProcess,
 from koopmans.projections import (BlockID, ExplicitProjections,
                                   ImplicitProjectionsBlock, Projections,
                                   ProjectionsBlock)
+from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 from koopmans.utils import Spin
 from koopmans.utils.warnings import IncommensurateProjectionsWarning, warn

@@ -10,10 +10,10 @@ from pydantic import Field
 from upf_tools import UPFDict
 
 from koopmans import utils
-from koopmans.pydantic import BaseModel
 from koopmans.commands import CommandConfigs
 from koopmans.files import File
 from koopmans.processes import ProcessProtocol
+from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 
 

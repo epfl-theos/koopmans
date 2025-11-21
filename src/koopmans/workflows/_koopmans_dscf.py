@@ -12,8 +12,8 @@ from koopmans import utils
 from koopmans.calculators import (KoopmansCPCalculator, PWCalculator,
                                   convert_flat_alphas_for_kcp)
 from koopmans.files import File
-from koopmans.pydantic import BaseModel
 from koopmans.projections import BlockID
+from koopmans.pydantic import BaseModel
 from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.status import Status
 from koopmans.utils import Spin

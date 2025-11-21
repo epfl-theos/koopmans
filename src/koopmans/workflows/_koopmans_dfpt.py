@@ -9,8 +9,8 @@ from koopmans import pseudopotentials, utils
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
                                   Wann2KCCalculator, Wannier90Calculator)
 from koopmans.files import File, LocalFile
-from koopmans.pydantic import BaseModel
 from koopmans.projections import BlockID, ImplicitProjections
+from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 from koopmans.utils import Spin
 from koopmans.variational_orbitals import VariationalOrbitals
