@@ -16,7 +16,8 @@ from koopmans.calculators import (Calc, ImplementedCalc, PhCalculator,
                                   ProjwfcCalculator, ReturnsBandStructure)
 from koopmans.commands import CommandConfig
 from koopmans.files import File, LocalFile
-from koopmans.processes import Process, ProcessProtocol
+from koopmans.processes.process import Process
+from koopmans.processes.protocol import ProcessProtocol
 from koopmans.pseudopotentials import (element_from_pseudo_filename,
                                        local_libraries)
 from koopmans.status import Status

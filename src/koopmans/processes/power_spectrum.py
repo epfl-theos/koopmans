@@ -9,7 +9,7 @@ from koopmans import ml
 from koopmans.files import File
 from koopmans.variational_orbitals import VariationalOrbital
 
-from ._process import BaseModel, Process
+from .process import BaseModel, Process
 
 
 class ExtractCoefficientsFromXMLInput(BaseModel):

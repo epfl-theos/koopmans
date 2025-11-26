@@ -7,7 +7,7 @@ import numpy as np
 from koopmans.files import File
 
 from ._commandlinetool import CommandLineTool
-from ._process import BaseModel
+from .process import BaseModel
 
 
 class MergeEVCInputs(BaseModel):

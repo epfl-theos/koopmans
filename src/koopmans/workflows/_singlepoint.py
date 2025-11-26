@@ -32,8 +32,6 @@ class SinglepointOutputs(BaseModel):
     band_structures: Dict[str, BandStructure | None] = Field(default_factory=dict)
     densities_of_states: Dict[str, DOSCollection | DOS | None] = Field(default_factory=dict)
 
-    model_config = {'arbitrary_types_allowed': True}
-
 
 class SinglepointWorkflow(Workflow[SinglepointOutputs]):
     """`SinglepointWorkflow` is an implementation of the `Workflow` class that performs a single-point calculation.
@@ -68,8 +66,6 @@ class SinglepointWorkflow(Workflow[SinglepointOutputs]):
 
     if Workflow.__doc__ and __doc__:
         __doc__ = Workflow.__doc__ + __doc__
-
-    output_model = SinglepointOutputs  # type: ignore
 
     def _run(self) -> None:
 

@@ -79,8 +79,6 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
 
     """
 
-    output_model = WannierizeOutput
-
     # def __init__(self, *args, force_nspin2: bool = False, scf_kgrid: List[float] | None = None,
     #              files_to_merge: List[MergeableFile] = [], merge_occ_and_empty: bool = False, **kwargs):
     #     super().__init__(*args, **kwargs)

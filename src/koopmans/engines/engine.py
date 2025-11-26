@@ -12,7 +12,7 @@ from upf_tools import UPFDict
 from koopmans import utils
 from koopmans.commands import CommandConfigs
 from koopmans.files import File
-from koopmans.processes import ProcessProtocol
+from koopmans.processes.protocol import ProcessProtocol
 from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 

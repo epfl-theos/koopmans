@@ -7,7 +7,7 @@ from pydantic import field_validator
 from koopmans.files import File
 from koopmans.pydantic import BaseModel
 
-from ._process import Process
+from .process import Process
 
 WANNIER_JL_UUID = "2b19380a-1f7e-4d7d-b1b8-8aa60b3321c9"
 WANNIER_JL_REV = "65245c59"

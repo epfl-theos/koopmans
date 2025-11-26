@@ -20,7 +20,7 @@ from koopmans.settings import (PlotSettingsDict,
                                UnfoldAndInterpolateSettingsDict)
 from koopmans.utils.warnings import warn
 
-from .._process import Process
+from ..process import Process
 from ._atoms import UIAtoms
 from ._utils import crys_to_cart, extract_hr, latt_vect
 
@@ -68,12 +68,6 @@ class UnfoldAndInterpolateOutputs(BaseModel):
 
 class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndInterpolateOutputs]):
     """Process for unfolding and interpolating the electronic bands from a supercell calculation."""
-
-    __slots__ = Process.__slots__ + ['_centers', '_spreads', '_Rvec', '_hr',
-                                     '_hr_smooth', '_hr_coarse', '_phases', '_wRs', '_Rsmooth', '_hk']
-
-    input_model = UnfoldAndInterpolateInputs
-    output_model = UnfoldAndInterpolateOutputs
 
     def __init__(self, atoms: Atoms, centers, parameters, **kwargs):
         # Avoid the original parameters object from being modified

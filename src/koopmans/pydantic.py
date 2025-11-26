@@ -9,7 +9,8 @@ class BaseModel(_BaseModel):
 
     model_config = ConfigDict(extra="forbid",
                               arbitrary_types_allowed=True,
-                              validate_assignment=True)
+                              validate_assignment=True,
+                              error_wrapping=False)
 
     def __eq__(self, other):
         """Check if two instances of the class have matching contents (need not be the same instance)."""

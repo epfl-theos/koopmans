@@ -11,6 +11,8 @@ import sys
 import traceback
 from pathlib import Path
 
+import yaml
+
 import koopmans.mpl_config  # noqa: F401
 from koopmans.engines import Engine, LocalhostEngine
 from koopmans.io import read
@@ -108,8 +110,17 @@ def run_workflow(namespace: argparse.Namespace):
     # Configure the warnings
     configure_warnings()
 
+    # Load the workflow config
+    config_file = Path(namespace.workflow).resolve()
+    if config_file.suffix == '.json':
+        with open(config_file, 'r') as f:
+            config_dict = json.load(f)
+    elif config_file.suffix in {'.yaml', '.yml'}:
+        with open(config_file, 'r') as f:
+            config_dict = yaml.safe_load(f)
+
     # Reading in JSON file
-    workflow = read(namespace.json, engine=engine)
+    workflow = read(namespace.system, config=config_dict, engine=engine)
 
     # Run workflow
     workflow.run()
@@ -140,8 +151,10 @@ def main():
 
     # koopmans run
     run_parser = subparsers.add_parser("run", help="run a Koopmans spectral functional calculation")
-    run_parser.add_argument('json', metavar='system.json', type=str,
-                            help='a single JSON file containing the workflow and code settings')
+    run_parser.add_argument('workflow', metavar='workflow.json', type=str,
+                            help='a JSON file containing the workflow configuration')
+    run_parser.add_argument('system', metavar='system.json', type=str,
+                            help='a JSON file containing the system details')
     run_parser.add_argument('-t', '--traceback', action='store_true', help='enable traceback')
     run_parser.add_argument('-l', '--log', action='store_true', help='enable logging')
     run_parser.add_argument('-d', '--debug', action='store_true', help='enable debug logging')

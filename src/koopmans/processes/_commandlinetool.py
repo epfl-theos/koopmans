@@ -2,7 +2,7 @@ import subprocess
 from abc import abstractmethod
 from typing import Generic
 
-from ._process import InputModel, OutputModel, Process
+from .process import InputModel, OutputModel, Process
 
 
 class CommandLineTool(Process[InputModel, OutputModel], Generic[InputModel, OutputModel]):

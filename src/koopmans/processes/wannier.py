@@ -10,7 +10,7 @@ from ase_koopmans import Atoms
 from koopmans import utils
 from koopmans.files import File
 
-from ._process import BaseModel, Process
+from .process import BaseModel, Process
 
 
 def merge_wannier_hr_file_contents(filecontents: List[str]) -> str:

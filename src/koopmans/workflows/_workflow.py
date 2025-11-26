@@ -21,6 +21,7 @@ import numpy as np
 from numpy import typing as npt
 from pybtex.database import BibliographyData
 from pydantic import Field, field_validator, model_validator
+from pydash import get
 from typing_extensions import Self
 
 # isort: off
@@ -49,9 +50,10 @@ from koopmans.engines import Engine, LocalhostEngine
 from koopmans.files import File, ParentProcessPlaceholder
 from koopmans.kpoints import Kpoints
 from koopmans.ml import AbstractMLModel, MLModel, OccEmpMLModels
-from koopmans.processes import Process, ProcessProtocol
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
+from koopmans.processes.process import Process
+from koopmans.processes.protocol import ProcessProtocol
 from koopmans.projections import (ExplicitProjections, ImplicitProjections,
                                   Projections)
 from koopmans.pseudopotentials import (nelec_from_pseudos,
@@ -69,7 +71,6 @@ from .config import Task, WorkflowConfig
 
 
 class WorkflowInput(BaseModel):
-    config: WorkflowConfig
     atoms: Atoms = Field('an ASE ``Atoms`` object defining the atomic positions, cell, etc')
     pseudopotentials: OrderedDict[str, UPFDict] = Field('a dictionary mapping atom labels to pseudopotential objects')
     kpoints: Kpoints
@@ -203,66 +204,22 @@ class WorkflowInput(BaseModel):
 OutputModel = TypeVar('OutputModel', bound=BaseModel)
 
 
-class Workflow(Process[WorkflowInput, OutputModel]):
+class Workflow(Process[WorkflowInput, OutputModel], Generic[OutputModel]):
     """Abstract base class that defines a Koopmans workflow."""
 
     input_model = WorkflowInput
+    config: WorkflowConfig
     version: str = Field(
         'Version number used to create this workflow (becomes relevant when loading workflows from .kwf files)')
     step_counter: int = 0
     print_indent: int = 0
     status: Status = Status.NOT_STARTED
-    engine: Engine | None
-    parent_process: Workflow[BaseModel] | None = None
+    parent_process: Process[Any, Any] | None = None
     calculations: List[calculators.CalculatorExt] = []
     processes: List[ProcessProtocol] = []
     steps: List = []
     _variational_orbitals: VariationalOrbitals | None
     ml_model: Optional[AbstractMLModel] = None
-
-    @model_validator(mode='before')
-    @classmethod
-    def get_pseudopotentials(cls, data: dict[str, Any]) -> dict[str, Any]:
-        """Get the pseudopotentials, ensuring that they are coerced into UPFDict objects.
-
-        Note this is done inside `Workflow` and not `WorkflowInput` because it requires access
-        to the engine and config."""
-        engine = data['engine']
-        atoms = data['input']['atoms']
-        pseudopotentials = data['input'].get('pseudopotentials', OrderedDict())
-        pseudo_library = data['config']['pseudo_library']
-
-        upfs = OrderedDict()
-        if pseudopotentials is None:
-            # Work out the unique atom labels. This needs to be done like this rather than with set() to ensure
-            # the order is consistent with how the atoms appear in the input file
-            unique_labels = []
-            for a in atoms:
-                label_tuple: tuple[str, int] = (a.symbol, a.tag)
-                if label_tuple not in unique_labels:
-                    unique_labels.append(label_tuple)
-
-            for element, tag in unique_labels:
-                pseudo = engine.get_pseudopotential(library=pseudo_library, element=element)
-
-                pseudo_type = pseudo['header']['pseudo_type']
-                if pseudo_type != 'NC':
-                    raise ValueError('Koopmans functionals only currently support norm-conserving pseudopotentials; '
-                                     f'{pseudo.filename} is {pseudo_type}')
-
-                symbol = element + str(tag) if tag > 0 else element
-                upfs[symbol] = pseudo
-        else:
-            for symbol, pseudo_filename in sorted(pseudopotentials.items()):
-                if isinstance(pseudo_filename, str):
-                    upf = engine.get_pseudopotential(pseudo_library, filename=pseudo_filename)
-                elif isinstance(pseudo_filename, UPFDict):
-                    upf = pseudo_filename
-                else:
-                    raise ValueError(f'Invalid pseudopotential type: {pseudo_filename.__class__.__name__}')
-                upfs[symbol] = upf
-        data['input']['pseudopotentials'] = upfs
-        return data
 
     @model_validator(mode='before')
     @classmethod
@@ -314,16 +271,16 @@ class Workflow(Process[WorkflowInput, OutputModel]):
     @classmethod
     def populate_calculator_parameters(cls, data: dict[str, Any]) -> dict[str, Any]:
 
-        if data['config'].task == Task.UI or data['autogenerate_settings']:
+        if get(data, 'config.task') == Task.UI or get(data, 'autogenerate_settings', False):
             return data
 
         # Automatically calculate nelec/nelup/neldw/etc using information contained in the pseudopotential files
         # and the kcp settings
-        calculator_parameters = data['inputs'].calculator_parameters
-        kcp_params = calculator_parameters.kcp
-        atoms = data['inputs'].atoms
-        pseudopotentials = data['inputs'].pseudopotentials
-        spin_polarized = data['config'].spin_polarized
+        calculator_parameters = get(data, 'inputs.calculator_parameters')
+        kcp_params = get(calculator_parameters, 'kcp', {})
+        atoms = get(data, 'inputs.atoms')
+        pseudopotentials = get(data, 'inputs.pseudopotentials')
+        spin_polarized = get(data, 'config.spin_polarized', False)
         nelec = _number_of_electrons(atoms, pseudopotentials, spin_polarized, Spin.NONE, kcp_params)
         nelup = _number_of_electrons(atoms, pseudopotentials, spin_polarized, Spin.UP, kcp_params)
         neldw = _number_of_electrons(atoms, pseudopotentials, spin_polarized, Spin.DOWN, kcp_params)
@@ -331,7 +288,7 @@ class Workflow(Process[WorkflowInput, OutputModel]):
         tot_mag = nelup - neldw
 
         # Setting up the magnetic moments
-        starting_mags = {k: v for k, v in calculator_parameters['kcp'].items(
+        starting_mags = {k: v for k, v in calculator_parameters.get('kcp', {}).items(
         ) if k.startswith('starting_magnetization')}
         starting_mags.update(
             {k: v for k, v in calculator_parameters['pw'].items() if k.startswith('starting_magnetization')})
@@ -351,22 +308,78 @@ class Workflow(Process[WorkflowInput, OutputModel]):
             atoms.set_initial_magnetic_moments([starting_magmoms[label] for label in labels])
         elif tot_mag != 0:
             atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
-        data['inputs'].atoms = atoms
+        data['inputs']['atoms'] = atoms
 
         # Work out the number of bands
-        nbnd = calculator_parameters.get('pw', calculator_parameters['kcp']).get('nbnd', nelec // 2 + nelec % 2)
+        nbnd = get(calculator_parameters, 'pw.nbnd', get(calculator_parameters, 'kcp.nbnd', nelec // 2 + nelec % 2))
         generated_keywords = {'nelec': nelec, 'tot_charge': tot_charge, 'tot_magnetization': tot_mag,
                               'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd}
 
-        for block, params in data['inputs'].calculator_parameters.items():
+        for block, params in get(data, 'inputs.calculator_parameters', {}).items():
             # Apply auto-generated keywords
             for k, v in generated_keywords.items():
                 # Skipping nbnd for kcp; if necessary it will be generated later
                 if k == 'nbnd' and block == 'kcp':
                     continue
                 if k in params.model_fields:
-                    setattr(params, k, v)
+                    params[k] = v
 
+        return data
+
+    @model_validator(mode='before')
+    @classmethod
+    def distribute_generic_calculator_parameters(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Distribute generic calculator parameters (e.g. ecutwfc) to all relevant calculator blocks."""
+        extras = {}
+        for k, v in get(data, 'inputs.calculator_parameters', {}).items():
+            if k not in CalculatorsInputParameters.model_fields:
+                extras[k] = data['inputs']['calculator_parameters'].pop(k)
+        data['inputs']['calculator_parameters']['extras'] = extras
+        raise NotImplementedError(
+            "This implementation won't work because we need these keywords to be correctly distributed before the next before validator")
+
+    @model_validator(mode='before')
+    @classmethod
+    def get_pseudopotentials(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Get the pseudopotentials, ensuring that they are coerced into UPFDict objects.
+
+        Note this is done inside `Workflow` and not `WorkflowInput` because it requires access
+        to the engine and config."""
+        engine = data['engine']
+        atoms = get(data, 'inputs.atoms')
+        pseudopotentials = get(data, 'inputs.pseudopotentials', None)
+        pseudo_library = get(data, 'config.pseudo_library')
+
+        upfs = OrderedDict()
+        if pseudopotentials is None:
+            # Work out the unique atom labels. This needs to be done like this rather than with set() to ensure
+            # the order is consistent with how the atoms appear in the input file
+            unique_labels = []
+            for a in atoms:
+                label_tuple: tuple[str, int] = (a.symbol, a.tag)
+                if label_tuple not in unique_labels:
+                    unique_labels.append(label_tuple)
+
+            for element, tag in unique_labels:
+                pseudo = engine.get_pseudopotential(library=pseudo_library, element=element)
+
+                pseudo_type = pseudo['header']['pseudo_type']
+                if pseudo_type != 'NC':
+                    raise ValueError('Koopmans functionals only currently support norm-conserving pseudopotentials; '
+                                     f'{pseudo.filename} is {pseudo_type}')
+
+                symbol = element + str(tag) if tag > 0 else element
+                upfs[symbol] = pseudo
+        else:
+            for symbol, pseudo_filename in sorted(pseudopotentials.items()):
+                if isinstance(pseudo_filename, str):
+                    upf = engine.get_pseudopotential(pseudo_library, filename=pseudo_filename)
+                elif isinstance(pseudo_filename, UPFDict):
+                    upf = pseudo_filename
+                else:
+                    raise ValueError(f'Invalid pseudopotential type: {pseudo_filename.__class__.__name__}')
+                upfs[symbol] = upf
+        data['inputs']['pseudopotentials'] = upfs
         return data
 
     @model_validator(mode='after')
@@ -384,10 +397,10 @@ class Workflow(Process[WorkflowInput, OutputModel]):
 
         This is unusual in that this is an attribute of the workflow but can be specified within the w90 block
         """
-        calc_configs = data['inputs'].calculator_parameters
-        atoms = data['inputs'].atoms
-        projections = data['inputs'].projections
-        spin_polarized = data['config'].spin_polarized
+        calc_configs = get(data, 'inputs.calculator_parameters')
+        atoms = get(data, 'inputs.atoms')
+        projections = get(data, 'inputs.projections', None)
+        spin_polarized = get(data, 'config.spin_polarized', False)
 
         if projections is None:
             w90_block_projs: list[dict[str, Any]] = []
@@ -395,7 +408,7 @@ class Workflow(Process[WorkflowInput, OutputModel]):
             spins = [Spin.UP, Spin.DOWN] if spin_polarized else [Spin.NONE]
             suffixes = ['up', 'down'] if spin_polarized else ['']
             for spin, suffix in zip(spins, suffixes):
-                projs = data['inputs']['w90' + suffix].pop('projections', [[]])
+                projs = get(data, f'inputs.w90{suffix}.projections', [[]])
 
                 # Add the spin information
                 w90_block_projs += [{'spin': spin, 'projections': proj_block} for proj_block in projs]
@@ -404,14 +417,6 @@ class Workflow(Process[WorkflowInput, OutputModel]):
             # to the desired type
             data['projections'] = ExplicitProjections(blocks=w90_block_projs, atoms=atoms)  # type: ignore[arg-type]
         return data
-
-    @field_validator('inputs', mode='before')
-    @classmethod
-    def coerce_inputs(cls, value: Union[WorkflowInput, dict[str, Any]]) -> WorkflowInput:
-        """Coerce `inputs` manually so coercion happens prior to any other before validators"""
-        if isinstance(value, dict):
-            return WorkflowInput(**value)
-        return value
 
     def __eq__(self, other: Any):
         if self.__class__ != other.__class__:
@@ -540,12 +545,6 @@ class Workflow(Process[WorkflowInput, OutputModel]):
     @abstractmethod
     def _run(self) -> None:
         """Run the workflow; to be implemented by subclasses."""
-        ...
-
-    @property
-    @abstractmethod
-    def output_model(self) -> Type[OutputModel]:
-        """The pydantic model for the output of the workflow."""
         ...
 
     @property
@@ -1078,7 +1077,7 @@ class Workflow(Process[WorkflowInput, OutputModel]):
         wf = cls._fromjsondct(bigdct, override, **kwargs)
 
         # Define the name of the workflow using the name of the json file
-        wf.name = fname.replace('.json', '')
+        wf.name = Path(fname).stem
 
         return wf
 
@@ -1095,26 +1094,22 @@ class Workflow(Process[WorkflowInput, OutputModel]):
         else:
             raise ValueError('Please provide an `atoms` block in the json input file')
 
-        # Loading plot settings
-        kwargs['plotting'] = settings.PlotSettingsDict(**utils.parse_dict(bigdct.pop('plotting', {})))
-
-        # Loading ml settings
-        kwargs['ml'] = settings.MLSettingsDict(**utils.parse_dict(bigdct.pop('ml', {})))  # , task=parameters['task'])
-
         # Loading kpoints
         kpts = Kpoints(**utils.parse_dict(bigdct.pop('kpoints', {})), cell=atoms.cell)
 
         # Engine
         if 'engine' not in kwargs:
-            kwargs['engine'] = LocalhostEngine(**bigdct.pop('engine', {}))
+            engine = LocalhostEngine(**bigdct.pop('engine', {}))
         else:
+            engine = kwargs.pop('engine')
             engine_parameters = bigdct.pop('engine', {})
             for k, v in engine_parameters.items():
-                setattr(kwargs['engine'], k, v)
+                setattr(engine, k, v)
 
         # Create the workflow. Note that any keywords provided in the calculator_parameters (i.e. whatever is left in
         # calcdict) are provided as kwargs
-        wf = cls(atoms=atoms, snapshots=snapshots, kpoints=kpts, **kwargs, **bigdct)
+
+        wf = cls(inputs={'atoms': atoms, 'snapshots': snapshots, 'kpoints': kpts, **bigdct}, engine=engine, **kwargs)
 
         if wf.config.converge:
             # Wrap the workflow in a convergence outer loop

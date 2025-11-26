@@ -6,7 +6,7 @@ from typing import List
 from koopmans.files import File
 from koopmans.pydantic import BaseModel
 
-from ._process import Process
+from .process import Process
 
 
 class ConvertFilesFromSpin2To1InputModel(BaseModel):
@@ -24,9 +24,6 @@ class ConvertFilesOutputModel(BaseModel):
 
 class ConvertFilesFromSpin2To1(Process[ConvertFilesFromSpin2To1InputModel, ConvertFilesOutputModel]):
     """Process for converting files from spin 2 to spin 1."""
-
-    input_model = ConvertFilesFromSpin2To1InputModel  # type: ignore
-    output_model = ConvertFilesOutputModel  # type: ignore
 
     def _run(self):
 
@@ -54,9 +51,6 @@ class ConvertFilesFromSpin1To2InputModel(BaseModel):
 
 class ConvertFilesFromSpin1To2(Process[ConvertFilesFromSpin1To2InputModel, ConvertFilesOutputModel]):
     """Process for converting files from spin 1 to spin 2."""
-
-    input_model = ConvertFilesFromSpin1To2InputModel
-    output_model = ConvertFilesOutputModel
 
     def _run(self):
 
