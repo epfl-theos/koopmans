@@ -15,14 +15,14 @@ from pydantic import Field
 from koopmans import utils
 from koopmans.files import File
 from koopmans.kpoints import kpath_to_dict
+from koopmans.plotting import PlottingConfig
 from koopmans.pydantic import BaseModel
-from koopmans.settings import (PlotSettingsDict,
-                               UnfoldAndInterpolateSettingsDict)
 from koopmans.utils.warnings import warn
 
 from ..process import Process
 from ._atoms import UIAtoms
 from ._utils import crys_to_cart, extract_hr, latt_vect
+from .config import UnfoldAndInterpolateConfig
 
 
 class UnfoldAndInterpolateInputs(BaseModel):
@@ -33,7 +33,7 @@ class UnfoldAndInterpolateInputs(BaseModel):
     atoms: UIAtoms = \
         Field(..., description='An ASE Atoms object augmented with supercell information')
 
-    parameters: UnfoldAndInterpolateSettingsDict = \
+    parameters: UnfoldAndInterpolateConfig = \
         Field(..., description='The parameters for the unfolding and interpolation process')
 
     centers: NDArray[np.float64] = \
@@ -54,8 +54,8 @@ class UnfoldAndInterpolateInputs(BaseModel):
     wf_phases_file: Optional[File] = \
         Field(default=None, description='The file containing the phases of the Wannier functions')
 
-    plotting_parameters: PlotSettingsDict = \
-        Field(default=PlotSettingsDict(), description='The plotting parameters (used when generating the DOS)')
+    plotting_parameters: PlottingConfig = \
+        Field(default_factory=PlottingConfig, description='The plotting parameters (used when generating the DOS)')
 
 
 class UnfoldAndInterpolateOutputs(BaseModel):
@@ -451,7 +451,7 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
         return np.transpose(phase_reshaped, axes=(0, 2, 3, 1))
 
 
-def generate_dos(band_structure: BandStructure, plotting_parameters: PlotSettingsDict, spin_polarized=False) -> DOS:
+def generate_dos(band_structure: BandStructure, plotting_parameters: PlottingConfig, spin_polarized=False) -> DOS:
     """Generate the density of states using the DOS function from ASE."""
     if spin_polarized:
         nspins = 2

@@ -3,9 +3,8 @@
 from ase_koopmans import Atoms
 from ase_koopmans.calculators.espresso import PW2Wannier
 
-from koopmans.settings import PW2WannierSettingsDict
-
 from ._calculator import CalculatorABC, CalculatorExt
+from .parameters.pw2wannier90 import PW2Wannier90InputParameters
 
 
 class PW2WannierCalculator(CalculatorExt, PW2Wannier, CalculatorABC):
@@ -16,7 +15,7 @@ class PW2WannierCalculator(CalculatorExt, PW2Wannier, CalculatorABC):
     code = "pw2wannier90"
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
-        self.parameters = PW2WannierSettingsDict()
+        self.parameters = PW2Wannier90InputParameters
 
         # Initialize first using the ASE parent and then CalculatorExt
         PW2Wannier.__init__(self, atoms=atoms)

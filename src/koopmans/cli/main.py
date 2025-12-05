@@ -14,6 +14,7 @@ from pathlib import Path
 import yaml
 
 import koopmans.mpl_config  # noqa: F401
+from koopmans.cli.input_schema.input_file import KoopmansInput
 from koopmans.engines import Engine, LocalhostEngine
 from koopmans.io import read
 from koopmans.logging_config import setup_logging
@@ -110,17 +111,9 @@ def run_workflow(namespace: argparse.Namespace):
     # Configure the warnings
     configure_warnings()
 
-    # Load the workflow config
-    config_file = Path(namespace.workflow).resolve()
-    if config_file.suffix == '.json':
-        with open(config_file, 'r') as f:
-            config_dict = json.load(f)
-    elif config_file.suffix in {'.yaml', '.yml'}:
-        with open(config_file, 'r') as f:
-            config_dict = yaml.safe_load(f)
-
-    # Reading in JSON file
-    workflow = read(namespace.system, config=config_dict, engine=engine)
+    # Reading in input file
+    koopmans_input = KoopmansInput.from_file(namespace.system)
+    workflow = koopmans_input.to_workflow()
 
     # Run workflow
     workflow.run()
@@ -151,8 +144,6 @@ def main():
 
     # koopmans run
     run_parser = subparsers.add_parser("run", help="run a Koopmans spectral functional calculation")
-    run_parser.add_argument('workflow', metavar='workflow.json', type=str,
-                            help='a JSON file containing the workflow configuration')
     run_parser.add_argument('system', metavar='system.json', type=str,
                             help='a JSON file containing the system details')
     run_parser.add_argument('-t', '--traceback', action='store_true', help='enable traceback')

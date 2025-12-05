@@ -50,6 +50,7 @@ from koopmans.engines import Engine, LocalhostEngine
 from koopmans.files import File, ParentProcessPlaceholder
 from koopmans.kpoints import Kpoints
 from koopmans.ml import AbstractMLModel, MLModel, OccEmpMLModels
+from koopmans.plotting import PlottingConfig
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
 from koopmans.processes.process import Process
@@ -76,7 +77,7 @@ class WorkflowInput(BaseModel):
     kpoints: Kpoints
     projections: ExplicitProjections | ImplicitProjections | None = None
     calculator_parameters: CalculatorsInputParameters = Field(default_factory=CalculatorsInputParameters)
-    plotting_config: settings.PlotSettingsDict = Field(default_factory=settings.PlotSettingsDict)
+    plotting_config: PlottingConfig = Field(default_factory=PlottingConfig)
     ml_config: settings.MLSettingsDict = Field(default_factory=settings.MLSettingsDict)
     snapshots: List[Atoms]
 
@@ -88,23 +89,7 @@ class WorkflowInput(BaseModel):
         auto = [calculator_parameters[key].get('auto_projections', False)
                 for key in ['w90', 'w90_up', 'w90_down'] if key in calculator_parameters]
         if any(auto):
-            pseudopotentials = data['pseudopotentials']
-            atoms = data['atoms']
-            if data['config'].spin_polarized:
-                spins = [Spin.UP, Spin.DOWN]
-            else:
-                spins = [Spin.NONE]
-            if calculator_parameters['pw2wannier'].atom_proj_ext:
-                proj_dir = calculator_parameters['pw2wannier'].atom_proj_dir
-                if proj_dir is None:
-                    raise ValueError('`atom_proj_dir` must be specified when using `atom_proj_ext = True`')
-                projectors = OrderedDict([(k, proj_dir / p.filename.with_suffix('.dat').name)
-                                         for k, p in pseudopotentials.items()])
-                num_wann = [nwfcs_from_projectors(atoms, projectors) for _ in spins]
-            else:
-                num_wann = [nwfcs_from_pseudos(atoms, pseudopotentials) for _ in spins]
-            data['projections'] = ImplicitProjections.from_block_lengths(num_wann, spins, atoms)
-
+            raise NotImplementedError()
             # Also override various pw2wannier and w90 settings
             calculator_parameters['pw2wannier'].atom_proj = True
             for spin in spins:

@@ -48,9 +48,7 @@ class WorkflowConfig(BaseModel):
     calculate_alpha: bool = Field(
         default=True, description="whether or not to calculate the screening parameters ab-initio")
     pseudo_library: str = Field(
-        default=None, description="the pseudopotential library to use (for valid options, run `koopmans pseudos list`)")
-    pseudo_directory: Path | None = Field(
-        default=None, description="the folder containing the pseudopotentials to use (mutually exclusive with 'pseudo_library')")
+        description="the pseudopotential library to use (for valid options, run `koopmans pseudos list`)")
     screening_method: CalculateScreeningMethod = Field(
         default=CalculateScreeningMethod.DSCF, description="the method to calculate the screening parameters: either with ΔSCF or DFPT")
     init_orbitals: VariationalOrbital = Field(

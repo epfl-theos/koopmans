@@ -3,10 +3,10 @@
 from ase_koopmans import Atoms
 from ase_koopmans.calculators.wannier90 import Wannier90
 
-from koopmans.settings import Wannier90SettingsDict
 from koopmans.utils.warnings import CalculatorNotConvergedWarning, warn
 
 from ._calculator import CalculatorABC, CalculatorExt
+from .parameters.wannier90 import Wannier90InputParameters
 
 
 class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):
@@ -18,7 +18,7 @@ class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
         # Define the list of parameters
-        self.parameters = Wannier90SettingsDict()
+        self.parameters = Wannier90InputParameters()
 
         # Initialize first using the ASE parent and then CalculatorExt
         Wannier90.__init__(self, atoms=atoms)

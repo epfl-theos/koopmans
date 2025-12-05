@@ -15,4 +15,4 @@ from ._trajectory import TrajectoryWorkflow
 from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
 from ._wannierize import (WannierizeAndSplitBlockWorkflow,
                           WannierizeBlockWorkflow, WannierizeWorkflow)
-from ._workflow import Workflow
+from ._workflow import Workflow, WorkflowInput

@@ -7,16 +7,31 @@ Written by Edward Linscott, July 2022
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict, List, Optional, Union
+from typing import (Annotated, Any, ClassVar, Dict, List, Literal, Optional,
+                    Union)
 
 import numpy as np
 from ase_koopmans.cell import Cell
 from ase_koopmans.dft.kpoints import (BandPath, kpoint_convert,
                                       parse_path_string,
                                       resolve_kpt_path_string)
+from pydantic import Field
+
+from koopmans.pydantic import BaseModel
+
+ZeroOrOne = Literal[0, 1]
+Fractional = Annotated[float, Field(gt=-1, le=1)]
 
 
-class Kpoints:
+class GammaOnlyKpoints(BaseModel):
+    gamma_only: Literal[True] = True
+    grid: ClassVar[tuple[int, int, int]] = (1, 1, 1)
+    offset: ClassVar[tuple[ZeroOrOne, ZeroOrOne, ZeroOrOne]] = (0, 0, 0)
+    offset_nscf: ClassVar[tuple[Fractional, Fractional, Fractional]] = (0.0, 0.0, 0.0)
+    path: ClassVar[None] = None
+
+
+class Kpoints(BaseModel):
     """A class for storing k-point information.
 
     Attributes
@@ -37,129 +52,27 @@ class Kpoints:
         True if the calculation is only sampling the gamma point
     """
 
-    _grid: Optional[List[int]]
-    _offset: Optional[List[int]]
-    _offset_nscf: Optional[Union[List[Union[int, float]], int, float]]
-    _path: Optional[BandPath]
-    gamma_only: bool
+    grid: tuple[int, int, int]
+    offset: tuple[ZeroOrOne, ZeroOrOne, ZeroOrOne] = (0, 0, 0)
+    offset_nscf: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    path: BandPath
+    gamma_only: Literal[False] = False
 
-    def __init__(self, grid: Optional[List[int]] = [1, 1, 1], offset: Optional[List[int]] = [0, 0, 0],
-                 offset_nscf: Optional[Union[List[Union[int, float]], int, float]] = None,
-                 path: Optional[Union[str, BandPath]] = None, gamma_only: bool = False, cell: Optional[Cell] = None,
-                 density: float = 10.0):
-        """Initialize a Kpoint object.
-
-        The path can be initialized using a string, but if so the additional requirements
-        density and cell are required, where...
+    @classmethod
+    def from_path_as_string(cls, path: str | None, cell: Cell, density: float = 10.0, **kwargs) -> Kpoints:
+        """Create a Kpoints object using a string for the path instead of a `BandPath` object.
 
         cell : ase.cell.Cell
             the simulation cell
         density : float
             k-points per inverse Angstrom along the k-path
         """
-        self.gamma_only = gamma_only
-
-        if gamma_only:
-            if grid and not grid == [1, 1, 1]:
-                raise ValueError(f'`gamma_only = {gamma_only}` and `grid != None` are incompatible')
-            self.grid = None
-            self.offset = [0, 0, 0]
-            self.offset_nscf = None
-        else:
-            self.grid = grid
-            self.offset = offset
-            self.offset_nscf = offset_nscf
-
-        self.set_path(path, cell, density)
-
-    def __repr__(self):
-        entries = []
-        for k, v in self.__dict__.items():
-            if v is None:
-                continue
-            elif isinstance(v, BandPath):
-                v = v.path
-            else:
-                pass
-            entries.append(f'{k.lstrip("_")}={v}')
-
-        return 'Kpoints(' + ', '.join(entries) + ')'
-
-    @property
-    def grid(self) -> Optional[List[int]]:
-        """The regular k-point grid."""
-        return self._grid
-
-    @grid.setter
-    def grid(self, value: Optional[List[int]]):
-        if value is not None:
-            if len(value) != 3:
-                raise ValueError('`grid` must be a list of three integers')
-        if isinstance(value, np.ndarray):
-            value = value.astype(int).tolist()
-        self._grid = value
-
-    @property
-    def offset(self) -> Optional[List[int]]:
-        """The offset of the regular k-point grid."""
-        return self._offset
-
-    @offset.setter
-    def offset(self, value: Optional[List[int]]):
-        if isinstance(value, list):
-            if len(value) != 3:
-                raise ValueError('`offset` must be a list of three integers')
-            if any([x not in [0, 1] for x in value]):
-                raise ValueError('`offset` must only contain either `0` or `1`s')
-        self._offset = value
-
-    @property
-    def offset_nscf(self) -> Optional[Union[List[Union[int, float]], int, float]]:
-        """The offset of the regular k-point grid for PWnscf calculations."""
-        return self._offset_nscf
-
-    @offset_nscf.setter
-    def offset_nscf(self, value: Optional[Union[List[Union[int, float]], int, float]]):
-        if isinstance(value, list):
-            if len(value) != 3:
-                raise ValueError('`offset` must be a list of three numbers')
-            if any([k <= -1 or k > 1 for k in value]):
-                raise ValueError('`offset_nscf` elements take values within (-1, 1]')
-            if all([k - int(k) == 0 for k in value]):
-                self._offset_nscf = [int(k) for k in value]
-            else:
-                self._offset_nscf = value
-        elif isinstance(value, (int, float)):
-            self._offset_nscf = int(value) if value - int(value) == 0 else value
-        elif value is None:
-            self._offset_nscf = value
-        else:
-            raise ValueError('`offset_nscf` must be a number or a list of three numbers')
-
-    @property
-    def path(self) -> Optional[BandPath]:
-        """The k-point path."""
-        return self._path
-
-    @path.setter
-    def path(self, value: Optional[BandPath]):
-        if isinstance(value, str):
-            raise ValueError('To set `Kpoints.path` with a string, please use `Kpoints.set_path()`')
-        self._path = value
-
-    def set_path(self, path: Optional[Union[str, BandPath]], cell: Optional[Cell] = None, density: float = 10.0):
-        """Set the path attribute of the Kpoints object."""
-        # A function for setting self.path with a string
-        if isinstance(path, str):
-            # Convert the string to a BandPath object
-            if cell is None:
-                raise ValueError(
-                    'To set the path of a `Kpoints` object with a string, please provide a value for `cell`')
-            path = convert_kpath_str_to_bandpath(path, cell, density)
-        self.path = path
+        bandpath = convert_kpath_str_to_bandpath(path, cell, density)
+        return cls(path=bandpath, **kwargs)
 
     def tojson(self) -> Dict[str, Union[str, bool, List[int], Dict[str, Any]]]:
         """Convert the object to a dictionary."""
+        raise NotImplementedError()
         dct: Dict[str, Union[str, bool, List[int], Dict[str, Any]]] = {}
         for k, v in self.__dict__.items():
             k = k.lstrip('_')
@@ -173,6 +86,7 @@ class Kpoints:
 
     def todict(self) -> Dict[str, Union[str, bool, List[int], BandPath]]:
         """Convert the object to a dictionary with added information required to reconstruct the object."""
+        raise NotImplementedError()
         dct = self.tojson()
 
         # We also need the cell
@@ -188,12 +102,14 @@ class Kpoints:
     def fromdict(cls, dct) -> Kpoints:
         """Create an instance of the class from a dictionary."""
         # Remove name and module if they're there
+        raise NotImplementedError()
         dct.pop('__koopmans_name__', None)
         dct.pop('__koopmans_module__', None)
 
         return cls(**dct)
 
     def __eq__(self, other: object) -> bool:
+        raise NotImplementedError()
         if not isinstance(other, Kpoints):
             return False
         for k, v in self.__dict__.items():

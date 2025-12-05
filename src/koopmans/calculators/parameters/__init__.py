@@ -4,9 +4,11 @@ from pydantic import Field, model_validator
 from typing_extensions import Self
 
 from koopmans import settings
+from koopmans.processes.ui.config import UnfoldAndInterpolateConfig
 from koopmans.pydantic import BaseModel
 
 from .pw import PWInputParameters
+from .pw2wannier90 import PW2Wannier90InputParameters
 from .wannier90 import Wannier90InputParameters
 
 
@@ -19,20 +21,20 @@ class CalculatorsInputParameters(BaseModel):
     kcw_wannier: settings.Wann2KCSettingsDict = Field(default_factory=settings.Wann2KCSettingsDict)
     ph: settings.PhSettingsDict = Field(default_factory=settings.PhSettingsDict)
     projwfc: settings.ProjwfcSettingsDict = Field(default_factory=settings.ProjwfcSettingsDict)
-    pw: PWInputParameters = Field(default_factory=PWInputParameters)
-    pw2wannier: settings.PW2WannierSettingsDict = Field(default_factory=settings.PW2WannierSettingsDict)
+    pw: PWInputParameters = Field(default_factory=lambda: PWInputParameters())
+    pw2wannier90: PW2Wannier90InputParameters = Field(default_factory=lambda: PW2Wannier90InputParameters())
     wann2kcp: settings.Wann2KCPSettingsDict = Field(default_factory=settings.Wann2KCPSettingsDict)
-    ui: settings.UnfoldAndInterpolateSettingsDict = Field(default_factory=settings.UnfoldAndInterpolateSettingsDict)
-    ui_occ: settings.UnfoldAndInterpolateSettingsDict = Field(default_factory=settings.UnfoldAndInterpolateSettingsDict)
-    ui_emp: settings.UnfoldAndInterpolateSettingsDict = Field(default_factory=settings.UnfoldAndInterpolateSettingsDict)
+    ui: UnfoldAndInterpolateConfig = Field(default_factory=lambda: UnfoldAndInterpolateConfig())
+    ui_occ: UnfoldAndInterpolateConfig = Field(default_factory=UnfoldAndInterpolateConfig)
+    ui_emp: UnfoldAndInterpolateConfig = Field(default_factory=UnfoldAndInterpolateConfig)
     wjl: settings.WannierJLSettingsDict = Field(default_factory=settings.WannierJLSettingsDict)
-    w90: Wannier90InputParameters | None = None
-    w90_up: Wannier90InputParameters | None = None
-    w90_down: Wannier90InputParameters | None = None
+    wannier90: Wannier90InputParameters | None = None
+    wannier90_up: Wannier90InputParameters | None = None
+    wannier90_down: Wannier90InputParameters | None = None
 
     @model_validator(mode='after')
     def w90_exclusivity(self) -> Self:
-        if (self.w90_up is None) != (self.w90_down is None):
+        if (self.wannier90_up is None) != (self.wannier90_down is None):
             raise ValueError("Both 'w90_up' and 'w90_down' must be specified together.")
         elif (self.w90 is None) != (self.w90_up is None):
             raise ValueError(
