@@ -2,11 +2,13 @@
 
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import Field, field_validator, model_validator
 
 from koopmans.pydantic import BaseModel
+
+FloatGE1 = Annotated[float, Field(ge=1.0)]
 
 
 class Task(Enum):
@@ -72,7 +74,7 @@ class WorkflowConfig(BaseModel):
         default=None, description="if True, apply the Makov-Payne correction for charged periodic systems")
     mt_correction: bool | None = Field(
         default=None, description="if True, apply the Martyna-Tuckerman correction for charged aperiodic systems")
-    eps_inf: float | str | None = Field(
+    eps_inf: FloatGE1 | str | None = Field(
         default=None, description='dielectric constant of the system used by the Gygi-Baldereschi and Makov-Payne corrections; either provide an explicit value or set to "auto" to calculate it ab initio')
     alpha_numsteps: int = Field(default=10, description="Number of steps for alpha calculation")
     alpha_conv_thr: float = Field(

@@ -15,22 +15,22 @@ class UnfoldAndInterpolateConfig(BaseModel):
         default=None,
         description='the name of the Hamiltonian file to read in'
     )
-    w90_seedname: Path = Field(
+    wannier90_seedname: Path = Field(
         default=Path('wannier90'),
-        description=('w90_seedname must be equal to the seedname used in the previous Wannier90 calculation. The code '
-                     'will look for a file called w90_seedname.wout')
+        description=('wannier90_seedname must be equal to the seedname used in the previous Wannier90 calculation. The code '
+                     'will look for a file called wannier90_seedname.wout')
     )
-    w90_calc: Literal['pc', 'sc'] = Field(
+    wannier90_calc: Literal['pc', 'sc'] = Field(
         default='pc',
         description=('Specifies the type of PW/Wannier90 calculation preceding the koopmans calculation. If the latter '
-                     'is done in a supercell at Gamma then w90_calc must be equal to \'sc\', otherwise if it comes from '
+                     'is done in a supercell at Gamma then wannier90_calc must be equal to \'sc\', otherwise if it comes from '
                      'a calculation with k-points it must be equal to \'pc\'.\n')
     )
     do_map: bool = Field(
         default=False,
         description=('if True, it realizes the map |m> --> |Rn>, that connects the Wannier functions in the supercell to '
                      'those in the primitive cell. This is basically the unfolding procedure. It can be activated only '
-                     'if w90_calc=\'sc\'')
+                     'if wannier90_calc=\'sc\'')
     )
     use_ws_distance: bool = Field(
         default=True,
@@ -74,7 +74,7 @@ class UnfoldAndInterpolateConfig(BaseModel):
         default=None,
         description=''
     )
-    w90_input_sc: bool = Field(
+    wannier90_input_sc: bool = Field(
         default=False,
         description='')
 

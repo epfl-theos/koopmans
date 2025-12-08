@@ -3,8 +3,9 @@
 from ase_koopmans import Atoms
 from ase_koopmans.calculators.espresso import PW2Wannier
 
+from koopmans.parameters.pw2wannier90 import PW2Wannier90InputParameters
+
 from ._calculator import CalculatorABC, CalculatorExt
-from .parameters.pw2wannier90 import PW2Wannier90InputParameters
 
 
 class PW2WannierCalculator(CalculatorExt, PW2Wannier, CalculatorABC):

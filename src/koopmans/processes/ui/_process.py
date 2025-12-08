@@ -15,6 +15,7 @@ from pydantic import Field
 from koopmans import utils
 from koopmans.files import File
 from koopmans.kpoints import kpath_to_dict
+from koopmans.parameters import UnfoldAndInterpolateConfig
 from koopmans.plotting import PlottingConfig
 from koopmans.pydantic import BaseModel
 from koopmans.utils.warnings import warn
@@ -22,7 +23,6 @@ from koopmans.utils.warnings import warn
 from ..process import Process
 from ._atoms import UIAtoms
 from ._utils import crys_to_cart, extract_hr, latt_vect
-from .config import UnfoldAndInterpolateConfig
 
 
 class UnfoldAndInterpolateInputs(BaseModel):
@@ -75,7 +75,7 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
 
         # Update the parameters field based on the centers and spreads objects
         num_wann = len(centers)
-        if parameters.w90_input_sc:
+        if parameters.wannier90_input_sc:
             parameters.num_wann_sc = num_wann
             parameters.num_wann = num_wann // np.prod(parameters.kgrid)
         else:
@@ -136,7 +136,7 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
 
         self.write_results()
 
-    def parse_w90(self) -> None:
+    def parse_wannier90(self) -> None:
         """Parse the Wannier90 output file to obtain the centers and spreads of Wannier functions.
 
         Deprecated in favor of passing these objects to the process directly.
@@ -212,7 +212,7 @@ class UnfoldAndInterpolateProcess(Process[UnfoldAndInterpolateInputs, UnfoldAndI
             lines = content.split('\n')
             self._phases = [float(line.split()[0]) + float(line.split()[1]) * 1j for line in lines]
         except FileNotFoundError:
-            if self.inputs.parameters.w90_input_sc:
+            if self.inputs.parameters.wannier90_input_sc:
                 warn('file `wf_phases.dat` not found; phases are ignored')
             self._phases = []
         return

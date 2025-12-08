@@ -65,16 +65,6 @@ class Process(BaseModel, ABC, Generic[InputModel, OutputModel]):
             data.pop('base_directory', None)
         return data
 
-    @model_validator(mode='before')
-    @classmethod
-    def gather_input_model_kwargs(cls, data: dict[str, Any]) -> dict[str, Any]:
-        import ipdb
-        ipdb.set_trace()
-        input_kwargs = {k: v for k, v in data.items() if k in cls.input_model.model_fields}
-        data = {k: v for k, v in data.items() if k not in input_kwargs}
-        data['input'] = input_kwargs
-        return data
-
     @field_validator('name', mode='before')
     @classmethod
     def default_name(cls, name: str | None) -> str | None:

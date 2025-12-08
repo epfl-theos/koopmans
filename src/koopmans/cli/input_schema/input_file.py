@@ -11,23 +11,19 @@ from ase_koopmans.cell import Cell
 from pydantic import Field, field_validator, model_validator
 from pydash import get
 from upf_tools import UPFDict
-from wannier90_input.models.parameters import (Coordinate,
-                                               FractionalCoordinate,
-                                               Projection)
+from wannier90_input.models.parameters import Projection
 from yaml import safe_load
 
-from koopmans.calculators.parameters import CalculatorsInputParameters
-from koopmans.calculators.parameters.pw import (ControlNamelist,
-                                                ElectronsNamelist,
-                                                SystemNamelist)
-from koopmans.calculators.parameters.pw2wannier90 import \
-    PW2Wannier90InputParameters
-from koopmans.calculators.parameters.wannier90 import Wannier90InputParameters
 from koopmans.commands import CommandConfigs
 from koopmans.engines import Engine, LocalhostEngine
 from koopmans.kpoints import GammaOnlyKpoints, Kpoints
+from koopmans.parameters import CalculatorsInputParameters
+from koopmans.parameters.kcp import KCPInputParameters
+from koopmans.parameters.pw import PWInputParameters
+from koopmans.parameters.pw2wannier90 import PW2Wannier90InputParameters
+from koopmans.parameters.ui import UnfoldAndInterpolateConfig
+from koopmans.parameters.wannier90 import Wannier90InputParameters
 from koopmans.plotting import PlottingConfig
-from koopmans.processes.ui.config import UnfoldAndInterpolateConfig
 from koopmans.projections import ExplicitProjections, ImplicitProjections
 from koopmans.pydantic import BaseModel
 from koopmans.utils import Spin
@@ -35,6 +31,7 @@ from koopmans.workflows import (DFTBandsWorkflow, DFTPhWorkflow,
                                 SinglepointWorkflow, TrajectoryWorkflow,
                                 WannierizeWorkflow, Workflow, WorkflowInput)
 from koopmans.workflows.config import Task, WorkflowConfig
+from koopmans.workflows.utils import get_pseudopotentials
 
 from .atomic_positions import AtomicAlatPositionsInput, AtomicPositionsInput
 from .cell_parameters import (CellParametersViaAlat, CellParametersViaIbrav,
@@ -80,62 +77,41 @@ class KpointsInput(BaseModel):
         if self.gamma_only:
             return GammaOnlyKpoints()
         elif self.path is None:
-            path = cell.get_bravais_lattice().bandpath()
-            return Kpoints(path=path, grid=self.grid, offset=self.offset)
+            # By default, use ASE's default bandpath for this cell (see
+            # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
+            default_path = atoms.cell.bandpath(eps=1e-10).path
+            return Kpoints(path=default_path, grid=self.grid, offset=self.offset)
         else:
             return Kpoints.from_path_as_string(path=self.path, cell=cell, density=self.density,
                                                grid=self.grid, offset=self.offset)
 
 
-class PWInput(BaseModel):
-    control: ControlNamelist = Field(default_factory=lambda: ControlNamelist())
-    system: SystemNamelist = Field(default_factory=lambda: SystemNamelist())
-    electrons: ElectronsNamelist = Field(default_factory=lambda: ElectronsNamelist())
-
-
 class SpinSpecificWannierInput(BaseModel):
-    projections: list[list[Projection]] = []
     dis_froz_max: float | None = None
     dis_froz_min: float | None = None
     dis_win_max: float | None = None
     dis_win_min: float | None = None
     auto_projections: bool = False
+    projections: list[list[Projection]] = Field(default_factory=list)
 
 
-class Wannier90Input(Wannier90InputParameters):
-    # Hide various fields that should not be set in the w90 block of the Koopmans input file
-    num_wann: ClassVar[int] = -1
-    num_bands: ClassVar[int | None] = -1
-    unit_cell_cart: ClassVar[list[Coordinate]] = []
-    mp_grid: ClassVar[tuple[int, int, int]] = (1, 1, 1)
-    kpoints: ClassVar[list[FractionalCoordinate]] = []
-    # In the Koopmans input file, projections are further split into blocks
-    projections: list[list[Projection]] = []
+class Wannier90InputParametersWithUpDown(Wannier90InputParameters):
     up: SpinSpecificWannierInput = Field(default_factory=lambda: SpinSpecificWannierInput())
     down: SpinSpecificWannierInput = Field(default_factory=lambda: SpinSpecificWannierInput())
-
-    @model_validator(mode="before")
-    @classmethod
-    def set_default_num_bands(cls, values: dict[str, Any]) -> dict[str, Any]:
-        """Skip default num_bands setting."""
-        return values
-
-    @model_validator(mode="before")
-    @classmethod
-    def atoms_frac_xor_cart(cls, values: dict[str, Any]) -> dict[str, Any]:
-        """Skip atoms_frac/atoms_cart check."""
-        return values
+    # In the input file, projections are specified as a list of lists to separate each block
+    projections: list[list[Projection]] = Field(default_factory=list)
 
 
 class CalculatorParametersInput(BaseModel):
     ecutwfc: float | None = None
     nbnd: float | None = None
-    pw: PWInput = Field(default_factory=lambda: PWInput())
+    pw: PWInputParameters = Field(default_factory=lambda: PWInputParameters())
     pw2wannier90: PW2Wannier90InputParameters = Field(default_factory=lambda: PW2Wannier90InputParameters())
-    wannier90: Wannier90Input = Field(default_factory=lambda: Wannier90Input())
+    wannier90: Wannier90InputParametersWithUpDown = Field(default_factory=lambda: Wannier90InputParametersWithUpDown())
     ui: UnfoldAndInterpolateConfig = Field(default_factory=lambda: UnfoldAndInterpolateConfig())
+    kcp: KCPInputParameters = Field(default_factory=lambda: KCPInputParameters())
 
-    def to_obj(self) -> CalculatorsInputParameters:
+    def to_obj(self) -> dict[str, Any]:
         dct = self.model_dump()
         ecutwfc = dct.pop('ecutwfc')
         nbnd = dct.pop('nbnd')
@@ -143,7 +119,20 @@ class CalculatorParametersInput(BaseModel):
             self.pw.system.ecutwfc = ecutwfc
         if nbnd is not None:
             self.pw.system.nbnd = nbnd
-        return CalculatorsInputParameters(dct)
+
+        # Split wannier90 up and down into their own blocks
+        up_dct = dct['wannier90'].pop('up')
+        down_dct = dct['wannier90'].pop('down')
+        dct['wannier90_up'] = dct['wannier90'].copy()
+        dct['wannier90_down'] = dct['wannier90'].copy()
+        dct['wannier90_up'].update(up_dct)
+        dct['wannier90_down'].update(down_dct)
+
+        for key in ['wannier90_up', 'wannier90_down', 'wannier90']:
+            # Projections are excluded from the CalculatorsInputParameters object
+            dct[key].pop('projections')
+
+        return dct
 
 
 class EngineInput(BaseModel):
@@ -174,31 +163,6 @@ class KoopmansInput(BaseModel):
             raise ValueError(f'Unrecognized file type for `{filename}`')
 
         return cls.model_validate(input_dict)
-
-    def get_pseudopotentials(self, atoms: Atoms, engine: Engine) -> OrderedDict[str, UPFDict]:
-        """Get the pseudopotentials as UPFDict objects."""
-        upfs = OrderedDict()
-
-        # Work out the unique atom labels. This needs to be done like this rather than with set() to ensure
-        # the order is consistent with how the atoms appear in the input file
-        unique_labels: list[tuple[str, str]] = []
-        for a in atoms:
-            label_tuple: tuple[str, str] = (a.symbol, a.tag)
-            if label_tuple not in unique_labels:
-                unique_labels.append(label_tuple)
-
-        for element, tag in unique_labels:
-            pseudo = engine.get_pseudopotential(library=self.workflow.pseudo_library, element=element)
-
-            pseudo_type = get(pseudo, 'header.pseudo_type', None)
-            if pseudo_type != 'NC':
-                raise ValueError('Koopmans functionals only currently support norm-conserving pseudopotentials; '
-                                 f'{pseudo.filename} is {pseudo_type}')
-
-            symbol = element + str(tag) if tag > 0 else element
-            upfs[symbol] = pseudo
-
-        return upfs
 
     def get_projections(self, atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]) -> ExplicitProjections | ImplicitProjections:
         if self.workflow.spin_polarized:
@@ -252,20 +216,21 @@ class KoopmansInput(BaseModel):
         # Here need to define the logic constructing the workflow properly
         atoms = self.atoms.to_atoms_obj()
         kpoints = self.kpoints.to_kpoints_obj(cell=atoms.cell)
-        pseudopotentials = self.get_pseudopotentials(atoms, engine)
+        pseudopotentials = get_pseudopotentials(atoms, engine, self.workflow.pseudo_library)
         projections = self.get_projections(atoms, pseudopotentials)
         calculator_parameters = self.calculator_parameters.to_obj()
 
         inputs = WorkflowInput(
-            atoms=atoms,
-            kpoints=kpoints,
-            pseudopotentials=pseudopotentials,
-            projections=projections
-        )
-
-        return workflow_cls(
-            inputs=inputs,
             config=self.workflow,
             atoms=atoms,
             kpoints=kpoints,
+            pseudopotentials=pseudopotentials,
+            projections=projections,
+            calculator_parameters=calculator_parameters,
+        )
+
+        return workflow_cls(
+            name=None,
+            inputs=inputs,
+            engine=engine,
         )

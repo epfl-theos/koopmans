@@ -6,9 +6,9 @@ from ase_koopmans.calculators.espresso import Espresso
 from ase_koopmans.dft.kpoints import BandPath
 
 from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
+from koopmans.parameters.pw import PWInputParameters
 
 from ._calculator import CalculatorABC, CalculatorExt, ReturnsBandStructure
-from .parameters.pw import PWInputParameters
 
 
 class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC):
@@ -17,6 +17,7 @@ class PWCalculator(CalculatorExt, Espresso, ReturnsBandStructure, CalculatorABC)
     ext_in = '.pwi'
     ext_out = '.pwo'
     code = "pw"
+    id = "pw"
 
     def __init__(self, atoms: Atoms, *args, **kwargs):
         # Define the valid settings

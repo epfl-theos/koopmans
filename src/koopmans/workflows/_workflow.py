@@ -21,7 +21,7 @@ import numpy as np
 from numpy import typing as npt
 from pybtex.database import BibliographyData
 from pydantic import Field, field_validator, model_validator
-from pydash import get
+from pydash import get, set_
 from typing_extensions import Self
 
 # isort: off
@@ -45,11 +45,13 @@ from ase_koopmans.spectrum.dosdata import GridDOSData
 from upf_tools import UPFDict
 
 from koopmans import calculators, settings, utils
-from koopmans.calculators.parameters import CalculatorsInputParameters
 from koopmans.engines import Engine, LocalhostEngine
 from koopmans.files import File, ParentProcessPlaceholder
 from koopmans.kpoints import Kpoints
 from koopmans.ml import AbstractMLModel, MLModel, OccEmpMLModels
+from koopmans.parameters import CalculatorsInputParameters
+from koopmans.parameters.kcp import KCPInputParameters
+from koopmans.parameters.ml import MLConfig
 from koopmans.plotting import PlottingConfig
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
@@ -67,18 +69,22 @@ from koopmans.status import Status
 from koopmans.utils import Spin
 from koopmans.utils.warnings import warn
 from koopmans.variational_orbitals import VariationalOrbitals
-
-from .config import Task, WorkflowConfig
+from koopmans.workflows.config import (CalculateScreeningMethod, Correction,
+                                       Task, VariationalOrbital,
+                                       WorkflowConfig)
+from koopmans.workflows.utils import get_pseudopotentials
 
 
 class WorkflowInput(BaseModel):
+    config: WorkflowConfig
     atoms: Atoms = Field('an ASE ``Atoms`` object defining the atomic positions, cell, etc')
     pseudopotentials: OrderedDict[str, UPFDict] = Field('a dictionary mapping atom labels to pseudopotential objects')
     kpoints: Kpoints
     projections: ExplicitProjections | ImplicitProjections | None = None
     calculator_parameters: CalculatorsInputParameters = Field(default_factory=CalculatorsInputParameters)
     plotting_config: PlottingConfig = Field(default_factory=PlottingConfig)
-    ml_config: settings.MLSettingsDict = Field(default_factory=settings.MLSettingsDict)
+    ml_config: MLConfig = Field(default_factory=lambda: MLConfig())
+    ml_model: AbstractMLModel | None = None
     snapshots: List[Atoms]
 
     @model_validator(mode='before')
@@ -87,13 +93,13 @@ class WorkflowInput(BaseModel):
         """Set up the projections if they are implicit."""
         calculator_parameters = data['calculator_parameters']
         auto = [calculator_parameters[key].get('auto_projections', False)
-                for key in ['w90', 'w90_up', 'w90_down'] if key in calculator_parameters]
+                for key in ['wannier90', 'wannier90_up', 'wannier90_down'] if key in calculator_parameters]
         if any(auto):
             raise NotImplementedError()
-            # Also override various pw2wannier and w90 settings
+            # Also override various pw2wannier and wannier90 settings
             calculator_parameters['pw2wannier'].atom_proj = True
             for spin in spins:
-                label = 'w90' if spin == Spin.NONE else f'w90_{spin.value}'
+                label = 'wannier90' if spin == Spin.NONE else f'wannier90_{spin.value}'
                 calculator_parameters[label].guiding_centres = False
                 calculator_parameters[label].dis_froz_proj = True
                 if calculator_parameters[label].dis_proj_max is None:
@@ -101,34 +107,58 @@ class WorkflowInput(BaseModel):
             data['calculator_parameters'] = calculator_parameters
         return data
 
+    @model_validator(mode='after')
+    def ml_checks(self) -> Self:
+        """Perform checks on the ML configuration."""
+        if self.ml_config.predict or self.ml_config.train or self.ml_config.test:
+            warn("Predicting screening parameters with machine-learning is an experimental feature; proceed with "
+                 "caution")
+            if self.ml_model is None:
+                raise ValueError("You have requested to train or predict with a machine-learning model, but no model "
+                                 "is attached to this workflow. Either set `ml:train` or `predict` to `True` when "
+                                 "initializing the workflow, or directly add a model to the workflow's `ml_model` "
+                                 "attribute")
+            if self.ml_model.estimator_type != self.ml_config.estimator:
+                raise ValueError(f'The estimator type of the loaded ML model (`{self.ml_model.estimator_type}`) does not '
+                                 f'match the estimator type specified in the Workflow settings (`{self.ml_config.estimator}`).')
+            if self.ml_model.descriptor_type != self.ml_config.descriptor:
+                raise ValueError(f'The descriptor type of the loaded ML model (`{self.ml_model.descriptor_type}`) does not '
+                                 f'match the descriptor type specified in the Workflow settings (`{self.ml_config.descriptor}`).')
+            if self.config.task not in [Task.SINGLEPOINT, Task.TRAJECTORY]:
+                raise NotImplementedError(
+                    f'Using the ML-prediction for the task `{self.config.task.value}` has not yet been implemented.')
+            if self.config.screening_method != CalculateScreeningMethod.DSCF:
+                raise NotImplementedError(
+                    f"Using the ML-prediction for the method `{self.config.screening_method.value}` has not yet been implemented")
+            if self.config.correction != Correction.KI:
+                raise NotImplementedError(
+                    f'Using the ML-prediction for the `{self.config.correction.value}` functional has not yet been '
+                    'implemented.')
+            if self.config.init_orbitals != VariationalOrbital.MLWFS:
+                raise NotImplementedError(
+                    f'Using the ML-prediction for `{self.config.init_orbitals.value}` initial orbitals has not yet been '
+                    'implemented.')
+            if self.config.init_empty_orbitals != self.config.init_orbitals.value:
+                raise NotImplementedError(
+                    'Using the ML-prediction for using different initial orbitals for empty states than for occupied '
+                    'states has not yet been implemented.')
+            if self.config.spin_polarized:
+                warn('Using the ML-prediction for spin-polarised systems has not yet been extensively tested.')
+            if not all(self.atoms.pbc):
+                warn('Using the ML-prediction for non-periodic systems has not yet been extensively tested.')
+            if self.parameters.orbital_groups:
+                warn('Using orbital_groups has not yet been extensively tested.')
+            if not np.all(self.atoms.cell.angles() == 90.0):
+                raise ValueError("The ML-workflow has only been implemented for simulation cells that have 90° angles")
+
+        return self
+
     @model_validator(mode='before')
     @classmethod
     def populate_snapshots(cls, values: dict[str, Any]) -> dict[str, Any]:
         if values.get('snapshots', None) is None:
             values['snapshots'] = [values['atoms']]
         return values
-
-    @model_validator(mode="before")
-    @classmethod
-    def set_default_kpoints(cls, dct: dict[str, Any]) -> dict[str, Any]:
-        atoms = dct.get('atoms')
-        if not isinstance(atoms, Atoms):
-            raise ValueError('`atoms` must be an ASE `Atoms` object to set default k-points')
-        if not isinstance(atoms.cell, Cell):
-            raise ValueError('`atoms.cell` must be an ASE `Cell` object to set default k-points')
-        if all(atoms.pbc):
-            # By default, use ASE's default bandpath for this cell (see
-            # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
-            default_path = atoms.cell.bandpath(eps=1e-10).path
-        else:
-            default_path = 'G'
-        kpoints = dct.get('kpoints', None)
-        if kpoints is None:
-            kpoints = Kpoints(path=default_path, gamma_only=False, cell=atoms.cell)
-        elif kpoints.path is None:
-            kpoints.set_path(default_path, cell=atoms.cell)
-        dct['kpoints'] = kpoints
-        return dct
 
     @field_validator('atoms', mode="before")
     @classmethod
@@ -145,10 +175,10 @@ class WorkflowInput(BaseModel):
         calculator_parameters = data['calculator_parameters']
         if projections:
             for spin in [Spin.UP, Spin.DOWN, Spin.NONE]:
-                label = 'w90'
+                label = 'wannier90'
                 if spin != Spin.NONE:
-                    label += f'_{spin}'
-                projections.exclude_bands[spin] = calculator_parameters[label].get('exclude_bands', [])
+                    label += f'_{spin.value}'
+                projections.exclude_bands[spin] = get(calculator_parameters, f'{label}.exclude_bands', [])
             data['projections'] = projections
         return data
 
@@ -161,29 +191,217 @@ class WorkflowInput(BaseModel):
             value.calc = None
         return value
 
-    @field_validator('calculator_parameters', mode='after')
-    @classmethod
-    def check_projections_provided_in_right_place(cls, value: Dict[str, settings.SettingsDict]) -> Dict[str, settings.SettingsDict]:
-        # Various checks for the wannier90 blocks
-        for block, params in value.items():
-            if block.startswith('w90'):
-                if 'projections' in params:
-                    raise ValueError(f'You have provided projection information in the '
-                                     f'`calculator_parameters[{block}]` argument to `{cls.__name__}`. '
-                                     'Please instead specify projections via the `projections` argument')
-        return value
+    @model_validator(mode='after')
+    def ensure_wannier90_config_and_spin_polarization_are_consistent(self) -> Self:
+        if self.config.spin_polarized != (self.calculator_parameters.wannier90 is None):
+            raise ValueError("Inconsistent spin polarization settings: for spin-polarized calculations, "
+                             "both 'wannier90_up' and 'wannier90_down' must be specified; for non-spin-polarized calculations, "
+                             "'wannier90' must be specified.")
+        return self
 
-    @field_validator('calculator_parameters', mode='after')
+    @model_validator(mode='before')
     @classmethod
-    def warn_about_overwritten_keywords(cls, value: Dict[str, settings.SettingsDict]) -> Dict[str, settings.SettingsDict]:
-        for block, params in value.items():
-            if block.startswith('w90'):
-                for kw in ['exclude_bands', 'num_wann', 'num_bands', 'projections']:
-                    if kw in params:
-                        warn(f'`{kw}` will be overwritten by the workflow; it is best to not specify this '
-                             'keyword and to instead double-check the keyword in the various `.win` files '
-                             'generated by the workflow.')
-        return value
+    def extract_projections(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Adding the projections to the workflow kwargs.
+
+        This is unusual in that this is an attribute of the workflow but can be specified within the wannier90 block
+        """
+        calc_configs = data['calculator_parameters']
+        atoms = data['atoms']
+        projections = data.get('projections', None)
+        spin_polarized = data['config'].spin_polarized
+
+        if projections is None:
+            raise NotImplementedError('Need to check the following code')
+            wannier90_block_projs: list[dict[str, Any]] = []
+
+            spins = [Spin.UP, Spin.DOWN] if spin_polarized else [Spin.NONE]
+            suffixes = ['up', 'down'] if spin_polarized else ['']
+            for spin, suffix in zip(spins, suffixes):
+                projs = get(calc_configs, f'wannier90{suffix}.projections', [[]])
+
+                # Add the spin information
+                wannier90_block_projs += [{'spin': spin, 'projections': proj_block} for proj_block in projs]
+
+            # Suppress type-checking because mypy does not understand that pydantic will cast blocks appropriately
+            # to the desired type
+            data['projections'] = ExplicitProjections(
+                blocks=wannier90_block_projs, atoms=atoms)  # type: ignore[arg-type]
+        return data
+
+    @model_validator(mode='before')
+    @classmethod
+    def default_fix_spin_contamination(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Set `fix_spin_contamination` to the opposite of `spin_polarized`, if not explicitly set."""
+        config = data['config']
+        if config.fix_spin_contamination is None:
+            config.fix_spin_contamination = not config.spin_polarized
+        return data
+
+    @model_validator(mode='after')
+    def check_if_fix_spin_contamination_then_not_spin_polarized(self) -> Self:
+        """Check that if `fix_spin_contamination` is True, then `spin_polarized` is False."""
+        if self.config.fix_spin_contamination and self.config.spin_polarized:
+            raise ValueError('`fix_spin_contamination = True` is incompatible with `spin_polarized = True`')
+        return self
+
+    @model_validator(mode='before')
+    @classmethod
+    def set_default_frozen_orbitals(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Set `frozen_orbitals` to True if `method` is `dfpt`, False otherwise, if not explicitly set."""
+        config = data['config']
+        if config.frozen_orbitals is None:
+            if config.screening_method == CalculateScreeningMethod.DFPT:
+                config.frozen_orbitals = True
+            else:
+                config.frozen_orbitals = False
+        return data
+
+    @model_validator(mode='after')
+    def check_frozen_orbitals_and_method_consistency(self) -> Self:
+        """Check that `frozen_orbitals` is True if `method` is `dfpt`."""
+        if self.config.screening_method == CalculateScreeningMethod.DFPT and not self.config.frozen_orbitals:
+            raise ValueError('`frozen_orbitals` must be equal to `True` when `method` is `dfpt`')
+
+        if self.config.screening_method == CalculateScreeningMethod.DSCF and self.config.frozen_orbitals:
+            warn('You have requested a ΔSCF calculation with frozen orbitals. This is unusual; proceed '
+                 'only if you know what you are doing')
+        return self
+
+    @model_validator(mode='before')
+    @classmethod
+    def do_not_calculate_alpha_for_dft(cls, data: dict[str, Any]) -> dict[str, Any]:
+        config = data['config']
+        if config.calculate_alpha is None and config.correction == 'none':
+            config.calculate_alpha = False
+        return data
+
+    @model_validator(mode='before')
+    @classmethod
+    def default_periodic_correction_schemes(cls, data: dict[str, Any]) -> dict[str, Any]:
+        atoms = data['atoms']
+        config = data['config']
+
+        if not config.calculate_alpha:
+            # If we are not calculating alpha, we do not consider charged systems and therefore we don't need image
+            # corrections, so we skip the following checks
+            return data
+        if all(atoms.pbc):
+
+            if config.screening_method == CalculateScreeningMethod.DFPT:
+                # For DPFT, we use gb_correction
+                if config.gb_correction is None:
+                    config.gb_correction = True
+
+            elif config.screening_method == CalculateScreeningMethod.DSCF:
+                # For DSCF, we use mp_correction
+                if config.mp_correction is None:
+                    config.mp_correction = True
+
+                if config.eps_inf is None:
+                    warn('`eps_inf` missing in input; it will default to 1.0. Proceed with caution for periodic '
+                         'systems; consider setting `eps_inf == "auto"` to calculate it automatically.')
+                    config.eps_inf = 1.0
+
+            if config.mt_correction is None:
+                config.mt_correction = False
+
+        else:
+            if config.gb_correction is None:
+                config.gb_correction = False
+
+            if config.mp_correction is None:
+                config.mp_correction = False
+
+            if config.mt_correction is None:
+                config.mt_correction = True
+        return data
+
+    @model_validator(mode='after')
+    def check_periodic_correction_schemes(self) -> Self:
+        """Perform sanity checks on the periodic image correction schemes."""
+        if not self.config.calculate_alpha:
+            # If we are not calculating alpha, we do not consider charged systems and therefore we don't need image
+            # corrections, so we skip the following checks
+            return self
+
+        if all(self.atoms.pbc):
+            if self.config.screening_method == CalculateScreeningMethod.DFPT:
+                if not self.config.gb_correction:
+                    warn('Gygi-Baldereschi corrections are not being used; do this with '
+                         'caution for periodic systems')
+
+            elif self.config.screening_method == CalculateScreeningMethod.DSCF:
+                if not self.config.mp_correction:
+                    warn('Makov-Payne corrections are not being used; do this with '
+                         'caution for periodic systems')
+
+            if self.config.mt_correction:
+                raise ValueError('Do not use Martyna-Tuckerman corrections for periodic systems')
+
+            # Check symmetry of the system
+            dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=False)
+            if dataset is None or dataset['number'] not in range(195, 231):
+                warn('This system is not cubic and will therefore not have a uniform dielectric tensor. However, '
+                     'the image-correction schemes that are currently implemented assume a uniform dielectric. '
+                     'Proceed with caution')
+        else:
+            if self.config.gb_correction:
+                raise ValueError('Do not use Gygi-Baldereschi corrections for aperiodic systems')
+
+            if self.config.mp_correction:
+                raise ValueError('Do not use Makov-Payne corrections for aperiodic systems')
+
+            if not self.config.mt_correction:
+                utils.warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with '
+                           'caution')
+
+        return self
+
+    @model_validator(mode='after')
+    def check_initial_orbitals(self) -> Self:
+        if self.config.init_orbitals in [VariationalOrbital.MLWFS, VariationalOrbital.PROJWFS] \
+                and self.config.correction != Correction.NONE:
+            if len(self.projections) == 0:
+                raise ValueError(f'In order to use `init_orbitals={self.config.init_orbitals}`, projections must '
+                                 'be provided')
+        return self
+
+    @model_validator(mode='after')
+    def check_projections_spin_consistency(self) -> Self:
+        spin_set = set([p.spin for p in self.projections])
+        if self.config.spin_polarized:
+            if spin_set != {Spin.UP, Spin.DOWN}:
+                raise ValueError('This calculation is spin-polarized; please provide spin-up and spin-down '
+                                 'projections')
+        else:
+            if spin_set != {Spin.NONE}:
+                raise ValueError('This calculation is not spin-polarized; please do not provide spin-indexed '
+                                 'projections')
+        return self
+
+    @model_validator(mode='before')
+    @classmethod
+    def check_kponts_vs_do_wf_cmplx(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Check the consistency between self.kpoints.gamma_only and KCP's do_wf_cmplx."""
+        if not data['kpoints'].gamma_only and not get(data, 'calculator_parameters.kcp.system.do_wf_cmplx'):
+            warn('`do_wf_cmplx = False` is not consistent with `gamma_only = False`. '
+                 'Changing `do_wf_cmplx` to `True`')
+            set_(data, 'calculator_parameters.kcp.system.do_wf_cmplx', True)
+        return data
+
+    @model_validator(mode='before')
+    @classmethod
+    def set_smearing_if_initializing_with_smearing(cls, data: dict[str, Any]) -> dict[str, Any]:
+        """Set smearing parameters if initializing with smearing."""
+        if get(data, 'config.initialize_with_smearing'):
+            if get(data, 'calculator_parameters.pw.occupations') != 'smearing':
+                set_(data, 'calculator_parameters.pw.occupations', 'smearing')
+            if get(data, 'calculator_parameters.pw.smearing') is None:
+                set_(data, 'calculator_parameters.pw.smearing', 'cold')
+            if get(data, 'calculator_parameters.pw.degauss') is None:
+                set_(data, 'calculator_parameters.pw.degauss', 2e-3)
+        return data
 
 
 OutputModel = TypeVar('OutputModel', bound=BaseModel)
@@ -193,7 +411,6 @@ class Workflow(Process[WorkflowInput, OutputModel], Generic[OutputModel]):
     """Abstract base class that defines a Koopmans workflow."""
 
     input_model = WorkflowInput
-    config: WorkflowConfig
     version: str = Field(
         'Version number used to create this workflow (becomes relevant when loading workflows from .kwf files)')
     step_counter: int = 0
@@ -204,13 +421,12 @@ class Workflow(Process[WorkflowInput, OutputModel], Generic[OutputModel]):
     processes: List[ProcessProtocol] = []
     steps: List = []
     _variational_orbitals: VariationalOrbitals | None
-    ml_model: Optional[AbstractMLModel] = None
 
     @model_validator(mode='before')
     @classmethod
     def create_ml_model(cls, data: dict[str, Any]) -> dict[str, Any]:
         ml_config = data['inputs'].ml_config
-        ml_model = data['inputs'].get('ml_model', None)
+        ml_model = data['inputs'].ml_model
         engine = data['engine']
         if ml_model is None:
             if ml_config.train:
@@ -225,7 +441,7 @@ class Workflow(Process[WorkflowInput, OutputModel], Generic[OutputModel]):
                 with open(ml_config.model_file, 'rb') as f:
                     ml_model = dill.load(f)
                 assert isinstance(ml_model, AbstractMLModel)
-            data['ml_model'] = ml_model
+            data['inputs'].ml_model = ml_model
         return data
 
     @field_validator('name', mode='before')
@@ -273,11 +489,12 @@ class Workflow(Process[WorkflowInput, OutputModel], Generic[OutputModel]):
         tot_mag = nelup - neldw
 
         # Setting up the magnetic moments
-        starting_mags = {k: v for k, v in calculator_parameters.get('kcp', {}).items(
-        ) if k.startswith('starting_magnetization')}
-        starting_mags.update(
-            {k: v for k, v in calculator_parameters['pw'].items() if k.startswith('starting_magnetization')})
+        starting_mags = calculator_parameters.pw.system.starting_magnetization
+        if not starting_mags:
+            starting_mags_list = calculator_parameters.kcp.system.starting_magnetization
+
         if starting_mags:
+            raise NotImplementedError('Yet to test the following')
             labels = [a.symbol + str(a.tag) if a.tag > 0 else a.symbol for a in atoms]
             starting_magmoms: Dict[str, float] = {}
             for i, (l, p) in enumerate(pseudopotentials.items()):
@@ -293,35 +510,24 @@ class Workflow(Process[WorkflowInput, OutputModel], Generic[OutputModel]):
             atoms.set_initial_magnetic_moments([starting_magmoms[label] for label in labels])
         elif tot_mag != 0:
             atoms.set_initial_magnetic_moments([tot_mag / len(atoms) for _ in atoms])
-        data['inputs']['atoms'] = atoms
 
         # Work out the number of bands
-        nbnd = get(calculator_parameters, 'pw.nbnd', get(calculator_parameters, 'kcp.nbnd', nelec // 2 + nelec % 2))
+        nbnd = get(calculator_parameters, 'pw.system.nbnd', get(
+            calculator_parameters, 'kcp.system.nbnd', nelec // 2 + nelec % 2))
         generated_keywords = {'nelec': nelec, 'tot_charge': tot_charge, 'tot_magnetization': tot_mag,
                               'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd}
 
-        for block, params in get(data, 'inputs.calculator_parameters', {}).items():
+        for block in [calculator_parameters.pw, calculator_parameters.kcp]:
             # Apply auto-generated keywords
             for k, v in generated_keywords.items():
                 # Skipping nbnd for kcp; if necessary it will be generated later
-                if k == 'nbnd' and block == 'kcp':
+                if isinstance(block, KCPInputParameters) and k == 'nbnd':
                     continue
-                if k in params.model_fields:
-                    params[k] = v
+
+                if k in block.system.model_fields:
+                    setattr(block.system, k, v)
 
         return data
-
-    @model_validator(mode='before')
-    @classmethod
-    def distribute_generic_calculator_parameters(cls, data: dict[str, Any]) -> dict[str, Any]:
-        """Distribute generic calculator parameters (e.g. ecutwfc) to all relevant calculator blocks."""
-        extras = {}
-        for k, v in get(data, 'inputs.calculator_parameters', {}).items():
-            if k not in CalculatorsInputParameters.model_fields:
-                extras[k] = data['inputs']['calculator_parameters'].pop(k)
-        data['inputs']['calculator_parameters']['extras'] = extras
-        raise NotImplementedError(
-            "This implementation won't work because we need these keywords to be correctly distributed before the next before validator")
 
     @model_validator(mode='before')
     @classmethod
@@ -335,72 +541,13 @@ class Workflow(Process[WorkflowInput, OutputModel], Generic[OutputModel]):
         pseudopotentials = get(data, 'inputs.pseudopotentials', None)
         pseudo_library = get(data, 'config.pseudo_library')
 
-        upfs = OrderedDict()
         if pseudopotentials is None:
-            # Work out the unique atom labels. This needs to be done like this rather than with set() to ensure
-            # the order is consistent with how the atoms appear in the input file
-            unique_labels = []
-            for a in atoms:
-                label_tuple: tuple[str, int] = (a.symbol, a.tag)
-                if label_tuple not in unique_labels:
-                    unique_labels.append(label_tuple)
-
-            for element, tag in unique_labels:
-                pseudo = engine.get_pseudopotential(library=pseudo_library, element=element)
-
-                pseudo_type = pseudo['header']['pseudo_type']
-                if pseudo_type != 'NC':
-                    raise ValueError('Koopmans functionals only currently support norm-conserving pseudopotentials; '
-                                     f'{pseudo.filename} is {pseudo_type}')
-
-                symbol = element + str(tag) if tag > 0 else element
-                upfs[symbol] = pseudo
+            upfs = get_pseudopotentials(atoms, engine, pseudo_library)
         else:
-            for symbol, pseudo_filename in sorted(pseudopotentials.items()):
+            upfs: OrderedDict[str, UPFDict] = OrderedDict()
+            for symbol, pseudo_filename in pseudopotentials.items():
                 if isinstance(pseudo_filename, str):
-                    upf = engine.get_pseudopotential(pseudo_library, filename=pseudo_filename)
-                elif isinstance(pseudo_filename, UPFDict):
-                    upf = pseudo_filename
-                else:
-                    raise ValueError(f'Invalid pseudopotential type: {pseudo_filename.__class__.__name__}')
-                upfs[symbol] = upf
-        data['inputs']['pseudopotentials'] = upfs
-        return data
-
-    @model_validator(mode='after')
-    def ensure_w90_config_and_spin_polarization_are_consistent(self) -> Self:
-        if self.config.spin_polarized != (self.inputs.calculator_parameters.w90 is None):
-            raise ValueError("Inconsistent spin polarization settings: for spin-polarized calculations, "
-                             "both 'w90_up' and 'w90_down' must be specified; for non-spin-polarized calculations, "
-                             "'w90' must be specified.")
-        return self
-
-    @model_validator(mode='before')
-    @classmethod
-    def extract_projections(cls, data: dict[str, Any]) -> dict[str, Any]:
-        """Adding the projections to the workflow kwargs.
-
-        This is unusual in that this is an attribute of the workflow but can be specified within the w90 block
-        """
-        calc_configs = get(data, 'inputs.calculator_parameters')
-        atoms = get(data, 'inputs.atoms')
-        projections = get(data, 'inputs.projections', None)
-        spin_polarized = get(data, 'config.spin_polarized', False)
-
-        if projections is None:
-            w90_block_projs: list[dict[str, Any]] = []
-
-            spins = [Spin.UP, Spin.DOWN] if spin_polarized else [Spin.NONE]
-            suffixes = ['up', 'down'] if spin_polarized else ['']
-            for spin, suffix in zip(spins, suffixes):
-                projs = get(data, f'inputs.w90{suffix}.projections', [[]])
-
-                # Add the spin information
-                w90_block_projs += [{'spin': spin, 'projections': proj_block} for proj_block in projs]
-
-            # Suppress type-checking because mypy does not understand that pydantic will cast blocks appropriately
-            # to the desired type
-            data['projections'] = ExplicitProjections(blocks=w90_block_projs, atoms=atoms)  # type: ignore[arg-type]
+                    pseudopotentials['symbol'] = engine.get_pseudopotential(pseudo_library, filename=pseudo_filename)
         return data
 
     def __eq__(self, other: Any):
@@ -458,7 +605,6 @@ class Workflow(Process[WorkflowInput, OutputModel], Generic[OutputModel]):
             self.print(bf + '-' * len(self.name) + bf)
             if self.engine.from_scratch:
                 self._remove_tmpdirs()
-            self._run_sanity_checks()
 
         start_time = time.time()
 
@@ -574,7 +720,7 @@ class Workflow(Process[WorkflowInput, OutputModel], Generic[OutputModel]):
         return cls(**kwargs)
 
     @classmethod
-    def fromparent(cls: Type[W], parent_wf: Workflow, **kwargs: Any) -> W:
+    def fromparent(cls: Type[W], parent_wf: Workflow[Any], **kwargs: Any) -> W:
         """Create a subworkflow with the same configuration as the parent workflow.
 
         e.g.
@@ -582,240 +728,36 @@ class Workflow(Process[WorkflowInput, OutputModel], Generic[OutputModel]):
         """
         return cls.from_other(other_wf=parent_wf, parent_process=parent_wf, **kwargs)
 
-    def _run_sanity_checks(self):
-        # Check internal consistency of workflow settings
-        if self.parameters.fix_spin_contamination is None:
-            self.parameters.fix_spin_contamination = not self.parameters.spin_polarized
-        else:
-            if self.parameters.fix_spin_contamination and self.parameters.spin_polarized:
-                raise ValueError('`fix_spin_contamination = True` is incompatible with `spin_polarized = True`')
-
-        if self.parameters.method == 'dfpt':
-            if self.parameters.frozen_orbitals is None:
-                self.parameters.frozen_orbitals = True
-            if not self.parameters.frozen_orbitals:
-                raise ValueError('`frozen_orbitals` must be equal to `True` when `method` is `dfpt`')
-        else:
-            if self.parameters.frozen_orbitals is None:
-                self.parameters.frozen_orbitals = False
-            if self.parameters.frozen_orbitals:
-                warn('You have requested a ΔSCF calculation with frozen orbitals. This is unusual; proceed '
-                     'only if you know what you are doing')
-
-        if self.parameters.functional == 'dft':
-            self.parameters.calculate_alpha = False
-
-        # Checking periodic image correction schemes
-        if not self.parameters.calculate_alpha:
-            # If we are not calculating alpha, we do not consider charged systems and therefore we don't need image
-            # corrections, so we skip the following checks
-            pass
-        elif all(self.atoms.pbc):
-            if self.parameters.method == 'dfpt':
-                # For DPFT, we use gb_correction
-                if self.parameters.gb_correction is None:
-                    self.parameters.gb_correction = True
-                if not self.parameters.gb_correction:
-                    warn('Gygi-Baldereschi corrections are not being used; do this with '
-                         'caution for periodic systems')
-
-            elif self.parameters.method == 'dscf':
-                # For DSCF, we use mp_correction
-                if self.parameters.mp_correction is None:
-                    self.parameters.mp_correction = True
-                if not self.parameters.mp_correction:
-                    warn('Makov-Payne corrections are not being used; do this with '
-                         'caution for periodic systems')
-
-                if self.parameters.eps_inf is None:
-                    warn('`eps_inf` missing in input; it will default to 1.0. Proceed with caution for periodic '
-                         'systems; consider setting `eps_inf == "auto"` to calculate it automatically.')
-                    self.parameters.eps_inf = 1.0
-
-            if self.parameters.mt_correction is None:
-                self.parameters.mt_correction = False
-            if self.parameters.mt_correction:
-                raise ValueError('Do not use Martyna-Tuckerman corrections for periodic systems')
-
-            # Check the value of eps_inf
-            if self.parameters.eps_inf:
-                if isinstance(self.parameters.eps_inf, float) and self.parameters.eps_inf < 1.0:
-                    raise ValueError('`eps_inf` cannot be lower than 1.0')
-
-            # Check symmetry of the system
-            dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=False)
-            if dataset is None or dataset['number'] not in range(195, 231):
-                warn('This system is not cubic and will therefore not have a uniform dielectric tensor. However, '
-                     'the image-correction schemes that are currently implemented assume a uniform dielectric. '
-                     'Proceed with caution')
-
-        else:
-            if self.parameters.gb_correction is None:
-                self.parameters.gb_correction = False
-            if self.parameters.gb_correction:
-                raise ValueError('Do not use Gygi-Baldereschi corrections for aperiodic systems')
-
-            if self.parameters.mp_correction is None:
-                self.parameters.mp_correction = False
-            if self.parameters.mp_correction:
-                raise ValueError('Do not use Makov-Payne corrections for aperiodic systems')
-
-            if self.parameters.mt_correction is None:
-                self.parameters.mt_correction = True
-            if not self.parameters.mt_correction:
-                warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with '
-                     'caution')
-
-        if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] and not self.parameters.task.startswith('dft'):
-            if len(self.projections) == 0:
-                raise ValueError(f'In order to use `init_orbitals={self.parameters.init_orbitals}`, projections must '
-                                 'be provided')
-            spin_set = set([p.spin for p in self.projections])
-            if self.parameters.spin_polarized:
-                if spin_set != {Spin.UP, Spin.DOWN}:
-                    raise ValueError('This calculation is spin-polarized; please provide spin-up and spin-down '
-                                     'projections')
-            else:
-                if spin_set != {Spin.NONE}:
-                    raise ValueError('This calculation is not spin-polarized; please do not provide spin-indexed '
-                                     'projections')
-
-        # Check the consistency between self.kpoints.gamma_only and KCP's do_wf_cmplx
-        if not self.kpoints.gamma_only and self.calculator_parameters['kcp'].do_wf_cmplx is False:
-            warn('`do_wf_cmplx = False` is not consistent with `gamma_only = False`. '
-                 'Changing `do_wf_cmplx` to `True`')
-            self.calculator_parameters['kcp'].do_wf_cmplx = True
-
-        # Make sanity checks for the ML model
-        if self.ml.predict or self.ml.train or self.ml.test:
-            warn("Predicting screening parameters with machine-learning is an experimental feature; proceed with "
-                 "caution")
-            if self.ml_model is None:
-                raise ValueError("You have requested to train or predict with a machine-learning model, but no model "
-                                 "is attached to this workflow. Either set `ml:train` or `predict` to `True` when "
-                                 "initializing the workflow, or directly add a model to the workflow's `ml_model` "
-                                 "attribute")
-            if self.ml_model.estimator_type != self.ml.estimator:
-                warn(f'The estimator type of the loaded ML model (`{self.ml_model.estimator_type}`) does not '
-                     f'match the estimator type specified in the Workflow settings (`{self.ml.estimator}`). '
-                     'Overriding...')
-                self.ml.estimator = self.ml_model.estimator_type
-            if self.ml_model.descriptor_type != self.ml.descriptor:
-                warn(f'The descriptor type of the loaded ML model (`{self.ml_model.descriptor_type}`) does not '
-                     f'match the descriptor type specified in the Workflow settings (`{self.ml.descriptor}`). '
-                     'Overriding...')
-                self.ml.descriptor = self.ml_model.descriptor_type
-            if [self.ml.predict, self.ml.train, self.ml.test].count(True) > 1:
-                raise ValueError(
-                    'Training, testing, and using the ML model are mutually exclusive; change `ml:predict` '
-                    '/`ml:train`/`ml:test` so that at most one is `True`')
-            if self.parameters.task not in ['singlepoint', 'trajectory']:
-                raise NotImplementedError(
-                    f'Using the ML-prediction for the task `{self.parameters.task}` has not yet been implemented.')
-            if self.parameters.method != 'dscf':
-                raise NotImplementedError(
-                    f"Using the ML-prediction for the method `{self.parameters.method}` has not yet been implemented")
-            if self.parameters.functional != 'ki':
-                raise NotImplementedError(
-                    f'Using the ML-prediction for the `{self.parameters.functional}` functional has not yet been '
-                    'implemented.')
-            if self.parameters.init_orbitals != 'mlwfs':
-                raise NotImplementedError(
-                    f'Using the ML-prediction for `{self.parameters.init_orbitals}` initial orbitals has not yet been '
-                    'implemented.')
-            if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
-                raise NotImplementedError(
-                    'Using the ML-prediction for using different initial orbitals for empty states than for occupied '
-                    'states has not yet been implemented.')
-            if self.parameters.spin_polarized:
-                warn('Using the ML-prediction for spin-polarised systems has not yet been extensively tested.')
-            if not all(self.atoms.pbc):
-                warn('Using the ML-prediction for non-periodic systems has not yet been extensively tested.')
-            if self.parameters.orbital_groups:
-                warn('Using orbital_groups has not yet been extensively tested.')
-            if not np.all(self.atoms.cell.angles() == 90.0):
-                raise ValueError("The ML-workflow has only been implemented for simulation cells that have 90° angles")
-
-            # check that each n_max, l_max, r_max and r_min are greater or equal to 0 and that r_min is smaller than
-            # r_max
-            assert isinstance(self.ml.n_max, int)
-            assert isinstance(self.ml.l_max, int)
-            assert isinstance(self.ml.r_max, float)
-            assert isinstance(self.ml.r_min, float)
-            if not self.ml.n_max > 0:
-                raise ValueError(f"`n_max` has to be larger than zero. The provided value is `n_max = {self.ml.n_max}`")
-            if not self.ml.l_max >= 0:
-                raise ValueError(
-                    f"`l_max` has to be equal or larger than zero. The provided value is `l_max = {self.ml.l_max}`")
-            if not self.ml.r_min >= 0:
-                raise ValueError(
-                    f"`r_min` has to be equal or larger than zero. The provided value is `r_min = {self.ml.r_min}`")
-            if self.ml.r_min < 0.5:
-                warn(
-                    "Small values of `r_min` (<0.5) can lead to problems in the construction of the radial basis. "
-                    f"The provided value is `r_min = {self.ml.r_min}`.")
-            if not self.ml.r_min < self.ml.r_max:
-                raise ValueError(f"`r_min` is larger or equal to `r_max = {self.ml.r_max}`.")
-
-        if self.parameters.initialize_with_smearing:
-            if self.calculator_parameters['pw'].occupations != 'smearing':
-                self.calculator_parameters['pw'].occupations = 'smearing'
-            if self.calculator_parameters['pw'].smearing is None:
-                self.calculator_parameters['pw'].smearing = 'cold'
-            if self.calculator_parameters['pw'].degauss is None:
-                self.calculator_parameters['pw'].degauss = 2e-3
-
     def new_calculator(self,
-                       calc_type: str,
+                       calc_class: type[calculators.CalcType],
+                       spin: Spin = Spin.NONE,
                        kpts: Optional[Union[List[int], BandPath]] = None,
-                       **kwargs) -> calculators.Calc:  # type: ignore[type-var, misc]
+                       **kwargs) -> calculators.CalcType:  # type: ignore[type-var, misc]
         """Create a new calculator of a given type."""
-        calc_class: calculators.CalcType
+        calc_id = calc_class.id
 
-        if calc_type == 'kcp':
-            calc_class = calculators.KoopmansCPCalculator
-        elif calc_type == 'pw':
-            calc_class = calculators.PWCalculator
-        elif calc_type.startswith('w90'):
-            calc_class = calculators.Wannier90Calculator
-        elif calc_type == 'pw2wannier':
-            calc_class = calculators.PW2WannierCalculator
-        elif calc_type == 'wann2kcp':
-            calc_class = calculators.Wann2KCPCalculator
-        elif calc_type == 'kcw_wannier':
-            calc_class = calculators.Wann2KCCalculator
-        elif calc_type == 'kcw_screen':
-            calc_class = calculators.KoopmansScreenCalculator
-        elif calc_type == 'kcw_ham':
-            calc_class = calculators.KoopmansHamCalculator
-        elif calc_type == 'ph':
-            calc_class = calculators.PhCalculator
-        elif calc_type == 'projwfc':
-            calc_class = calculators.ProjwfcCalculator
-        elif calc_type == 'wjl':
-            calc_class = calculators.WannierJLCalculator
-        else:
-            raise ValueError(f'Cound not find a calculator of type `{calc_type}`')
+        calc_type = f'{calc_id}_{spin.value}' if spin != Spin.NONE else calc_id
+
+        calculator_parameters = getattr(self.inputs.calculator_parameters, calc_type)
 
         # Merge calculator_parameters and kwargs, giving kwargs higher precedence
         all_kwargs: Dict[str, Any] = {'parent_process': self}
-        calculator_parameters = self.calculator_parameters[calc_type]
         all_kwargs.update(**calculator_parameters)
         all_kwargs.update(**kwargs)
 
         # For the k-points, the Workflow has two options: self.kpoints.grid and self.kpoints.path. A calculator should
         # only ever have one of these two. By default, use the grid.
-        if 'kpts' in calculator_parameters.valid:
+        if 'kpts' in calculator_parameters.model_fields:
             all_kwargs['kpts'] = kpts if kpts is not None else self.kpoints.grid
 
         # Add further information to the calculator as required
         for kw in ['pseudopotentials', 'gamma_only', 'kgrid', 'kpath', 'koffset', 'plotting']:
-            if kw not in all_kwargs and calculator_parameters.is_valid(kw):
+            if kw not in all_kwargs and kw in calculator_parameters.model_fields:
                 val: Any
                 if kw == 'kgrid':
-                    val = self.kpoints.grid
+                    val = self.inputs.kpoints.grid
                 elif kw == 'kpath':
-                    val = self.kpoints.path
+                    val = self.inputs.kpoints.path
                 elif kw == 'koffset':
                     if (calc_class == calculators.PWCalculator and all_kwargs['calculation'] == 'nscf'
                             or calc_class == calculators.Wannier90Calculator) and self.kpoints.offset_nscf is not None:
@@ -1116,14 +1058,14 @@ class Workflow(Process[WorkflowInput, OutputModel], Generic[OutputModel]):
                 relevant_references.add_entry(bibkey, entry)
 
         add_ref('Linscott2023', 'Introduces the koopmans code')
-        if self.parameters.functional in ['ki', 'kipz', 'pkipz', 'all']:
+        if self.inputs.config.correction in [Correction.KI, Correction.KIPZ, Correction.PKIPZ, Correction.ALL]:
             add_ref('Dabo2010', 'One of the founding Koopmans functionals papers')
             add_ref('Borghi2014', 'One of the founding Koopmans functionals papers')
 
-            if all(self.atoms.pbc):
+            if all(self.inputs.atoms.pbc):
                 add_ref('Nguyen2018', 'Describes Koopmans functionals in periodic systems')
-                if self.parameters.calculate_alpha:
-                    if self.parameters.method == 'dfpt':
+                if self.inputs.config.calculate_alpha:
+                    if self.inputs.config.screening_method == 'dfpt':
                         add_ref('Colonna2019', 'Introduces the DFPT method for calculating screening parameters')
                         add_ref('Colonna2022', 'Describes the algorithms underpinning the kcw.x code')
                     else:
@@ -1133,9 +1075,9 @@ class Workflow(Process[WorkflowInput, OutputModel], Generic[OutputModel]):
             else:
                 add_ref('Borghi2015', 'Describes the algorithms underpinning the kcp.x code')
 
-            for citation in pseudopotential_library_citations(self.parameters.pseudo_library):
+            for citation in pseudopotential_library_citations(self.inputs.config.pseudo_library):
                 add_ref(citation,
-                        f'Citation for the {self.parameters.pseudo_library.replace("_", " ")} pseudopotential library')
+                        f'Citation for the {self.inputs.config.pseudo_library.replace("_", " ")} pseudopotential library')
 
         utils.print_alert(
             'note', f'Please cite the papers listed in `{self.name}.bib` in work involving this calculation')
@@ -1203,7 +1145,7 @@ class Workflow(Process[WorkflowInput, OutputModel], Generic[OutputModel]):
         # Populating the calculator subdictionary
         bigdct['calculator_parameters'] = {}
         calcdct = bigdct['calculator_parameters']
-        calcdct['w90'] = {}
+        calcdct['wannier90'] = {}
         calcdct['ui'] = {}
         for code, params in self.calculator_parameters.items():
             # Remove default settings (ensuring we switch to using relative paths to check this)
@@ -1217,7 +1159,7 @@ class Workflow(Process[WorkflowInput, OutputModel], Generic[OutputModel]):
                     params_dict[k] = str(params_dict[k])
 
             # If the params_dict is empty, don't add a block for this calculator
-            if not params_dict and not code.startswith('w90'):
+            if not params_dict and not code.startswith('wannier90'):
                 continue
 
             if code in ['pw', 'kcp']:
@@ -1237,13 +1179,13 @@ class Workflow(Process[WorkflowInput, OutputModel], Generic[OutputModel]):
                 calcdct['ui'][code.split('_')[-1]] = params_dict
             elif code == 'ui':
                 calcdct['ui'].update(**params_dict)
-            elif code.startswith('w90'):
+            elif code.startswith('wannier90'):
                 if '_' in code:
                     [spin] = [s for s in Spin if s.value == code.split('_')[1]]
-                    calcdct['w90'][spin.value] = params_dict
+                    calcdct['wannier90'][spin.value] = params_dict
                 else:
                     spin = Spin.NONE
-                    calcdct['w90'] = params_dict
+                    calcdct['wannier90'] = params_dict
                 projections = self.projections.get_subset(spin) if self.projections else None
                 if projections:
                     proj_kwarg = {'projections': [p.projections for p in projections]}
@@ -1251,9 +1193,9 @@ class Workflow(Process[WorkflowInput, OutputModel], Generic[OutputModel]):
                     proj_kwarg = {}
 
                 if spin != Spin.NONE:
-                    calcdct['w90'][spin.value].update(**proj_kwarg)
+                    calcdct['wannier90'][spin.value].update(**proj_kwarg)
                 else:
-                    calcdct['w90'].update(**proj_kwarg)
+                    calcdct['wannier90'].update(**proj_kwarg)
             else:
                 raise NotImplementedError(
                     f'Writing of `{params.__class__.__name__}` with `write_json` is not yet implemented')
@@ -1557,18 +1499,18 @@ def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
     return status
 
 
-def _number_of_electrons(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict], spin_polarized: bool, spin: Spin = Spin.NONE, params: Optional[settings.SettingsDict] = None) -> int:
+def _number_of_electrons(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict], spin_polarized: bool, spin: Spin = Spin.NONE, params: Optional[BaseModel] = None) -> int:
     """Return the number of electrons in a particular spin channel."""
     nelec_tot = nelec_from_pseudos(atoms, pseudopotentials)
     if params is None:
         params = wf.calculator_parameters['pw']
-    nelec = nelec_tot - params.get('tot_charge', 0)
+    nelec = nelec_tot - params.system.tot_charge
     if spin_polarized:
         if spin == Spin.UP:
-            nelec += params.tot_magnetization
+            nelec += params.system.tot_magnetization
             nelec //= 2
         elif spin == Spin.DOWN:
-            nelec -= params.tot_magnetization
+            nelec -= params.system.tot_magnetization
             nelec //= 2
     else:
         if spin != Spin.NONE:

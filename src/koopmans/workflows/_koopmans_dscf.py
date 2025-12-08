@@ -14,7 +14,6 @@ from koopmans.calculators import (KoopmansCPCalculator, PWCalculator,
 from koopmans.files import File
 from koopmans.projections import BlockID
 from koopmans.pydantic import BaseModel
-from koopmans.settings import KoopmansCPSettingsDict
 from koopmans.status import Status
 from koopmans.utils import Spin
 from koopmans.utils.warnings import warn
@@ -82,7 +81,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
                 # Check that we have wannierized every filled orbital
                 nbands_occ = nelec
                 if self.projections:
-                    label = 'w90'
+                    label = 'wannier90'
                     if spin != Spin.NONE:
                         label += f'_{spin}'
                     nbands_excl = len(self.calculator_parameters[label].get('exclude_bands', []))
@@ -205,7 +204,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
             self.variational_orbitals.alphas = self.parameters.alpha_guess
 
         # Raise errors if any UI keywords are provided but will be overwritten by the workflow
-        for ui_keyword in ['kc_ham_file', 'w90_seedname', 'dft_ham_file', 'dft_smooth_ham_file']:
+        for ui_keyword in ['kc_ham_file', 'wannier90_seedname', 'dft_ham_file', 'dft_smooth_ham_file']:
             for ui_kind in ['occ', 'emp']:
                 value = getattr(self.calculator_parameters[f'ui_{ui_kind}'], ui_keyword)
                 [default_value] = [s.default for s in self.calculator_parameters['ui'].settings if s.name == ui_keyword]
@@ -240,7 +239,6 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
         """
         flat_alphas = utils.read_alpha_files(self)
         params = self.calculator_parameters['kcp']
-        assert isinstance(params, KoopmansCPSettingsDict)
         alphas = convert_flat_alphas_for_kcp(flat_alphas, params)
 
         if self.parameters.spin_polarized:
@@ -1110,7 +1108,7 @@ def internal_new_kcp_calculator(workflow,
         calc.parameters.conv_thr *= 100
         calc.parameters.esic_conv_thr *= 100
 
-    # For the dft_dummy calculation, we don't need empty states because these will be overwritten by the w90
+    # For the dft_dummy calculation, we don't need empty states because these will be overwritten by the wannier90
     # wavefunctions
     if calc.prefix == 'dft_dummy':
         calc.parameters.nbnd = None
@@ -1234,7 +1232,7 @@ class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
                 assert hr_file is not None
                 wannier_hamiltonian_files[b_id] = hr_file
 
-            # Convert the files over from w90 format to kcp format
+            # Convert the files over from wannier90 format to kcp format
             nscf_calc = wannier_workflow.outputs.nscf_calculation
             nscf_outdir = File(nscf_calc, nscf_calc.parameters.outdir)
             fold_workflow = FoldToSupercellWorkflow.fromparent(

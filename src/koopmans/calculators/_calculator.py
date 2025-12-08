@@ -304,6 +304,7 @@ class CalculatorABC(ABC, Generic[TCalc]):
 
     ext_in: str
     ext_out: str
+    id: str
 
     def __init__(self, atoms: Atoms) -> None:
         self.prefix: str = ''

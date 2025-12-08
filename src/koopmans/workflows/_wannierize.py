@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 # isort: on
 
 from koopmans import calculators, utils
-from koopmans.calculators import Wannier90Calculator
+from koopmans.calculators import PWCalculator, Wannier90Calculator
 from koopmans.files import File
 from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         extend_wannier_u_dis_file_content,
@@ -119,16 +119,16 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
     #                 warn(message, IncommensurateProjectionsWarning)
 
     #             # Compare the number of bands from PW to Wannier90
-    #             num_bands_w90 = self.projections.num_bands(spin=spin)
-    #             if num_bands_w90 > pw_params.nbnd:
-    #                 warn(f'You have provided more bands to the `Wannier90 calculator` ({num_bands_w90}) '
+    #             num_bands_wannier90 = self.projections.num_bands(spin=spin)
+    #             if num_bands_wannier90 > pw_params.nbnd:
+    #                 warn(f'You have provided more bands to the `Wannier90 calculator` ({num_bands_wannier90}) '
     #                      f'than the preceeding PW calculation ({pw_params.nbnd})')
-    #                 pw_params.nbnd = num_bands_w90
-    #             elif num_bands_w90 == pw_params.nbnd:
+    #                 pw_params.nbnd = num_bands_wannier90
+    #             elif num_bands_wannier90 == pw_params.nbnd:
     #                 pass
     #             else:
     #                 # Update the projections_blocks to account for additional empty bands
-    #                 self.projections.num_extra_bands[spin] = pw_params.nbnd - num_bands_w90
+    #                 self.projections.num_extra_bands[spin] = pw_params.nbnd - num_bands_wannier90
 
     #             # Sanity checking
     #             assert pw_params.nbnd == self.projections.num_bands(spin=spin)
@@ -163,13 +163,12 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
 
     def _run(self) -> None:
         """Run the workflow."""
-        if self.projections is None:
+        if self.inputs.projections is None:
             raise ValueError(f'{self.__class__.__name__} requires projections but none were provided.')
 
         # Run PW scf and nscf calculations
         # PWscf needs only the valence bands
-        calc_scf = self.new_calculator('pw')
-        calc_scf.parameters.pop('nbnd', None)
+        calc_scf = self.new_calculator(PWCalculator, nbnd=None)
         calc_scf.prefix = 'scf'
         if self._scf_kgrid:
             calc_scf.parameters.kpts = self._scf_kgrid
@@ -357,7 +356,7 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
                 else:
                     # Fetching the list of calculations for this block
                     src_calcs: List[calculators.Wannier90Calculator] = [
-                        b.w90_calc for b in blocks if b.w90_calc is not None]
+                        b.wannier90_calc for b in blocks if b.wannier90_calc is not None]
                     prefix = src_calcs[-1].prefix
 
                     if MergeableFile.HR in self._files_to_merge:
@@ -410,10 +409,10 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
 
                 for merged_block_id, block in final_label_blocks:
                     u_dis_file = None
-                    num_wann = sum([b.w90_kwargs['num_wann'] for b in block])
-                    num_bands = sum([b.w90_kwargs['num_bands'] for b in block])
+                    num_wann = sum([b.wannier90_kwargs['num_wann'] for b in block])
+                    num_bands = sum([b.wannier90_kwargs['num_bands'] for b in block])
                     if num_bands > num_wann:
-                        calc_with_u_dis = block[-1].w90_calc
+                        calc_with_u_dis = block[-1].wannier90_calc
                         assert calc_with_u_dis is not None
                         if len(block) == 1:
                             u_dis_file = File(calc_with_u_dis, calc_with_u_dis.prefix + '_u_dis.mat')
@@ -576,21 +575,21 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
 
     def _run(self) -> None:
 
-        calc_type = 'w90'
+        calc_type = 'wannier90'
         if self.block.spin != Spin.NONE:
             calc_type += f'_{self.block.spin}'
 
-        calc_w90_pp: calculators.Wannier90Calculator | None = None
+        calc_wannier90_pp: calculators.Wannier90Calculator | None = None
         if self.amn_file is None or self.eig_file is None or self.mmn_file is None:
             if self.pw_outdir is None:
                 raise ValueError(
                     'Wannierization requires either a `pw_outdir` or `.amn`, `.eig`, `.mmn`, and `.nnkp`, files')
 
             # pre-processing Wannier90 calculation
-            calc_w90_pp = self.new_calculator(calc_type, **self.block.w90_kwargs)
-            assert isinstance(calc_w90_pp, calculators.Wannier90Calculator)
-            calc_w90_pp.prefix = 'wannier90_preproc'
-            status = self.run_steps(calc_w90_pp, additional_flags=['-pp'])
+            calc_wannier90_pp = self.new_calculator(calc_type, **self.block.wannier90_kwargs)
+            assert isinstance(calc_wannier90_pp, calculators.Wannier90Calculator)
+            calc_wannier90_pp.prefix = 'wannier90_preproc'
+            status = self.run_steps(calc_wannier90_pp, additional_flags=['-pp'])
             if status != Status.COMPLETED:
                 return
 
@@ -598,11 +597,12 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
             calc_p2w: calculators.PW2WannierCalculator = self.new_calculator(
                 'pw2wannier', spin_component=self.block.spin)
             calc_p2w.prefix = 'pw2wannier90'
-            if calc_w90_pp.parameters.wannier_plot:
+            if calc_wannier90_pp.parameters.wannier_plot:
                 # If we want to plot the Wannier functions, we need to write the UNK files
                 calc_p2w.parameters.write_unk = True
             calc_p2w.link(self.pw_outdir, calc_p2w.parameters.outdir, symlink=True)
-            calc_p2w.link(File(calc_w90_pp, calc_w90_pp.prefix + '.nnkp'), calc_p2w.parameters.seedname + '.nnkp')
+            calc_p2w.link(File(calc_wannier90_pp, calc_wannier90_pp.prefix + '.nnkp'),
+                          calc_p2w.parameters.seedname + '.nnkp')
             status = self.run_steps(calc_p2w)
             if status != Status.COMPLETED:
                 return
@@ -614,45 +614,48 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
             self.nnkp_file = File(calc_p2w, calc_p2w.parameters.seedname + '.nnkp')
 
         # Wannier90 calculation
-        calc_w90: calculators.Wannier90Calculator = self.new_calculator(
-            calc_type, bands_plot=self.parameters.calculate_bands, **self.block.w90_kwargs)
-        calc_w90.prefix = 'wannier90'
+        calc_wannier90: calculators.Wannier90Calculator = self.new_calculator(
+            calc_type, bands_plot=self.parameters.calculate_bands, **self.block.wannier90_kwargs)
+        calc_wannier90.prefix = 'wannier90'
         for f in [self.amn_file, self.eig_file, self.mmn_file, self.nnkp_file]:
             if f is not None:
-                calc_w90.link(f, calc_w90.prefix + f.suffix, symlink=True)
-        if calc_w90.parameters.wannier_plot:
+                calc_wannier90.link(f, calc_wannier90.prefix + f.suffix, symlink=True)
+        if calc_wannier90.parameters.wannier_plot:
             for src in File(calc_p2w, '.').glob('UNK*'):
-                calc_w90.link(src, src.name, symlink=True)
-        status = self.run_steps(calc_w90)
+                calc_wannier90.link(src, src.name, symlink=True)
+        status = self.run_steps(calc_wannier90)
         if status != Status.COMPLETED:
             return
-        self.block.w90_calc = calc_w90
+        self.block.wannier90_calc = calc_wannier90
 
         if self.variational_orbitals is not None:
             # Add centers and spreads info to self.variational_orbitals
-            exclude_bands = calc_w90.parameters.exclude_bands or []
+            exclude_bands = calc_wannier90.parameters.exclude_bands or []
             orbs = [b for b in self.variational_orbitals if b.spin == self.block.spin
                     and b.index not in exclude_bands]
 
-            centers = calc_w90.results['centers']
-            spreads = calc_w90.results['spreads']
+            centers = calc_wannier90.results['centers']
+            spreads = calc_wannier90.results['spreads']
             for orb, center, spread in zip(orbs, centers, spreads):
                 orb.center = center
                 orb.spread = spread
 
-        hr_file = File(calc_w90, calc_w90.prefix + '_hr.dat') if calc_w90.parameters.write_hr else None
-        u_file = File(calc_w90, calc_w90.prefix + '_u.mat') if calc_w90.parameters.write_u_matrices else None
+        hr_file = File(calc_wannier90, calc_wannier90.prefix +
+                       '_hr.dat') if calc_wannier90.parameters.write_hr else None
+        u_file = File(calc_wannier90, calc_wannier90.prefix +
+                      '_u.mat') if calc_wannier90.parameters.write_u_matrices else None
 
-        centers_file = File(calc_w90, calc_w90.prefix + '_centres.xyz') if calc_w90.parameters.write_xyz else None
-        u_dis_file: File | None = File(calc_w90, calc_w90.prefix + '_u_dis.mat')
-        chk_file = File(calc_w90, calc_w90.prefix + '.chk')
-        wannier90_input_file = File(calc_w90, calc_w90.prefix + '.win')
+        centers_file = File(calc_wannier90, calc_wannier90.prefix +
+                            '_centres.xyz') if calc_wannier90.parameters.write_xyz else None
+        u_dis_file: File | None = File(calc_wannier90, calc_wannier90.prefix + '_u_dis.mat')
+        chk_file = File(calc_wannier90, calc_wannier90.prefix + '.chk')
+        wannier90_input_file = File(calc_wannier90, calc_wannier90.prefix + '.win')
 
         if not u_dis_file.exists():  # type: ignore
             u_dis_file = None
         self.outputs = WannierizeBlockOutput(hr_file=hr_file, u_file=u_file, centers_file=centers_file,
                                              amn_file=self.amn_file, eig_file=self.eig_file, mmn_file=self.mmn_file,
-                                             nnkp_file=self.nnkp_file, wannier90_calculation=calc_w90,
+                                             nnkp_file=self.nnkp_file, wannier90_calculation=calc_wannier90,
                                              u_dis_file=u_dis_file, chk_file=chk_file,
                                              wannier90_input_file=wannier90_input_file)
 
@@ -897,7 +900,7 @@ def _internal_new_calculator(wf, calc_type, *args, **kwargs) -> CalcExtType:  # 
     calc: CalcExtType = super(wf.__class__, wf).new_calculator(calc_type, *args, **kwargs)
 
     # Extra tweaks for Wannier90 calculations
-    if calc_type.startswith('w90'):
+    if calc_type.startswith('wannier90'):
         if calc.parameters.num_bands != calc.parameters.num_wann:
             if calc.parameters.dis_num_iter is None:
                 calc.parameters.dis_num_iter = 5000

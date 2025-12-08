@@ -70,7 +70,7 @@ class ProjectionsBlock(BaseModel):
     unique: bool = False
     include_bands: Optional[List[int]] = None
     exclude_bands: Optional[List[int]] = None
-    w90_calc: calculators.Wannier90Calculator | None = None
+    wannier90_calc: calculators.Wannier90Calculator | None = None
 
     @model_validator(mode="before")
     def _set_label(cls, data: dict[str, Any]):
@@ -94,14 +94,14 @@ class ProjectionsBlock(BaseModel):
         return False
 
     @property
-    def w90_kwargs(self) -> dict[str, Any]:
+    def wannier90_kwargs(self) -> dict[str, Any]:
         """Return the `Wannier90` keywords to provide when constructing a new calculator corresponding to this block."""
         kwargs: dict[str, Any] = {}
         for key in ['num_wann', 'num_bands', 'exclude_bands']:
             val = getattr(self, key, None)
             if val is None and key != 'exclude_bands':
                 raise AttributeError(
-                    f'You must define `{self.__class__.__name__}.{key}` before requesting `w90_kwargs`')
+                    f'You must define `{self.__class__.__name__}.{key}` before requesting `wannier90_kwargs`')
             kwargs[key] = val
         if self.spin is not Spin.NONE:
             kwargs['spin'] = self.spin.value
@@ -145,9 +145,9 @@ class ImplicitProjectionsBlock(ProjectionsBlock):
         return blocks
 
     @property
-    def w90_kwargs(self) -> Dict[str, Any]:
+    def wannier90_kwargs(self) -> Dict[str, Any]:
         """Return the `Wannier90` keywords to provide when constructing a new calculator corresponding to this block."""
-        kwargs = super().w90_kwargs
+        kwargs = super().wannier90_kwargs
         kwargs['auto_projections'] = True
         return kwargs
 
@@ -158,9 +158,9 @@ class ExplicitProjectionsBlock(ProjectionsBlock):
     projections: list[Projection]
 
     @property
-    def w90_kwargs(self) -> dict[str, Any]:
+    def wannier90_kwargs(self) -> dict[str, Any]:
         """Return the `Wannier90` keywords to provide when constructing a new calculator corresponding to this block."""
-        kwargs: dict[str, Any] = super().w90_kwargs
+        kwargs: dict[str, Any] = super().wannier90_kwargs
         kwargs['auto_projections'] = False
         kwargs['projections'] = [p.dict() for p in self.projections]
         return kwargs

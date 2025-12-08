@@ -61,9 +61,9 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         if self.parameters.method == 'dscf':
             self.supercell_to_primitive()
 
-        # Store the original w90 calculations
-        w90_calcs = [c for c in self.calculations if isinstance(c, calculators.Wannier90Calculator)
-                     and " -pp " not in c.command]
+        # Store the original wannier90 calculations
+        wannier90_calcs = [c for c in self.calculations if isinstance(c, calculators.Wannier90Calculator)
+                           and " -pp " not in c.command]
 
         if self.calculator_parameters['ui'].do_smooth_interpolation and self._smooth_dft_ham_files is None:
 
@@ -85,7 +85,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
 
         # If there were multiple sets of Wannierization steps run in the past, we only want the
         # most recent one
-        w90_calcs = w90_calcs[-len(self.projections):]
+        wannier90_calcs = wannier90_calcs[-len(self.projections):]
 
         process: UnfoldAndInterpolateProcess
         if self.parameters.spin_polarized:
@@ -97,9 +97,9 @@ class UnfoldAndInterpolateWorkflow(Workflow):
         processes = []
         for spin, orb_filling in zip(spins, self.variational_orbitals.filling):
             # Extract the centers and spreads corresponding to this particular spin
-            centers = np.array([center for c, p in zip(w90_calcs, self.projections)
+            centers = np.array([center for c, p in zip(wannier90_calcs, self.projections)
                                for center in c.results['centers'] if p.spin == spin])
-            spreads = np.array([spread for c, p in zip(w90_calcs, self.projections)
+            spreads = np.array([spread for c, p in zip(wannier90_calcs, self.projections)
                                for spread in c.results['spreads'] if p.spin == spin])
 
             for filled in [True, False]:

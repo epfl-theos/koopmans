@@ -3,10 +3,10 @@
 from ase_koopmans import Atoms
 from ase_koopmans.calculators.wannier90 import Wannier90
 
+from koopmans.parameters.wannier90 import Wannier90InputParameters
 from koopmans.utils.warnings import CalculatorNotConvergedWarning, warn
 
 from ._calculator import CalculatorABC, CalculatorExt
-from .parameters.wannier90 import Wannier90InputParameters
 
 
 class Wannier90Calculator(CalculatorExt, Wannier90, CalculatorABC):

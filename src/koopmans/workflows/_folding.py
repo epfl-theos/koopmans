@@ -42,8 +42,8 @@ class FoldToSupercellWorkflow(Workflow):
             # Loop over the various subblocks that we have wannierized separately
             converted_files = {}
             w2k_calcs = []
-            for w90_calc, w90_pp_calc, block in zip(self._wannier90_calculations, self._wannier90_pp_calculations,
-                                                    self.projections):
+            for wannier90_calc, wannier90_pp_calc, block in zip(self._wannier90_calculations, self._wannier90_pp_calculations,
+                                                                self.projections):
                 # Create the calculator
                 calc_w2k = self.new_calculator('wann2kcp', spin_component=block.spin, wan_mode='wannier2kcp')
                 calc_w2k.prefix = f'convert_{block.id}_to_supercell'
@@ -59,9 +59,9 @@ class FoldToSupercellWorkflow(Workflow):
                 # Link the input files
                 calc_w2k.link(self._hr_files[block.id], symlink=True)
                 calc_w2k.link(self._nscf_outdir, calc_w2k.parameters.outdir, recursive_symlink=True)
-                calc_w2k.link(File(w90_pp_calc, w90_pp_calc.prefix + '.nnkp'),
+                calc_w2k.link(File(wannier90_pp_calc, wannier90_pp_calc.prefix + '.nnkp'),
                               calc_w2k.parameters.seedname + '.nnkp', symlink=True)
-                calc_w2k.link(File(w90_calc, w90_calc.prefix + '.chk'),
+                calc_w2k.link(File(wannier90_calc, wannier90_calc.prefix + '.chk'),
                               calc_w2k.parameters.seedname + '.chk', symlink=True)
 
                 w2k_calcs.append(calc_w2k)

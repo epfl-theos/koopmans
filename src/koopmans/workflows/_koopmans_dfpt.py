@@ -123,7 +123,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
         else:
             nocc = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials) // 2
             if all(self.atoms.pbc):
-                exclude_bands: List[int] = self.calculator_parameters['w90'].get(
+                exclude_bands: List[int] = self.calculator_parameters['wannier90'].get(
                     'exclude_bands', [])
                 nocc -= len(exclude_bands)
                 assert self.projections is not None
@@ -170,7 +170,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
         if all(self.atoms.pbc):
             # Run PW and Wannierization
             for key in self.calculator_parameters.keys():
-                if key.startswith('w90'):
+                if key.startswith('wannier90'):
                     self.calculator_parameters[key].write_u_matrices = True
                     self.calculator_parameters[key].write_xyz = True
             wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True, scf_kgrid=self._scf_kgrid,

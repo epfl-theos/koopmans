@@ -80,7 +80,7 @@ class WannierJLCheckNeighborsProcess(Process[WannierJLCheckNeighborsInput, Wanni
         File(self, 'wannier90.eig').symlink_to(self.inputs.eig_file)
 
         # Read the Wannier files
-        model = jl.capture_stdio(jl.read_w90_with_chk,
+        model = jl.capture_stdio(jl.read_wannier90_with_chk,
                                  str(self.directory / "julia.out"),
                                  str(self.inputs.wannier90_input_file.with_suffix("")), str(self.inputs.chk_file))
 

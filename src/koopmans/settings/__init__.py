@@ -2,10 +2,8 @@
 
 # flake8: noqa: F401
 from ._convergence import ConvergenceSettingsDict
-from ._koopmans_cp import KoopmansCPSettingsDict
 from ._koopmans_ham import KoopmansHamSettingsDict
 from ._koopmans_screen import KoopmansScreenSettingsDict
-from ._ml import MLSettingsDict
 from ._ph import PhSettingsDict
 from ._projwfc import ProjwfcSettingsDict
 from ._utils import Setting, SettingsDict, SettingsDictWithChecks
