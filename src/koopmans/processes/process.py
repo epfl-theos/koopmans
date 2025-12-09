@@ -9,13 +9,12 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, ClassVar, Dict, Generic, TypeVar
+from typing import Any, ClassVar, Dict, Generic, TypeVar, get_args, get_origin
 
 import dill
 from pydantic import PrivateAttr, field_validator, model_validator
 
 from koopmans.engines.engine import Engine
-from koopmans.files import File
 from koopmans.pydantic import BaseModel
 
 InputModel = TypeVar('InputModel', bound=BaseModel)
@@ -33,30 +32,11 @@ class Process(BaseModel, ABC, Generic[InputModel, OutputModel]):
     output_model: ClassVar[type[OutputModel]]
     name: str
     _outputs: OutputModel | None = PrivateAttr(None)
-    _linked_files: Dict[str, File] = PrivateAttr(default_factory=dict)
     _base_directory: Path | None = PrivateAttr(None)
     _directory: Path | None = PrivateAttr(None)
     engine: Engine | None = None
     parent_process: Process | None = None
     _directory_must_be_relative: bool = False
-
-    def __init_subclass__(cls, **kwargs):
-        """Define `input_model` and `output_model` automatically from the Generic specialization.
-
-        i.e. this will define
-        cls.input_model = InputModel
-        cls.output_model = OutputModel
-        """
-        super().__init_subclass__(**kwargs)
-        # detect Generic specialization
-        for base in getattr(cls, "__orig_bases__", []):
-            origin = getattr(base, "__origin__", None)
-            if origin is Process:
-                in_type, out_type = base.__args__
-                cls.input_model = in_type
-                cls.output_model = out_type
-                import ipdb
-                ipdb.set_trace()
 
     @model_validator(mode='before')
     @classmethod
@@ -75,6 +55,21 @@ class Process(BaseModel, ABC, Generic[InputModel, OutputModel]):
             return re.sub(r'([A-Z])([A-Z][a-z])', r'\1_\2', name_with_split_acronyms).lower()
         return name
 
+    @field_validator('inputs', mode='before')
+    @classmethod
+    def coerce_inputs(cls, value: Any) -> InputModel:
+        """Force early coercion of inputs to the correct type."""
+        try:
+            input_model_cls = cls.input_model
+        except AttributeError:
+            raise ValueError(f'Forgot to set {cls.__name__}.input_model. Please report this bug.')
+
+        if isinstance(value, input_model_cls):
+            return value
+        elif isinstance(value, BaseModel):
+            return input_model_cls.model_validate(value.model_dump())
+        return cls.input_model.model_validate(value)
+
     def model_post_init(self, context: Any) -> None:
         super().model_post_init(context)
         logger = logging.getLogger(__name__)
@@ -83,6 +78,7 @@ class Process(BaseModel, ABC, Generic[InputModel, OutputModel]):
 
     def run(self):
         """Run the process."""
+        self.inputs.model_config.frozen = True
         logger = logging.getLogger(__name__)
         logger.info(f'Running {self.directory}')
         self._pre_run()
@@ -112,9 +108,10 @@ class Process(BaseModel, ABC, Generic[InputModel, OutputModel]):
             raise ValueError('Process engine must be set before running')
 
         # Link the files in self.linked_files
-        for dest, src in self.linked_files.items():
-            dest_file = File(self, dest)
-            dest_file.symlink_to(src)
+        raise NotImplementedError('Need to link files -- old code commented below reliant on self.linked_files')
+        # for dest, src in self.linked_files.items():
+        #     dest_file = File(self, dest)
+        #     dest_file.symlink_to(src)
 
     @abstractmethod
     def _run(self):
@@ -132,18 +129,21 @@ class Process(BaseModel, ABC, Generic[InputModel, OutputModel]):
 
     def dump_inputs(self):
         """Dump the inputs of the process to the file system."""
+        from koopmans.files import File
         assert self.directory is not None
         dst = File(self, f'{self.name}_inputs.pkl')
         dst.write_bytes(dill.dumps(self.inputs))
 
     def dump_outputs(self):
         """Dump the outputs of the process to the file system."""
+        from koopmans.files import File
         assert self.directory is not None
         dst = File(self, f'{self.name}_outputs.pkl')
         dst.write_bytes(dill.dumps(self.outputs))
 
     def load_outputs(self):
         """Load the outputs of the process from the file system."""
+        from koopmans.files import File
         if self.directory is None:
             raise ValueError('Process directory must be set before attempting to load outputs')
         src = File(self, f'{self.name}_outputs.pkl')
@@ -157,6 +157,7 @@ class Process(BaseModel, ABC, Generic[InputModel, OutputModel]):
         return (self.directory / f'{self.name}_outputs.pkl').exists()
 
     def __truediv__(self, other):
+        from koopmans.files import File
         assert isinstance(other, Path) or isinstance(other, str)
         return File(self, other)
 

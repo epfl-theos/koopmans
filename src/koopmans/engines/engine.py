@@ -1,20 +1,24 @@
 """Abstract base class for any engine that wants to run a workflow."""
 
+from __future__ import annotations
+
 import logging
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Generator, Literal, Optional, overload
+from typing import TYPE_CHECKING, Generator, Literal, Optional, overload
 
 from pydantic import Field
-from upf_tools import UPFDict
+from upf_tools.pydantic import UPFModel
 
 from koopmans import utils
 from koopmans.commands import CommandConfigs
 from koopmans.files import File
-from koopmans.processes.protocol import ProcessProtocol
 from koopmans.pydantic import BaseModel
 from koopmans.status import Status
+
+if TYPE_CHECKING:
+    from koopmans.processes.process import Process
 
 
 class Engine(BaseModel, ABC):
@@ -58,16 +62,16 @@ class Engine(BaseModel, ABC):
         self._step_message(uid, '⏭️ ', 'already complete  ')
 
     @abstractmethod
-    def run(self, step: ProcessProtocol, additional_flags: list[str] = []) -> None:
+    def run(self, step: Process, additional_flags: list[str] = []) -> None:
         """Run a step of the workflow."""
         ...
 
     @abstractmethod
-    def _get_status(self, step: ProcessProtocol) -> Status:
+    def _get_status(self, step: Process) -> Status:
         """Get the status of a step."""
         ...
 
-    def get_status(self, step: ProcessProtocol) -> Status:
+    def get_status(self, step: Process) -> Status:
         """Get the status of a step with logging."""
         status = self._get_status(step)
         logger = logging.getLogger(__name__)
@@ -75,11 +79,11 @@ class Engine(BaseModel, ABC):
         return status
 
     @abstractmethod
-    def _set_status(self, step: ProcessProtocol, status: Status):
+    def _set_status(self, step: Process, status: Status):
         """Set the status of a step."""
         ...
 
-    def set_status(self, step: ProcessProtocol, status: Status) -> None:
+    def set_status(self, step: Process, status: Status) -> None:
         """Set the status of a step with logging."""
         logger = logging.getLogger(__name__)
         logger.debug(f"Setting status of step {step.uid} to {status.name}")
@@ -97,7 +101,7 @@ class Engine(BaseModel, ABC):
         self._update_statuses()
 
     @abstractmethod
-    def load_results(self, step: ProcessProtocol) -> None:
+    def load_results(self, step: Process) -> None:
         """Load the results of a completed step."""
         ...
 
@@ -122,7 +126,7 @@ class Engine(BaseModel, ABC):
     @abstractmethod
     def get_pseudopotential(self, library: str,
                             element: Optional[str] = None,
-                            filename: Optional[str] = None) -> UPFDict:
+                            filename: Optional[str] = None) -> UPFModel:
         """Load a pseudopotential.
 
         The pseudopotential is specified by its library and either by its species (element) or the name of the

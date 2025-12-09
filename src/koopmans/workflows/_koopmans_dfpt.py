@@ -4,6 +4,8 @@ from typing import Dict, List, Optional
 
 import numpy as np
 from ase_koopmans.spectrum.band_structure import BandStructure
+from pydantic import model_validator
+from typing_extensions import Self
 
 from koopmans import pseudopotentials, utils
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
@@ -18,25 +20,28 @@ from koopmans.variational_orbitals import VariationalOrbitals
 from ._dft import DFTPWWorkflow
 from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
 from ._wannierize import MergeableFile, WannierizeWorkflow
-from ._workflow import Workflow
+from ._workflow import Workflow, WorkflowInput
+
+
+class KoopmansDFPTInputs(WorkflowInput):
+    """Pydantic model for the inputs of a `KoopmansDFPTWorkflow`."""
+    scf_kgrid: Optional[List[int]] = None
 
 
 class KoopmansDFPTOutputs(BaseModel):
     """Pydantic model for the outputs of a `KoopmansDFPTWorkflow`."""
-
     band_structure: BandStructure | None = None
 
-    model_config = {'arbitrary_types_allowed': True}
 
-
-class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
+class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTInputs, KoopmansDFPTOutputs]):
     """Workflow for calculating the screening parameters of a system using DFPT."""
 
-    output_model = KoopmansDFPTOutputs  # type: ignore
+    input_model = KoopmansDFPTInputs
+    output_model = KoopmansDFPTOutputs
 
-    def __init__(self, scf_kgrid: Optional[List[int]] = None, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
+    @model_validator(mode='after')
+    def validate_inputs(self) -> Self:
+        raise NotImplementedError('Need to convert the following to proper pydantic validators')
         # Check the consistency of keywords
         if self.parameters.functional != 'ki':
             raise NotImplementedError(
@@ -206,9 +211,9 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                         assert f is not None
 
                         if filled in [True, None]:
-                            wannier_files_to_link_by_spin[-1][f.name] = f
+                            wannier_files_to_link_by_spin[-1][f.relative_path] = f
                         else:
-                            wannier_files_to_link_by_spin[-1]['wannier90_emp' + str(f.name)[9:]] = f
+                            wannier_files_to_link_by_spin[-1]['wannier90_emp' + str(f.relative_path)[9:]] = f
 
                     dft_ham_files[block_id] = wf_workflow.outputs.hr_files[block_id]
 
@@ -392,24 +397,24 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
         return internal_new_calculator(self, calc_presets, **kwargs)
 
 
+class ComputeScreeningViaDFPTInputs(WorkflowInput):
+    """Pydantic model for the inputs of the `ComputeScreeningViaDFPTWorkflow`."""
+    spin_component: int
+    blocks: list[list[int]] | None = None
+    wannier_files_to_link: dict[str, File]
+
+
 class ComputeScreeningViaDFPTOutputs(BaseModel):
     """Pydantic model for the outputs of the `ComputeScreeningViaDFPTWorkflow`."""
 
     pass
 
 
-class ComputeScreeningViaDFPTWorkflow(Workflow[ComputeScreeningViaDFPTOutputs]):
+class ComputeScreeningViaDFPTWorkflow(Workflow[ComputeScreeningViaDFPTInputs, ComputeScreeningViaDFPTOutputs]):
     """Workflow that computes the screening parameters of a system using DFPT."""
 
+    input_model = ComputeScreeningViaDFPTInputs
     output_model = ComputeScreeningViaDFPTOutputs
-
-    def __init__(self, *args, spin_component: int, wannier_files_to_link: Dict[str, File],
-                 blocks: list[list[int]] | None = None, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self._wannier_files_to_link = wannier_files_to_link
-        self._spin_component = spin_component
-        self._blocks = blocks
 
     def _run(self):
         # Group the variational orbitals by spread

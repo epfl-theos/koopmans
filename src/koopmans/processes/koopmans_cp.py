@@ -115,11 +115,11 @@ class SwapSpinFilesProcess(Process[SwapSpinFilesInputModel, SwapSpinFilesOutputM
                 continue
 
             if src in spin_up_files:
-                dst = File(self, str(src.name).replace('1.', '2.'))
+                dst = File(self, str(src.relative_path).replace('1.', '2.'))
             elif src in spin_down_files:
-                dst = File(self, str(src.name).replace('2.', '1.'))
+                dst = File(self, str(src.relative_path).replace('2.', '1.'))
             else:
-                dst = File(self, src.name)
+                dst = File(self, src.relative_path)
 
             dst.parent.mkdir(parents=True, exist_ok=True)
 
@@ -129,4 +129,4 @@ class SwapSpinFilesProcess(Process[SwapSpinFilesInputModel, SwapSpinFilesOutputM
                 assert src == dst
                 raise ValueError()
 
-        self.outputs = self.output_model(write_directory=File(self, self.inputs.read_directory.name))
+        self.outputs = self.output_model(write_directory=File(self, self.inputs.read_directory.relative_path))

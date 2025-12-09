@@ -2,11 +2,12 @@
 
 import shutil
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from ase_koopmans.dft import DOS
 from ase_koopmans.spectrum.band_structure import BandStructure
+from pydantic import model_validator
 
 from koopmans import utils
 from koopmans.calculators import (KoopmansCPCalculator, PWCalculator,
@@ -25,7 +26,22 @@ from ._koopmans_cp_with_spin_swap import KoopmansCPWithSpinSwapWorkflow
 from ._ml import PowerSpectrumDecompositionWorkflow
 from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
 from ._wannierize import MergeableFile, WannierizeWorkflow
-from ._workflow import Workflow, spin_symmetrize
+from ._workflow import Workflow, WorkflowInput, spin_symmetrize
+
+
+class KoopmansDSCFInputs(WorkflowInput):
+    # For the KIPZ calculation we restart from the old KI calculation
+    initial_variational_orbital_files: Dict[str, File] | None = None
+
+    # For workflows where we have already performed initialization elsewhere, we can restart using that directory
+    previous_cp_calc: KoopmansCPCalculator | None = None
+
+    # If the higher-resolution DFT calculations have already been computed, the smooth DFT Hamiltonian can be
+    # provided via this keyword to avoid redoing these calculations unnecessarily
+    smooth_dft_ham_files: Dict[BlockID, File] | None = None
+
+    # For workflows where we have previously computed descriptors, we can provide them here
+    precomputed_descriptors: List[File] | None = None
 
 
 class KoopmansDSCFOutputs(BaseModel):
@@ -39,33 +55,16 @@ class KoopmansDSCFOutputs(BaseModel):
     density_of_states: DOS | None = None
 
 
-class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
+class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFInputs, KoopmansDSCFOutputs]):
     """Workflow for performing a Koopmans calculation, computing the screening parameters via the DSCF method."""
 
+    input_model = KoopmansDSCFInputs
     output_model = KoopmansDSCFOutputs
 
-    def __init__(self, *args,
-                 initial_variational_orbital_files: Dict[str, File] | None = None,
-                 previous_cp_calc: KoopmansCPCalculator | None = None,
-                 smooth_dft_ham_files: Dict[BlockID, File] | None = None,
-                 precomputed_descriptors: List[File] | None = None, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
-        # The following two additional keywords allow for some tweaking of the workflow when running a singlepoint
-        # workflow with functional == 'all'
-
-        # If the higher-resolution DFT calculations have already been computed, the smooth DFT Hamiltonian can be
-        # provided via this keyword to avoid redoing these calculations unnecessarily
-        self._smooth_dft_ham_files = smooth_dft_ham_files
-
-        # For the KIPZ calculation we restart from the old KI calculation
-        self._initial_variational_orbital_files = initial_variational_orbital_files
-
-        # For workflows where we have already performed initialization elsewhere, we can restart using that directory
-        self._previous_cp_calc = previous_cp_calc
-
-        # For workflows where we have previously computed descriptors, we can provide them here
-        self._precomputed_descriptors = precomputed_descriptors
+    @model_validator(mode='before')
+    @classmethod
+    def placeholder(cls, v: dict) -> dict:
+        raise NotImplementedError('Need to convert the following to proper validators')
 
         # If periodic, convert the kcp calculation into a Γ-only supercell calculation
         kcp_params = self.calculator_parameters['kcp']
@@ -394,24 +393,25 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFOutputs]):
                 shutil.copy(savedir / f'evc_empty{ispin + 1}.dat', savedir / f'evc0_empty{ispin + 1}.dat')
 
 
+class CalculateScreeningViaDSCFInput(WorkflowInput):
+    """Pydantic model for the inputs of a `CalculateScreeningViaDSCF` workflow."""
+
+    initial_variational_orbital_files: Dict[str, File]
+    initial_cp_calculation: KoopmansCPCalculator
+    precomputed_descriptors: List[File] | None = None
+
+
 class CalculateScreeningViaDSCFOutput(BaseModel):
     """Pydantic model for the outputs of a `CalculateScreeningViaDSCF` workflow."""
 
     n_electron_restart_dir: File
 
 
-class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
+class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFInput, CalculateScreeningViaDSCFOutput]):
     """Calculate the screening parameters of a system via DSCF."""
 
+    input_model = CalculateScreeningViaDSCFInput
     output_model = CalculateScreeningViaDSCFOutput
-
-    def __init__(self, *args, initial_variational_orbital_files: Dict[str, Tuple[Workflow, str]],
-                 initial_cp_calculation: KoopmansCPCalculator,
-                 precomputed_descriptors: List[File] | None = None, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._initial_variational_orbital_files = initial_variational_orbital_files
-        self._initial_cp_calculation = initial_cp_calculation
-        self._precomputed_descriptors = precomputed_descriptors
 
     def _run(self) -> None:
         converged = False
@@ -476,6 +476,16 @@ class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFOutput]):
         return
 
 
+class DeltaSCFIterationInputs(WorkflowInput):
+    """Pydantic model for the inputs of a `DeltaSCFIterationWorkflow`."""
+    variational_orbital_files: dict[str, File]
+    previous_n_electron_calculation: KoopmansCPCalculator
+    dummy_outdirs: Dict[Tuple[int, int], File | None]
+    i_sc: int
+    alpha_indep_calcs: List[KoopmansCPCalculator]
+    precomputed_descriptors: List[File] | None = None
+
+
 class DeltaSCFIterationOutputs(BaseModel):
     """Pydantic model for the outputs of a `DeltaSCFIterationWorkflow`."""
 
@@ -484,26 +494,18 @@ class DeltaSCFIterationOutputs(BaseModel):
     dummy_outdirs: Dict[Tuple[int, int], File | None]
 
 
-class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
+class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationInputs, DeltaSCFIterationOutputs]):
     """Perform one iteration of the Delta SCF calculation of the screening parameters."""
 
+    input_model = DeltaSCFIterationInputs
     output_model = DeltaSCFIterationOutputs
 
-    def __init__(self, *args, variational_orbital_files: Dict[str, File],
-                 previous_n_electron_calculation=KoopmansCPCalculator,
-                 dummy_outdirs: Dict[Tuple[int, int], File | None], i_sc: int,
-                 alpha_indep_calcs: List[KoopmansCPCalculator],
-                 precomputed_descriptors: List[File] | None, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._variational_orbital_files = variational_orbital_files
-        self._previous_n_electron_calculation = previous_n_electron_calculation
-        self._precomputed_descriptors = precomputed_descriptors
-        self._dummy_outdirs = dummy_outdirs
-        self._i_sc = i_sc
-        self._alpha_indep_calcs = alpha_indep_calcs
-
-        # Set a more instructive name
-        self.name = 'Iteration_' + str(i_sc)
+    @model_validator(mode='before')
+    @classmethod
+    def set_name(cls, data: dict[str, Any]) -> dict[str, Any]:
+        # Enforce a more instructuve name
+        data['name'] = 'Iteration_' + str(data['i_sc'])
+        return data
 
     def _run(self) -> None:
         # Do a KI/KIPZ calculation with the updated alpha values
@@ -653,6 +655,16 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationOutputs]):
         self.status = Status.COMPLETED
 
 
+class OrbitalDeltaSCFInputs(WorkflowInput):
+    """Pydantic model for the inputs of the OrbitalDeltaSCFWorkflow."""
+
+    variational_orbital: VariationalOrbital
+    trial_calc: KoopmansCPCalculator
+    dummy_outdir: File | None
+    i_sc: int
+    alpha_indep_calcs: List[KoopmansCPCalculator]
+
+
 class OrbitalDeltaSCFOutputs(BaseModel):
     """Pydantic model for the outputs of the OrbitalDeltaSCFWorkflow."""
 
@@ -661,26 +673,19 @@ class OrbitalDeltaSCFOutputs(BaseModel):
     dummy_outdir: File | None
 
 
-class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFOutputs]):
+class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFInputs, OrbitalDeltaSCFOutputs]):
     """Workflow for calculating the screening parameter for a single orbital."""
 
+    input_model = OrbitalDeltaSCFInputs
     output_model = OrbitalDeltaSCFOutputs
 
-    def __init__(self, variational_orbital: VariationalOrbital, trial_calc: KoopmansCPCalculator,
-                 dummy_outdir: File | None, i_sc: int,
-                 alpha_indep_calcs: List[KoopmansCPCalculator],
-                 **kwargs):
-        super().__init__(**kwargs)
-        self.variational_orbital = variational_orbital
-        self._trial_calc = trial_calc
-        self._dummy_outdir = dummy_outdir
-        self._i_sc = i_sc
-        self._alpha_indep_calcs = alpha_indep_calcs
-
+    @model_validator(mode='before')
+    @classmethod
+    def set_name(cls, data: dict[str, Any]) -> dict[str, Any]:
         # Set a more instructive name
-        self.name = 'Orbital ' + str(self.variational_orbital.index)
-        if self.parameters.spin_polarized:
-            self.name += f' Spin {self.variational_orbital.spin}'
+        data['name'] = 'Orbital ' + str(data['variational_orbital'].index)
+        if data['parameters'].spin_polarized:
+            data['name'] += f' Spin {data["variational_orbital"].spin}'
 
     def _run(self) -> None:
 
@@ -1196,9 +1201,10 @@ def internal_new_kcp_calculator(workflow,
     return calc
 
 
-class InitializationWorkflow(Workflow[KoopmansDSCFOutputs]):
+class InitializationWorkflow(Workflow[WorkflowInput, KoopmansDSCFOutputs]):
     """Workflow to perform the DFT/PZ initialization of the variational orbitals within a larger DSCF workflow."""
 
+    input_model = WorkflowInput
     output_model = KoopmansDSCFOutputs
 
     def _run(self) -> None:

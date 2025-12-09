@@ -6,7 +6,12 @@ from koopmans.processes.koopmans_cp import SwapSpinFilesProcess
 from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 
-from ._workflow import Workflow
+from ._workflow import Workflow, WorkflowInput
+
+
+class KoopmansCPWithSpinSwapInputs(WorkflowInput):
+    """Input model for the KoopmansCPWithSpinSwapWorkflow."""
+    calc: KoopmansCPCalculator
 
 
 class KoopmansCPWithSpinSwapOutput(BaseModel):
@@ -15,14 +20,11 @@ class KoopmansCPWithSpinSwapOutput(BaseModel):
     outdir: File
 
 
-class KoopmansCPWithSpinSwapWorkflow(Workflow[KoopmansCPWithSpinSwapOutput]):
+class KoopmansCPWithSpinSwapWorkflow(Workflow[KoopmansCPWithSpinSwapInputs, KoopmansCPWithSpinSwapOutput]):
     """Workflow for running a kcp.x calculation that would want more spin-down electrons than spin-up."""
 
+    input_model = KoopmansCPWithSpinSwapInputs
     output_model = KoopmansCPWithSpinSwapOutput
-
-    def __init__(self, calc: KoopmansCPCalculator, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._calc = calc
 
     def _run(self) -> None:
         """Run the workflow."""

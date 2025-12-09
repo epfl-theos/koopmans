@@ -9,7 +9,7 @@ from typing import Generator, Literal, Optional, overload
 
 import yaml
 from ase_koopmans.calculators.calculator import CalculationFailed
-from upf_tools import UPFDict
+from upf_tools.pydantic import UPFModel
 
 from koopmans import utils
 from koopmans.calculators import (Calc, ImplementedCalc, PhCalculator,
@@ -17,7 +17,6 @@ from koopmans.calculators import (Calc, ImplementedCalc, PhCalculator,
 from koopmans.commands import CommandConfig
 from koopmans.files import File, LocalFile
 from koopmans.processes.process import Process
-from koopmans.processes.protocol import ProcessProtocol
 from koopmans.pseudopotentials import (element_from_pseudo_filename,
                                        local_libraries)
 from koopmans.status import Status
@@ -30,18 +29,13 @@ config_file = Path.home() / '.koopmans/config.yaml'
 class LocalhostEngine(Engine):
     """Engine for running a workflow locally."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.statuses = {}
-
-    def run(self, step: ProcessProtocol, additional_flags: list[str] = []):
+    def run(self, step: Process, additional_flags: list[str] = []):
         """Run a step."""
         self._step_running_message(step)
 
         assert step.directory is not None
         if step.directory.exists():
-            assert isinstance(step, utils.HasDirectory)
-            self.rmdir(File(step, ''))
+            self.rmdir(File(parent_process=step, relative_path=''))
 
         if isinstance(step, ImplementedCalc):
             # Determine the command to run the step based on the configuration of the code in question
@@ -69,14 +63,14 @@ class LocalhostEngine(Engine):
         """Load a calculation that has already run."""
         return load_old_calculator(calc)
 
-    def load_results(self, step: ProcessProtocol):
+    def load_results(self, step: Process):
         """Load the results of a step.
 
         Note that for this class, step.run() also loads the results of the calculator so this function is not needed.
         """
         pass
 
-    def _get_status(self, step: ProcessProtocol) -> Status:
+    def _get_status(self, step: Process) -> Status:
         """Get the status of a step."""
         if not self.from_scratch:
             to_run = True
@@ -109,7 +103,7 @@ class LocalhostEngine(Engine):
 
         return self.statuses[step.uid]
 
-    def _set_status(self, step: ProcessProtocol, status: Status):
+    def _set_status(self, step: Process, status: Status):
         """Set the status of a step."""
         self.statuses[step.uid] = status
 
@@ -128,7 +122,7 @@ class LocalhostEngine(Engine):
     def get_pseudopotential(self,
                             library: str,
                             element: Optional[str] = None,
-                            filename: Optional[str] = None) -> UPFDict:
+                            filename: Optional[str] = None) -> UPFModel:
         """Return the content of a pseudopotential."""
         if element is None and filename is None:
             raise ValueError('Either `element` or `filename` must be provided')
@@ -141,8 +135,8 @@ class LocalhostEngine(Engine):
             elif element is not None:
                 pseudo_name = None
                 for pseudo_file in chain(self.glob(pseudo_dir, '*.upf'), self.glob(pseudo_dir, '*.UPF')):
-                    if element_from_pseudo_filename(pseudo_file.name.name) == element:
-                        pseudo_name = str(pseudo_file.name)
+                    if element_from_pseudo_filename(pseudo_file.relative_path.name) == element:
+                        pseudo_name = str(pseudo_file.relative_path)
                         break
                 if pseudo_name is None:
                     raise ValueError(f'Pseudo for {element} not found in library {library}')
@@ -175,7 +169,7 @@ class LocalhostEngine(Engine):
         if not self.file_exists(matching_pseudo):
             raise FileNotFoundError(f'Could not find the pseudopotential file `{matching_pseudo}`')
 
-        return UPFDict.from_upf(matching_pseudo.aspath())
+        return UPFModel.from_upf(matching_pseudo.aspath())
 
     def install_pseudopotential(self, file: Path, library: str) -> None:
         """Install a pseudopotential file."""
@@ -229,7 +223,7 @@ class LocalhostEngine(Engine):
     def read_file(self, file: File, binary: bool = False) -> bytes | str:
         """Read the contents of a file."""
         assert file.parent_process.absolute_directory is not None
-        full_path = file.parent_process.absolute_directory / file.name
+        full_path = file.parent_process.absolute_directory / file.relative_path
         fstring = 'rb' if binary else 'r'
         with open(full_path, fstring) as f:
             flines = f.read()
@@ -291,15 +285,15 @@ class LocalhostEngine(Engine):
 
     def glob(self, directory: File, pattern: str, recursive: bool = False) -> Generator[File, None, None]:
         """Generate files that match the pattern."""
-        assert directory.parent_process is not None
-        assert directory.parent_process.directory is not None
+        parent_process = self.process_directory[directory.pid]
+        assert parent_process.directory is not None
         if recursive:
             generator = directory.aspath().rglob(pattern)
         else:
             generator = directory.aspath().glob(pattern)
         for path in generator:
             yield File(parent_process=directory.parent_process,
-                       name=path.relative_to(directory.parent_process.directory))
+                       relative_path=path.relative_to(directory.parent_process.directory))
 
     def available_pseudo_libraries(self) -> set[str]:
         """List the available pseudopotential libraries."""
@@ -318,7 +312,7 @@ class LocalhostEngine(Engine):
         if dst.exists():
             raise FileExistsError(f'Destination file {dst} already exists')
         src.aspath().rename(dst.aspath())
-        src.name = dst.name
+        src.relative_path = dst.relative_path
 
     def wait(self, seconds: float) -> None:
         """Wait for a specified number of seconds."""

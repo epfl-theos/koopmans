@@ -10,7 +10,7 @@ from ase_koopmans import Atoms
 from ase_koopmans.calculators.espresso import Projwfc
 from ase_koopmans.spectrum.doscollection import GridDOSCollection
 from ase_koopmans.spectrum.dosdata import GridDOSData
-from upf_tools import UPFDict
+from upf_tools.pydantic import UPFModel
 
 from koopmans import pseudopotentials
 from koopmans.files import File
@@ -41,7 +41,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
 
         # These must be provided post-initialization (because we want to be allowed to initialize the calculator)
         # without providing these arguments
-        self.pseudopotentials: Optional[Dict[str, UPFDict]] = None
+        self.pseudopotentials: Optional[Dict[str, UPFModel]] = None
         self.pseudo_dir: Optional[Path] = None
         self.spin_polarized: Optional[bool] = None
 
@@ -77,7 +77,7 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
             orbitals = copy.copy(self._expected_orbitals[label])
             for filename in filenames:
                 # Infer l from the filename
-                subshell = filename.name.name[-2]
+                subshell = filename.relative_path.name[-2]
                 # Find the orbital with matching l with the smallest n
                 orbital = [o for o in orbitals if o[-1] == subshell][0]
                 orbitals.remove(orbital)
@@ -97,12 +97,12 @@ class ProjwfcCalculator(CalculatorExt, Projwfc, CalculatorABC):
         flines = content.split('\n')
 
         # Parse important information from the filename
-        [_, index, symbol, _, _, subshell, _] = re.split(r"#|\(|\)", filename.name.name)
+        [_, index, symbol, _, _, subshell, _] = re.split(r"#|\(|\)", filename.relative_path.name)
 
         # Compare against the expected subshell
         if subshell != expected_subshell[1]:
             raise ValueError(
-                f"Unexpected pdos file `{filename.name.name}`, a pdos file corresponding to {expected_subshell} "
+                f"Unexpected pdos file `{filename.relative_path.name}`, a pdos file corresponding to {expected_subshell} "
                 "was expected")
 
         # Work out what orbitals will be contained within the pDOS file

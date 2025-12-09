@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Callable, Dict, List, OrderedDict, TypeVar, Union
 
 from ase_koopmans import Atoms
-from upf_tools import UPFDict
+from upf_tools.pydantic import UPFModel
 
 local_base_directory = (Path(__file__).parent / 'pseudopotentials').resolve()
 local_libraries = set([str(f.parent.relative_to(local_base_directory))
@@ -35,25 +35,23 @@ def element_from_pseudo_filename(filename: str) -> str:
     return element
 
 
-def read_pseudo_file(filename: Path) -> UPFDict:
+def read_pseudo_file(filename: Path) -> UPFModel:
     """Read in settings from a .upf file."""
     if not filename.exists():
         raise FileNotFoundError(f'Could not find the pseudopotential file `{filename}`')
 
-    upf = UPFDict.from_upf(filename)
-
-    return upf
+    return UPFModel.from_upf(filename)
 
 
 T = TypeVar('T', bound=Union[int, float])
-P = TypeVar('P', bound=Union[UPFDict, Path])
+P = TypeVar('P', bound=Union[UPFModel, Path])
 
 
 def quantity_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, P],
                           extract_quantity: Callable[[P], T]) -> T:
     """Determine the number of electrons in the system using information from pseudopotential files.
 
-    Pseudopotentials can be a UPFDict or a Path to a Wannier90 projector file.
+    Pseudopotentials can be a UPFModel or a Path to a Wannier90 projector file.
     """
     quantities = {key: extract_quantity(psp) for key, psp in pseudopotentials.items()}
 
@@ -69,25 +67,25 @@ def quantity_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, P],
     return total
 
 
-def extract_zvalence(UPFDict) -> int:
+def extract_zvalence(UPFModel) -> int:
     """Determine the number of valence electrons from a pseudopotential file."""
-    return int(UPFDict['header']['z_valence'])
+    return int(UPFModel.content['header']['z_valence'])
 
 
-def nelec_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]) -> int:
+def nelec_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFModel]) -> int:
     """Determine the number of electrons in the system using information from pseudopotential files."""
     return quantity_from_pseudos(atoms, pseudopotentials, extract_zvalence)
 
 
-def extract_nwfc(UPFDict) -> int:
+def extract_nwfc(UPFModel) -> int:
     """Determine the number of wavefunctions from a pseudopotential file."""
-    return sum([2 * int(wfc['l']) + 1 for wfc in UPFDict['pswfc']['chi']])
+    return sum([2 * int(wfc['l']) + 1 for wfc in UPFModel.content['pswfc']['chi']])
 
 
-def nwfcs_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]) -> int:
+def nwfcs_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFModel]) -> int:
     """Determine the number of wavefunctions in the system using information from pseudopotential files."""
     for psp in pseudopotentials.values():
-        if psp['header'].get('number_of_wfc', 0) == 0:
+        if psp.content['header'].get('number_of_wfc', 0) == 0:
             raise ValueError(f'The pseudopotential {psp.filename} does not contain wavefunctions')
 
     return quantity_from_pseudos(atoms, pseudopotentials, extract_nwfc)
@@ -106,7 +104,7 @@ def nwfcs_from_projectors(atoms: Atoms, wannoer90_projector_files: OrderedDict[s
     return quantity_from_pseudos(atoms, wannoer90_projector_files, extract_nwfc_from_projector_file)
 
 
-def expected_subshells(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]) -> Dict[str, List[str]]:
+def expected_subshells(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFModel]) -> Dict[str, List[str]]:
     """Determine which subshells will make up the valences of a set of pseudopotentials.
 
     Returns
@@ -123,7 +121,7 @@ def expected_subshells(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]
         label = atom.symbol + str(atom.tag) if atom.tag > 0 else atom.symbol
         if label in expected_orbitals:
             continue
-        z_core = atom.number - int(pseudopotentials[label]['header']['z_valence'])
+        z_core = atom.number - int(pseudopotentials[label].content['header']['z_valence'])
         if z_core in z_core_to_first_orbital:
             first_orbital = z_core_to_first_orbital[z_core]
         else:

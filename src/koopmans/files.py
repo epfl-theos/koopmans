@@ -11,8 +11,11 @@ from koopmans.utils import HasDirectory
 if TYPE_CHECKING:
     from koopmans.engines import Engine
 
+from koopmans.processes.process import Process
+from koopmans.pydantic import BaseModel
 
-class File:
+
+class File(BaseModel):
     """An abstract way of representing a file.
 
     Because a file may not exist locally (specifically, when koopmans is run with AiiDA), we need a way of
@@ -23,9 +26,8 @@ class File:
     We also need to delegate file creation/modification/deletion to the engine.
     """
 
-    def __init__(self, parent_process: HasDirectory, name: Union[str, Path]):
-        self.parent_process = parent_process
-        self.name = Path(name)
+    parent_process: Process
+    name: Path
 
     @property
     def _engine(self) -> Engine | None:
@@ -183,12 +185,12 @@ class File:
 
     def __truediv__(self, other):
         assert isinstance(other, Path) or isinstance(other, str)
-        return File(self.parent_process, self.name / other)
+        return File(parent_process=self.parent_process, name=self.name / other)
 
     def with_suffix(self, suffix: str) -> File:
         """Return a new File with the given suffix."""
         new_name = self.name.with_suffix(suffix)
-        return File(self.parent_process, new_name)
+        return File(parent_process=self.parent_process, name=new_name)
 
 
 class ParentProcessPlaceholder(HasDirectory):
@@ -233,7 +235,7 @@ class ParentProcessPlaceholder(HasDirectory):
         return cls(None, path, engine)
 
 
-def LocalFile(path: Path | str) -> File:
+def LocalFile(path: Path | str) -> FileModel:
     """Return a file object that does not have a parent_process, and is assumed to be on the local filesystem."""
     from koopmans.engines.localhost import LocalhostEngine
     path = path if isinstance(path, Path) else Path(path)
@@ -244,3 +246,11 @@ def LocalFile(path: Path | str) -> File:
     else:
         parent_process = ParentProcessPlaceholder.frompath(path.parent.resolve(), engine=engine)
         return File(parent_process=parent_process, name=Path(path.name))
+
+
+class FileLink(BaseModel):
+    name: str
+    src: File
+    symlink: bool = False
+    recursive_symlink: bool = False
+    overwrite: bool = False

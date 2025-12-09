@@ -14,7 +14,7 @@ from koopmans import cell
 from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 
-from ._workflow import Workflow
+from ._workflow import Workflow, WorkflowInput
 
 # T is either an int or a float or a list of ints/floats
 T = TypeVar('T', int, float, List[int], List[float])
@@ -251,31 +251,21 @@ class ConvergenceOutputs(BaseModel):
     converged_values: Dict[str, Any]
 
 
-class ConvergenceWorkflow(Workflow[ConvergenceOutputs]):
+class ConvergenceInputs(WorkflowInput):
+    subworkflow_class: Type[Workflow]
+    observable: Optional[Callable[[Workflow], float]] = None
+    threshold: Optional[float] = None
+    variables: List[ConvergenceVariable] = []
+
+
+class ConvergenceWorkflow(Workflow[WorkflowInput, ConvergenceOutputs]):
     """A Workflow class that wraps another workflow in a convergence procedure.
 
     Converges the "observable" within the specified tolerance with respect to the "variables"
     """
 
+    input_model = WorkflowInput
     output_model = ConvergenceOutputs
-
-    def __init__(self, subworkflow_class: Type[Workflow], observable: Optional[Callable[[Workflow], float]] = None,
-                 threshold: Optional[float] = None, variables: List[ConvergenceVariable] = [], *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self._subworkflow_class = subworkflow_class
-        self.observable = observable
-        self.threshold = threshold
-        self.variables = variables
-
-    @classmethod
-    def fromdict(cls, dct: Dict[str, Any], **kwargs) -> Workflow:
-        """Create a `ConvergenceWorkflow` from a dictionary."""
-        kwargs.update(subworkflow_class=dct.pop('_subworkflow_class'),
-                      observable=dct.pop('observable'),
-                      threshold=dct.pop('threshold'),
-                      variables=dct.pop('variables'))
-        return super(ConvergenceWorkflow, cls).fromdict(dct, **kwargs)
 
     def _run(self) -> None:
         # Set the initial value for each of the convergence variables

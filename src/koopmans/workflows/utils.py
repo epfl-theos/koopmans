@@ -3,7 +3,7 @@
 from collections import OrderedDict
 
 from ase_koopmans import Atoms
-from upf_tools import UPFDict
+from upf_tools.pydantic import UPFModel
 
 from koopmans.engines import Engine
 
@@ -19,12 +19,12 @@ def get_pseudopotentials(atoms: Atoms, engine: Engine, pseudo_library: str):
             unique_labels.append(label_tuple)
 
     # Fetch the pseudopotentials
-    upfs: OrderedDict[str, UPFDict] = OrderedDict()
+    upfs: OrderedDict[str, UPFModel] = OrderedDict()
     for element, tag in unique_labels:
         pseudo = engine.get_pseudopotential(
             library=pseudo_library, element=element)
 
-        pseudo_type = pseudo['header']['pseudo_type']
+        pseudo_type = pseudo.content['header']['pseudo_type']
         if pseudo_type != 'NC':
             raise ValueError('Koopmans functionals only currently support norm-conserving pseudopotentials; '
                              f'{pseudo.filename} is {pseudo_type}')

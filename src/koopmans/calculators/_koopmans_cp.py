@@ -188,7 +188,7 @@ class KoopmansCPCalculator(CalculatorCanEnforceSpinSym, CalculatorExt, Espresso_
                 for subfile in dst_filepointer.rglob('*'):
                     if subfile.is_dir():
                         continue
-                    self.linked_files[str(subfile.name)] = (subfile, rsym, False, force)
+                    self.linked_files[str(subfile.relative_path)] = (subfile, rsym, False, force)
 
         # Now iterate over the linked files and swap any pairs of spin up/down files
         for dst_file in self.linked_files:

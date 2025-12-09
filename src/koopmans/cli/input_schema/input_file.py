@@ -10,7 +10,7 @@ from ase_koopmans import Atoms
 from ase_koopmans.cell import Cell
 from pydantic import Field, field_validator, model_validator
 from pydash import get
-from upf_tools import UPFDict
+from upf_tools.pydantic import UPFModel
 from wannier90_input.models.parameters import Projection
 from yaml import safe_load
 
@@ -164,7 +164,7 @@ class KoopmansInput(BaseModel):
 
         return cls.model_validate(input_dict)
 
-    def get_projections(self, atoms: Atoms, pseudopotentials: OrderedDict[str, UPFDict]) -> ExplicitProjections | ImplicitProjections:
+    def get_projections(self, atoms: Atoms, pseudopotentials: OrderedDict[str, UPFModel]) -> ExplicitProjections | ImplicitProjections:
         if self.workflow.spin_polarized:
             projs_by_spin = [self.calculator_parameters.wannier90.up.projections,
                              self.calculator_parameters.wannier90.down.projections]

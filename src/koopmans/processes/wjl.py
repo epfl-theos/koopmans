@@ -196,7 +196,7 @@ class WannierJLSplitProcess(Process[WannierJLSplitInput, WannierJLSplitOutput]):
                          cubic_mmn_file)
 
         # Save the output
-        prefix = str(self.inputs.wannier90_input_file.with_suffix("").name)
+        prefix = str(self.inputs.wannier90_input_file.with_suffix("").relative_path)
         self.outputs = WannierJLSplitOutput(
             blocks=[{'amn_file': File(self, d) / (prefix + ".amn"),
                      'eig_file': File(self, d) / (prefix + ".eig"),

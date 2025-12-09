@@ -8,7 +8,7 @@ from koopmans.processes.power_spectrum import (
 from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 
-from ._workflow import Workflow
+from ._workflow import Workflow, WorkflowInput
 
 
 class SelfHartreeOutput(BaseModel):
@@ -17,9 +17,10 @@ class SelfHartreeOutput(BaseModel):
     descriptors: List[float]
 
 
-class SelfHartreeWorkflow(Workflow[SelfHartreeOutput]):
+class SelfHartreeWorkflow(Workflow[WorkflowInput, SelfHartreeOutput]):
     """Workflow for 'computing' (i.e. looking up) the self-Hartree energy of individual orbitals."""
 
+    input_model = WorkflowInput
     output_model = SelfHartreeOutput
 
     def _run(self) -> None:
@@ -29,23 +30,24 @@ class SelfHartreeWorkflow(Workflow[SelfHartreeOutput]):
         return
 
 
+class PowerSpectrumDecompositionInputs(WorkflowInput):
+    """Input model for the PowerSpectrumDecompositionWorkflow."""
+    # Specify from which calculation we extract the real space densities. Currently only
+    # the KI-calculation at the beginning of the alpha calculations is a valid option
+    calc_that_produced_orbital_densities: calculators.Calc
+
+
 class PowerSpectrumDecompositionOutput(BaseModel):
     """Output model for the PowerSpectrumDecompositionWorkflow."""
 
     descriptors: List[File]
 
 
-class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionOutput]):
+class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionInputs, PowerSpectrumDecompositionOutput]):
     """Workflow for computing the power spectrum decomposition of orbital densities."""
 
-    output_model = PowerSpectrumDecompositionOutput  # type: ignore
-
-    def __init__(self, calc_that_produced_orbital_densities: calculators.Calc, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # Specify from which calculation we extract the real space densities. Currently only
-        # the KI-calculation at the beginning of the alpha calculations is a valid option
-        self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
+    input_model = PowerSpectrumDecompositionInputs
+    output_model = PowerSpectrumDecompositionOutput
 
     def _run(self) -> None:
         """Run the PowerSpectrumDecomposition workflow.
@@ -136,6 +138,11 @@ class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionOutp
             dct, calc_that_produced_orbital_densities=calc_that_produced_orbital_densities, **kwargs)
 
 
+class ConvertOrbitalFilesToXMLInput(WorkflowInput):
+    """Input model for the ConvertOrbitalFilesToXMLWorkflow."""
+    calc_that_produced_orbital_densities: calculators.Calc
+
+
 class ConvertOrbitalFilesToXMLOutput(BaseModel):
     """Output model for the ConvertOrbitalFilesToXMLWorkflow."""
 
@@ -143,14 +150,11 @@ class ConvertOrbitalFilesToXMLOutput(BaseModel):
     orbital_densities: List[File]
 
 
-class ConvertOrbitalFilesToXMLWorkflow(Workflow[ConvertOrbitalFilesToXMLOutput]):
+class ConvertOrbitalFilesToXMLWorkflow(Workflow[ConvertOrbitalFilesToXMLInput, ConvertOrbitalFilesToXMLOutput]):
     """Workflow that converts binary files containing real space densities to xml files."""
 
-    output_model = ConvertOrbitalFilesToXMLOutput  # type: ignore
-
-    def __init__(self, calc_that_produced_orbital_densities, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.calc_that_produced_orbital_densities = calc_that_produced_orbital_densities
+    input_model = ConvertOrbitalFilesToXMLInput
+    output_model = ConvertOrbitalFilesToXMLOutput
 
     def _run(self) -> None:
         """Convert the binary files produced by a previous calculation to python-readable xml files."""

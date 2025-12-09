@@ -3,14 +3,16 @@
 from pydantic import BaseModel as _BaseModel
 from pydantic import ConfigDict
 
+default_config = ConfigDict(extra="forbid",
+                            arbitrary_types_allowed=True,
+                            strict=False,
+                            validate_assignment=True)
+
 
 class BaseModel(_BaseModel):
     """Base model with a modified default configuration."""
 
-    model_config = ConfigDict(extra="forbid",
-                              arbitrary_types_allowed=True,
-                              validate_assignment=True,
-                              error_wrapping=False)
+    model_config = default_config
 
     def __eq__(self, other):
         """Check if two instances of the class have matching contents (need not be the same instance)."""

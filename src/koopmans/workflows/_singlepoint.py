@@ -21,7 +21,7 @@ from koopmans.status import Status
 from ._dft import DFTCPWorkflow, DFTPhWorkflow
 from ._koopmans_dfpt import KoopmansDFPTWorkflow
 from ._koopmans_dscf import KoopmansDSCFWorkflow
-from ._workflow import Workflow
+from ._workflow import Workflow, WorkflowInput
 
 load_results_from_output = True
 
@@ -33,7 +33,7 @@ class SinglepointOutputs(BaseModel):
     densities_of_states: Dict[str, DOSCollection | DOS | None] = Field(default_factory=dict)
 
 
-class SinglepointWorkflow(Workflow[SinglepointOutputs]):
+class SinglepointWorkflow(Workflow[WorkflowInput, SinglepointOutputs]):
     """`SinglepointWorkflow` is an implementation of the `Workflow` class that performs a single-point calculation.
 
     Examples
@@ -66,6 +66,9 @@ class SinglepointWorkflow(Workflow[SinglepointOutputs]):
 
     if Workflow.__doc__ and __doc__:
         __doc__ = Workflow.__doc__ + __doc__
+
+    input_model = WorkflowInput
+    output_model = SinglepointOutputs
 
     def _run(self) -> None:
 

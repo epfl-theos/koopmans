@@ -18,6 +18,7 @@ import numpy.typing as npt
 from ase_koopmans.dft.kpoints import BandPath
 from ase_koopmans.spectrum.band_structure import BandStructure
 from ase_koopmans.spectrum.doscollection import GridDOSCollection
+from pydantic import Field
 
 # isort: off
 import koopmans.mpl_config  # noqa: F401
@@ -25,7 +26,8 @@ import matplotlib.pyplot as plt
 # isort: on
 
 from koopmans import calculators, utils
-from koopmans.calculators import PWCalculator, Wannier90Calculator
+from koopmans.calculators import Wannier90Calculator
+from koopmans.calculators.pw import PWCalculator
 from koopmans.files import File
 from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         extend_wannier_u_dis_file_content,
@@ -43,9 +45,25 @@ from koopmans.status import Status
 from koopmans.utils import Spin
 from koopmans.utils.warnings import IncommensurateProjectionsWarning, warn
 
-from ._workflow import Workflow
+from ._workflow import Workflow, WorkflowInput
 
 CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
+
+
+class MergeableFile(Enum):
+    """Wannier90 output files that can be merged or extended when Wannierizing blocks of bands separately."""
+
+    HR = '_hr.mat'
+    U = '_u.mat'
+    CENTERS = '_centres.xyz'
+    U_DIS = '_u_dis.mat'
+
+
+class WannierizeInput(WorkflowInput):
+    scf_kgrid: tuple[int, int, int] | None = None
+    files_to_merge: List[MergeableFile] = Field(default_factory=list)
+    force_nspin2: bool = False
+    merge_occ_and_empty: bool = False
 
 
 class WannierizeOutput(BaseModel):
@@ -63,21 +81,14 @@ class WannierizeOutput(BaseModel):
     projections: Projections
 
 
-class MergeableFile(Enum):
-    """Wannier90 output files that can be merged or extended when Wannierizing blocks of bands separately."""
-
-    HR = '_hr.mat'
-    U = '_u.mat'
-    CENTERS = '_centres.xyz'
-    U_DIS = '_u_dis.mat'
-
-
-class WannierizeWorkflow(Workflow[WannierizeOutput]):
+class WannierizeWorkflow(Workflow[WannierizeInput, WannierizeOutput]):
     """Workflow for Wannierizing an entire system using Quantum ESPRESSO and Wannier90.
 
     The bands are possibly split into blocks of bands (separated in energy) that are Wannierized separately
-
     """
+
+    input_model = WannierizeInput
+    output_model = WannierizeOutput
 
     # def __init__(self, *args, force_nspin2: bool = False, scf_kgrid: List[float] | None = None,
     #              files_to_merge: List[MergeableFile] = [], merge_occ_and_empty: bool = False, **kwargs):
@@ -168,10 +179,9 @@ class WannierizeWorkflow(Workflow[WannierizeOutput]):
 
         # Run PW scf and nscf calculations
         # PWscf needs only the valence bands
-        calc_scf = self.new_calculator(PWCalculator, nbnd=None)
-        calc_scf.prefix = 'scf'
-        if self._scf_kgrid:
-            calc_scf.parameters.kpts = self._scf_kgrid
+        calc_scf = self.new_calculator(PWCalculator, name='scf', override={'system.nbnd': None})
+        if self.inputs.scf_kgrid:
+            calc_scf.inputs.parameters.kpts = self.inputs.scf_kgrid
         status = self.run_steps(calc_scf)
         if status != Status.COMPLETED:
             return
@@ -555,23 +565,22 @@ class WannierizeBlockOutput(BaseModel):
     wannier90_calculation: calculators.Wannier90Calculator
 
 
-class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
+class WannierizeBlockInput(WorkflowInput):
+    block: ProjectionsBlock
+    force_nspin2: bool = False
+    minimize: bool = True
+    pw_outdir: File | None = None
+    amn_file: File | None = None
+    eig_file: File | None = None
+    mmn_file: File | None = None
+    nnkp_file: File | None = None
+
+
+class WannierizeBlockWorkflow(Workflow[WannierizeBlockInput, WannierizeBlockOutput]):
     """Workflow that Wannierizes a block of bands using Wannier90."""
 
+    input_model = WannierizeBlockInput
     output_model = WannierizeBlockOutput
-
-    def __init__(self, *args, block: ProjectionsBlock, force_nspin2=False, minimize=True, pw_outdir: File | None = None,
-                 amn_file: File | None = None, eig_file: File | None = None, mmn_file: File | None = None,
-                 nnkp_file: File | None = None, **kwargs):
-        self.block = block
-        self._force_nspin2 = force_nspin2
-        self.minimize = minimize
-        self.pw_outdir = pw_outdir
-        self.amn_file = amn_file
-        self.eig_file = eig_file
-        self.mmn_file = mmn_file
-        self.nnkp_file = nnkp_file
-        super().__init__(*args, **kwargs)
 
     def _run(self) -> None:
 
@@ -622,7 +631,7 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockOutput]):
                 calc_wannier90.link(f, calc_wannier90.prefix + f.suffix, symlink=True)
         if calc_wannier90.parameters.wannier_plot:
             for src in File(calc_p2w, '.').glob('UNK*'):
-                calc_wannier90.link(src, src.name, symlink=True)
+                calc_wannier90.link(src, src.relative_path, symlink=True)
         status = self.run_steps(calc_wannier90)
         if status != Status.COMPLETED:
             return
@@ -679,20 +688,20 @@ class WannierizeAndSplitBlockOutput(BaseModel):
     hr_file: File | None = None
 
 
-class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockOutput]):
+class WannierizeAndSplitBlockInput(WorkflowInput):
+    pw_outdir: File
+    block: ProjectionsBlock
+    groups: List[List[int]]
+    force_nspin2: bool = False
+    minimize: bool = True
+    files_to_merge: List[MergeableFile] = []
+
+
+class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockInput, WannierizeAndSplitBlockOutput]):
     """Workflow that Wannierizes a block of bands, splits it using WannierJL, and then Wannierizes the split blocks."""
 
+    input_model = WannierizeAndSplitBlockInput
     output_model = WannierizeAndSplitBlockOutput
-
-    def __init__(self, *args, pw_outdir: File, block: ProjectionsBlock, groups: List[List[int]],
-                 force_nspin2: bool = False, minimize: bool = True, files_to_merge: List[MergeableFile] = [], **kwargs):
-        self.pw_outdir = pw_outdir
-        self.block = block
-        self.groups = groups
-        self._force_nspin2 = force_nspin2
-        self.minimize = minimize
-        self._files_to_merge = files_to_merge
-        super().__init__(*args, **kwargs)
 
     def _run(self) -> None:
         # Perform a Block Wannierization
@@ -856,7 +865,7 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockOutput]):
         if MergeableFile.CENTERS in self._files_to_merge:
             centers_files = [subwf.outputs.centers_file for subwf in subwfs]
             assert isinstance(centers_files[0], File)
-            dst_file = centers_files[0].name
+            dst_file = centers_files[0].relative_path
             merge_centers_proc = MergeProcess(
                 merge_function=partial(merge_wannier_centers_file_contents, atoms=self.atoms),
                 src_files=centers_files,
@@ -872,7 +881,7 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockOutput]):
             # Merging the wannier_hr (Hamiltonian) files
             hr_files = [subwf.outputs.hr_file for subwf in subwfs]
             assert isinstance(hr_files[0], File)
-            dst_file = hr_files[0].name
+            dst_file = hr_files[0].relative_path
             merge_hr_proc = MergeProcess(merge_function=merge_wannier_hr_file_contents,
                                          src_files=hr_files,
                                          dst_file=dst_file)

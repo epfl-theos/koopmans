@@ -119,7 +119,7 @@ class CalculatorExt(utils.HasDirectory):
     def run(self):
         """Run the calculation.
 
-        This is an alas for self.calculate that means calculators follow the Process protocol
+        This is an alias for self.calculate that means calculators follow the Process protocol
         """
         self.calculate()
 
@@ -275,13 +275,13 @@ class CalculatorExt(utils.HasDirectory):
         if not src.exists():
             raise FileNotFoundError(f'Cannot link to `{src}` because it does not exist')
         if dest_filename is None:
-            dest_filename = src.name
+            dest_filename = src.relative_path
         if isinstance(dest_filename, File):
             if dest_filename.parent_process != self:
                 raise ValueError(
                     'When linking to a calculator, destination `File` objects must have that calculator '
                     'as their `parent_process`')
-            dest_filename = dest_filename.name
+            dest_filename = dest_filename.relative_path
         self.linked_files[str(dest_filename)] = (src, symlink, recursive_symlink, overwrite)
 
     def link_pseudopotential(self, src: str | Path, dest: str | Path) -> None:

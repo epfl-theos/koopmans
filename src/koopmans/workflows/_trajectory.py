@@ -6,7 +6,7 @@ from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 
 from ._koopmans_dscf import KoopmansDSCFOutputs, KoopmansDSCFWorkflow
-from ._workflow import Workflow
+from ._workflow import Workflow, WorkflowInput
 
 
 class TrajectoryOutputs(BaseModel):
@@ -15,14 +15,11 @@ class TrajectoryOutputs(BaseModel):
     snapshot_outputs: List[KoopmansDSCFOutputs]
 
 
-class TrajectoryWorkflow(Workflow[TrajectoryOutputs]):
+class TrajectoryWorkflow(Workflow[WorkflowInput, TrajectoryOutputs]):
     """A workflow for running the KoopmansDSCF Workflow on multiple snapshots."""
 
+    input_model = WorkflowInput
     output_model = TrajectoryOutputs
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.parameters.task = 'trajectory'
 
     def _run(self) -> None:
         """Run a KoopmansDSCF Workflow for each snapshot indicated in indices."""

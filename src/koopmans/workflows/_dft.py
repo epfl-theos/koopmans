@@ -2,10 +2,11 @@
 
 import copy
 from pathlib import Path
-from typing import TypeVar
+from typing import Generic, TypeVar
 
 from ase_koopmans.spectrum.band_structure import BandStructure
 from ase_koopmans.spectrum.doscollection import DOSCollection
+from pydantic import field_validator
 
 from koopmans import calculators
 from koopmans.files import File
@@ -13,18 +14,24 @@ from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 from koopmans.utils.warnings import warn
 
-from ._workflow import Workflow, spin_symmetrize
+from ._workflow import Workflow, WorkflowInput, spin_symmetrize
+from .config import Correction
 
 T = TypeVar('T', bound='calculators.CalculatorExt')
 OutputModel = TypeVar('OutputModel', bound=BaseModel)
 
 
-class DFTWorkflow(Workflow[OutputModel]):
+class DFTWorkflow(Workflow[WorkflowInput, OutputModel], Generic[OutputModel]):
     """Basic template for a DFT workflow."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.parameters.functional = 'dft'
+    input_model = WorkflowInput
+
+    @field_validator('inputs', mode='after')
+    @classmethod
+    def check_correction(cls, v: WorkflowInput) -> WorkflowInput:
+        if v.config.correction != Correction.NONE:
+            raise ValueError('DFTWorkflow does not support Koopmans corrections; please use a SinglepointWorkflow instead')
+        return v
 
 
 class DFTCPOutput(BaseModel):
@@ -106,7 +113,7 @@ class DFTPhOutput(BaseModel):
     pass
 
 
-class DFTPhWorkflow(Workflow[DFTPhOutput]):
+class DFTPhWorkflow(DFTWorkflow[DFTPhOutput]):
     """Workflow for calculating the dielectric tensor using ph.x."""
 
     output_model = DFTPhOutput
