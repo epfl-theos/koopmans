@@ -1,15 +1,39 @@
 from pathlib import Path
-from typing import ClassVar, Generic, TypeVar
+from typing import Any, ClassVar, Generic, TypeVar
 
+import numpy as np
 from ase_koopmans import Atoms
-from pydantic import PrivateAttr
+from pydantic import field_serializer
 
 from koopmans.processes.process import Process
 from koopmans.pydantic import BaseModel
 
 
+def convert_numpy(obj: Any) -> Any:
+    """
+    Recursively convert NumPy arrays to Python lists inside nested structures.
+    Supports dict, list, tuple, set, and nested combinations.
+    """
+    if isinstance(obj, dict):
+        return {k: convert_numpy(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy(v) for v in obj]
+    elif isinstance(obj, tuple):
+        return tuple(convert_numpy(v) for v in obj)
+    elif isinstance(obj, set):
+        return {convert_numpy(v) for v in obj}
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    else:
+        return obj
+
+
 class CalculatorInputs(BaseModel):
     atoms: Atoms
+
+    @field_serializer("atoms")
+    def serialize_atoms(self, v: Atoms) -> dict[str, Any]:
+        return convert_numpy(v.todict())
 
 
 class CalculatorOutputs(BaseModel):

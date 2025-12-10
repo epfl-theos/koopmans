@@ -13,12 +13,12 @@ from upf_tools.pydantic import UPFModel
 
 from koopmans import utils
 from koopmans.commands import CommandConfigs
-from koopmans.files import File
+from koopmans.protocol import ProcessProtocol as Process
 from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 
 if TYPE_CHECKING:
-    from koopmans.processes.process import Process
+    from koopmans.files import File
 
 
 class Engine(BaseModel, ABC):

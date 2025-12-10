@@ -5,7 +5,7 @@ import shutil
 from itertools import chain
 from pathlib import Path
 from time import sleep
-from typing import Generator, Literal, Optional, overload
+from typing import Any, Generator, Literal, Optional, overload
 
 import yaml
 from ase_koopmans.calculators.calculator import CalculationFailed
@@ -14,6 +14,7 @@ from upf_tools.pydantic import UPFModel
 from koopmans import utils
 from koopmans.calculators import (Calc, ImplementedCalc, PhCalculator,
                                   ProjwfcCalculator, ReturnsBandStructure)
+from koopmans.calculators.calculator import CalculatorProcess
 from koopmans.commands import CommandConfig
 from koopmans.files import File, LocalFile
 from koopmans.processes.process import Process
@@ -29,30 +30,30 @@ config_file = Path.home() / '.koopmans/config.yaml'
 class LocalhostEngine(Engine):
     """Engine for running a workflow locally."""
 
-    def run(self, step: Process, additional_flags: list[str] = []):
+    def run(self, process: Process[Any, Any], additional_flags: list[str] = []):
         """Run a step."""
-        self._step_running_message(step)
+        self._step_running_message(process)
 
-        assert step.directory is not None
-        if step.directory.exists():
-            self.rmdir(File(parent_process=step, relative_path=''))
+        assert process.directory is not None
+        if process.directory.exists():
+            self.rmdir(File(parent_process=process, relative_path=''))
 
-        if isinstance(step, ImplementedCalc):
-            # Determine the command to run the step based on the configuration of the code in question
-            command_config: CommandConfig | None = getattr(self.commands, step.code, None)
-            if command_config is None:
-                raise ValueError(f'The configuration for {step.code} is missing from {self.__class__.__name__}.codes')
-            step.command = command_config.command(additional_flags=additional_flags)
+        # if isinstance(process, CalculatorProcess):
+        #     # Determine the command to run the step based on the configuration of the code in question
+        #     command_config: CommandConfig | None = getattr(self.commands, process.code, None)
+        #     if command_config is None:
+        #         raise ValueError(f'The configuration for {process.code} is missing from {self.__class__.__name__}.codes')
+        #     process.command = command_config.command(additional_flags=additional_flags)
 
         try:
-            step.run()
+            process.run(additional_flags=additional_flags)
         except CalculationFailed:
-            self.set_status(step, Status.FAILED)
-            self._step_failed_message(step)
+            self.set_status(process, Status.FAILED)
+            self._step_failed_message(process)
             raise
 
-        self.set_status(step, Status.COMPLETED)
-        self._step_completed_message(step)
+        self.set_status(process, Status.COMPLETED)
+        self._step_completed_message(process)
 
         # If we reached here, all future steps should be performed from scratch
         self.from_scratch = True
@@ -129,12 +130,12 @@ class LocalhostEngine(Engine):
 
         matching_pseudo = None
         if library in local_libraries:
-            pseudo_dir = LocalFile(Path(__file__).parents[1] / 'pseudopotentials' / library)
+            pseudo_dir = LocalFile(relative_path=Path(__file__).parents[1] / 'pseudopotentials' / library)
             if filename is not None:
                 pseudo_name: str | None = filename
             elif element is not None:
                 pseudo_name = None
-                for pseudo_file in chain(self.glob(pseudo_dir, '*.upf'), self.glob(pseudo_dir, '*.UPF')):
+                for pseudo_file in chain(pseudo_dir.glob('*.upf'), pseudo_dir.glob('*.UPF')):
                     if element_from_pseudo_filename(pseudo_file.relative_path.name) == element:
                         pseudo_name = str(pseudo_file.relative_path)
                         break
@@ -268,8 +269,6 @@ class LocalhostEngine(Engine):
     def rmdir(self, directory: File) -> None:
         """Remove a directory."""
         path = directory.aspath()
-        if isinstance(path, str):
-            path = Path(path)
         if path.is_dir():
             shutil.rmtree(path)
         else:
@@ -285,7 +284,7 @@ class LocalhostEngine(Engine):
 
     def glob(self, directory: File, pattern: str, recursive: bool = False) -> Generator[File, None, None]:
         """Generate files that match the pattern."""
-        parent_process = self.process_directory[directory.pid]
+        parent_process = directory.parent_process
         assert parent_process.directory is not None
         if recursive:
             generator = directory.aspath().rglob(pattern)

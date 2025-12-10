@@ -3,8 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from koopmans.utils import HasDirectory
-
 if TYPE_CHECKING:
     from koopmans.engines import Engine
 
@@ -16,8 +14,8 @@ class ProcessProtocol(Protocol):
     Ultimately to be merged with Process once that has a more general definition
     """
 
-    parent_process: HasDirectory | None
-    name: str
+    parent_process: ProcessProtocol | None
+    relative_filepath: Path
     engine: Engine | None
 
     @property

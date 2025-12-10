@@ -47,7 +47,7 @@ from upf_tools.pydantic import UPFModel
 from koopmans import calculators, settings, utils
 from koopmans.calculators.calculator import CalcType, CalculatorProcess
 from koopmans.engines import Engine, LocalhostEngine
-from koopmans.files import File, ParentProcessPlaceholder
+from koopmans.files import File
 from koopmans.kpoints import Kpoints
 from koopmans.ml import AbstractMLModel, MLModel, OccEmpMLModels
 from koopmans.parameters import CalculatorsInputParameters
@@ -58,9 +58,9 @@ from koopmans.plotting import PlottingConfig
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1)
 from koopmans.processes.process import Process
-from koopmans.processes.protocol import ProcessProtocol
 from koopmans.projections import (ExplicitProjections, ImplicitProjections,
                                   Projections)
+from koopmans.protocol import ProcessProtocol
 from koopmans.pseudopotentials import (nelec_from_pseudos,
                                        nwfcs_from_projectors,
                                        nwfcs_from_pseudos,
@@ -583,22 +583,6 @@ class Workflow(Process[InputModel, OutputModel], Generic[InputModel, OutputModel
         entries.append(f'pseudopotentials={self.pseudopotentials}')
         return f'{self.__class__.__name__}(' + ',\n   '.join(entries) + ')'
 
-    @Process.base_directory.setter  # type: ignore
-    def base_directory(self, value: Path):
-        """Set the base_directory attribute with additional workflow-specific behavior."""
-        old_base_directory = getattr(self, '_base_directory', None)
-
-        super(Workflow, Workflow).base_directory.__set__(self, value)
-
-        # If the pseudo_directory has been set, we need to update it too (because it is stored relative to
-        # base_directory). Note that during workflow initialization, we set base_directory prior to defining
-        # self.parameters (in which case we don't need to update pseudo_directory)
-        if hasattr(self, 'parameters') and self.parameters.pseudo_directory is not None \
-                and old_base_directory is not None:
-            abs_pseudo_dir = (old_base_directory / self.parameters.pseudo_directory).resolve()
-            assert abs_pseudo_dir.is_dir()
-            self.parameters.pseudo_directory = os.path.relpath(abs_pseudo_dir, self.base_directory)
-
     def run(self):
         """Run the workflow."""
         assert self.engine is not None
@@ -641,12 +625,14 @@ class Workflow(Process[InputModel, OutputModel], Generic[InputModel, OutputModel
 
     def _pre_run(self):
         """Run checks and actions before running the workflow."""
+        logger = logging.getLogger(__name__)
+        logger.info(f'Proceeding to the next step in the workflow {self.name} ({self.__class__.__name__})')
         self.step_counter = 0
 
         if self.status == Status.NOT_STARTED:
             self.status = Status.RUNNING
 
-    def proceed(self, subdirectory: Optional[str] = None, copy_outputs_to_parent: Optional[bool] = True):
+    def proceed(self, copy_outputs_to_parent: Optional[bool] = True):
         """Proceed through the workflow until a step has status `RUNNING`.
 
         Typically, this will involve proceeding to the next step in the workflow which has not been run,
@@ -657,25 +643,21 @@ class Workflow(Process[InputModel, OutputModel], Generic[InputModel, OutputModel
         step is completed. For such a workflow, the status of individual steps proceed immediately from `NOT_STARTED`
         to `COMPLETE` and `proceed()` will not exit until all the steps in the workflow are `COMPLETED`.
         """
-        logger = logging.getLogger(__name__)
-        logger.info(f'Proceeding to the next step in the workflow {self.name} ({self.__class__.__name__})')
 
         self._pre_run()
 
         if self.parent_process:
-            with self._parent_context(subdirectory, copy_outputs_to_parent):
+            with self._parent_context(copy_outputs_to_parent):
                 self._run()
         else:
-            self.base_directory = Path.cwd().resolve()
-            if subdirectory:
-                self.directory = Path(subdirectory)
             self._run()
 
         self._post_run()
-        logger.info(f'Exiting workflow {self.name} with status {self.status.name} ({self.__class__.__name__})')
 
     def _post_run(self):
         """Run checks and actions after running the workflow."""
+        logger = logging.getLogger(__name__)
+        logger.info(f'Exiting workflow {self.name} with status {self.status.name} ({self.__class__.__name__})')
         assert self.engine is not None
         self.engine.update_statuses()
 
@@ -766,10 +748,7 @@ class Workflow(Process[InputModel, OutputModel], Generic[InputModel, OutputModel
 
         # Create the calculator
         calc = calc_class(name=name, parent_process=self, inputs={
-                          'atoms': copy.deepcopy(self.inputs.atoms), 'parameters': parameters, **kwargs})
-
-        # Link the engine
-        calc.engine = self.engine
+                          'atoms': copy.deepcopy(self.inputs.atoms), 'parameters': parameters, **kwargs}, engine=self.engine)
 
         return calc
 
@@ -824,7 +803,7 @@ class Workflow(Process[InputModel, OutputModel], Generic[InputModel, OutputModel
         logger = logging.getLogger(__name__)
 
         # Convert steps to an immutable, covariant tuple
-        if isinstance(steps, ProcessProtocol):
+        if isinstance(steps, Process):
             steps = (steps,)
         if not isinstance(steps, tuple):
             steps = tuple(steps)
@@ -885,8 +864,7 @@ class Workflow(Process[InputModel, OutputModel], Generic[InputModel, OutputModel
         return False
 
     @contextmanager
-    def _parent_context(self, subdirectory: Optional[str] = None,
-                        copy_outputs_to_parent: Optional[bool] = True) -> Generator[None, None, None]:
+    def _parent_context(self, copy_outputs_to_parent: Optional[bool] = True) -> Generator[None, None, None]:
         """Provide context for running a subworkflow within a parent workflow.
 
         This is the context for calling self._run(), within which self inherits relevant information from
@@ -1433,9 +1411,9 @@ def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
 
         # Wipe the linked files (except for globally-linked files)
         master_calc.linked_files = {k: v for k, v in master_calc.linked_files.items(
-        ) if isinstance(v[0].parent_process, ParentProcessPlaceholder)}
+        ) if isinstance(v[0].parent_process, ProcessPlaceholder)}
         calc_nspin1.linked_files = {k: v for k, v in calc_nspin1.linked_files.items(
-        ) if isinstance(v[0].parent_process, ParentProcessPlaceholder)}
+        ) if isinstance(v[0].parent_process, ProcessPlaceholder)}
 
         # nspin=1 dummy
         calc_nspin1_dummy = master_calc.nspin1_dummy_calculator()

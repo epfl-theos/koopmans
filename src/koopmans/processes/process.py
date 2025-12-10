@@ -9,12 +9,13 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, ClassVar, Dict, Generic, TypeVar, get_args, get_origin
+from typing import Any, ClassVar, Generic, TypeVar
 
 import dill
-from pydantic import PrivateAttr, field_validator, model_validator
+from pydantic import Field, PrivateAttr, field_validator, model_validator
+from pydash import get, set_
 
-from koopmans.engines.engine import Engine
+from koopmans.engines import Engine
 from koopmans.pydantic import BaseModel
 
 InputModel = TypeVar('InputModel', bound=BaseModel)
@@ -32,17 +33,17 @@ class Process(BaseModel, ABC, Generic[InputModel, OutputModel]):
     output_model: ClassVar[type[OutputModel]]
     name: str
     _outputs: OutputModel | None = PrivateAttr(None)
-    _base_directory: Path | None = PrivateAttr(None)
+    base_directory: Path = Field(default_factory=lambda: Path.cwd().resolve())
     _directory: Path | None = PrivateAttr(None)
-    engine: Engine | None = None
     parent_process: Process | None = None
+    engine: Engine
     _directory_must_be_relative: bool = False
 
     @model_validator(mode='before')
     @classmethod
     def base_directory_only_for_parentless_process(cls, data: dict[str, Any]) -> dict[str, Any]:
-        if data.get('parent_process', None) is not None:
-            data.pop('base_directory', None)
+        if get(data, 'parent_process', None) is not None:
+            set_(data, 'base_directory', get(data, 'parent_process.base_directory'))
         return data
 
     @field_validator('name', mode='before')
@@ -76,13 +77,12 @@ class Process(BaseModel, ABC, Generic[InputModel, OutputModel]):
         logger.info(f'Creating an instance of {self.__class__.__name__}')
         logger.info(f'with inputs={self.inputs.model_dump()}')
 
-    def run(self):
+    def run(self, additional_flags: list[str] | None = None):
         """Run the process."""
-        self.inputs.model_config.frozen = True
         logger = logging.getLogger(__name__)
         logger.info(f'Running {self.directory}')
         self._pre_run()
-        self._run()
+        self._run(additional_flags=additional_flags)
         self._post_run()
 
     @property
@@ -101,20 +101,25 @@ class Process(BaseModel, ABC, Generic[InputModel, OutputModel]):
         self._outputs = value
 
     def _pre_run(self):
+        from koopmans.files import File, LinkedFile
+
+        self.inputs.model_config['frozen'] = True
+
         assert self.directory is not None, 'Process directory must be set before running'
         self.dump_inputs()
 
-        if self.engine is None:
-            raise ValueError('Process engine must be set before running')
-
-        # Link the files in self.linked_files
-        raise NotImplementedError('Need to link files -- old code commented below reliant on self.linked_files')
-        # for dest, src in self.linked_files.items():
-        #     dest_file = File(self, dest)
-        #     dest_file.symlink_to(src)
+        # Copy over any inputs that correspond to files
+        for field in self.inputs.model_fields:
+            inp = getattr(self.inputs, field)
+            if isinstance(inp, LinkedFile):
+                dest_file = File(parent_process=self, relative_path=inp.dest)
+                if inp.symlink:
+                    dest_file.symlink_to(inp.src, overwrite=inp.overwrite, recursive=inp.recursive_symlink)
+                else:
+                    inp.src.copy_to(dest_file, exist_ok=inp.overwrite)
 
     @abstractmethod
-    def _run(self):
+    def _run(self, additional_flags: list[str] | None = None):
         ...
 
     def _post_run(self):
@@ -131,8 +136,8 @@ class Process(BaseModel, ABC, Generic[InputModel, OutputModel]):
         """Dump the inputs of the process to the file system."""
         from koopmans.files import File
         assert self.directory is not None
-        dst = File(self, f'{self.name}_inputs.pkl')
-        dst.write_bytes(dill.dumps(self.inputs))
+        dst = File(parent_process=self, relative_path=f'{self.name}_inputs.json')
+        dst.write_text(self.inputs.model_dump_json(indent=2, exclude_defaults=True, exclude_none=True))
 
     def dump_outputs(self):
         """Dump the outputs of the process to the file system."""
@@ -190,22 +195,6 @@ class Process(BaseModel, ABC, Generic[InputModel, OutputModel]):
         return str(self.directory)
 
     @property
-    def base_directory(self) -> Path | None:
-        """Return the base (i.e. root) directory of the entire workflow."""
-        if self.parent_process:
-            return self.parent_process.base_directory
-        else:
-            return self._base_directory
-
-    @base_directory.setter
-    def base_directory(self, value: Path | str | None):
-        if self.parent_process is not None:
-            raise ValueError('Do not directly set `base_directory` for objects with a parent_process')
-        if isinstance(value, str):
-            value = Path(value)
-        self._base_directory = None if value is None else value.resolve()
-
-    @property
     def absolute_directory(self) -> Path | None:
         """Return the absolute path of the directory."""
         if self.directory is None:
@@ -217,13 +206,3 @@ class Process(BaseModel, ABC, Generic[InputModel, OutputModel]):
     def directory_has_been_set(self) -> bool:
         """Check if the directory has been set."""
         return self._directory is not None
-
-
-class ProcessPlaceholder(Process[BaseModel, BaseModel]):
-
-    @field_validator('parent_process', mode='after')
-    @classmethod
-    def must_be_none(cls, value: Any) -> None:
-        if value is not None:
-            raise ValueError('ProcessPlaceholder parent_process must be None')
-        return None

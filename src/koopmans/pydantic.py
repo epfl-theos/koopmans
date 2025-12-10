@@ -1,12 +1,15 @@
 """Pydantic base model to use throughout `koopmans`."""
 
+import numpy as np
 from pydantic import BaseModel as _BaseModel
 from pydantic import ConfigDict
 
 default_config = ConfigDict(extra="forbid",
                             arbitrary_types_allowed=True,
                             strict=False,
-                            validate_assignment=True)
+                            validate_assignment=True,
+                            json_encoders={np.ndarray: lambda v: v.tolist()}
+                            )
 
 
 class BaseModel(_BaseModel):
