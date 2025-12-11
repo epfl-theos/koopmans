@@ -12,7 +12,7 @@ from ase_koopmans.spectrum.band_structure import BandStructure
 from ase_koopmans.spectrum.doscollection import DOSCollection
 from pydantic import Field
 
-from koopmans.calculators import KoopmansCPCalculator
+from koopmans.calculators.kcp import KCPCalculator
 from koopmans.files import File
 from koopmans.projections import BlockID
 from koopmans.pydantic import BaseModel
@@ -108,7 +108,7 @@ class SinglepointWorkflow(Workflow[WorkflowInput, SinglepointOutputs]):
 
                 # Create a KC workflow for this particular functional
                 variational_orbital_files: Optional[Dict[str, File]] = None
-                previous_cp_calc: Optional[KoopmansCPCalculator] = None
+                previous_cp_calc: Optional[KCPCalculator] = None
                 smooth_dft_ham_files: Optional[Dict[BlockID, File]] = None
                 if functional != 'ki':
                     assert ki_workflow is not None

@@ -12,7 +12,7 @@ from koopmans.calculators import KoopmansCPCalculator
 from koopmans.calculators._koopmans_cp import (allowed,
                                                convert_flat_alphas_for_kcp,
                                                good_fft)
-from koopmans.engines import LocalhostEngine
+from koopmans.engines import LocalASEEngine
 from koopmans.files import LocalFile
 from koopmans.pseudopotentials import local_base_directory
 
@@ -69,7 +69,7 @@ def test_read_ham(water, datadir, tmp_path):
         calc = KoopmansCPCalculator(outdir='tmp', nspin=2, nelec=8, ndw=50,
                                     prefix='test_read_ham', **water, pseudo_dir=pseudo_dir)
         calc.directory = Path()
-        calc.engine = LocalhostEngine()
+        calc.engine = LocalASEEngine()
 
         # Copy over the XML Hamiltonian files
         destdir = calc.write_directory / 'K00001/'

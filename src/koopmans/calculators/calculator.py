@@ -2,8 +2,8 @@ from pathlib import Path
 from typing import Any, ClassVar, Generic, TypeVar
 
 import numpy as np
-from ase_koopmans import Atoms
-from pydantic import field_serializer
+from ase import Atoms
+from pydantic import Field, field_serializer
 
 from koopmans.processes.process import Process
 from koopmans.pydantic import BaseModel
@@ -46,14 +46,16 @@ GenericCalculatorOutputs = TypeVar('GenericCalculatorOutput', bound=CalculatorOu
 
 
 class CalculatorProcess(Process[GenericCalculatorInputs, GenericCalculatorOutputs], Generic[GenericCalculatorInputs, GenericCalculatorOutputs]):
+    """A process that corresponds to an electronic structure calculations.
+
+    Roughly the equivalent of a CWL Operation, because we only specify the inputs and outputs within this class,
+    and leave it to the engine to determine how to run the calculation."""
+
     ext_in: ClassVar[str]
     ext_out: ClassVar[str]
     id: ClassVar[str]
     code: ClassVar[str]
     parent_process: Process | None
-
-    def _run():
-        raise NotImplementedError()
 
     def link_pseudopotential(self, src: str | Path, dest: str | Path) -> None:
         """Link a pseudopotential file to the calculator.

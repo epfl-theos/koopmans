@@ -236,7 +236,7 @@ def compare_output(output, bench_output):
         # Compare the file contents
         binary_formats = ['.npy', '.dat', '.xml']
         if isinstance(output, File):
-            binary = output.name.suffix in binary_formats
+            binary = output.relative_path.suffix in binary_formats
             if binary:
                 bench_output_contents = bench_output.read_bytes()
                 output_contents = output.read_bytes()

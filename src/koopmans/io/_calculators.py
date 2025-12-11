@@ -1,16 +1,14 @@
 from glob import glob
 from pathlib import Path
-from typing import List, Union
+from typing import Any, List, Union
 
-from koopmans.calculators import (Calc, CalcType, KoopmansCPCalculator,
-                                  KoopmansHamCalculator,
-                                  KoopmansScreenCalculator, PhCalculator,
-                                  PW2WannierCalculator, PWCalculator,
-                                  Wann2KCCalculator, Wann2KCPCalculator,
-                                  Wannier90Calculator)
+from koopmans.calculators.calculator import CalculatorProcess
+from koopmans.calculators.kcp import KCPCalculator
+from koopmans.calculators.pw import PWCalculator
+from koopmans.calculators.wannier90 import Wannier90Calculator
 
 
-def read_calculator(filenames: Union[Path, List[Path]]) -> Calc:
+def read_calculator(filenames: Union[Path, List[Path]]) -> CalculatorProcess[Any, Any]:
     """Read a calculator from file(s), with the behavior depending on the file extension."""
     # Interpreting the filenames argument
     if not isinstance(filenames, list):
@@ -25,7 +23,7 @@ def read_calculator(filenames: Union[Path, List[Path]]) -> Calc:
     calc_class: CalcType
 
     if extensions.issubset(set(['.cpi', '.cpo'])):
-        calc_class = KoopmansCPCalculator
+        calc_class = KCPCalculator
     elif extensions.issubset(set(['.pwi', '.pwo'])):
         calc_class = PWCalculator
     elif extensions.issubset(set(['.phi', '.pho'])):

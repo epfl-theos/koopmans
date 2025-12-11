@@ -10,7 +10,7 @@ from sklearn.dummy import DummyRegressor
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 
-from koopmans.engines import Engine
+from koopmans.engines.engine import Engine
 from koopmans.variational_orbitals import VariationalOrbital
 
 

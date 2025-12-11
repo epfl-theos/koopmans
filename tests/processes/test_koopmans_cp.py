@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest  # noqa: F401
 
 from koopmans import utils
-from koopmans.engines.localhost import LocalhostEngine
+from koopmans.engines.localhost import LocalASEEngine
 from koopmans.files import LocalFile
 from koopmans.processes.koopmans_cp import (ConvertFilesFromSpin1To2,
                                             ConvertFilesFromSpin2To1,
@@ -24,7 +24,7 @@ def test_convert_files_from_spin_1_to_2_process(tmpdir, check_patch, datadir):
                                            spin_2_down_files=spin_2_down_files)
         process.directory = Path()
         process.base_directory = Path()
-        process.engine = LocalhostEngine()
+        process.engine = LocalASEEngine()
         process.run()
 
 
@@ -37,7 +37,7 @@ def test_convert_files_from_spin_2_to_1_process(tmpdir, check_patch, datadir):
         process = ConvertFilesFromSpin2To1(spin_2_files=spin_2_files,
                                            spin_1_files=spin_1_files)
         process.directory = Path()
-        process.engine = LocalhostEngine()
+        process.engine = LocalASEEngine()
         process.run()
 
 
@@ -46,5 +46,5 @@ def test_swap_spin_files(tmpdir, check_patch, datadir):
     with utils.chdir(tmpdir):
         process = SwapSpinFilesProcess(read_directory=LocalFile(datadir / 'kcp' / 'spin_2_files'))
         process.directory = Path()
-        process.engine = LocalhostEngine()
+        process.engine = LocalASEEngine()
         process.run()

@@ -6,18 +6,20 @@ import logging
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Generator, Literal, Optional, overload
+from typing import TYPE_CHECKING, Any, Generator, Literal, Optional, overload
 
 from pydantic import Field
 from upf_tools.pydantic import UPFModel
 
 from koopmans import utils
-from koopmans.commands import CommandConfigs
+from koopmans.commands import CommandConfig, CommandConfigs
 from koopmans.protocol import ProcessProtocol as Process
 from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 
 if TYPE_CHECKING:
+    from koopmans.calculators.calculator import CalculatorProcess
+    from koopmans.calculators.pw import PWCalculatorProcess
     from koopmans.files import File
 
 
@@ -62,8 +64,11 @@ class Engine(BaseModel, ABC):
         self._step_message(uid, '⏭️ ', 'already complete  ')
 
     @abstractmethod
-    def run(self, step: Process, additional_flags: list[str] = []) -> None:
-        """Run a step of the workflow."""
+    def run(self, step: Process, **kwargs) -> None:
+        """Run a step of the workflow.
+
+        The command used to run the step can be modified by providing additional keyword arguments
+        matching the fields of the CommandConfig for the code being run."""
         ...
 
     @abstractmethod
@@ -147,11 +152,6 @@ class Engine(BaseModel, ABC):
     @abstractmethod
     def available_pseudo_libraries(self) -> set[str]:
         """Return a set of available pseudopotential libraries."""
-        ...
-
-    @abstractmethod
-    def link_pseudopotential(self, step, src: Path, dest: Path) -> None:
-        """Link a pseudopotential file to the provided step."""
         ...
 
     @overload
@@ -241,4 +241,33 @@ class Engine(BaseModel, ABC):
     @abstractmethod
     def _teardown(self) -> None:
         """Perform any necessary engine-specific cleanup actions when the workflow is completed."""
+        ...
+
+    def run_calculator(self, calc: CalculatorProcess[Any, Any], **kwargs):
+        """Run a calculator.
+
+        The command used to run the calculator can be modified by providing additional keyword arguments
+        """
+        from koopmans.calculators.pw import PWCalculator
+        if isinstance(calc, PWCalculator):
+            caller = self.run_pw_calculator
+        else:
+            raise NotImplementedError(
+                f'Engine {self.__class__.__name__} does not implement running calculator of type {calc.__class__.__name__}')
+
+        # Determine the command to run the step based on the configuration of the code in question
+        command_config: CommandConfig | None = getattr(self.commands, calc.code, None)
+        if command_config is None:
+            raise ValueError(f'The configuration for {calc.code} is missing from {self.__class__.__name__}.codes')
+
+        # Update using the kwargs
+        this_command_config = command_config.model_copy()
+        for k, v in kwargs.items():
+            setattr(this_command_config, k, v)
+        command = this_command_config.command()
+
+        caller(calc, command)
+
+    @abstractmethod
+    def run_pw_calculator(self, calc: PWCalculatorProcess, command: str):
         ...

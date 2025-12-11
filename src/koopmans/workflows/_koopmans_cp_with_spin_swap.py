@@ -1,6 +1,6 @@
 """A workflow for managing kcp.x calculations that would want more spin-down electrons than spin-up."""
 
-from koopmans.calculators import KoopmansCPCalculator
+from koopmans.calculators.kcp import KCPCalculator
 from koopmans.files import File
 from koopmans.processes.koopmans_cp import SwapSpinFilesProcess
 from koopmans.pydantic import BaseModel
@@ -11,7 +11,7 @@ from ._workflow import Workflow, WorkflowInput
 
 class KoopmansCPWithSpinSwapInputs(WorkflowInput):
     """Input model for the KoopmansCPWithSpinSwapWorkflow."""
-    calc: KoopmansCPCalculator
+    calc: KCPCalculator
 
 
 class KoopmansCPWithSpinSwapOutput(BaseModel):

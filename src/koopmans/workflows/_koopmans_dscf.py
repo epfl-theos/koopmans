@@ -10,8 +10,10 @@ from ase_koopmans.spectrum.band_structure import BandStructure
 from pydantic import model_validator
 
 from koopmans import utils
-from koopmans.calculators import (KoopmansCPCalculator, PWCalculator,
-                                  convert_flat_alphas_for_kcp)
+from koopmans.calculators.kcp import KCPCalculator
+from koopmans.calculators.pw import PWCalculator
+# from koopmans.calculators import (KCPCalculator, PWCalculator,
+#                                   convert_flat_alphas_for_kcp)
 from koopmans.files import File
 from koopmans.projections import BlockID
 from koopmans.pydantic import BaseModel
@@ -34,7 +36,7 @@ class KoopmansDSCFInputs(WorkflowInput):
     initial_variational_orbital_files: Dict[str, File] | None = None
 
     # For workflows where we have already performed initialization elsewhere, we can restart using that directory
-    previous_cp_calc: KoopmansCPCalculator | None = None
+    previous_cp_calc: KCPCalculator | None = None
 
     # If the higher-resolution DFT calculations have already been computed, the smooth DFT Hamiltonian can be
     # provided via this keyword to avoid redoing these calculations unnecessarily
@@ -48,7 +50,7 @@ class KoopmansDSCFOutputs(BaseModel):
     """Pydantic model for the outputs of a `KoopmansDSCFWorkflow`."""
 
     variational_orbital_files: Dict[str, File]
-    final_calc: KoopmansCPCalculator
+    final_calc: KCPCalculator
     wannier_hamiltonian_files: Dict[BlockID, File] | None = None
     smooth_dft_ham_files: Dict[BlockID, File] | None = None
     band_structure: BandStructure | None = None
@@ -383,7 +385,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFInputs, KoopmansDSCFOutputs]):
 
         return
 
-    def _overwrite_canonical_with_variational_orbitals(self, calc: KoopmansCPCalculator) -> None:
+    def _overwrite_canonical_with_variational_orbitals(self, calc: KCPCalculator) -> None:
         self.print('Overwriting the variational orbitals with Kohn-Sham orbitals')
         savedir = calc.parameters.write_directory / f'{calc.parameters.prefix}_{calc.parameters.ndw}.save/K00001'
         for ispin in range(2):
@@ -397,7 +399,7 @@ class CalculateScreeningViaDSCFInput(WorkflowInput):
     """Pydantic model for the inputs of a `CalculateScreeningViaDSCF` workflow."""
 
     initial_variational_orbital_files: Dict[str, File]
-    initial_cp_calculation: KoopmansCPCalculator
+    initial_cp_calculation: KCPCalculator
     precomputed_descriptors: List[File] | None = None
 
 
@@ -417,7 +419,7 @@ class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFInput, Calcula
         converged = False
         i_sc = 0
 
-        alpha_indep_calcs: List[KoopmansCPCalculator] = []
+        alpha_indep_calcs: List[KCPCalculator] = []
 
         variational_orbital_files = self._initial_variational_orbital_files
         n_electron_calc = self._initial_cp_calculation
@@ -459,7 +461,7 @@ class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFInput, Calcula
                          'instantly; to save computational time set `alpha_numsteps == 1`')
 
             parent = iteration_wf.outputs.n_electron_restart_dir.parent_process
-            assert isinstance(parent, KoopmansCPCalculator)
+            assert isinstance(parent, KCPCalculator)
             n_electron_calc = parent
             dummy_outdirs = iteration_wf.outputs.dummy_outdirs
             variational_orbital_files = {}
@@ -479,10 +481,10 @@ class CalculateScreeningViaDSCF(Workflow[CalculateScreeningViaDSCFInput, Calcula
 class DeltaSCFIterationInputs(WorkflowInput):
     """Pydantic model for the inputs of a `DeltaSCFIterationWorkflow`."""
     variational_orbital_files: dict[str, File]
-    previous_n_electron_calculation: KoopmansCPCalculator
+    previous_n_electron_calculation: KCPCalculator
     dummy_outdirs: Dict[Tuple[int, int], File | None]
     i_sc: int
-    alpha_indep_calcs: List[KoopmansCPCalculator]
+    alpha_indep_calcs: List[KCPCalculator]
     precomputed_descriptors: List[File] | None = None
 
 
@@ -522,7 +524,7 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationInputs, DeltaSCFIterat
 
         # Link the temporary files from the previous calculation
         previous_calc = self._previous_n_electron_calculation
-        assert isinstance(previous_calc, KoopmansCPCalculator)
+        assert isinstance(previous_calc, KCPCalculator)
         trial_calc.link(previous_calc.write_directory, trial_calc.read_directory, recursive_symlink=True)
 
         for filename, src_file in self._variational_orbital_files.items():
@@ -659,10 +661,10 @@ class OrbitalDeltaSCFInputs(WorkflowInput):
     """Pydantic model for the inputs of the OrbitalDeltaSCFWorkflow."""
 
     variational_orbital: VariationalOrbital
-    trial_calc: KoopmansCPCalculator
+    trial_calc: KCPCalculator
     dummy_outdir: File | None
     i_sc: int
-    alpha_indep_calcs: List[KoopmansCPCalculator]
+    alpha_indep_calcs: List[KCPCalculator]
 
 
 class OrbitalDeltaSCFOutputs(BaseModel):
@@ -873,8 +875,8 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFInputs, OrbitalDeltaSCFOut
         self.status = Status.COMPLETED
 
     def calculate_alpha_from_list_of_calcs(self,
-                                           calcs: List[KoopmansCPCalculator],
-                                           trial_calc: KoopmansCPCalculator,
+                                           calcs: List[KCPCalculator],
+                                           trial_calc: KCPCalculator,
                                            band: VariationalOrbital,
                                            filled: bool = True) -> Tuple[float, float]:
         """Calculate the screening parameter alpha from a list of calculations.
@@ -977,7 +979,7 @@ def internal_new_kcp_calculator(workflow,
                                 alphas: Optional[List[List[float]]] = None,
                                 filling: Optional[List[List[bool]]] = None,
                                 add_to_spin_up: bool = True,
-                                **kwargs) -> KoopmansCPCalculator:
+                                **kwargs) -> KCPCalculator:
     """Generate a new KCP calculator based on `self.calculator_parameters["kcp"]`.
 
     Modifies the appropriate settings to match the chosen calc_presets, and altering any Quantum Espresso
@@ -1033,7 +1035,7 @@ def internal_new_kcp_calculator(workflow,
         alphas = workflow.variational_orbitals.alphas
 
     # Generate a new kcp calculator copied from the master calculator
-    calc: KoopmansCPCalculator = workflow.new_calculator('kcp', alphas=alphas, filling=filling)
+    calc: KCPCalculator = workflow.new_calculator('kcp', alphas=alphas, filling=filling)
 
     # Set up read/write indexes
     if calc_presets in ['dft_init', 'dft_dummy']:

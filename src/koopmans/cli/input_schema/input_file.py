@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Any, ClassVar, Literal, Type, Union
 
 import numpy as np
-from ase_koopmans import Atoms
-from ase_koopmans.cell import Cell
+from ase import Atoms
+from ase.cell import Cell
 from pydantic import Field, field_validator, model_validator
 from pydash import get
 from upf_tools.pydantic import UPFModel
@@ -15,7 +15,8 @@ from wannier90_input.models.parameters import Projection
 from yaml import safe_load
 
 from koopmans.commands import CommandConfigs
-from koopmans.engines import Engine, LocalhostEngine
+from koopmans.engines.ase import LocalASEEngine
+from koopmans.engines.engine import Engine
 from koopmans.kpoints import GammaOnlyKpoints, Kpoints
 from koopmans.parameters import CalculatorsInputParameters
 from koopmans.parameters.kcp import KCPInputParameters
@@ -116,9 +117,9 @@ class CalculatorParametersInput(BaseModel):
         ecutwfc = dct.pop('ecutwfc')
         nbnd = dct.pop('nbnd')
         if ecutwfc is not None:
-            self.pw.system.ecutwfc = ecutwfc
+            dct['pw']['system']['ecutwfc'] = ecutwfc
         if nbnd is not None:
-            self.pw.system.nbnd = nbnd
+            dct['pw']['system']['nbnd'] = nbnd
 
         # Split wannier90 up and down into their own blocks
         up_dct = dct['wannier90'].pop('up')
@@ -211,7 +212,7 @@ class KoopmansInput(BaseModel):
             raise NotImplementedError(f'Need to implement `{self.workflow.task.value}`')
 
         if engine is None:
-            engine = LocalhostEngine.model_validate(self.engine.model_dump())
+            engine = LocalASEEngine.model_validate(self.engine.model_dump())
 
         # Here need to define the logic constructing the workflow properly
         atoms = self.atoms.to_atoms_obj()

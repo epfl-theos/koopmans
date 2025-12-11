@@ -1,7 +1,7 @@
 """Machine learning workflows for koopmans."""
 from typing import Any, Dict, List
 
-from koopmans import calculators
+from koopmans.calculators.kcp import KCPCalculator
 from koopmans.files import File
 from koopmans.processes.power_spectrum import (
     ComputePowerSpectrumProcess, ExtractCoefficientsFromXMLProcess)
@@ -34,7 +34,7 @@ class PowerSpectrumDecompositionInputs(WorkflowInput):
     """Input model for the PowerSpectrumDecompositionWorkflow."""
     # Specify from which calculation we extract the real space densities. Currently only
     # the KI-calculation at the beginning of the alpha calculations is a valid option
-    calc_that_produced_orbital_densities: calculators.Calc
+    calc_that_produced_orbital_densities: KCPCalculator
 
 
 class PowerSpectrumDecompositionOutput(BaseModel):
@@ -140,7 +140,7 @@ class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionInpu
 
 class ConvertOrbitalFilesToXMLInput(WorkflowInput):
     """Input model for the ConvertOrbitalFilesToXMLWorkflow."""
-    calc_that_produced_orbital_densities: calculators.Calc
+    calc_that_produced_orbital_densities: KCPCalculator
 
 
 class ConvertOrbitalFilesToXMLOutput(BaseModel):

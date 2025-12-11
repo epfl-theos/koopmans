@@ -8,8 +8,8 @@ from pydantic import model_validator
 from typing_extensions import Self
 
 from koopmans import pseudopotentials, utils
-from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
-                                  Wann2KCCalculator, Wannier90Calculator)
+# from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
+#                                   Wann2KCCalculator, Wannier90Calculator)
 from koopmans.files import File, LocalFile
 from koopmans.projections import BlockID, ImplicitProjections
 from koopmans.pydantic import BaseModel

@@ -26,8 +26,8 @@ import matplotlib.pyplot as plt
 # isort: on
 
 from koopmans import calculators, utils
-from koopmans.calculators import Wannier90Calculator
 from koopmans.calculators.pw import PWCalculator
+from koopmans.calculators.wannier90 import Wannier90Calculator
 from koopmans.files import File
 from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         extend_wannier_u_dis_file_content,
@@ -76,8 +76,8 @@ class WannierizeOutput(BaseModel):
     centers_files: Dict[BlockID, File | None]
     u_dis_files: Dict[BlockID, File | None]
     nnkp_files: Dict[BlockID, File | None]
-    nscf_calculation: calculators.PWCalculator
-    wannier90_calculations: List[calculators.Wannier90Calculator]
+    nscf_calculation: PWCalculator
+    wannier90_calculations: List[Wannier90Calculator]
     projections: Projections
 
 
@@ -562,7 +562,7 @@ class WannierizeBlockOutput(BaseModel):
     nnkp_file: File | None = None
     chk_file: File
     wannier90_input_file: File
-    wannier90_calculation: calculators.Wannier90Calculator
+    wannier90_calculation: Wannier90Calculator
 
 
 class WannierizeBlockInput(WorkflowInput):
@@ -598,7 +598,7 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockInput, WannierizeBlockOutp
             calc_wannier90_pp = self.new_calculator(calc_type, **self.block.wannier90_kwargs)
             assert isinstance(calc_wannier90_pp, calculators.Wannier90Calculator)
             calc_wannier90_pp.prefix = 'wannier90_preproc'
-            status = self.run_steps(calc_wannier90_pp, additional_flags=['-pp'])
+            status = self.run_steps(calc_wannier90_pp, pp=True)
             if status != Status.COMPLETED:
                 return
 

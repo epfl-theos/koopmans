@@ -6,7 +6,7 @@ from typing import List
 import numpy as np
 import pytest  # noqa: F401
 
-from koopmans.engines.localhost import LocalhostEngine
+from koopmans.engines.localhost import LocalASEEngine
 from koopmans.files import LocalFile
 from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
                                         extend_wannier_u_dis_file_content,
@@ -41,7 +41,7 @@ def test_merge_process(tmp_path):
     """Test MergeProcess."""
     file1_contents = 'a\nb'
     file2_contents = 'c\nd'
-    engine = LocalhostEngine()
+    engine = LocalASEEngine()
 
     with chdir(tmp_path):
         file1 = LocalFile('file1.txt')
@@ -81,7 +81,7 @@ def test_extend_process(tmp_path):
     """Test ExtendProcess."""
     file1_contents = 'a\nb'
     extra_contents = 'c\nd'
-    engine = LocalhostEngine()
+    engine = LocalASEEngine()
 
     with chdir(tmp_path):
         file1 = LocalFile('file1.txt')

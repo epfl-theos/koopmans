@@ -7,22 +7,24 @@ from __future__ import annotations
 
 import logging
 import re
-from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, ClassVar, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
 
 import dill
 from pydantic import Field, PrivateAttr, field_validator, model_validator
 from pydash import get, set_
 
-from koopmans.engines import Engine
+from koopmans.engines.engine import Engine
 from koopmans.pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from koopmans.files import FileABC
 
 InputModel = TypeVar('InputModel', bound=BaseModel)
 OutputModel = TypeVar('OutputModel', bound=BaseModel)
 
 
-class Process(BaseModel, ABC, Generic[InputModel, OutputModel]):
+class Process(BaseModel, Generic[InputModel, OutputModel]):
     """Class that defines a Process.
 
     This could be a Workflow, a Commandline tool, a calculator, etc.
@@ -77,14 +79,6 @@ class Process(BaseModel, ABC, Generic[InputModel, OutputModel]):
         logger.info(f'Creating an instance of {self.__class__.__name__}')
         logger.info(f'with inputs={self.inputs.model_dump()}')
 
-    def run(self, additional_flags: list[str] | None = None):
-        """Run the process."""
-        logger = logging.getLogger(__name__)
-        logger.info(f'Running {self.directory}')
-        self._pre_run()
-        self._run(additional_flags=additional_flags)
-        self._post_run()
-
     @property
     def outputs(self) -> OutputModel:
         """Return the outputs of the process."""
@@ -109,18 +103,13 @@ class Process(BaseModel, ABC, Generic[InputModel, OutputModel]):
         self.dump_inputs()
 
         # Copy over any inputs that correspond to files
-        for field in self.inputs.model_fields:
-            inp = getattr(self.inputs, field)
-            if isinstance(inp, LinkedFile):
-                dest_file = File(parent_process=self, relative_path=inp.dest)
-                if inp.symlink:
-                    dest_file.symlink_to(inp.src, overwrite=inp.overwrite, recursive=inp.recursive_symlink)
-                else:
-                    inp.src.copy_to(dest_file, exist_ok=inp.overwrite)
-
-    @abstractmethod
-    def _run(self, additional_flags: list[str] | None = None):
-        ...
+        files_to_copy = self.inputs.fields_that_are_files()
+        for inp in files_to_copy:
+            dest_file = File(parent_process=self, relative_path=inp.dest)
+            if inp.symlink:
+                dest_file.symlink_to(inp.src, overwrite=inp.overwrite, recursive=inp.recursive_symlink)
+            else:
+                inp.src.copy_to(dest_file, exist_ok=inp.overwrite)
 
     def _post_run(self):
         assert self._outputs is not None, 'Process outputs must be set when running'

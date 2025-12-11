@@ -1,56 +1,56 @@
-"""An engine for running a workflow locally."""
+"""An engine for running a workflow locally using the Atomic Simulation Environment."""
+
+from __future__ import annotations
 
 import contextlib
 import shutil
 from itertools import chain
 from pathlib import Path
 from time import sleep
-from typing import Any, Generator, Literal, Optional, overload
+from typing import TYPE_CHECKING, Any, Generator, Literal, Optional, overload
 
 import yaml
-from ase_koopmans.calculators.calculator import CalculationFailed
+from ase.calculators.calculator import CalculationFailed
+from ase.calculators.espresso import Espresso as ASEPWCalculator
+from ase.calculators.espresso import EspressoProfile
 from upf_tools.pydantic import UPFModel
 
 from koopmans import utils
-from koopmans.calculators import (Calc, ImplementedCalc, PhCalculator,
-                                  ProjwfcCalculator, ReturnsBandStructure)
-from koopmans.calculators.calculator import CalculatorProcess
 from koopmans.commands import CommandConfig
-from koopmans.files import File, LocalFile
-from koopmans.processes.process import Process
 from koopmans.pseudopotentials import (element_from_pseudo_filename,
                                        local_libraries)
 from koopmans.status import Status
 
 from .engine import Engine
 
+if TYPE_CHECKING:
+    from koopmans.calculators.pw import PWCalculator
+    from koopmans.files import File
+    from koopmans.processes.process import Process
+
 config_file = Path.home() / '.koopmans/config.yaml'
 
 
-class LocalhostEngine(Engine):
-    """Engine for running a workflow locally."""
+class LocalASEEngine(Engine):
+    """Engine for running a workflow locally using the Atomic Simulation Environment."""
 
-    def run(self, process: Process[Any, Any], additional_flags: list[str] = []):
+    def run(self, process: Process[Any, Any], **kwargs):
         """Run a step."""
+        from koopmans.calculators.calculator import CalculatorProcess
+        from koopmans.files import File
+
         self._step_running_message(process)
 
         assert process.directory is not None
         if process.directory.exists():
             self.rmdir(File(parent_process=process, relative_path=''))
 
-        # if isinstance(process, CalculatorProcess):
-        #     # Determine the command to run the step based on the configuration of the code in question
-        #     command_config: CommandConfig | None = getattr(self.commands, process.code, None)
-        #     if command_config is None:
-        #         raise ValueError(f'The configuration for {process.code} is missing from {self.__class__.__name__}.codes')
-        #     process.command = command_config.command(additional_flags=additional_flags)
-
-        try:
-            process.run(additional_flags=additional_flags)
-        except CalculationFailed:
-            self.set_status(process, Status.FAILED)
-            self._step_failed_message(process)
-            raise
+        if isinstance(process, CalculatorProcess):
+            process._pre_run()
+            self.run_calculator(process, **kwargs)
+            process._post_run()
+        else:
+            process.run()
 
         self.set_status(process, Status.COMPLETED)
         self._step_completed_message(process)
@@ -74,6 +74,8 @@ class LocalhostEngine(Engine):
     def _get_status(self, step: Process) -> Status:
         """Get the status of a step."""
         if not self.from_scratch:
+            raise NotImplementedError(
+                'Need to replace this with new functionality now that Process covers more classes')
             to_run = True
             if isinstance(step, ImplementedCalc):
                 assert step.directory is not None
@@ -125,6 +127,7 @@ class LocalhostEngine(Engine):
                             element: Optional[str] = None,
                             filename: Optional[str] = None) -> UPFModel:
         """Return the content of a pseudopotential."""
+        from koopmans.files import LocalFile
         if element is None and filename is None:
             raise ValueError('Either `element` or `filename` must be provided')
 
@@ -249,10 +252,6 @@ class LocalhostEngine(Engine):
         else:
             utils.symlink(source.aspath(), destination.aspath(), exist_ok=overwrite, force=overwrite)
 
-    def link_pseudopotential(self, step, src: Path, dest: Path) -> None:
-        """Link a pseudopotential file to the provided step using the default link functionality."""
-        step.link(LocalFile(src), dest, symlink=True)
-
     def file_exists(self, file: File) -> bool:
         """Return True if the file exists."""
         return file.aspath().exists()
@@ -319,6 +318,40 @@ class LocalhostEngine(Engine):
 
     def _teardown(self) -> None:
         pass
+
+    def run_pw_calculator(self, calc: PWCalculator, command):
+        """Run a PWCalculator."""
+        from koopmans.calculators.pw import PWCalculator
+        from koopmans.files import File, LocalFile
+
+        # Create an EspressoProfile
+        profile = EspressoProfile(command=command, pseudo_dir='pseudopotentials')
+
+        # Create an ASE PW calculator
+        ase_calc = ASEPWCalculator(directory=calc.directory, profile=profile)
+        ase_calc.parameters = calc.inputs.parameters.model_dump()
+        ase_calc.parameters['pseudopotentials'] = calc.inputs.pseudopotentials
+
+        # Add the pseudopotentials
+        pseudo_folder = File(parent_process=calc, relative_path='pseudopotentials')
+        self.mkdir(pseudo_folder, parents=True, exist_ok=True)
+        for pseudo in set(calc.inputs.pseudopotentials.values()):
+            src = LocalFile(relative_path=Path(__file__).parents[1] /
+                            'pseudopotentials' / calc.inputs.pseudo_family / pseudo)
+            self.link_file(src, pseudo_folder / pseudo, overwrite=True)
+
+        ase_calc.prefix = 'koopmans'
+
+        # UP TO HERE. NEED TO DECIDE IF WE ARE GOING TO BE ABLE TO PASS ALL LINKED FILES
+        # AS EXPLICIT ARGUMENTS. OR IF THIS WILL BE TOO UNGAINLY. LOOK THROUGH EXISTING
+        # WORKFLOWS TO SEE WHAT SORT OF LINKING IS BEING DONE.
+
+        try:
+            ase_calc.calculate(atoms=calc.inputs.atoms, properties='energy', system_changes=None)
+        except CalculationFailed:
+            self.set_status(calc, Status.FAILED)
+            self._step_failed_message(calc)
+            raise
 
 
 def load_old_calculator(calc):

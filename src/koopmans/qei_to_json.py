@@ -5,7 +5,7 @@ from typing import Any, Dict, Union
 
 from ase_koopmans.dft.kpoints import BandPath
 
-from koopmans.engines import LocalhostEngine
+from koopmans.engines import LocalASEEngine
 from koopmans.io import read, write
 from koopmans.kpoints import Kpoints
 from koopmans.pseudopotentials import local_libraries
@@ -65,7 +65,7 @@ def qei_to_json(input_file: Union[str, Path], json: Union[str, Path],
 
     # Construct the workflow and write the input file to disk
     wf = SinglepointWorkflow(atoms=calc.atoms,
-                             engine=LocalhostEngine(),
+                             engine=LocalASEEngine(),
                              parameters=workflow_settings,
                              calculator_parameters={key: calc.parameters},
                              **kwargs)

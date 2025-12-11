@@ -6,7 +6,7 @@ import numpy as np
 import pytest  # noqa: F401
 from ase_koopmans.io.wannier90 import read_wannier90_out
 
-from koopmans.engines import LocalhostEngine
+from koopmans.engines import LocalASEEngine
 from koopmans.files import LocalFile
 from koopmans.processes import ui
 from koopmans.settings import (PlotSettingsDict,
@@ -39,5 +39,5 @@ def test_ui_si(silicon, tmp_path, datadir, check_patch):
             plotting_parameters=PlotSettingsDict(degauss=0.05, nstep=1000, Emin=-10, Emax=4)
         )
         proc.directory = Path()
-        proc.engine = LocalhostEngine()
+        proc.engine = LocalASEEngine()
         proc.run()

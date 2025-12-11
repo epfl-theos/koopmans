@@ -7,9 +7,10 @@ from ase_koopmans.cell import Cell
 
 from koopmans import ml
 from koopmans.files import File
+from koopmans.pydantic import BaseModel
 from koopmans.variational_orbitals import VariationalOrbital
 
-from .process import BaseModel, Process
+from .pythonprocess import PythonProcess
 
 
 class ExtractCoefficientsFromXMLInput(BaseModel):
@@ -36,7 +37,7 @@ class ExtractCoefficientsFromXMLOutput(BaseModel):
     orbital_coefficients: List[File]
 
 
-class ExtractCoefficientsFromXMLProcess(Process):
+class ExtractCoefficientsFromXMLProcess(PythonProcess):
     """Process that decomposes an orbital into radial basis functions and spherical harmonics."""
 
     input_model = ExtractCoefficientsFromXMLInput
@@ -125,7 +126,7 @@ def compute_power_mat(coeff_matrix: np.ndarray, n_max: int, l_max: int) -> np.nd
     return np.array(power)
 
 
-class ComputePowerSpectrumProcess(Process):
+class ComputePowerSpectrumProcess(PythonProcess):
     """Process for computing the power spectrum of an orbital.
 
     Loads the coefficient vectors corresponding to the orbital and to the total density, computes the corresponding

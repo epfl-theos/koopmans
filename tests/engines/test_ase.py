@@ -1,8 +1,8 @@
-"""Testing `koopmans.engines.localhost`."""
+"""Testing `koopmans.engines.ase`."""
 
 import pytest  # noqa: F401
 
-from koopmans.engines.localhost import LocalhostEngine
+from koopmans.engines.ase import LocalASEEngine
 from koopmans.process_io import IOModel
 from koopmans.status import Status
 from koopmans.workflows import Workflow
@@ -15,7 +15,7 @@ class DummyOutput(IOModel):
 
 
 def test_localhost_running_dummy_workflow(silicon):
-    """Test the LocalhostEngine by running a dummy workflow."""
+    """Test the LocalASEEngine by running a dummy workflow."""
     dummy_message = 'Dummy workflow completed'
 
     class dummy_workflow(Workflow):
@@ -33,10 +33,10 @@ def test_localhost_running_dummy_workflow(silicon):
 
 
 def test_localhost_installing_custom_pseudopotentials(datadir):
-    """Test installing a custom pseudopotential using a LocalhostEngine."""
+    """Test installing a custom pseudopotential using a LocalASEEngine."""
     # Install a pseudopotential, fetch it, and check that it is the same file
 
-    engine = LocalhostEngine()
+    engine = LocalASEEngine()
 
     # Install the pseudopotentials contained in datadir/pseudos
     pseudos = []

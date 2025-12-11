@@ -29,7 +29,7 @@ import koopmans.mpl_config  # noqa: F401
 import matplotlib.pyplot as plt
 # isort: on
 
-from ase_koopmans import Atoms
+from ase import Atoms
 from ase_koopmans.build.supercells import make_supercell
 from ase_koopmans.cell import Cell
 from ase_koopmans.dft.dos import DOS
@@ -44,9 +44,12 @@ from ase_koopmans.spectrum.doscollection import GridDOSCollection
 from ase_koopmans.spectrum.dosdata import GridDOSData
 from upf_tools.pydantic import UPFModel
 
-from koopmans import calculators, settings, utils
+from koopmans import settings, utils
 from koopmans.calculators.calculator import CalcType, CalculatorProcess
-from koopmans.engines import Engine, LocalhostEngine
+from koopmans.calculators.pw import PWCalculator
+from koopmans.calculators.wannier90 import Wannier90Calculator
+from koopmans.engines.ase import LocalASEEngine
+from koopmans.engines.engine import Engine
 from koopmans.files import File
 from koopmans.kpoints import Kpoints
 from koopmans.ml import AbstractMLModel, MLModel, OccEmpMLModels
@@ -414,7 +417,7 @@ InputModel = TypeVar('InputModel', bound=WorkflowInput)
 W = TypeVar('W', bound='Workflow')
 
 
-class Workflow(Process[InputModel, OutputModel], Generic[InputModel, OutputModel]):
+class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, OutputModel]):
     """Abstract base class that defines a Koopmans workflow."""
 
     version: str = Field(
@@ -423,9 +426,7 @@ class Workflow(Process[InputModel, OutputModel], Generic[InputModel, OutputModel
     print_indent: int = 0
     status: Status = Status.NOT_STARTED
     parent_process: Process[Any, Any] | None = None
-    calculations: List[calculators.CalculatorExt] = []
-    processes: List[ProcessProtocol] = []
-    steps: List = []
+    processes: List[Process[Any, Any]] = []
     _variational_orbitals: VariationalOrbitals | None
 
     @model_validator(mode='before')
@@ -654,17 +655,16 @@ class Workflow(Process[InputModel, OutputModel], Generic[InputModel, OutputModel
 
         self._post_run()
 
+    @abstractmethod
+    def _run(self) -> None:
+        """Run the workflow; to be implemented by subclasses."""
+
     def _post_run(self):
         """Run checks and actions after running the workflow."""
         logger = logging.getLogger(__name__)
         logger.info(f'Exiting workflow {self.name} with status {self.status.name} ({self.__class__.__name__})')
         assert self.engine is not None
         self.engine.update_statuses()
-
-    @abstractmethod
-    def _run(self) -> None:
-        """Run the workflow; to be implemented by subclasses."""
-        ...
 
     @property
     def outputs(self) -> OutputModel:
@@ -726,8 +726,8 @@ class Workflow(Process[InputModel, OutputModel], Generic[InputModel, OutputModel
                 elif kw == 'kpath':
                     val = self.inputs.kpoints.path
                 elif kw == 'koffset':
-                    if (calc_class == calculators.PWCalculator and parameters.control.calculation == 'nscf'
-                            or calc_class == calculators.Wannier90Calculator) and self.inputs.kpoints.offset_nscf is not None:
+                    if (calc_class == PWCalculator and parameters.control.calculation == 'nscf'
+                            or calc_class == Wannier90Calculator) and self.inputs.kpoints.offset_nscf is not None:
                         val = self.inputs.kpoints.offset_nscf
                     else:
                         val = self.inputs.kpoints.offset
@@ -787,7 +787,7 @@ class Workflow(Process[InputModel, OutputModel], Generic[InputModel, OutputModel
 
         self.atoms = self.atoms[mask]
 
-    def run_steps(self, steps: Process[Any, Any] | Sequence[Process[Any, Any]], additional_flags: list[str] = []) -> Status:
+    def run_steps(self, steps: Process[Any, Any] | Sequence[Process[Any, Any]], **kwargs) -> Status:
         """Run a sequence of steps in the workflow.
 
         Run either a step or sequence (i.e. list) of steps. If a list is provided, the steps must be able to be run
@@ -826,7 +826,7 @@ class Workflow(Process[InputModel, OutputModel], Generic[InputModel, OutputModel
             status = self.engine.get_status(step)
             if status == Status.NOT_STARTED:
                 logger.info(f'Submitting {step.directory} ({step.__class__.__name__})')
-                self.engine.run(step, additional_flags=additional_flags)
+                self.engine.run(step, **kwargs)
             else:
                 logger.info(f'Step {step.uid} is {status.name}', stacklevel=2)
 
@@ -993,7 +993,7 @@ class Workflow(Process[InputModel, OutputModel], Generic[InputModel, OutputModel
 
         # Engine
         if 'engine' not in kwargs:
-            engine = LocalhostEngine(**bigdct.pop('engine', {}))
+            engine = LocalASEEngine(**bigdct.pop('engine', {}))
         else:
             engine = kwargs.pop('engine')
             engine_parameters = bigdct.pop('engine', {})
@@ -1294,10 +1294,11 @@ class Workflow(Process[InputModel, OutputModel], Generic[InputModel, OutputModel
 
     def _remove_tmpdirs(self):
         """Remove temporary directories created during the workflow."""
-        for calc in self.calculations:
-            if calc.parameters.get('outdir', None) is None:
+        for process in self.processes:
+            outdir_path = get(process, 'parameters.control.outdir', None)
+            if outdir_path is None:
                 continue
-            outdir = File(calc, calc.parameters.outdir)
+            outdir = File(parent_process=process, relative_path=outdir_path)
             if outdir.exists():
                 outdir.unlink()
 

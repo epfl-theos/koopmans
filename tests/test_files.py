@@ -15,7 +15,7 @@ def test_file_reduce(water, tmp_path):
         wf.directory = Path()
         calc = wf.new_calculator('kcp', outdir='tmp', nspin=2, nelec=8, ndw=50, prefix='test_read_ham')
         calc.directory = Path()
-        f = File(parent_process=calc, name='test.txt')
+        f = File(parent_process=calc, relative_path='test.txt')
 
         write_pkl(f, 'test.pkl')
         new_f = read_pkl('test.pkl')

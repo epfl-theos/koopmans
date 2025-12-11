@@ -180,6 +180,7 @@ class CalculatorExt(utils.HasDirectory):
 
         This function is called in _pre_calculate() i.e. immediately before a calculation is run.
         """
+        raise NotImplementedError('Need to replace this with new functionality')
         for dest_filename, (src_file, symlink, recursive_symlink, overwrite) in self.linked_files.items():
             # Convert to a File object
             dest_file = File(self, dest_filename)

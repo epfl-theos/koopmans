@@ -15,7 +15,8 @@ import yaml
 
 import koopmans.mpl_config  # noqa: F401
 from koopmans.cli.input_schema.input_file import KoopmansInput
-from koopmans.engines import Engine, LocalhostEngine
+from koopmans.engines.ase import LocalASEEngine
+from koopmans.engines.engine import Engine
 from koopmans.io import read
 from koopmans.logging_config import setup_logging
 from koopmans.utils import print_alert
@@ -48,7 +49,7 @@ def _pdb_exception_hook(exception_type, exception_value, exception_traceback):
 def initialize_engine(engine_arg: str, engine_config: str | None) -> Engine:
     """Initialize the engine based on the command line arguments."""
     if engine_arg == 'localhost':
-        engine = LocalhostEngine()
+        engine = LocalASEEngine()
     elif engine_arg == 'aiida':
         # raise NotImplementedError("AiiDA engine is not yet implemented")
         # Uncomment the following lines once aiida-koopmans is available

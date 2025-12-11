@@ -6,7 +6,7 @@ from typing import List
 from koopmans.files import File
 from koopmans.pydantic import BaseModel
 
-from .process import Process
+from .pythonprocess import PythonProcess
 
 
 class ConvertFilesFromSpin2To1InputModel(BaseModel):
@@ -22,8 +22,8 @@ class ConvertFilesOutputModel(BaseModel):
     generated_files: List[File]
 
 
-class ConvertFilesFromSpin2To1(Process[ConvertFilesFromSpin2To1InputModel, ConvertFilesOutputModel]):
-    """Process for converting files from spin 2 to spin 1."""
+class ConvertFilesFromSpin2To1(PythonProcess[ConvertFilesFromSpin2To1InputModel, ConvertFilesOutputModel]):
+    """PythonProcess for converting files from spin 2 to spin 1."""
 
     def _run(self):
 
@@ -49,8 +49,8 @@ class ConvertFilesFromSpin1To2InputModel(BaseModel):
     spin_2_down_files: List[Path]
 
 
-class ConvertFilesFromSpin1To2(Process[ConvertFilesFromSpin1To2InputModel, ConvertFilesOutputModel]):
-    """Process for converting files from spin 1 to spin 2."""
+class ConvertFilesFromSpin1To2(PythonProcess[ConvertFilesFromSpin1To2InputModel, ConvertFilesOutputModel]):
+    """PythonProcess for converting files from spin 1 to spin 2."""
 
     def _run(self):
 
@@ -98,8 +98,8 @@ class SwapSpinFilesOutputModel(BaseModel):
     write_directory: File
 
 
-class SwapSpinFilesProcess(Process[SwapSpinFilesInputModel, SwapSpinFilesOutputModel]):
-    """Process for swapping the spin-up and spin-down files in a directory."""
+class SwapSpinFilesProcess(PythonProcess[SwapSpinFilesInputModel, SwapSpinFilesOutputModel]):
+    """PythonProcess for swapping the spin-up and spin-down files in a directory."""
 
     input_model = SwapSpinFilesInputModel
     output_model = SwapSpinFilesOutputModel

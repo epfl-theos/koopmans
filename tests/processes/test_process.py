@@ -4,7 +4,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from koopmans.engines import LocalhostEngine
+from koopmans.engines import LocalASEEngine
 from koopmans.processes import Process
 
 
@@ -45,6 +45,6 @@ def test_process():
     """Test the `Process` class."""
     process = DummyProcess(question="What is the meaning of life, the universe, and everything?")
     process.directory = Path()
-    process.engine = LocalhostEngine()
+    process.engine = LocalASEEngine()
     process.run()
     assert process.outputs.answer == 42

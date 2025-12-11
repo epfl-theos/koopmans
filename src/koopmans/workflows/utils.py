@@ -5,7 +5,7 @@ from collections import OrderedDict
 from ase_koopmans import Atoms
 from upf_tools.pydantic import UPFModel
 
-from koopmans.engines import Engine
+from koopmans.engines.engine import Engine
 
 
 def get_pseudopotentials(atoms: Atoms, engine: Engine, pseudo_library: str):

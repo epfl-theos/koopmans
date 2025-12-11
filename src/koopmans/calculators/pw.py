@@ -7,6 +7,7 @@ from ase_koopmans.dft.kpoints import BandPath
 from ase_koopmans.spectrum.band_structure import BandStructure
 
 from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
+from koopmans.files import LinkedFile
 from koopmans.parameters.pw import PWInputParameters
 
 from .calculator import CalculatorInputs, CalculatorOutputs, CalculatorProcess
