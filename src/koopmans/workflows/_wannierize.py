@@ -188,20 +188,20 @@ class WannierizeWorkflow(Workflow[WannierizeInput, WannierizeOutput]):
 
         # If smearing was used, remove it for all subsequent calculations
             # Remove smearing for all subsequent calculations
-        if self.parameters.initialize_with_smearing:
+        if self.inputs.config.initialize_with_smearing:
             # Prevent all future calculations from using smearing
-            self.calculator_parameters['pw'].occupations = 'fixed'
-            self.calculator_parameters['pw'].smearing = None
-            self.calculator_parameters['pw'].degauss = None
+            self.inputs.calculator_parameters.pw.occupations = 'fixed'
+            self.inputs.calculator_parameters.pw.smearing = None
+            self.inputs.calculator_parameters.pw.degauss = None
 
             # Run an scf calculation without smearing
-            calc_scf_no_smearing = self.new_calculator('pw')
-            calc_scf_no_smearing.parameters.occupations = 'fixed'
-            calc_scf_no_smearing.parameters.pop('nbnd', None)
-            calc_scf_no_smearing.prefix = 'scf_no_smearing'
-            calc_scf_no_smearing.parameters.restart_mode = 'restart'
-            calc_scf_no_smearing.link(File(calc_scf, calc_scf.parameters.outdir),
-                                      calc_scf_no_smearing.parameters.outdir)
+            calc_scf_no_smearing = self.new_calculator(PWCalculator)
+            calc_scf_no_smearing.inputs.parameters.occupations = 'fixed'
+            calc_scf_no_smearing.inputs.parameters.pop('nbnd', None)
+            calc_scf_no_smearing.name = 'scf_no_smearing'
+            calc_scf_no_smearing.inputs.parameters.restart_mode = 'restart'
+            calc_scf_no_smearing.inputs.outdir = LinkedFile(calc_scf.outputs.outdir)
+
             if self._scf_kgrid:
                 calc_scf_no_smearing.parameters.kpts = self._scf_kgrid
             status = self.run_steps(calc_scf_no_smearing)

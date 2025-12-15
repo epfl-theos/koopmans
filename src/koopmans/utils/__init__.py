@@ -15,7 +15,7 @@ from ._io import (construct_atomic_positions_block,
                   read_alpha_files, read_atomic_positions,
                   read_cell_parameters, read_wannier_hr_file,
                   write_alpha_files)
-from ._misc import flatten, update_nested_dict
+from ._misc import flatten, remove_numpy_from_dict, update_nested_dict
 from ._os import (HasDirectory, chdir, chdir_logic, copy_file, find_executable,
                   set_env, symlink, symlink_tree, system_call)
 from ._spin import Spin

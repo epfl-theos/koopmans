@@ -132,8 +132,8 @@ class Process(BaseModel, Generic[InputModel, OutputModel]):
         """Dump the outputs of the process to the file system."""
         from koopmans.files import File
         assert self.directory is not None
-        dst = File(self, f'{self.name}_outputs.pkl')
-        dst.write_bytes(dill.dumps(self.outputs))
+        dst = File(parent_process=self, relative_path=f'{self.name}_outputs.json')
+        dst.write_text(self.outputs.model_dump_json(indent=2, exclude_defaults=True, exclude_none=True))
 
     def load_outputs(self):
         """Load the outputs of the process from the file system."""

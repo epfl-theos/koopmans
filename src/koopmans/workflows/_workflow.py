@@ -714,28 +714,26 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         kwargs = {}
         # For the k-points, the Workflow has two options: self.kpoints.grid and self.kpoints.path. A calculator should
         # only ever have one of these two. By default, use the grid.
-        if 'kpts' in parameters.model_fields:
-            kwargs['kpts'] = kpts if kpts is not None else self.inputs.kpoints.grid
 
-        # Add further information to the calculator as required
-        for kw in ['gamma_only', 'kgrid', 'kpath', 'koffset', 'plotting']:
-            if kw not in override and kw in parameters.model_fields:
-                val: Any
-                if kw == 'kgrid':
-                    val = self.inputs.kpoints.grid
-                elif kw == 'kpath':
-                    val = self.inputs.kpoints.path
-                elif kw == 'koffset':
-                    if (calc_class == PWCalculator and parameters.control.calculation == 'nscf'
-                            or calc_class == Wannier90Calculator) and self.inputs.kpoints.offset_nscf is not None:
-                        val = self.inputs.kpoints.offset_nscf
-                    else:
-                        val = self.inputs.kpoints.offset
-                elif kw == 'gamma_only':
-                    val = self.inputs.kpoints.gamma_only
-                else:
-                    val = getattr(self, kw)
-                kwargs[kw] = val
+        # # Add further information to the calculator as required
+        # for kw in ['gamma_only', 'kgrid', 'kpath', 'koffset', 'plotting']:
+        #     if kw not in override and kw in parameters.model_fields:
+        #         val: Any
+        #         if kw == 'kgrid':
+        #             val = self.inputs.kpoints.grid
+        #         elif kw == 'kpath':
+        #             val = self.inputs.kpoints.path
+        #         elif kw == 'koffset':
+        #             if (calc_class == PWCalculator and parameters.control.calculation == 'nscf'
+        #                     or calc_class == Wannier90Calculator) and self.inputs.kpoints.offset_nscf is not None:
+        #                 val = self.inputs.kpoints.offset_nscf
+        #             else:
+        #                 val = self.inputs.kpoints.offset
+        #         elif kw == 'gamma_only':
+        #             val = self.inputs.kpoints.gamma_only
+        #         else:
+        #             val = getattr(self, kw)
+        #         kwargs[kw] = val
 
         if calc_class.input_model is None:
             raise ValueError(
@@ -745,6 +743,8 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
                 **{k: v.filename.name for k, v in self.inputs.pseudopotentials.items() if v.filename is not None})
         if 'pseudo_family' in calc_class.input_model.model_fields:
             kwargs['pseudo_family'] = self.inputs.config.pseudo_library
+        if 'kpoints' in calc_class.input_model.model_fields:
+            kwargs['kpoints'] = copy.deepcopy(self.inputs.kpoints)
 
         # Create the calculator
         calc = calc_class(name=name, parent_process=self, inputs={
@@ -838,14 +838,7 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
 
                 # Store the results of the step
                 for step in steps:
-                    if step not in self.steps:
-                        self.steps.append(step)
-                    if isinstance(step, calculators.ImplementedCalc) and step not in self.calculations:
-                        self.calculations.append(step)
-                        # Ensure we inherit any modifications made to the atoms object
-                        if step.atoms != self.atoms:
-                            self.atoms = step.atoms
-                    elif isinstance(step, Process) and step not in self.processes:
+                    if step not in self.processes:
                         self.processes.append(step)
 
         # If any of the steps are running, return RUNNING

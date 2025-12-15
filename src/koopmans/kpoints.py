@@ -11,13 +11,14 @@ from typing import (Annotated, Any, ClassVar, Dict, List, Literal, Optional,
                     Union)
 
 import numpy as np
-from ase_koopmans.cell import Cell
+from ase.cell import Cell
 from ase_koopmans.dft.kpoints import (BandPath, kpoint_convert,
                                       parse_path_string,
                                       resolve_kpt_path_string)
-from pydantic import Field
+from pydantic import Field, field_serializer, field_validator
 
 from koopmans.pydantic import BaseModel
+from koopmans.utils import remove_numpy_from_dict
 
 ZeroOrOne = Literal[0, 1]
 Fractional = Annotated[float, Field(gt=-1, le=1)]
@@ -58,6 +59,21 @@ class Kpoints(BaseModel):
     path: BandPath
     gamma_only: Literal[False] = False
 
+    @field_serializer("path")
+    def serialize_path(self, v: BandPath) -> dict[str, Any]:
+        dct = v.todict()
+        dct.pop('labelseq')
+        dct['cell'] = dct['cell'].todict()
+        return remove_numpy_from_dict(dct)
+
+    @field_validator("path", mode="before")
+    @classmethod
+    def coerce_path(cls, value: Any) -> BandPath:
+        if isinstance(value, dict):
+            value['cell'] = Cell(**value['cell'])
+            return BandPath(**value)
+        return value
+
     @classmethod
     def from_path_as_string(cls, path: str | None, cell: Cell, density: float = 10.0, **kwargs) -> Kpoints:
         """Create a Kpoints object using a string for the path instead of a `BandPath` object.
@@ -69,44 +85,6 @@ class Kpoints(BaseModel):
         """
         bandpath = convert_kpath_str_to_bandpath(path, cell, density)
         return cls(path=bandpath, **kwargs)
-
-    def tojson(self) -> Dict[str, Union[str, bool, List[int], Dict[str, Any]]]:
-        """Convert the object to a dictionary."""
-        raise NotImplementedError()
-        dct: Dict[str, Union[str, bool, List[int], Dict[str, Any]]] = {}
-        for k, v in self.__dict__.items():
-            k = k.lstrip('_')
-            if isinstance(v, BandPath):
-                # Store the path and the density, but not the cell because that is stored elsewhere
-                dct.update(**kpath_to_dict(v))
-                dct.pop('cell')
-            else:
-                dct[k] = v
-        return dct
-
-    def todict(self) -> Dict[str, Union[str, bool, List[int], BandPath]]:
-        """Convert the object to a dictionary with added information required to reconstruct the object."""
-        raise NotImplementedError()
-        dct = self.tojson()
-
-        # We also need the cell
-        assert isinstance(self.path, BandPath)
-        dct['cell'] = self.path.cell
-
-        # Adding information required by the json decoder
-        dct['__koopmans_name__'] = self.__class__.__name__
-        dct['__koopmans_module__'] = self.__class__.__module__
-        return dct
-
-    @classmethod
-    def fromdict(cls, dct) -> Kpoints:
-        """Create an instance of the class from a dictionary."""
-        # Remove name and module if they're there
-        raise NotImplementedError()
-        dct.pop('__koopmans_name__', None)
-        dct.pop('__koopmans_module__', None)
-
-        return cls(**dct)
 
     def __eq__(self, other: object) -> bool:
         raise NotImplementedError()

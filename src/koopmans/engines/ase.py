@@ -16,15 +16,16 @@ from ase.calculators.espresso import EspressoProfile
 from upf_tools.pydantic import UPFModel
 
 from koopmans import utils
+from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.commands import CommandConfig
 from koopmans.pseudopotentials import (element_from_pseudo_filename,
                                        local_libraries)
 from koopmans.status import Status
 
-from .engine import Engine
+from .engine import Engine, Response
 
 if TYPE_CHECKING:
-    from koopmans.calculators.pw import PWCalculator
+    from koopmans.calculators.pw import PWCalculator, PWInputs, PWOutputs
     from koopmans.files import File
     from koopmans.processes.process import Process
 
@@ -319,28 +320,44 @@ class LocalASEEngine(Engine):
     def _teardown(self) -> None:
         pass
 
-    def run_pw_calculator(self, calc: PWCalculator, command):
-        """Run a PWCalculator."""
-        from koopmans.calculators.pw import PWCalculator
+    def run_pw_calculator(self, calc: PWCalculator, command: str) -> PWOutputs:
+        """Run a PW calculation."""
+        from koopmans.calculators.pw import PWOutputs
         from koopmans.files import File, LocalFile
 
         # Create an EspressoProfile
+        command, _ = command.split('-in')
         profile = EspressoProfile(command=command, pseudo_dir='pseudopotentials')
 
         # Create an ASE PW calculator
         ase_calc = ASEPWCalculator(directory=calc.directory, profile=profile)
-        ase_calc.parameters = calc.inputs.parameters.model_dump()
+
+        # Set up the calculator parameters
+        dct = calc.inputs.parameters.model_dump(exclude_none=True, exclude_defaults=True)
+        dct['system'].pop('celldm', None)  # ASE does not support celldms
+        dct['system']['ibrav'] = 0
+        if dct['system'].get('nspin', 1) == 1:
+            del dct['system']['tot_magnetization']
+        ase_calc.parameters['input_data'] = dct
+
+        # Set up the k-points
+        if calc.inputs.parameters.control.calculation == 'bands':
+            ase_calc.parameters['kpts'] = calc.inputs.kpoints.path
+        else:
+            ase_calc.parameters['kpts'] = calc.inputs.kpoints.grid
+
+        # Set up the pseudopotentials
         ase_calc.parameters['pseudopotentials'] = calc.inputs.pseudopotentials
 
-        # Add the pseudopotentials
-        pseudo_folder = File(parent_process=calc, relative_path='pseudopotentials')
+        # Copy over the pseudopotentials
+        pseudo_folder = LocalFile(relative_path=calc.directory / 'pseudopotentials')
         self.mkdir(pseudo_folder, parents=True, exist_ok=True)
         for pseudo in set(calc.inputs.pseudopotentials.values()):
             src = LocalFile(relative_path=Path(__file__).parents[1] /
                             'pseudopotentials' / calc.inputs.pseudo_family / pseudo)
             self.link_file(src, pseudo_folder / pseudo, overwrite=True)
 
-        ase_calc.prefix = 'koopmans'
+        ase_calc.prefix = 'espresso'
 
         # UP TO HERE. NEED TO DECIDE IF WE ARE GOING TO BE ABLE TO PASS ALL LINKED FILES
         # AS EXPLICIT ARGUMENTS. OR IF THIS WILL BE TOO UNGAINLY. LOOK THROUGH EXISTING
@@ -348,10 +365,28 @@ class LocalASEEngine(Engine):
 
         try:
             ase_calc.calculate(atoms=calc.inputs.atoms, properties='energy', system_changes=None)
-        except CalculationFailed:
-            self.set_status(calc, Status.FAILED)
+            error_message = None
+            error_type = None
+            status = Status.COMPLETED
+        except CalculationFailed as error:
+            outputs = None
+            status = Status.FAILED
             self._step_failed_message(calc)
-            raise
+            error_message = str(error)
+            error_type = type(error)
+
+        fermi_level = ase_calc.results.get('fermi_level', None)
+        if not isinstance(fermi_level, list):
+            fermi_level = [fermi_level]
+
+        outdir = File(parent_process=calc, relative_path=calc.inputs.parameters.control.outdir)
+
+        outputs = PWOutputs(total_energy=ase_calc.results['energy'],
+                            eigenvalues=ase_calc.results['eigenvalues'],
+                            fermi_level=fermi_level,
+                            outdir=outdir)
+
+        return Response(status=status, outputs=outputs, error_message=error_message, error_type=error_type)
 
 
 def load_old_calculator(calc):

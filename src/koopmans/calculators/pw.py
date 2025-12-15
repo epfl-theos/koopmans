@@ -5,9 +5,11 @@ from ase_koopmans import Atoms
 from ase_koopmans.calculators.espresso import Espresso
 from ase_koopmans.dft.kpoints import BandPath
 from ase_koopmans.spectrum.band_structure import BandStructure
+from pydantic import model_validator
 
 from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
-from koopmans.files import LinkedFile
+from koopmans.files import File, LinkedFile
+from koopmans.kpoints import GammaOnlyKpoints, Kpoints
 from koopmans.parameters.pw import PWInputParameters
 
 from .calculator import CalculatorInputs, CalculatorOutputs, CalculatorProcess
@@ -16,12 +18,23 @@ from .calculator import CalculatorInputs, CalculatorOutputs, CalculatorProcess
 class PWInputs(CalculatorInputs):
     parameters: PWInputParameters
     pseudopotentials: dict[str, str]
+    kpoints: Kpoints | GammaOnlyKpoints
     pseudo_family: str
+    outdir: LinkedFile | None = None
+
+    @model_validator(mode='after')
+    def check_outdir_provided_if_required(self):
+        if self.parameters.control.restart_mode == 'restart' and self.outdir is None:
+            raise ValueError('Please provide an `outdir` when using `restart_mode = "restart"`')
+        return self
 
 
 class PWOutputs(CalculatorOutputs):
-    total_energy: float | None = None
+    total_energy: float
+    eigenvalues: np.ndarray
+    fermi_level: list[float]
     band_structure: BandStructure | None = None
+    outdir: File
 
 
 class PWCalculator(CalculatorProcess[PWInputs, PWOutputs]):

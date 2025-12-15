@@ -7,25 +7,7 @@ from pydantic import Field, field_serializer
 
 from koopmans.processes.process import Process
 from koopmans.pydantic import BaseModel
-
-
-def convert_numpy(obj: Any) -> Any:
-    """
-    Recursively convert NumPy arrays to Python lists inside nested structures.
-    Supports dict, list, tuple, set, and nested combinations.
-    """
-    if isinstance(obj, dict):
-        return {k: convert_numpy(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [convert_numpy(v) for v in obj]
-    elif isinstance(obj, tuple):
-        return tuple(convert_numpy(v) for v in obj)
-    elif isinstance(obj, set):
-        return {convert_numpy(v) for v in obj}
-    elif isinstance(obj, np.ndarray):
-        return obj.tolist()
-    else:
-        return obj
+from koopmans.utils import remove_numpy_from_dict
 
 
 class CalculatorInputs(BaseModel):
@@ -33,7 +15,7 @@ class CalculatorInputs(BaseModel):
 
     @field_serializer("atoms")
     def serialize_atoms(self, v: Atoms) -> dict[str, Any]:
-        return convert_numpy(v.todict())
+        return remove_numpy_from_dict(v.todict())
 
 
 class CalculatorOutputs(BaseModel):

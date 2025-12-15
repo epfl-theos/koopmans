@@ -4,10 +4,9 @@ import copy
 from typing import Dict, TypedDict
 
 import numpy as np
+from ase.lattice import (BCC, BCT, CUB, FCC, HEX, MCL, MCLC, ORC, ORCC, ORCF,
+                         ORCI, RHL, TET, TRI, BravaisLattice)
 from ase_koopmans.cell import Cell
-from ase_koopmans.lattice import (BCC, BCT, CUB, FCC, HEX, MCL, MCLC, ORC,
-                                  ORCC, ORCF, ORCI, RHL, TET, TRI,
-                                  BravaisLattice)
 from ase_koopmans.units import Bohr
 
 

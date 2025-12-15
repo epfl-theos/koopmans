@@ -6,7 +6,8 @@ import logging
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Generator, Literal, Optional, overload
+from typing import (TYPE_CHECKING, Any, Generator, Generic, Literal, Optional,
+                    TypeVar, overload)
 
 from pydantic import Field
 from upf_tools.pydantic import UPFModel
@@ -19,7 +20,7 @@ from koopmans.status import Status
 
 if TYPE_CHECKING:
     from koopmans.calculators.calculator import CalculatorProcess
-    from koopmans.calculators.pw import PWCalculatorProcess
+    from koopmans.calculators.pw import PWCalculator, PWInputs, PWOutputs
     from koopmans.files import File
 
 
@@ -266,8 +267,26 @@ class Engine(BaseModel, ABC):
             setattr(this_command_config, k, v)
         command = this_command_config.command()
 
-        caller(calc, command)
+        response = caller(calc, command)
+        # UP TO HERE -- DON"T WANT TO DO THIS PATTERN BECAUSE THIS REQUIRES OUTPUTS TO BE DEFINED
+        # ALREADY WHICH DOESN'T WORK FOR AIIDA
+
+        if response.status == Status.COMPLETED:
+            calc.outputs = response.outputs
+
+        return
 
     @abstractmethod
-    def run_pw_calculator(self, calc: PWCalculatorProcess, command: str):
+    def run_pw_calculator(self, calc: PWCalculator, command: str) -> Response[PWOutputs]:
         ...
+
+
+OutputModel = TypeVar('OutputModel', bound=BaseModel)
+
+
+class Response(BaseModel, Generic[OutputModel]):
+    """Response of a run_calculator call."""
+    status: Status
+    outputs: OutputModel | None
+    error_message: str | None = None
+    error_type: type | None = None
