@@ -15,9 +15,9 @@ from typing import (Annotated, Any, Dict, List, Optional, Sequence, Type,
 
 import numpy as np
 import numpy.typing as npt
-from ase_koopmans.dft.kpoints import BandPath
-from ase_koopmans.spectrum.band_structure import BandStructure
-from ase_koopmans.spectrum.doscollection import GridDOSCollection
+from ase.dft.kpoints import BandPath
+from ase.spectrum.band_structure import BandStructure
+from ase.spectrum.doscollection import GridDOSCollection
 from pydantic import Field
 
 # isort: off
@@ -27,6 +27,7 @@ import matplotlib.pyplot as plt
 
 from koopmans import calculators, utils
 from koopmans.calculators.pw import PWCalculator
+from koopmans.calculators.pw2wannier90 import PW2Wannier90Calculator
 from koopmans.calculators.wannier90 import Wannier90Calculator
 from koopmans.files import File
 from koopmans.processes.wannier import (ExtendProcess, MergeProcess,
@@ -38,14 +39,14 @@ from koopmans.processes.wjl import (WannierJLCheckNeighborsProcess,
                                     WannierJLGenerateNeighborsProcess,
                                     WannierJLSplitProcess)
 from koopmans.projections import (BlockID, ExplicitProjections,
-                                  ImplicitProjectionsBlock, Projections,
-                                  ProjectionsBlock)
+                                  ExplicitProjectionsBlock,
+                                  ImplicitProjectionsBlock, Projections)
 from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 from koopmans.utils import Spin
 from koopmans.utils.warnings import IncommensurateProjectionsWarning, warn
 
-from ._workflow import Workflow, WorkflowInput
+from ._workflow import VariationalOrbital, Workflow, WorkflowInput
 
 CalcExtType = TypeVar('CalcExtType', bound='calculators.CalculatorExt')
 
@@ -182,7 +183,7 @@ class WannierizeWorkflow(Workflow[WannierizeInput, WannierizeOutput]):
         calc_scf = self.new_calculator(PWCalculator, name='scf', override={'system.nbnd': None})
         if self.inputs.scf_kgrid:
             calc_scf.inputs.parameters.kpts = self.inputs.scf_kgrid
-        status = self.run_steps(calc_scf)
+        status = self.run_processes(calc_scf)
         if status != Status.COMPLETED:
             return
 
@@ -204,7 +205,7 @@ class WannierizeWorkflow(Workflow[WannierizeInput, WannierizeOutput]):
 
             if self._scf_kgrid:
                 calc_scf_no_smearing.parameters.kpts = self._scf_kgrid
-            status = self.run_steps(calc_scf_no_smearing)
+            status = self.run_processes(calc_scf_no_smearing)
             if status != Status.COMPLETED:
                 return
 
@@ -212,22 +213,20 @@ class WannierizeWorkflow(Workflow[WannierizeInput, WannierizeOutput]):
             # without smearing
             calc_scf = calc_scf_no_smearing
 
-        calc_nscf = self.new_calculator('pw', calculation='nscf', nosym=True, noinv=True)
-        calc_nscf.prefix = 'nscf'
-        calc_nscf.link(File(calc_scf, calc_scf.parameters.outdir))
-        status = self.run_steps(calc_nscf)
+        calc_nscf = self.new_calculator(PWCalculator, name='nscf',
+                                        override={'control.calculation': 'nscf', 'system.nosym': True, 'system.noinv': True})
+        calc_nscf.inputs.outdir = calc_scf.outputs.outdir
+        status = self.run_processes(calc_nscf)
         if status != Status.COMPLETED:
             return
 
-        if self.parameters.calculate_bands or self.parameters.block_wannierization_threshold:
+        if self.inputs.config.calculate_bands or self.inputs.config.block_wannierization_threshold:
             # Run a "bands" calculation
-            calc_pw_bands = self.new_calculator('pw', calculation='bands', kpts=self.kpoints.path)
-            calc_pw_bands.prefix = 'bands'
+            calc_pw_bands = self.new_calculator(PWCalculator, name='bands',
+                                                override={'control.calculation': 'bands'})
+            calc_pw_bands.inputs.outdir = calc_scf.outputs.outdir
 
-            # Link the save directory so that the bands calculation can use the old density
-            calc_pw_bands.link(File(calc_scf, calc_scf.parameters.outdir), calc_pw_bands.parameters.outdir)
-
-            status = self.run_steps(calc_pw_bands)
+            status = self.run_processes(calc_pw_bands)
             if status != Status.COMPLETED:
                 return
         else:
@@ -241,8 +240,8 @@ class WannierizeWorkflow(Workflow[WannierizeInput, WannierizeOutput]):
         wannier90_calculations: List[Wannier90Calculator] = []
         new_projections = None
 
-        if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] \
-                and self.parameters.init_empty_orbitals in ['mlwfs', 'projwfs']:
+        if self.inputs.config.init_orbitals in [VariationalOrbital.MLWFS, VariationalOrbital.PROJWFS] \
+                and self.inputs.config.init_empty_orbitals in [VariationalOrbital.MLWFS, VariationalOrbital.PROJWFS]:
 
             # Store the number of electrons for each spin channel in self.projections. It needs to know this
             # to work out which bands to merge with one another.
@@ -250,11 +249,11 @@ class WannierizeWorkflow(Workflow[WannierizeInput, WannierizeOutput]):
                 nelec = self.number_of_electrons(spin)
                 if spin == Spin.NONE:
                     nelec //= 2
-                self.projections.num_occ_bands[spin] = nelec
+                self.inputs.projections.num_occ_bands[spin] = nelec
 
             block_subworkflows: list[Workflow] = []
             groups: list[list[int] | None] = []
-            for block in self.projections:
+            for block in self.inputs.projections:
                 # Check if the block should be split. It will be split if...
                 # - the block includes both occupied and empty bands
                 # - the are gaps between bands that are wider than `block_wannierization_threshold`
@@ -263,10 +262,10 @@ class WannierizeWorkflow(Workflow[WannierizeInput, WannierizeOutput]):
                     n_occ_bands //= 2
 
                 if calc_pw_bands is not None:
-                    bs = calc_pw_bands.results['band structure']
+                    bs = calc_pw_bands.outputs.band_structure
                     ispin = 1 if block.spin == Spin.DOWN else 0
-                    all_groups = detect_band_blocks(bs._energies[ispin, :, :self.projections.num_wann(block.spin)],
-                                                    tol=self.parameters.block_wannierization_threshold,
+                    all_groups = detect_band_blocks(bs._energies[ispin, :, :self.inputs.projections.num_wann(block.spin)],
+                                                    tol=self.inputs.config.block_wannierization_threshold,
                                                     num_occ_bands=n_occ_bands)
 
                     # Restrict the groups to only those bands that are in this particular block
@@ -287,23 +286,24 @@ class WannierizeWorkflow(Workflow[WannierizeInput, WannierizeOutput]):
                     subworkflow_class = WannierizeAndSplitBlockWorkflow
                     kwargs['groups'] = groups
                     kwargs['files_to_merge'] = self._files_to_merge + [MergeableFile.HR]
-                    minimize = self.parameters.init_orbitals == 'mlwfs'
+                    minimize = self.inputs.config.init_orbitals == VariationalOrbital.MLWFS
                 else:
                     subworkflow_class = WannierizeBlockWorkflow
                     if max(block.include_bands) <= n_occ_bands:
                         # Block consists purely of occupied bands
-                        minimize = self.parameters.init_orbitals == 'mlwfs'
+                        minimize = self.inputs.config.init_orbitals == VariationalOrbital.MLWFS
                     else:
                         # Block consists purely of empty bands
-                        minimize = self.parameters.init_empty_orbitals == 'mlwfs'
+                        minimize = self.inputs.config.init_empty_orbitals == VariationalOrbital.MLWFS
 
                 subworkflow = subworkflow_class.fromparent(self,
                                                            minimize=minimize,
-                                                           force_nspin2=self._force_nspin2,
+                                                           force_nspin2=self.inputs.force_nspin2,
                                                            block=block,
-                                                           pw_outdir=File(calc_nscf, calc_nscf.parameters.outdir),
+                                                           pw_prefix=calc_nscf.inputs.parameters.control.prefix,
+                                                           pw_outdir=calc_nscf.outputs.outdir,
                                                            **kwargs)
-                if len(self.projections) > 1:
+                if len(self.inputs.projections) > 1:
                     subworkflow.name = f'Wannierize {str(block.id).replace("_", " ").replace("block", "Block")}'
                 else:
                     subworkflow.name = 'Wannierize'
@@ -376,7 +376,7 @@ class WannierizeWorkflow(Workflow[WannierizeInput, WannierizeOutput]):
                                                                 for calc in src_calcs],
                                                      dst_file=f'{prefix}_hr.dat')
                         merge_hr_proc.name = f'merge_{merged_block_id.label}_wannier_hamiltonian'
-                        status = self.run_steps(merge_hr_proc)
+                        status = self.run_processes(merge_hr_proc)
                         if status != Status.COMPLETED:
                             return
                         hr_files[merged_block_id] = merge_hr_proc.outputs.dst_file
@@ -388,7 +388,7 @@ class WannierizeWorkflow(Workflow[WannierizeInput, WannierizeOutput]):
                                                                for calc in src_calcs],
                                                     dst_file=f'{prefix}_u.mat')
                         merge_u_proc.name = f'merge_{merged_block_id.label}_wannier_u'
-                        status = self.run_steps(merge_u_proc)
+                        status = self.run_processes(merge_u_proc)
                         if status != Status.COMPLETED:
                             return
                         u_files[merged_block_id] = merge_u_proc.outputs.dst_file
@@ -400,7 +400,7 @@ class WannierizeWorkflow(Workflow[WannierizeInput, WannierizeOutput]):
                             src_files=[File(calc, calc.prefix + '_centres.xyz') for calc in src_calcs],
                             dst_file=f'{prefix}_centres.xyz')
                         merge_centers_proc.name = f'merge_{merged_block_id.label}_wannier_centers'
-                        status = self.run_steps(merge_centers_proc)
+                        status = self.run_processes(merge_centers_proc)
                         if status != Status.COMPLETED:
                             return
                         centers_files[merged_block_id] = merge_centers_proc.outputs.dst_file
@@ -449,7 +449,7 @@ class WannierizeWorkflow(Workflow[WannierizeInput, WannierizeOutput]):
                                                                       calc_with_u_dis.prefix + '_u_dis.mat'),
                                                         dst_file=calc_with_u_dis.prefix + f'{filling_label}_u_dis.mat')
                             extend_proc.name = f'extend_{merged_block_id.label}_wannier_u_dis'
-                            status = self.run_steps(extend_proc)
+                            status = self.run_processes(extend_proc)
                             if status != Status.COMPLETED:
                                 return
                             u_dis_file = extend_proc.outputs.dst_file
@@ -457,7 +457,7 @@ class WannierizeWorkflow(Workflow[WannierizeInput, WannierizeOutput]):
 
         dos = None
         bs_list = []
-        if self.parameters.calculate_bands:
+        if self.input.config.calculate_bands:
             assert calc_pw_bands is not None
 
             # Calculate a projected DOS
@@ -468,7 +468,7 @@ class WannierizeWorkflow(Workflow[WannierizeInput, WannierizeOutput]):
                 calc_dos.pseudo_dir = calc_pw_bands.parameters.pseudo_dir
                 calc_dos.parameters.prefix = calc_pw_bands.parameters.prefix
                 calc_dos.link(File(calc_pw_bands, calc_pw_bands.parameters.outdir), calc_dos.parameters.outdir)
-                status = self.run_steps(calc_dos)
+                status = self.run_processes(calc_dos)
                 if status != Status.COMPLETED:
                     return
 
@@ -540,7 +540,7 @@ class WannierizeWorkflow(Workflow[WannierizeInput, WannierizeOutput]):
 
         return
 
-    def merge_wannier_files(self, block: List[ProjectionsBlock], filling_label: str, prefix: str = 'wann'):
+    def merge_wannier_files(self, block: List[ExplicitProjectionsBlock | ImplicitProjectionsBlock], filling_label: str, prefix: str = 'wann'):
         """Merge various Wannier files for a block of bands.
 
         This function merges hr (Hamiltonian), u (rotation matrix), and wannier centers files of a collection of blocks
@@ -566,10 +566,11 @@ class WannierizeBlockOutput(BaseModel):
 
 
 class WannierizeBlockInput(WorkflowInput):
-    block: ProjectionsBlock
+    block: ExplicitProjectionsBlock | ImplicitProjectionsBlock
     force_nspin2: bool = False
     minimize: bool = True
     pw_outdir: File | None = None
+    pw_prefix: str | None = None
     amn_file: File | None = None
     eig_file: File | None = None
     mmn_file: File | None = None
@@ -584,35 +585,30 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockInput, WannierizeBlockOutp
 
     def _run(self) -> None:
 
-        calc_type = 'wannier90'
-        if self.block.spin != Spin.NONE:
-            calc_type += f'_{self.block.spin}'
-
         calc_wannier90_pp: calculators.Wannier90Calculator | None = None
-        if self.amn_file is None or self.eig_file is None or self.mmn_file is None:
-            if self.pw_outdir is None:
+        if self.inputs.amn_file is None or self.inputs.eig_file is None or self.inputs.mmn_file is None:
+            if self.inputs.pw_outdir is None:
                 raise ValueError(
                     'Wannierization requires either a `pw_outdir` or `.amn`, `.eig`, `.mmn`, and `.nnkp`, files')
 
             # pre-processing Wannier90 calculation
-            calc_wannier90_pp = self.new_calculator(calc_type, **self.block.wannier90_kwargs)
-            assert isinstance(calc_wannier90_pp, calculators.Wannier90Calculator)
-            calc_wannier90_pp.prefix = 'wannier90_preproc'
-            status = self.run_steps(calc_wannier90_pp, pp=True)
+            calc_wannier90_pp = self.new_calculator(Wannier90Calculator, name='wannier90_preproc',
+                                                    projections=self.inputs.block)
+            status = self.run_processes(calc_wannier90_pp, pp=True)
             if status != Status.COMPLETED:
                 return
 
             # pw2wannier90 calculation
             calc_p2w: calculators.PW2WannierCalculator = self.new_calculator(
-                'pw2wannier', spin_component=self.block.spin)
-            calc_p2w.prefix = 'pw2wannier90'
-            if calc_wannier90_pp.parameters.wannier_plot:
+                PW2Wannier90Calculator, name='pw2wannier90',
+                override={'spin_component': self.inputs.block.spin, 'prefix': self.inputs.pw_prefix},
+                pw_outdir=self.inputs.pw_outdir, nnkp_file=calc_wannier90_pp.outputs.nnkp_file,
+            )
+            if calc_wannier90_pp.inputs.parameters.wannier_plot:
                 # If we want to plot the Wannier functions, we need to write the UNK files
-                calc_p2w.parameters.write_unk = True
-            calc_p2w.link(self.pw_outdir, calc_p2w.parameters.outdir, symlink=True)
-            calc_p2w.link(File(calc_wannier90_pp, calc_wannier90_pp.prefix + '.nnkp'),
-                          calc_p2w.parameters.seedname + '.nnkp')
-            status = self.run_steps(calc_p2w)
+                calc_p2w.inputs.parameters.write_unk = True
+
+            status = self.run_processes(calc_p2w)
             if status != Status.COMPLETED:
                 return
 
@@ -632,7 +628,7 @@ class WannierizeBlockWorkflow(Workflow[WannierizeBlockInput, WannierizeBlockOutp
         if calc_wannier90.parameters.wannier_plot:
             for src in File(calc_p2w, '.').glob('UNK*'):
                 calc_wannier90.link(src, src.relative_path, symlink=True)
-        status = self.run_steps(calc_wannier90)
+        status = self.run_processes(calc_wannier90)
         if status != Status.COMPLETED:
             return
         self.block.wannier90_calc = calc_wannier90
@@ -681,7 +677,7 @@ class WannierizeAndSplitBlockOutput(BaseModel):
     """Output model for the WannierizeAndSplitBlockWorkflow."""
 
     block_outputs: List[WannierizeBlockOutput]
-    blocks: Sequence[ProjectionsBlock]
+    blocks: Sequence[ExplicitProjectionsBlock | ImplicitProjectionsBlock]
     u_file: File | None = None
     u_dis_file: File | None = None
     centers_file: File | None = None
@@ -690,7 +686,7 @@ class WannierizeAndSplitBlockOutput(BaseModel):
 
 class WannierizeAndSplitBlockInput(WorkflowInput):
     pw_outdir: File
-    block: ProjectionsBlock
+    block: ExplicitProjectionsBlock | ImplicitProjectionsBlock
     groups: List[List[int]]
     force_nspin2: bool = False
     minimize: bool = True
@@ -723,7 +719,7 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockInput, Wan
             eig_file=wannierize_wf.outputs.eig_file,
         )
         check_nnkp_process.name = 'check_wjl_compatibility'
-        status = self.run_steps(check_nnkp_process)
+        status = self.run_processes(check_nnkp_process)
         if status != Status.COMPLETED:
             return
 
@@ -733,7 +729,7 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockInput, Wan
             # we must regenerate it
             generate_nnkp_process = WannierJLGenerateNeighborsProcess(
                 wannier90_input_file=wannierize_wf.outputs.wannier90_input_file)
-            status = self.run_steps(generate_nnkp_process)
+            status = self.run_processes(generate_nnkp_process)
             if status != Status.COMPLETED:
                 return
 
@@ -742,7 +738,7 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockInput, Wan
             calc_p2w.prefix = 'pw2wannier90-cubic'
             calc_p2w.link(self.pw_outdir, calc_p2w.parameters.outdir, symlink=True)
             calc_p2w.link(generate_nnkp_process.outputs.nnkp_file, calc_p2w.parameters.seedname + '.nnkp')
-            status = self.run_steps(calc_p2w)
+            status = self.run_processes(calc_p2w)
             if status != Status.COMPLETED:
                 return
             cubic_nnkp_file = File(calc_p2w, calc_p2w.parameters.seedname + '.nnkp')
@@ -769,7 +765,7 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockInput, Wan
             cubic_mmn_file=cubic_mmn_file
         )
 
-        status = self.run_steps(split_process)
+        status = self.run_processes(split_process)
         if status != Status.COMPLETED:
             return
 
@@ -802,7 +798,7 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockInput, Wan
 
             merge_u_dis_process.name = 'merge_u_dis'
 
-            status = self.run_steps(merge_u_dis_process)
+            status = self.run_processes(merge_u_dis_process)
             if status != Status.COMPLETED:
                 return
 
@@ -854,7 +850,7 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockInput, Wan
                                            dst_file='wannier90_u.mat')
             merge_u_process.name = 'merge_u'
 
-            status = self.run_steps(merge_u_process)
+            status = self.run_processes(merge_u_process)
             if status != Status.COMPLETED:
                 return
 
@@ -871,7 +867,7 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockInput, Wan
                 src_files=centers_files,
                 dst_file=dst_file)
             merge_centers_proc.name = 'merge_centers'
-            status = self.run_steps(merge_centers_proc)
+            status = self.run_processes(merge_centers_proc)
             if status != Status.COMPLETED:
                 return
             centers_file = merge_centers_proc.outputs.dst_file
@@ -886,7 +882,7 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockInput, Wan
                                          src_files=hr_files,
                                          dst_file=dst_file)
             merge_hr_proc.name = 'merge_hamiltonian'
-            status = self.run_steps(merge_hr_proc)
+            status = self.run_processes(merge_hr_proc)
             if status != Status.COMPLETED:
                 return
             hr_file = merge_hr_proc.outputs.dst_file
@@ -905,29 +901,29 @@ class WannierizeAndSplitBlockWorkflow(Workflow[WannierizeAndSplitBlockInput, Wan
         return _internal_new_calculator(self, *args, **kwargs)
 
 
-def _internal_new_calculator(wf, calc_type, *args, **kwargs) -> CalcExtType:  # type: ignore[type-var, misc]
-    calc: CalcExtType = super(wf.__class__, wf).new_calculator(calc_type, *args, **kwargs)
+def _internal_new_calculator(wf, calc_class, *args, **kwargs) -> CalcExtType:  # type: ignore[type-var, misc]
+    calc: CalculatorProcess = super(wf.__class__, wf).new_calculator(calc_class, *args, **kwargs)
 
     # Extra tweaks for Wannier90 calculations
-    if calc_type.startswith('wannier90'):
-        if calc.parameters.num_bands != calc.parameters.num_wann:
-            if calc.parameters.dis_num_iter is None:
-                calc.parameters.dis_num_iter = 5000
+    if calc_class == Wannier90Calculator:
+        if calc.inputs.parameters.num_bands != calc.inputs.parameters.num_wann:
+            if calc.inputs.parameters.dis_num_iter is None:
+                calc.inputs.parameters.dis_num_iter = 5000
         else:
-            calc.parameters.dis_win_min = None
-            calc.parameters.dis_win_max = None
-            calc.parameters.dis_froz_min = None
-            calc.parameters.dis_froz_max = None
+            calc.inputs.parameters.dis_win_min = None
+            calc.inputs.parameters.dis_win_max = None
+            calc.inputs.parameters.dis_froz_min = None
+            calc.inputs.parameters.dis_froz_max = None
 
-        if not wf.minimize:
-            calc.parameters.num_iter = 0
+        if not wf.inputs.minimize:
+            calc.inputs.parameters.num_iter = 0
 
-        if calc.parameters.gamma_only != wf.kpoints.gamma_only:
+        if calc.inputs.parameters.gamma_only != wf.inputs.kpoints.gamma_only:
             # forcing W90 to follow the same logic of PW for the gamma_trick
-            calc.parameters.gamma_only = wf.kpoints.gamma_only
-    if calc_type == 'pw2wannier':
-        if wf._force_nspin2 and not wf.parameters.spin_polarized:
-            calc.parameters.spin_component = 'up'
+            calc.inputs.parameters.gamma_only = wf.inputs.kpoints.gamma_only
+    if calc_class == PW2Wannier90Calculator:
+        if wf.inputs.force_nspin2 and not wf.inputs.parameters.spin_polarized:
+            calc.inputs.parameters.spin_component = 'up'
 
     return calc
 

@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Any, Literal
 
-from ase_koopmans.dft.kpoints import BandPath
+from ase.dft.kpoints import BandPath
 from pydantic import Field, field_validator
 
 from koopmans.pydantic import BaseModel

@@ -33,13 +33,13 @@ class KoopmansCPWithSpinSwapWorkflow(Workflow[KoopmansCPWithSpinSwapInputs, Koop
 
         # Run the calculation (self._calc.swap_spin_files() will take care of swapping the input parameters,
         # the linked files, and the python output data)
-        status = self.run_steps(self._calc)
+        status = self.run_processes(self._calc)
         if status != Status.COMPLETED:
             return
 
         # Swap the spin-up and spin-down output files using a process
         process = SwapSpinFilesProcess(read_directory=self._calc.write_directory)
-        status = self.run_steps(process)
+        status = self.run_processes(process)
         if status != Status.COMPLETED:
             return
 

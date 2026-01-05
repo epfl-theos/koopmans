@@ -1,24 +1,21 @@
-"""pw calculator module for koopmans."""
+"""kcp calculator module for koopmans."""
 
-import numpy as np
-from ase_koopmans import Atoms
-from ase_koopmans.calculators.espresso import Espresso
-from ase_koopmans.dft.kpoints import BandPath
-from ase_koopmans.spectrum.band_structure import BandStructure
-
-from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.parameters.kcp import KCPInputParameters
 
 from .calculator import CalculatorInputs, CalculatorOutputs, CalculatorProcess
 
 
 class KCPInputs(CalculatorInputs):
+    """Inputs for calculations with kcp.x."""
+
     parameters: KCPInputParameters
     pseudopotentials: dict[str, str]
     pseudo_family: str
 
 
 class KCPOutputs(CalculatorOutputs):
+    """Outputs of calculations with kcp.x."""
+
     total_energy: float | None = None
 
 

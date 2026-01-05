@@ -265,7 +265,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTInputs, KoopmansDFPTOutputs]):
 
             wann2kc_calc.prefix += spin_suffix
             wann2kc_calcs.append(wann2kc_calc)
-        status = self.run_steps(wann2kc_calcs)
+        status = self.run_processes(wann2kc_calcs)
         if status != Status.COMPLETED:
             return
 
@@ -322,7 +322,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTInputs, KoopmansDFPTOutputs]):
                 kc_ham_calc.prefix += spin_suffix
                 kc_ham_calcs.append(kc_ham_calc)
 
-        status = self.run_steps(kc_ham_calcs)
+        status = self.run_processes(kc_ham_calcs)
         if status != Status.COMPLETED:
             return
 
@@ -427,7 +427,7 @@ class ComputeScreeningViaDFPTWorkflow(Workflow[ComputeScreeningViaDFPTInputs, Co
             kc_screen_calc = self.new_calculator('kcw_screen', spin_component=self._spin_component)
 
             # 2) Run the calculator
-            status = self.run_steps(kc_screen_calc)
+            status = self.run_processes(kc_screen_calc)
             if status != Status.COMPLETED:
                 return
 
@@ -448,7 +448,7 @@ class ComputeScreeningViaDFPTWorkflow(Workflow[ComputeScreeningViaDFPTInputs, Co
                 kc_screen_calcs.append(kc_screen_calc)
 
             # 2) Run the calculators (possibly in parallel)
-            status = self.run_steps(kc_screen_calcs)
+            status = self.run_processes(kc_screen_calcs)
             if status != Status.COMPLETED:
                 return
 

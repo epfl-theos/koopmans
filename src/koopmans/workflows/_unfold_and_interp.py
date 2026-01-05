@@ -130,7 +130,7 @@ class UnfoldAndInterpolateWorkflow(Workflow):
                 processes.append(process)
 
         # Run the processes
-        status = self.run_steps(processes)
+        status = self.run_processes(processes)
         if status != Status.COMPLETED:
             return
 

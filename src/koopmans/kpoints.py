@@ -7,64 +7,58 @@ Written by Edward Linscott, July 2022
 from __future__ import annotations
 
 import copy
-from typing import (Annotated, Any, ClassVar, Dict, List, Literal, Optional,
-                    Union)
+from abc import ABC, abstractmethod
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 import numpy as np
 from ase.cell import Cell
-from ase_koopmans.dft.kpoints import (BandPath, kpoint_convert,
-                                      parse_path_string,
-                                      resolve_kpt_path_string)
-from pydantic import Field, field_serializer, field_validator
+from ase.dft.kpoints import (BandPath, kpoint_convert, parse_path_string,
+                             resolve_kpt_path_string)
+from pydantic import Field, field_validator
+from typing_extensions import Self
 
 from koopmans.pydantic import BaseModel
-from koopmans.utils import remove_numpy_from_dict
 
 ZeroOrOne = Literal[0, 1]
 Fractional = Annotated[float, Field(gt=-1, le=1)]
 
+GRID_DESCRIPTION = "A list of three integers specifying the shape of the regular grid of k-points."
+OFFSET_DESCRIPTION = "A list of three integers, either zero or one. If one, the regular k-point grid is offset by half a grid step in that dimension."
+OFFSET_NSCF_DESCRIPTION = "A list of three numbers, within the interval (-1, 1]. It has the same meaning of offset, but it is applied only to the grid of non-self-consistent pw.x calculations, and permits any fractional offset."
+PATH_DESCRIPTION = "An ASE ``BandPath`` object specifying the k-path as defined by the special points of the Bravais lattice."
+GAMMA_ONLY_DESCRIPTION = "True if the calculation is only sampling the gamma point."
 
-class GammaOnlyKpoints(BaseModel):
+
+class KpointsBase(BaseModel, ABC):
+    """Base class for k-point information."""
+
+    grid: tuple[int, int, int] = Field(description=GRID_DESCRIPTION)
+    offset: tuple[ZeroOrOne, ZeroOrOne, ZeroOrOne] = Field(default=(0, 0, 0), description=OFFSET_DESCRIPTION)
+    offset_nscf: tuple[Fractional, Fractional, Fractional] = Field(
+        default=(0.0, 0.0, 0.0), description=OFFSET_NSCF_DESCRIPTION
+    )
+    path: BandPath | None = Field(description=PATH_DESCRIPTION)
+    gamma_only: bool = Field(False, description=GAMMA_ONLY_DESCRIPTION)
+
+
+class GammaOnlyKpoints(KpointsBase):
+    """K-point information for a gamma-only calculation."""
+
     gamma_only: Literal[True] = True
-    grid: ClassVar[tuple[int, int, int]] = (1, 1, 1)
-    offset: ClassVar[tuple[ZeroOrOne, ZeroOrOne, ZeroOrOne]] = (0, 0, 0)
-    offset_nscf: ClassVar[tuple[Fractional, Fractional, Fractional]] = (0.0, 0.0, 0.0)
-    path: ClassVar[None] = None
+    grid: Literal[(1, 1, 1)] = (1, 1, 1)
+    offset: Literal[(0, 0, 0)] = (0, 0, 0)
+    offset_nscf: Literal[(0.0, 0.0, 0.0)] = (0.0, 0.0, 0.0)
+    path: Literal[None] = None
 
 
-class Kpoints(BaseModel):
-    """A class for storing k-point information.
+class NonGammaKpoints(KpointsBase):
+    """K-point information for non-gamma-only calculations."""
 
-    Attributes
-    ----------
-    grid : List[int]
-        a list of three integers specifying the shape of the regular grid of k-points
-    offset : List[int]
-        a list of three integers, either zero or one. If one, the regular k-point grid is offset by half a grid step
-        in that dimension
-    offset_nscf : Union[List[Union[int, float]]], int, float]
-        a list of three numbers, within the interval (-1, 1].
-        It has the same meaning of offset, but it is applied only to the grid of PWnscf calculations. Additionally it
-        allows to provide explicitly any fractional offset.
-    path : ase.dft.kpoints.BandPath
-        an ASE ``BandPath`` object specifying the k-path as defined by the special points of the Bravais
-        lattice
-    gamma_only : bool
-        True if the calculation is only sampling the gamma point
-    """
-
-    grid: tuple[int, int, int]
-    offset: tuple[ZeroOrOne, ZeroOrOne, ZeroOrOne] = (0, 0, 0)
-    offset_nscf: tuple[float, float, float] = (0.0, 0.0, 0.0)
-    path: BandPath
-    gamma_only: Literal[False] = False
-
-    @field_serializer("path")
-    def serialize_path(self, v: BandPath) -> dict[str, Any]:
-        dct = v.todict()
-        dct.pop('labelseq')
-        dct['cell'] = dct['cell'].todict()
-        return remove_numpy_from_dict(dct)
+    grid: tuple[int, int, int] = Field(description=GRID_DESCRIPTION)
+    offset: tuple[ZeroOrOne, ZeroOrOne, ZeroOrOne] = Field(default=(0, 0, 0), description=OFFSET_DESCRIPTION)
+    offset_nscf: tuple[float, float, float] = Field(default=(0.0, 0.0, 0.0), description=OFFSET_NSCF_DESCRIPTION)
+    path: BandPath = Field(description=PATH_DESCRIPTION)
+    gamma_only: Literal[False] = Field(False, description=GAMMA_ONLY_DESCRIPTION)
 
     @field_validator("path", mode="before")
     @classmethod
@@ -73,18 +67,6 @@ class Kpoints(BaseModel):
             value['cell'] = Cell(**value['cell'])
             return BandPath(**value)
         return value
-
-    @classmethod
-    def from_path_as_string(cls, path: str | None, cell: Cell, density: float = 10.0, **kwargs) -> Kpoints:
-        """Create a Kpoints object using a string for the path instead of a `BandPath` object.
-
-        cell : ase.cell.Cell
-            the simulation cell
-        density : float
-            k-points per inverse Angstrom along the k-path
-        """
-        bandpath = convert_kpath_str_to_bandpath(path, cell, density)
-        return cls(path=bandpath, **kwargs)
 
     def __eq__(self, other: object) -> bool:
         raise NotImplementedError()
@@ -102,6 +84,18 @@ class Kpoints(BaseModel):
                 if v != vother:
                     return False
         return True
+
+
+Kpoints = Annotated[
+    Union[GammaOnlyKpoints, NonGammaKpoints],
+    Field(discriminator="gamma_only"),
+]
+
+
+def kpoints_from_path_as_string(path: str, cell: Cell, density: float = 10.0, **kwargs: Any) -> NonGammaKpoints:
+    """Create a NonGammaKpoints object using a string for the path instead of a `BandPath` object."""
+    bandpath = convert_kpath_str_to_bandpath(path, cell, density)
+    return NonGammaKpoints(path=bandpath, **kwargs)
 
 
 def convert_kpath_str_to_bandpath(path: str, cell: Cell, density: Optional[float] = None) -> BandPath:

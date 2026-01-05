@@ -17,7 +17,7 @@ from yaml import safe_load
 from koopmans.commands import CommandConfigs
 from koopmans.engines.ase import LocalASEEngine
 from koopmans.engines.engine import Engine
-from koopmans.kpoints import GammaOnlyKpoints, Kpoints
+from koopmans.kpoints import Kpoints, kpoints_from_path_as_string
 from koopmans.parameters import CalculatorsInputParameters
 from koopmans.parameters.kcp import KCPInputParameters
 from koopmans.parameters.pw import PWInputParameters
@@ -74,16 +74,16 @@ class KpointsInput(BaseModel):
     gamma_only: bool = False
     density: float = 10.0
 
-    def to_kpoints_obj(self, cell: Cell) -> Kpoints | GammaOnlyKpoints:
+    def to_kpoints_obj(self, cell: Cell) -> Kpoints:
         if self.gamma_only:
-            return GammaOnlyKpoints()
+            return Kpoints(gamma_only=True)
         elif self.path is None:
             # By default, use ASE's default bandpath for this cell (see
             # https://wiki.fysik.dtu.dk/ase/ase/dft/kpoints.html#brillouin-zone-data)
-            default_path = atoms.cell.bandpath(eps=1e-10).path
+            default_path = cell.bandpath(eps=1e-10).path
             return Kpoints(path=default_path, grid=self.grid, offset=self.offset)
         else:
-            return Kpoints.from_path_as_string(path=self.path, cell=cell, density=self.density,
+            return kpoints_from_path_as_string(path=self.path, cell=cell, density=self.density,
                                                grid=self.grid, offset=self.offset)
 
 

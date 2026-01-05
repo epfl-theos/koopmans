@@ -67,9 +67,9 @@ def quantity_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, P],
     return total
 
 
-def extract_zvalence(UPFModel) -> int:
+def extract_zvalence(upf: UPFModel) -> int:
     """Determine the number of valence electrons from a pseudopotential file."""
-    return int(UPFModel.content['header']['z_valence'])
+    return int(upf.content['header']['z_valence'])
 
 
 def nelec_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFModel]) -> int:
@@ -77,9 +77,9 @@ def nelec_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFModel
     return quantity_from_pseudos(atoms, pseudopotentials, extract_zvalence)
 
 
-def extract_nwfc(UPFModel) -> int:
+def extract_nwfc(upf: UPFModel) -> int:
     """Determine the number of wavefunctions from a pseudopotential file."""
-    return sum([2 * int(wfc['l']) + 1 for wfc in UPFModel.content['pswfc']['chi']])
+    return sum([2 * int(wfc['l']) + 1 for wfc in upf.content['pswfc']['chi']])
 
 
 def nwfcs_from_pseudos(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFModel]) -> int:

@@ -1,24 +1,23 @@
-from pathlib import Path
-from typing import Any, ClassVar, Generic, TypeVar
+"""Parent class for calculators and their inputs."""
 
-import numpy as np
+from pathlib import Path
+from typing import ClassVar, Generic, TypeVar
+
 from ase import Atoms
-from pydantic import Field, field_serializer
 
 from koopmans.processes.process import Process
 from koopmans.pydantic import BaseModel
-from koopmans.utils import remove_numpy_from_dict
 
 
 class CalculatorInputs(BaseModel):
-    atoms: Atoms
+    """Parent input model for calculators."""
 
-    @field_serializer("atoms")
-    def serialize_atoms(self, v: Atoms) -> dict[str, Any]:
-        return remove_numpy_from_dict(v.todict())
+    atoms: Atoms
 
 
 class CalculatorOutputs(BaseModel):
+    """Parent output model for calculators."""
+
     is_complete: bool = False
     is_converged: bool = False
 
@@ -27,17 +26,18 @@ GenericCalculatorInputs = TypeVar('GenericCalculatorInput', bound=CalculatorInpu
 GenericCalculatorOutputs = TypeVar('GenericCalculatorOutput', bound=CalculatorOutputs)
 
 
-class CalculatorProcess(Process[GenericCalculatorInputs, GenericCalculatorOutputs], Generic[GenericCalculatorInputs, GenericCalculatorOutputs]):
+class CalculatorProcess(Process[GenericCalculatorInputs, GenericCalculatorOutputs],
+                        Generic[GenericCalculatorInputs, GenericCalculatorOutputs]):
     """A process that corresponds to an electronic structure calculations.
 
     Roughly the equivalent of a CWL Operation, because we only specify the inputs and outputs within this class,
-    and leave it to the engine to determine how to run the calculation."""
+    and leave it to the engine to determine how to run the calculation.
+    """
 
     ext_in: ClassVar[str]
     ext_out: ClassVar[str]
     id: ClassVar[str]
     code: ClassVar[str]
-    parent_process: Process | None
 
     def link_pseudopotential(self, src: str | Path, dest: str | Path) -> None:
         """Link a pseudopotential file to the calculator.

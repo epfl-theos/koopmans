@@ -108,7 +108,7 @@ class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionInpu
             total_density_xml=bin2xml_workflow.outputs.total_density,
             orbital_densities_xml=bin2xml_workflow.outputs.orbital_densities,
         )
-        status = self.run_steps(decomposition_process)
+        status = self.run_processes(decomposition_process)
         if status != Status.COMPLETED:
             return
 
@@ -123,7 +123,7 @@ class PowerSpectrumDecompositionWorkflow(Workflow[PowerSpectrumDecompositionInpu
                 total_coefficients=tot_coeff,
             )
             power_spectrum_process.name += '_orbital_' + str(i + 1)
-            status = self.run_steps(power_spectrum_process)
+            status = self.run_processes(power_spectrum_process)
             if status != Status.COMPLETED:
                 return
             descriptors.append(power_spectrum_process.outputs.power_spectrum)
@@ -163,7 +163,7 @@ class ConvertOrbitalFilesToXMLWorkflow(Workflow[ConvertOrbitalFilesToXMLInput, C
         # Convert total density to XML
         binary = self.calc_that_produced_orbital_densities.write_directory / 'charge-density.dat'
         bin2xml_total_density = Bin2XMLProcess(name='bin2xml_total_density', binary=binary)
-        status = self.run_steps(bin2xml_total_density)
+        status = self.run_processes(bin2xml_total_density)
         if status != Status.COMPLETED:
             return
 
@@ -180,7 +180,7 @@ class ConvertOrbitalFilesToXMLWorkflow(Workflow[ConvertOrbitalFilesToXMLInput, C
 
             bin2xml_orbital_density = Bin2XMLProcess(
                 name=f'bin2xml_{occ_id}_spin_{band.spin}_orb_{band.index}_density', binary=binary)
-            status = self.run_steps(bin2xml_orbital_density)
+            status = self.run_processes(bin2xml_orbital_density)
             if status != Status.COMPLETED:
                 return
             orbital_densities.append(bin2xml_orbital_density.outputs.xml)

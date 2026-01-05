@@ -15,13 +15,17 @@ from pydantic import Field, PrivateAttr, field_validator, model_validator
 from pydash import get, set_
 
 from koopmans.engines.engine import Engine
+from koopmans.files import File, LocalFile
 from koopmans.pydantic import BaseModel
-
-if TYPE_CHECKING:
-    from koopmans.files import FileABC
 
 InputModel = TypeVar('InputModel', bound=BaseModel)
 OutputModel = TypeVar('OutputModel', bound=BaseModel)
+
+
+def auto_name_from_class(cls: type) -> str:
+    name_with_split_acronyms = re.sub(r'([a-z])([A-Z])', r'\1_\2',
+                                      cls.__name__.replace('Process', ''))
+    return re.sub(r'([A-Z])([A-Z][a-z])', r'\1_\2', name_with_split_acronyms).lower()
 
 
 class Process(BaseModel, Generic[InputModel, OutputModel]):
@@ -36,10 +40,25 @@ class Process(BaseModel, Generic[InputModel, OutputModel]):
     name: str
     _outputs: OutputModel | None = PrivateAttr(None)
     base_directory: Path = Field(default_factory=lambda: Path.cwd().resolve())
-    _directory: Path | None = PrivateAttr(None)
-    parent_process: Process | None = None
+    directory: Path | None = None
+    parent_process_uid: str | None = None
     engine: Engine
-    _directory_must_be_relative: bool = False
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+
+        # Set a class-specific default_factory
+        cls.model_fields["name"].default_factory = (
+            lambda cls=cls: auto_name_from_class(cls)
+        )
+
+    @property
+    def uid(self) -> str:
+        """Return the UID of the process."""
+        if self.directory is not None:
+            return str(self.directory)
+        else:
+            return self.name
 
     @model_validator(mode='before')
     @classmethod
@@ -47,16 +66,6 @@ class Process(BaseModel, Generic[InputModel, OutputModel]):
         if get(data, 'parent_process', None) is not None:
             set_(data, 'base_directory', get(data, 'parent_process.base_directory'))
         return data
-
-    @field_validator('name', mode='before')
-    @classmethod
-    def default_name(cls, name: str | None) -> str | None:
-        """Generate a default name if none is provided."""
-        if name is None:
-            name_with_split_acronyms = re.sub(r'([a-z])([A-Z])', r'\1_\2',
-                                              cls.__name__.replace('Process', ''))
-            return re.sub(r'([A-Z])([A-Z][a-z])', r'\1_\2', name_with_split_acronyms).lower()
-        return name
 
     @field_validator('inputs', mode='before')
     @classmethod
@@ -95,21 +104,26 @@ class Process(BaseModel, Generic[InputModel, OutputModel]):
         self._outputs = value
 
     def _pre_run(self):
-        from koopmans.files import File, LinkedFile
-
-        self.inputs.model_config['frozen'] = True
-
+        # Check directory is set
         assert self.directory is not None, 'Process directory must be set before running'
+
+        # Dump inputs
         self.dump_inputs()
 
         # Copy over any inputs that correspond to files
         files_to_copy = self.inputs.fields_that_are_files()
         for inp in files_to_copy:
-            dest_file = File(parent_process=self, relative_path=inp.dest)
-            if inp.symlink:
-                dest_file.symlink_to(inp.src, overwrite=inp.overwrite, recursive=inp.recursive_symlink)
-            else:
-                inp.src.copy_to(dest_file, exist_ok=inp.overwrite)
+            self._attach_file(inp.src, inp.dest, inp.symlink, inp.overwrite, inp.recursive_symlink)
+
+    def _attach_file(self, src: File | LocalFile, dest: Path, symlink: bool, overwrite: bool, recursive_symlink: bool) -> None:
+        """Attach a file to this process.
+
+        This involves either copying or symlinking the file to the process directory."""
+        dest_file = File(parent_process_uid=self.uid, path=dest)
+        if symlink:
+            self.engine.link_file(src, dest_file, overwrite=overwrite, recursive=recursive_symlink)
+        else:
+            self.engine.copy_file(src, dest_file, exist_ok=overwrite)
 
     def _post_run(self):
         assert self._outputs is not None, 'Process outputs must be set when running'
@@ -121,19 +135,28 @@ class Process(BaseModel, Generic[InputModel, OutputModel]):
             out += f', outputs={self.outputs.__dict__}'
         return out + ')'
 
+    def write_to_file(self, file: File | LocalFile | Path | str, content: str | bytes) -> None:
+        """Write text to a file."""
+        if isinstance(file, str):
+            file = Path(file)
+        if isinstance(file, Path):
+            if Path.is_absolute(file):
+                # Interpret absolute paths as local files
+                file = LocalFile(path=file)
+            else:
+                # Interpret relative paths as files relative to this process
+                file = File(parent_process_uid=self.uid, path=file)
+        self.engine.write_to_file(file, content)
+
     def dump_inputs(self):
         """Dump the inputs of the process to the file system."""
-        from koopmans.files import File
-        assert self.directory is not None
-        dst = File(parent_process=self, relative_path=f'{self.name}_inputs.json')
-        dst.write_text(self.inputs.model_dump_json(indent=2, exclude_defaults=True, exclude_none=True))
+        self.write_to_file(f'inputs.json', self.inputs.model_dump_json(
+            indent=2, exclude_defaults=True, exclude_none=True))
 
     def dump_outputs(self):
         """Dump the outputs of the process to the file system."""
-        from koopmans.files import File
-        assert self.directory is not None
-        dst = File(parent_process=self, relative_path=f'{self.name}_outputs.json')
-        dst.write_text(self.outputs.model_dump_json(indent=2, exclude_defaults=True, exclude_none=True))
+        self.write_to_file(f'outputs.json', self.outputs.model_dump_json(
+            indent=2, exclude_defaults=True, exclude_none=True))
 
     def load_outputs(self):
         """Load the outputs of the process from the file system."""
@@ -155,33 +178,14 @@ class Process(BaseModel, Generic[InputModel, OutputModel]):
         assert isinstance(other, Path) or isinstance(other, str)
         return File(self, other)
 
-    @property
-    def directory(self) -> Path | None:
-        """Return the directory of the process."""
-        return self._directory
-
-    @directory.setter
-    def directory(self, value: Path | str | None):
-        if value is None:
-            return
-
-        # Sanitize input
-        if isinstance(value, str):
-            value = Path(value)
-
-        # Sanity checks
-        if value.is_absolute() and self._directory_must_be_relative:
+    @field_validator('directory', mode='after')
+    def check_directory_is_relative(cls, value: Path | None) -> Path | None:
+        if value is not None and value.is_absolute():
             raise ValueError(
                 f'{self.__class__.__name__} directory must be a relative path '
-                f'(relative to {self.__class__.__name__},base directory)'
+                f'(relative to {self.__class__.__name__}.base directory)'
             )
-
-        self._directory = value
-
-    @property
-    def uid(self) -> str:
-        """Return the UID of the process."""
-        return str(self.directory)
+        return value
 
     @property
     def absolute_directory(self) -> Path | None:
@@ -191,7 +195,3 @@ class Process(BaseModel, Generic[InputModel, OutputModel]):
         if self.base_directory is None:
             return None
         return self.base_directory / self.directory
-
-    def directory_has_been_set(self) -> bool:
-        """Check if the directory has been set."""
-        return self._directory is not None

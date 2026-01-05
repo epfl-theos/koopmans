@@ -3,9 +3,9 @@
 from typing import List, Optional
 
 import numpy as np
+from ase.dft.kpoints import BandPath
 from ase_koopmans import Atoms
 from ase_koopmans.calculators.espresso import KoopmansHam
-from ase_koopmans.dft.kpoints import BandPath
 
 from koopmans import settings, utils
 from koopmans.utils.warnings import warn

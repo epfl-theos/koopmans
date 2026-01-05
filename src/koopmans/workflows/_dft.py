@@ -71,7 +71,7 @@ class DFTCPWorkflow(DFTWorkflow[DFTCPOutput]):
             if status == Status.COMPLETED:
                 self.status = status
         else:
-            status = self.run_steps(calc)
+            status = self.run_processes(calc)
             if status == Status.COMPLETED:
                 self.status = status
 
@@ -100,7 +100,7 @@ class DFTPWWorkflow(DFTWorkflow[DFTPWOutput]):
         calc.parameters.ndw = 51
         calc.parameters.restart_mode = 'from_scratch'
 
-        status = self.run_steps(calc)
+        status = self.run_processes(calc)
         if status == Status.COMPLETED:
             self.status = Status.COMPLETED
 
@@ -122,14 +122,14 @@ class DFTPhWorkflow(DFTWorkflow[DFTPhOutput]):
         """Run the workflow."""
         calc_scf = self.new_calculator('pw', nbnd=None)
         calc_scf.prefix = 'scf'
-        status = self.run_steps(calc_scf)
+        status = self.run_processes(calc_scf)
         if status != Status.COMPLETED:
             return
 
         calc_ph = self.new_calculator('ph', epsil=True, fildyn=f'{self.name}.dynG')
         calc_ph.prefix = 'eps'
         calc_ph.link(File(calc_scf, calc_scf.parameters.outdir), calc_ph.parameters.outdir, symlink=True)
-        status = self.run_steps(calc_ph)
+        status = self.run_processes(calc_ph)
 
         if status == Status.COMPLETED:
             self.status = Status.COMPLETED
@@ -156,7 +156,7 @@ class DFTBandsWorkflow(DFTWorkflow[DFTBandsOutput]):
         # First, a scf calculation
         calc_scf: calculators.PWCalculator = self.new_calculator('pw', nbnd=None)
         calc_scf.prefix = 'scf'
-        status = self.run_steps(calc_scf)
+        status = self.run_processes(calc_scf)
         if status != Status.COMPLETED:
             return
 
@@ -170,7 +170,7 @@ class DFTBandsWorkflow(DFTWorkflow[DFTBandsOutput]):
         assert isinstance(calc_scf.parameters.outdir, Path)
         assert isinstance(calc_bands.parameters.outdir, Path)
         calc_bands.link(File(calc_scf, calc_scf.parameters.outdir), calc_bands.parameters.outdir, symlink=True)
-        status = self.run_steps(calc_bands)
+        status = self.run_processes(calc_bands)
         if status != Status.COMPLETED:
             return
 
@@ -183,7 +183,7 @@ class DFTBandsWorkflow(DFTWorkflow[DFTBandsOutput]):
             calc_dos: calculators.ProjwfcCalculator = self.new_calculator('projwfc')
             assert isinstance(calc_dos.parameters.outdir, Path)
             calc_dos.link(File(calc_bands, calc_bands.parameters.outdir), calc_dos.parameters.outdir, symlink=True)
-            status = self.run_steps(calc_dos)
+            status = self.run_processes(calc_dos)
             if status != Status.COMPLETED:
                 return
 

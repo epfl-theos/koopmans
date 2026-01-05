@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Union
 
 if TYPE_CHECKING:
-    from koopmans.engines import Engine
+    from koopmans.engines.engine import Engine
 
 
 def system_call(command: str, check_ierr: bool = True):

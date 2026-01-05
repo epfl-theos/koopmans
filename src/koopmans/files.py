@@ -2,24 +2,20 @@
 
 from __future__ import annotations
 
-import logging
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any, Generator, Generic
+from typing import Annotated, Any, Generator
 
-from pydantic import PlainValidator
+from pydantic import BeforeValidator
 from typing_extensions import Self
 
-if TYPE_CHECKING:
-    from koopmans.engines import Engine
-
-from abc import ABC, abstractmethod
-
-from koopmans.processes.process import InputModel, OutputModel, Process
 from koopmans.pydantic import BaseModel
 
 
 class FileABC(BaseModel, ABC):
-    relative_path: Path
+    """An abstract base class for representing a file."""
+
+    path: Path
 
     # @abstractmethod
     # def aspath(self) -> Path:
@@ -31,15 +27,15 @@ class FileABC(BaseModel, ABC):
     # def __str__(self):
     #     return str(self.aspath())
 
-    # @property
-    # def stem(self) -> str:
-    #     """Return the stem of the file, replicating the behavior of Path.stem."""
-    #     return self.relative_path.stem
+    @property
+    def stem(self) -> str:
+        """Return the stem of the file, replicating the behavior of Path.stem."""
+        return self.path.stem
 
-    # @property
-    # def suffix(self) -> str:
-    #     """Return the file suffix, replicating the behavior of Path.suffix."""
-    #     return self.relative_path.suffix
+    @property
+    def suffix(self) -> str:
+        """Return the file suffix, replicating the behavior of Path.suffix."""
+        return self.path.suffix
 
     # @property
     # @abstractmethod
@@ -103,16 +99,23 @@ class FileABC(BaseModel, ABC):
     #     """Return true if the file is a directory."""
 
     # @abstractmethod
-    # def rename(self, dst: Self) -> None:
-    #     """Rename this file, replicating the behavior of Path.rename."""
 
-    # @abstractmethod
-    # def with_stem(self, stem: str) -> Self:
-    #     """Return a new object with the given stem."""
+    def rename(self, dst: Self) -> None:
+        """Rename this file, replicating the behavior of Path.rename."""
+        self.path.rename(dst.path)
 
-    # @abstractmethod
-    # def with_suffix(self, suffix: str) -> Self:
-    #     """Return a new File with the given suffix."""
+    @property
+    def name(self) -> str:
+        """Return the name of the file, replicating the behavior of Path.name."""
+        return self.path.name
+
+    @abstractmethod
+    def with_stem(self, stem: str) -> Self:
+        """Return a new object with the given stem."""
+
+    @abstractmethod
+    def with_suffix(self, suffix: str) -> Self:
+        """Return a new File with the given suffix."""
 
 
 # def accept_subclasses(v: Any) -> Process[Any, Any]:
@@ -132,7 +135,7 @@ class File(FileABC):
     We also need to delegate file creation/modification/deletion to the engine.
     """
 
-    parent_process_id: str
+    parent_process_uid: str
 
     # def aspath(self) -> Path:
     #     """Return the File as a Path object."""
@@ -222,41 +225,59 @@ class File(FileABC):
     #     """Rename this file, replicating the behavior of Path.rename."""
     #     return self._engine.rename_file(self, dst)
 
-    # def with_stem(self, stem: str) -> File:
-    #     """Return a new File with the given stem."""
-    #     new = self.relative_path.with_stem(stem)
-    #     return File(parent_process=self.parent_process, relative_path=new)
+    def with_stem(self, stem: str) -> File:
+        """Return a new File with the given stem."""
+        new = self.path.with_stem(stem)
+        return File(parent_process_uid=self.parent_process_uid, path=new)
 
-    # def __eq__(self, other: Any) -> bool:
-    #     if not isinstance(other, File):
-    #         return False
-    #     # Note that we only check the parent_process's directory, not the parent_process details
-    #     return self.parent_process.absolute_directory == other.parent_process.absolute_directory \
-    #         and self.relative_path == other.relative_path
+    def with_suffix(self, suffix: str) -> File:
+        """Return a new File with the given suffix."""
+        new = self.path.with_suffix(suffix)
+        return File(parent_process_uid=self.parent_process_uid, path=new)
 
     # def __gt__(self, other: Any) -> bool:
     #     if not isinstance(other, File):
     #         raise TypeError(f'Cannot compare File with {type(other)}')
-    #     return self.aspath() > other.aspath()
+    #     return self.path > other.path
 
     # def __lt__(self, other: Any) -> bool:
     #     return not self > other
 
-    # def __truediv__(self, other: Any) -> File:
-    #     assert isinstance(other, Path) or isinstance(other, str)
-    #     return File(parent_process=self.parent_process, relative_path=self.relative_path / other)
-
-    # def with_suffix(self, suffix: str) -> File:
-    #     """Return a new File with the given suffix."""
-    #     new_name = self.relative_path.with_suffix(suffix)
-    #     return File(parent_process=self.parent_process, relative_path=new_name)
+    def __truediv__(self, other: Any) -> File:
+        assert isinstance(other, Path) or isinstance(other, str)
+        return File(parent_process_uid=self.parent_process_uid, path=self.path / other)
 
 
 class LocalFile(FileABC):
-    """A local file,
+    """A local file.
 
-    THis class simply wraps the Path class.
+    This class simply wraps the Path class.
     """
+
+    def with_stem(self, stem: str) -> LocalFile:
+        """Return a new object with the given stem."""
+        new = self.path.with_stem(stem)
+        return LocalFile(path=new)
+
+    def with_suffix(self, suffix: str) -> LocalFile:
+        """Return a new File with the given suffix."""
+        new = self.path.with_suffix(suffix)
+        return LocalFile(path=new)
+
+    def __truediv__(self, other: Any) -> LocalFile:
+        assert isinstance(other, Path) or isinstance(other, str)
+        return LocalFile(path=self.path / other)
+
+    @property
+    def parent(self) -> LocalFile:
+        """Return the parent directory of this file."""
+        return LocalFile(path=self.path.parent)
+
+    @property
+    def parents(self) -> Generator[LocalFile, None, None]:
+        """Return all parent directories of this file."""
+        for parent in self.path.parents:
+            yield LocalFile(path=parent)
 
     # def aspath(self) -> Path:
     #     return self.relative_path
@@ -340,8 +361,35 @@ class LocalFile(FileABC):
 
 
 class LinkedFile(BaseModel):
+    """A link from a source to a destination file.
+
+    This can be either a symlink or a copy (see `FileViaSymlink`, `FileViaRecursiveSymlink`, and `FileViaCopy` below).
+    """
+
     dest: Path
     src: File
     symlink: bool = False
     recursive_symlink: bool = False
     overwrite: bool = False
+
+
+def as_linkedfile(*, symlink: bool, recursive_symlink: bool, overwrite: bool):
+    """Return a validator that allows conversion of File to LinkedFile.
+
+    Allows specification of symlink, recursive_symlink, and overwrite parameters.
+    """
+
+    def convert(v: Any):
+        if v is None or isinstance(v, LinkedFile):
+            return v
+        if isinstance(v, File):
+            return LinkedFile(dest=v.path, src=v, symlink=symlink, recursive_symlink=recursive_symlink,
+                              overwrite=overwrite)
+        raise TypeError("must be File or LinkedFile")
+    return BeforeValidator(convert)
+
+
+# Shortcuts for common LinkedFile types
+FileViaSymlink = Annotated[LinkedFile, as_linkedfile(symlink=True, recursive_symlink=False, overwrite=False)]
+FileViaRecursiveSymlink = Annotated[LinkedFile, as_linkedfile(symlink=True, recursive_symlink=True, overwrite=False)]
+FileViaCopy = Annotated[LinkedFile, as_linkedfile(symlink=False, recursive_symlink=False, overwrite=False)]

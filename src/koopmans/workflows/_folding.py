@@ -67,7 +67,7 @@ class FoldToSupercellWorkflow(Workflow):
                 w2k_calcs.append(calc_w2k)
 
             # Run the calculators (possibly in parallel)
-            status = self.run_steps(w2k_calcs)
+            status = self.run_processes(w2k_calcs)
             if status != Status.COMPLETED:
                 return
 
@@ -104,7 +104,7 @@ class FoldToSupercellWorkflow(Workflow):
                         if merged_id.spin is not None:
                             tidy_label += f'_spin_{subset[0].spin}'
                         merge_proc.name = 'merge_wavefunctions_for_' + tidy_label
-                        status = self.run_steps(merge_proc)
+                        status = self.run_processes(merge_proc)
                         if status != Status.COMPLETED:
                             return
 
@@ -117,7 +117,7 @@ class FoldToSupercellWorkflow(Workflow):
             calc_w2k.prefix = 'ks2kcp'
 
             # Run the calculator
-            status = self.run_steps(calc_w2k)
+            status = self.run_processes(calc_w2k)
             if status != Status.COMPLETED:
                 return
 

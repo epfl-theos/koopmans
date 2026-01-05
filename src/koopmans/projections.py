@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Dict, Generic, List, Optional, Sequence, TypeVar, cast
+from typing import (TYPE_CHECKING, Any, Dict, Generic, List, Optional,
+                    Sequence, TypeVar, cast)
 
 from ase import Atoms
 from ase_koopmans.io.wannier90 import num_wann_from_projections
 from pydantic import Field, model_validator
 from wannier90_input.models.parameters import Projection
 
-from koopmans.calculators.wannier90 import Wannier90Calculator
 from koopmans.pydantic import BaseModel
 from koopmans.utils import Spin
 
@@ -70,7 +70,6 @@ class ProjectionsBlock(BaseModel):
     unique: bool = False
     include_bands: Optional[List[int]] = None
     exclude_bands: Optional[List[int]] = None
-    wannier90_calc: Wannier90Calculator | None = None
 
     @model_validator(mode="before")
     def _set_label(cls, data: dict[str, Any]):
@@ -162,7 +161,7 @@ class ExplicitProjectionsBlock(ProjectionsBlock):
         """Return the `Wannier90` keywords to provide when constructing a new calculator corresponding to this block."""
         kwargs: dict[str, Any] = super().wannier90_kwargs
         kwargs['auto_projections'] = False
-        kwargs['projections'] = [p.dict() for p in self.projections]
+        kwargs['projections'] = self.projections
         return kwargs
 
 

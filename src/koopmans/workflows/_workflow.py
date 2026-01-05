@@ -30,18 +30,18 @@ import matplotlib.pyplot as plt
 # isort: on
 
 from ase import Atoms
-from ase_koopmans.build.supercells import make_supercell
-from ase_koopmans.cell import Cell
-from ase_koopmans.dft.dos import DOS
-from ase_koopmans.dft.kpoints import BandPath
+from ase.build.supercells import make_supercell
+from ase.cell import Cell
+from ase.dft.dos import DOS
+from ase.dft.kpoints import BandPath
+from ase.spacegroup import symmetrize
+from ase.spectrum.band_structure import BandStructure
+from ase.spectrum.doscollection import GridDOSCollection
+from ase.spectrum.dosdata import GridDOSData
 from ase_koopmans.io import read as ase_read
 from ase_koopmans.io import write as ase_write
 from ase_koopmans.io.espresso import \
     contruct_kcp_namelist as construct_namelist
-from ase_koopmans.spacegroup import symmetrize
-from ase_koopmans.spectrum.band_structure import BandStructure
-from ase_koopmans.spectrum.doscollection import GridDOSCollection
-from ase_koopmans.spectrum.dosdata import GridDOSData
 from upf_tools.pydantic import UPFModel
 
 from koopmans import settings, utils
@@ -425,8 +425,7 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
     step_counter: int = 0
     print_indent: int = 0
     status: Status = Status.NOT_STARTED
-    parent_process: Process[Any, Any] | None = None
-    processes: List[Process[Any, Any]] = []
+    processes: List[Process[Any, Any]] = Field(default_factory=list)
     _variational_orbitals: VariationalOrbitals | None
 
     @model_validator(mode='before')
@@ -557,6 +556,10 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
                     pseudopotentials['symbol'] = engine.get_pseudopotential(pseudo_library, filename=pseudo_filename)
         return data
 
+    def model_post_init(self, context: Any) -> None:
+        self.engine.workflows[self.uid] = self
+        return super().model_post_init(context)
+
     def __eq__(self, other: Any):
         if self.__class__ != other.__class__:
             return False
@@ -568,29 +571,13 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
                     return False
         return True
 
-    def __repr__(self):
-        entries = []
-
-        # atoms
-        entries.append(f'atoms={self.atoms.symbols}')
-
-        # parameters
-        entries.append(f'parameters={self.parameters.briefrepr()}')
-
-        # kpoints
-        entries.append(f'kpoints={self.kpoints}')
-
-        # pseudopotentials
-        entries.append(f'pseudopotentials={self.pseudopotentials}')
-        return f'{self.__class__.__name__}(' + ',\n   '.join(entries) + ')'
-
     def run(self):
         """Run the workflow."""
         assert self.engine is not None
 
         self.print_preamble()
 
-        if not self.parent_process:
+        if not self.parent_process_uid:
             bf = '**' if sys.stdout.isatty() else ''
             self.print(bf + self.name + bf)
             self.print(bf + '-' * len(self.name) + bf)
@@ -605,8 +592,8 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
 
             self.proceed()
 
-            while self.engine.steps_are_running():
-                logger.info('Steps are running; waiting for them to complete...')
+            while self.engine.processes_are_running():
+                logger.info('Processes are running; waiting for them to complete...')
                 self.wait()
                 if self.parameters.max_time is not None and time.time() - start_time > self.parameters.max_time:
                     self.status = Status.FAILED
@@ -633,7 +620,7 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         if self.status == Status.NOT_STARTED:
             self.status = Status.RUNNING
 
-    def proceed(self, copy_outputs_to_parent: Optional[bool] = True):
+    def proceed(self):
         """Proceed through the workflow until a step has status `RUNNING`.
 
         Typically, this will involve proceeding to the next step in the workflow which has not been run,
@@ -641,14 +628,14 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
 
         Note, however, for some engines this function will execute the _entire_ workflow e.g. `localhost` workflows,
         which, when requested to run a step in the workflow, will run that step and block the interpreter until the
-        step is completed. For such a workflow, the status of individual steps proceed immediately from `NOT_STARTED`
-        to `COMPLETE` and `proceed()` will not exit until all the steps in the workflow are `COMPLETED`.
+        step is completed. For such a workflow, the status of individual processes proceed immediately from `NOT_STARTED`
+        to `COMPLETE` and `proceed()` will not exit until all the processes in the workflow are `COMPLETED`.
         """
 
         self._pre_run()
 
-        if self.parent_process:
-            with self._parent_context(copy_outputs_to_parent):
+        if self.parent_process_uid:
+            with self._parent_context():
                 self._run()
         else:
             self._run()
@@ -678,22 +665,27 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         self._outputs = value
 
     @classmethod
-    def from_other(cls: Type[W], other_wf: Workflow[Any, Any], **kwargs: Any) -> W:
+    def from_other(cls: Type[W], other_wf: Workflow[Any, Any], **kwargs) -> W:
         """Create a new workflow from another workflow, copying all settings and parameters.
 
         e.g.
         >>> new_wf = Workflow.fromother(other_wf)
         """
-        return cls(inputs=other_wf.inputs.model_copy(), engine=other_wf.engine, **kwargs)
+        inputs_dct = {k: v for k, v in other_wf.inputs.model_dump().items() if k in cls.input_model.model_fields}
+        inputs_dct.update(kwargs)
+        inputs = cls.input_model.model_validate(inputs_dct)
+        return cls(inputs=inputs, engine=other_wf.engine)
 
     @classmethod
-    def fromparent(cls: Type[W], parent_wf: Workflow[Any, Any], **kwargs: Any) -> W:
+    def fromparent(cls: Type[W], parent_wf: Workflow[Any, Any], **kwargs) -> W:
         """Create a subworkflow with the same configuration as the parent workflow.
 
         e.g.
         >>> sub_wf = Workflow.fromparent(self)
         """
-        return cls.from_other(other_wf=parent_wf, parent_process=parent_wf, **kwargs)
+        wf = cls.from_other(other_wf=parent_wf, **kwargs)
+        wf.parent_process_uid = parent_wf.uid
+        return wf
 
     def new_calculator(self,
                        calc_class: type[CalcType],
@@ -701,7 +693,7 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
                        spin: Spin = Spin.NONE,
                        override: dict[str, Any] = {},
                        kpts: Optional[Union[List[int], BandPath]] = None,
-                       ) -> CalcType:
+                       **kwargs) -> CalcType:
         """Create a new calculator of a given type."""
         calc_id = calc_class.id
 
@@ -711,7 +703,6 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         for k, v in override.items():
             set_(parameters, k, v)
 
-        kwargs = {}
         # For the k-points, the Workflow has two options: self.kpoints.grid and self.kpoints.path. A calculator should
         # only ever have one of these two. By default, use the grid.
 
@@ -747,7 +738,7 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
             kwargs['kpoints'] = copy.deepcopy(self.inputs.kpoints)
 
         # Create the calculator
-        calc = calc_class(name=name, parent_process=self, inputs={
+        calc = calc_class(name=name, parent_process_uid=self.uid, inputs={
                           'atoms': copy.deepcopy(self.inputs.atoms), 'parameters': parameters, **kwargs}, engine=self.engine)
 
         return calc
@@ -787,128 +778,106 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
 
         self.atoms = self.atoms[mask]
 
-    def run_steps(self, steps: Process[Any, Any] | Sequence[Process[Any, Any]], **kwargs) -> Status:
-        """Run a sequence of steps in the workflow.
+    def run_processes(self, processes: Process[Any, Any] | Sequence[Process[Any, Any]], **kwargs) -> Status:
+        """Run a sequence of processes in the workflow.
 
-        Run either a step or sequence (i.e. list) of steps. If a list is provided, the steps must be able to be run
+        Run either a process or sequence (i.e. list) of processes. If a list is provided, the processes must be able to be run
         in parallel.
 
-        :param steps: The step or steps to run
-        :type steps: ProcessProtocol | Sequence[ProcessProtocol]
-        :return: The status of this set of steps
+        :param processes: The process or processes to run
+        :type processes: ProcessProtocol | Sequence[ProcessProtocol]
+        :return: The status of this set of processes
         :rtype: Status
         """
         assert self.engine is not None
 
         logger = logging.getLogger(__name__)
 
-        # Convert steps to an immutable, covariant tuple
-        if isinstance(steps, Process):
-            steps = (steps,)
-        if not isinstance(steps, tuple):
-            steps = tuple(steps)
+        # Convert processes to an immutable, covariant tuple
+        if isinstance(processes, Process):
+            processes = (processes,)
+        if not isinstance(processes, tuple):
+            processes = tuple(processes)
 
-        for step in steps:
-            step.parent_process = self
-            step.engine = self.engine
+        for process in processes:
+            process.parent_process_uid = self.uid
+            process.engine = self.engine
             self.step_counter += 1
 
             # Check that calc.directory was not set
-            if step.directory_has_been_set():
+            if process.directory is not None:
                 raise ValueError(
-                    f'`{step.name}.directory` should not be set manually, but it was set to `{step.directory}`')
+                    f'`{process.name}.directory` should not be set manually, but it was set to `{process.directory}`')
 
             if self.directory is None:
-                step.directory = f'{self.step_counter:02d}-{step.name}'
+                process.directory = f'{self.step_counter:02d}-{process.name}'
             else:
-                step.directory = self.directory / f'{self.step_counter:02d}-{step.name}'
+                process.directory = self.directory / f'{self.step_counter:02d}-{process.name}'
 
-            status = self.engine.get_status(step)
+            status = self.engine.get_status(process)
             if status == Status.NOT_STARTED:
-                logger.info(f'Submitting {step.directory} ({step.__class__.__name__})')
-                self.engine.run(step, **kwargs)
+                logger.info(f'Submitting {process.directory} ({process.__class__.__name__})')
+                self.engine.run(process, **kwargs)
             else:
-                logger.info(f'Step {step.uid} is {status.name}', stacklevel=2)
+                logger.info(f'Step {process.uid} is {status.name}', stacklevel=2)
 
-        for step in steps:
-            if self.engine.get_status(step) == Status.COMPLETED:
+        for process in processes:
+            if self.engine.get_status(process) == Status.COMPLETED:
                 # Load the results of the step
-                logger.info(f'Loading the results for {step.directory} ({step.__class__.__name__})')
-                self.engine.load_results(step)
+                logger.info(f'Loading the results for {process.directory} ({process.__class__.__name__})')
+                self.engine.load_results(process)
 
                 # Store the results of the step
-                for step in steps:
-                    if step not in self.processes:
-                        self.processes.append(step)
+                # for step in steps:
+                #     if step not in self.processes:
+                #         self.processes.append(step)
 
-        # If any of the steps are running, return RUNNING
-        for step in steps:
-            if self.engine.get_status(step) == Status.RUNNING:
+        # If any of the processes are running, return RUNNING
+        for process in processes:
+            if self.engine.get_status(process) == Status.RUNNING:
                 return Status.RUNNING
+
         # Otherwise, return COMPLETED
         return Status.COMPLETED
 
-    def steps_are_running(self) -> bool:
-        """Return True if any steps have status RUNNING."""
+    def processes_are_running(self) -> bool:
+        """Return True if any processes have status RUNNING."""
         assert self.engine is not None
-        for step in self.steps:
-            if self.engine.get_status(step) == Status.RUNNING:
+        for process in self.processes:
+            if self.engine.get_status(process) == Status.RUNNING:
                 return True
         return False
 
     @contextmanager
-    def _parent_context(self, copy_outputs_to_parent: Optional[bool] = True) -> Generator[None, None, None]:
+    def _parent_context(self) -> Generator[None, None, None]:
         """Provide context for running a subworkflow within a parent workflow.
 
         This is the context for calling self._run(), within which self inherits relevant information from
-        self.parent_process, runs, and then passes back relevant information to self.parent_process.
+        the parent_process, runs, and then passes back relevant information to self.parent_process.
         """
-        assert isinstance(self.parent_process, Workflow)
+        parent = self.engine.workflows[self.parent_process_uid]
+        assert isinstance(parent, Workflow)
 
         # Increase the indent level
-        self.print_indent = self.parent_process.print_indent + 2
+        self.print_indent = parent.print_indent + 2
 
-        # Ensure altering self.calculator_parameters won't affect self.parent.calculator_parameters
-        if self.calculator_parameters is self.parent_process.calculator_parameters:
-            self.calculator_parameters = copy.deepcopy(self.parent_process.calculator_parameters)
-
-        # Copy the lists of calculations, processes, and steps
-        self.calculations = [c for c in self.parent_process.calculations]
-        self.processes = [p for p in self.parent_process.processes]
-        self.steps = [s for s in self.parent_process.steps]
+        # Copy the processes
+        self.processes = [p for p in parent.processes]
 
         # Store the current length of the lists so we can tell how many calculations are new
-        n_steps = len(self.steps)
-        n_calculations = len(self.calculations)
         n_processes = len(self.processes)
 
-        # Link the variational orbitals
-        if self.parent_process.variational_orbitals is not None:
-            if copy_outputs_to_parent:
-                self.variational_orbitals = self.parent_process.variational_orbitals
-            else:
-                self.variational_orbitals = copy.deepcopy(self.parent_process.variational_orbitals)
-
         # Prepend the step counter to the subdirectory name
-        subdirectory_str = self.name.replace(' ', '-').lower() if subdirectory is None else subdirectory
-        self.parent_process.step_counter += 1
-        subdirectory_path = Path(f'{self.parent_process.step_counter:02}-{subdirectory_str}')
-        assert self.parent_process.directory is not None
-        self.directory = self.parent_process.directory / subdirectory_path
-        try:
-            # Run the workflow
-            yield
-        finally:
-            if copy_outputs_to_parent:
-                # Updating the lists of calculations, processes, and steps
-                self.parent_process.calculations += self.calculations[n_calculations:]
-                self.parent_process.processes += self.processes[n_processes:]
-                self.parent_process.steps += self.steps[n_steps:]
+        subdirectory_str = self.name.replace(' ', '-').lower()
+        parent.step_counter += 1
+        subdirectory_path = Path(f'{parent.step_counter:02}-{subdirectory_str}')
+        self.directory = parent.directory / subdirectory_path if parent.directory else subdirectory_path
 
-                if self.status == Status.COMPLETED:
-                    if self.variational_orbitals is not None and self.parent_process.variational_orbitals is None:
-                        # Copy the entire variational_orbitals object
-                        self.parent_process.variational_orbitals = self.variational_orbitals
+        # Run the workflow
+        yield
+
+        # Afterwards, pass back any new calculations to the parent
+        parent.processes += self.processes[n_processes:]
 
     def print(self, *args, **kwargs) -> None:
         """Print information in a tidy way."""
@@ -1045,7 +1014,7 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
 
     def print_preamble(self):
         """Print the preamble of the workflow."""
-        if self.parent_process:
+        if self.parent_process_uid:
             return
 
         self.print(header())
@@ -1317,8 +1286,10 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         # Engine-dependent teardown
         self.engine._teardown()
 
-    def number_of_electrons(self, spin: Spin = Spin.NONE, params: Optional[settings.SettingsDict] = None) -> int:
-        return _number_of_electrons(self.inputs.atoms, self.inputs.pseudopotentials, self.config.spin_polarized, spin, params)
+    def number_of_electrons(self, spin: Spin = Spin.NONE, params: PWInputParameters | KCPInputParameters | None = None) -> int:
+        if params is None:
+            params = self.inputs.calculator_parameters.pw
+        return _number_of_electrons(self.inputs.atoms, self.inputs.pseudopotentials, self.inputs.config.spin_polarized, params, spin)
 
 
 def read_atoms_dict(dct: Dict[str, Any]) -> Tuple[Atoms, List[Atoms]]:
@@ -1412,7 +1383,7 @@ def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
         # nspin=1 dummy
         calc_nspin1_dummy = master_calc.nspin1_dummy_calculator()
         calc_nspin1_dummy.skip_qc = True
-        status = wf.run_steps(calc_nspin1_dummy)
+        status = wf.run_processes(calc_nspin1_dummy)
         if status != Status.COMPLETED:
             return status
 
@@ -1422,7 +1393,7 @@ def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
         # Copy over nspin=2 wavefunction to nspin=1 tmp directory
         process2to1 = ConvertFilesFromSpin2To1(name=None,
                                                **prev_calc_nspin2.files_to_convert_with_spin2_to_spin1)
-        status = wf.run_steps(process2to1)
+        status = wf.run_processes(process2to1)
         if status != Status.COMPLETED:
             return status
 
@@ -1432,21 +1403,21 @@ def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
                 f'{calc_nspin1.parameters.prefix}_{calc_nspin1.parameters.ndr}.save/K00001'
             calc_nspin1.link(f, dst_dir / f.relative_path, symlink=True, overwrite=True)
 
-    status = wf.run_steps(calc_nspin1)
+    status = wf.run_processes(calc_nspin1)
     if status != Status.COMPLETED:
         return status
 
     # nspin=2 from scratch (dummy run for creating files of appropriate size)
     calc_nspin2_dummy = master_calc.nspin2_dummy_calculator()
     calc_nspin2_dummy.skip_qc = True
-    status = wf.run_steps(calc_nspin2_dummy)
+    status = wf.run_processes(calc_nspin2_dummy)
     if status != Status.COMPLETED:
         return status
     master_calc.link(File(calc_nspin2_dummy, calc_nspin2_dummy.parameters.outdir), master_calc.parameters.outdir)
 
     # Copy over nspin=1 wavefunction to nspin=2 tmp directory
     process1to2 = ConvertFilesFromSpin1To2(**calc_nspin1.files_to_convert_with_spin1_to_spin2)
-    status = wf.run_steps(process1to2)
+    status = wf.run_processes(process1to2)
     if status != Status.COMPLETED:
         return status
 
@@ -1456,7 +1427,7 @@ def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:
         dst_dir = master_calc.parameters.outdir / \
             f'{master_calc.parameters.prefix}_{master_calc.parameters.ndr}.save/K00001'
         master_calc.link(f, dst_dir / f.relative_path, symlink=True, overwrite=True)
-    status = wf.run_steps(master_calc)
+    status = wf.run_processes(master_calc)
     return status
 
 

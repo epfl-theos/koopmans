@@ -332,7 +332,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFInputs, KoopmansDSCFOutputs]):
                     calc.prefix += '_ml'
 
                 calc.link(n_electron_restart_dir, calc.read_directory, recursive_symlink=True)
-                status = self.run_steps(calc)
+                status = self.run_processes(calc)
                 if status != Status.COMPLETED:
                     return
 
@@ -540,7 +540,7 @@ class DeltaSCFIterationWorkflow(Workflow[DeltaSCFIterationInputs, DeltaSCFIterat
             if status != Status.COMPLETED:
                 return
         else:
-            status = self.run_steps(trial_calc)
+            status = self.run_processes(trial_calc)
             if status != Status.COMPLETED:
                 return
 
@@ -806,7 +806,7 @@ class OrbitalDeltaSCFWorkflow(Workflow[OrbitalDeltaSCFInputs, OrbitalDeltaSCFOut
                 if 'dummy' in calc_type:
                     dummy_outdir = subwf.outputs.outdir
             else:
-                self.run_steps(calc)
+                self.run_processes(calc)
                 if 'dummy' in calc_type:
                     dummy_outdir = File(calc, calc.parameters.outdir)
 
@@ -1259,7 +1259,7 @@ class InitializationWorkflow(Workflow[WorkflowInput, KoopmansDSCFOutputs]):
             # We need a dummy calc before the real dft_init in order
             # to copy the previously calculated Wannier functions
             dummy_calc = internal_new_kcp_calculator(self, 'dft_dummy')
-            status = self.run_steps(dummy_calc)
+            status = self.run_processes(dummy_calc)
             if status != Status.COMPLETED:
                 return
 
@@ -1269,7 +1269,7 @@ class InitializationWorkflow(Workflow[WorkflowInput, KoopmansDSCFOutputs]):
             calc.link(File(dummy_calc, dummy_calc.parameters.outdir), calc.parameters.outdir)
             for filename, f in fold_workflow.outputs.kcp_files.items():
                 calc.link(f, calc.read_directory / 'K00001' / filename, symlink=True)
-            status = self.run_steps(calc)
+            status = self.run_processes(calc)
             if status != Status.COMPLETED:
                 return
 
@@ -1294,7 +1294,7 @@ class InitializationWorkflow(Workflow[WorkflowInput, KoopmansDSCFOutputs]):
                 if status != Status.COMPLETED:
                     return
             else:
-                status = self.run_steps(calc_dft)
+                status = self.run_processes(calc_dft)
                 if status != Status.COMPLETED:
                     return
 
@@ -1319,7 +1319,7 @@ class InitializationWorkflow(Workflow[WorkflowInput, KoopmansDSCFOutputs]):
                     ndr_dir = calc.read_directory / 'K00001'
                     calc.link(ndw_dir / 'evc1.dat', ndr_dir / 'evc01.dat', symlink=True, overwrite=True)
                     calc.link(ndw_dir / 'evc2.dat', ndr_dir / 'evc02.dat', symlink=True, overwrite=True)
-                    status = self.run_steps(calc)
+                    status = self.run_processes(calc)
                     if status != Status.COMPLETED:
                         return
             else:
@@ -1333,7 +1333,7 @@ class InitializationWorkflow(Workflow[WorkflowInput, KoopmansDSCFOutputs]):
                 if status != Status.COMPLETED:
                     return
             else:
-                status = self.run_steps(calc_dft)
+                status = self.run_processes(calc_dft)
                 if status != Status.COMPLETED:
                     return
 
@@ -1346,7 +1346,7 @@ class InitializationWorkflow(Workflow[WorkflowInput, KoopmansDSCFOutputs]):
                 # PZ from DFT (generating PZ density and PZ orbitals)
                 calc = internal_new_kcp_calculator(self, 'pz_init')
                 calc.link(calc_dft.write_directory, calc.read_directory, recursive_symlink=True)
-                status = self.run_steps(calc)
+                status = self.run_processes(calc)
                 if status != Status.COMPLETED:
                     return
             else:

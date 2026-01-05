@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from koopmans.engines import Engine
+    from koopmans.engines.engine import Engine
 
 
 @runtime_checkable

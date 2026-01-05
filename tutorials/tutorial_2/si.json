@@ -1,8 +1,8 @@
 {
     "workflow": {
         "task": "wannierize",
-        "functional": "ki",
-        "method": "dscf",
+        "correction": "ki",
+        "screening_method": "dscf",
         "mp_correction": false,
         "init_orbitals": "mlwfs",
         "alpha_guess": 0.077,
@@ -42,7 +42,7 @@
                 "nbnd": 20
             }
         },
-        "w90": {
+        "wannier90": {
             "bands_plot": true,
             "projections": [[{"fractional_site": [ 0.25, 0.25, 0.25 ], "ang_mtm": "sp3"}],
                             [{"fractional_site": [ 0.25, 0.25, 0.25 ], "ang_mtm": "sp3"}]],
