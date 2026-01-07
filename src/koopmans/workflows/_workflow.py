@@ -691,7 +691,7 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         wf.print_indent = parent_wf.print_indent + 2
         wf.parent_process_uid = parent_wf.uid
 
-        subdirectory_str = wf.name.replace(' ', '-').lower()
+        subdirectory_str = wf.name.replace("workflow", "").replace(' ', '-').lower().replace('_', '-').strip("-")
         subdirectory_path = Path(f'{parent_wf.step_counter:02}-{subdirectory_str}')
         wf.directory = parent_wf.directory / subdirectory_path if parent_wf.directory else subdirectory_path
 
