@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import model_validator
+from pint import Quantity
+from pydantic import Field, model_validator
+from pydantic_pint import PydanticPintQuantity
 
-from koopmans.files import FileViaSymlink
+from koopmans.files import File, FileViaSymlink
 from koopmans.parameters.pw2wannier90 import PW2Wannier90InputParameters
 
 from .calculator import CalculatorInputs, CalculatorOutputs, CalculatorProcess
@@ -37,7 +39,10 @@ class PW2Wannier90Inputs(CalculatorInputs):
 class PW2Wannier90Outputs(CalculatorOutputs):
     """Outputs of calculations with pw2wannier90.x."""
 
-    pass
+    eig_file: File
+    mmn_file: File | None = None
+    amn_file: File | None = None
+    unk_files: list[File] = Field(default_factory=list)
 
 
 class PW2Wannier90Calculator(CalculatorProcess[PW2Wannier90Inputs, PW2Wannier90Outputs]):

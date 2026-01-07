@@ -372,6 +372,21 @@ class LinkedFile(BaseModel):
     recursive_symlink: bool = False
     overwrite: bool = False
 
+    @property
+    def stem(self) -> str:
+        """Return the stem of the destination file, replicating the behavior of Path.stem."""
+        return self.dest.stem
+
+    @property
+    def suffix(self) -> str:
+        """Return the suffix of the destination file, replicating the behavior of Path.suffix."""
+        return self.dest.suffix
+
+    @property
+    def name(self) -> str:
+        """Return the name of the destination file, replicating the behavior of Path.name."""
+        return self.dest.name
+
 
 def as_linkedfile(*, symlink: bool, recursive_symlink: bool, overwrite: bool):
     """Return a validator that allows conversion of File to LinkedFile.

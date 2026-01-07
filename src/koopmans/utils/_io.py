@@ -184,6 +184,9 @@ def indented_print(text: str = '', indent: Optional[int] = None, style='body', p
                 text = text.replace('**', '\033[1m', 1).replace('**', '\033[0m', 1)
             while '*' in text:
                 text = text.replace('*', '\033[3m', 1).replace('*', '\033[0m', 1)
+            while '`' in text:
+                text = text.replace('`', '\033[3m', 1).replace('`', '\033[0m', 1)
+
     indent = 0 if indent is None else indent
     if style == 'body':
         _indented_print(text, indent=indent, flush=flush, wrap=wrap, **kwargs)
@@ -232,11 +235,14 @@ def create_alert(kind: str, message: str, header: str | None = None, indent: int
         else:
             width = 120 - previous_indent
         header = "" if header is None else header
-        message = "\n".join(["",
-                             f'> [!{kind.upper()}] {header} ',
-                             textwrap.fill(str(message), width=width, initial_indent='> ', subsequent_indent='> '),
-                             ""
-                             ])
+        message_lines = [textwrap.fill(str(line), width=width, initial_indent='> ',
+                                       subsequent_indent='> ') for line in message.split('\n')]
+        message_lines = [line if line else ">" for line in message_lines]
+        message = "  \n".join(["",
+                               f'> [!{kind.upper()}] {header} ',
+                               *message_lines,
+                               ""
+                               ])
         return message
 
 

@@ -8,6 +8,7 @@ import numpy as np
 from ase_koopmans.dft import DOS
 from ase_koopmans.spectrum.band_structure import BandStructure
 from pydantic import model_validator
+from pydash import get
 
 from koopmans import utils
 from koopmans.calculators.kcp import KCPCalculator
@@ -29,6 +30,7 @@ from ._ml import PowerSpectrumDecompositionWorkflow
 from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
 from ._wannierize import MergeableFile, WannierizeWorkflow
 from ._workflow import Workflow, WorkflowInput, spin_symmetrize
+from .config import VariationalOrbital
 
 
 class KoopmansDSCFInputs(WorkflowInput):
@@ -44,6 +46,79 @@ class KoopmansDSCFInputs(WorkflowInput):
 
     # For workflows where we have previously computed descriptors, we can provide them here
     precomputed_descriptors: List[File] | None = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def construct_variational_orbitals(cls, dct: dict[str, Any]) -> dict[str, Any]:
+        if dct.get('variational_orbitals', None) is not None:
+            return dct
+
+        # Constructing the arrays required to initialize a VariationalOrbitals object
+        kcp_system = dct['calculator_parameters'].kcp.system
+        spin_polarized = dct['config'].spin_polarized
+        if spin_polarized:
+            if kcp_system.nbnd is not None:
+                n_emp_up = kcp_system.nbnd - kcp_system.nelup
+                n_emp_dw = kcp_system.nbnd - kcp_system.neldw
+            else:
+                n_emp_up = 0
+                n_emp_dw = 0
+            filling = [[True for _ in range(kcp_system.nelup)] + [False for _ in range(n_emp_up)],
+                       [True for _ in range(kcp_system.neldw)] + [False for _ in range(n_emp_dw)]]
+            groups = dct['config'].orbital_groups
+        else:
+            if kcp_system.nbnd is not None:
+                n_emp = kcp_system.nbnd - kcp_system.nelec // 2
+            else:
+                n_emp = 0
+            filling = [[True for _ in range(kcp_system.nelec // 2)]
+                       + [False for _ in range(n_emp)] for _ in range(2)]
+            # self.parameters.orbital_groups does not have a spin index
+            if dct['config'].orbital_groups is None:
+                groups = None
+            else:
+                groups = [dct['config'].orbital_groups[0] for _ in range(2)]
+
+        # Checking groups and filling are the same dimensions
+        if groups is not None:
+            for g, f in zip(groups, filling):
+                assert len(g) == len(f), 'orbital_groups is the wrong dimension; its length should match the number ' \
+                    'of variational orbitals'
+
+        # Initialize the variational_orbitals object
+        tols: dict[str, float] = {}
+        for key in ['self_hartree', 'spread']:
+            val = getattr(dct['config'], f'orbital_groups_{key}_tol', None)
+            if val is not None:
+                tols[key] = val
+
+        dct['variational_orbitals'] = VariationalOrbitals.empty(spin_polarized=spin_polarized,
+                                                                filling=filling, groups=groups, tolerances=tols)
+
+        return dct
+
+    @model_validator(mode='after')
+    def check_init_empty_orbitals(self):
+        if self.config.init_empty_orbitals != self.config.init_orbitals:
+            raise NotImplementedError(f'The combination `init_orbitals` = {self.config.init_orbitals} '
+                                      f'and `init_empty_orbitals` = {self.config.init_empty_orbitals} '
+                                      'has not yet been implemented')
+        return self
+
+    @model_validator(mode='after')
+    def no_ui_keywords_that_will_be_modified(self):
+        """Raise errors if any UI keywords are provided but will be overwritten by the workflow."""
+        protected_keywords = {'kc_ham_file', 'wannier90_seedname', 'dft_ham_file', 'dft_smooth_ham_file'}
+        for ui_kind in ['occ', 'emp']:
+            model = get(self.calculator_parameters, f'ui_{ui_kind}')
+            non_default_keys = {name for name, field in model.model_fields.items() if getattr(model,
+                                                                                              name) != field.default}
+
+            overlap = protected_keywords.intersection(non_default_keys)
+            if overlap:
+                raise ValueError(f'UI keywords {overlap} have been set in the input file for ui_{ui_kind}, but these will be '
+                                 'automatically set by the Koopmans workflow. Remove these keywords from the input file.')
+        return self
 
 
 class KoopmansDSCFOutputs(BaseModel):
@@ -63,175 +138,6 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFInputs, KoopmansDSCFOutputs]):
     input_model = KoopmansDSCFInputs
     output_model = KoopmansDSCFOutputs
 
-    @model_validator(mode='before')
-    @classmethod
-    def placeholder(cls, v: dict) -> dict:
-        raise NotImplementedError('Need to convert the following to proper validators')
-
-        # If periodic, convert the kcp calculation into a Γ-only supercell calculation
-        kcp_params = self.calculator_parameters['kcp']
-        if all(self.atoms.pbc):
-            if self.parameters.spin_polarized:
-                spins = [Spin.UP, Spin.DOWN]
-                nelecs = [kcp_params.nelup, kcp_params.neldw]
-            else:
-                spins = [Spin.NONE]
-                nelecs = [kcp_params.nelec // 2]
-
-            for spin, nelec in zip(spins, nelecs):
-                # Check that we have wannierized every filled orbital
-                nbands_occ = nelec
-                if self.projections:
-                    label = 'wannier90'
-                    if spin != Spin.NONE:
-                        label += f'_{spin}'
-                    nbands_excl = len(self.calculator_parameters[label].get('exclude_bands', []))
-                    if nbands_excl > 0:
-                        raise ValueError(
-                            'Excluding bands is incompatible with `method == "dscf"`. Please provide '
-                            'projections for every band and remove the `exclude_bands` `Wannier90` keyword.'
-                        )
-
-                    nwann = self.projections.num_wann(spin=spin)
-
-                    if nwann < nelec:
-                        raise ValueError(
-                            'You have configured this calculation to only wannierize a subset of the '
-                            'occupied bands:\n'
-                            f' number of occupied bands = {nbands_occ}\n'
-                            f' number of Wannier functions = {nwann}\n'
-                            'This is incompatible with the subsequent Koopmans '
-                            'calculation.\nPlease modify the `Wannier90` settings in order to wannierize '
-                            'all of the occupied bands.'
-                        )
-
-                    nbands_emp = nwann - nbands_occ
-                else:
-                    nbands_emp = self.calculator_parameters['pw'].nbnd - nbands_occ
-
-                # Check the number of empty states has been correctly configured
-                spin_info = f'spin {spin} ' if self.parameters.spin_polarized else ''
-                if kcp_params.nbnd is None:
-                    if nbands_emp != 0:
-                        kcp_params.nbnd = nbands_occ + nbands_emp
-                elif nbands_occ > kcp_params.nbnd:
-                    raise ValueError(f'The value you have provided for `nbnd` is less than the number of {spin_info}'
-                                     f'electrons. Please increase `nbnd` to at least {nbands_occ}')
-                elif kcp_params.nbnd != nbands_occ + nbands_emp:
-                    raise ValueError(f'The number of {spin_info}empty states are inconsistent:\n'
-                                     f' number of empty bands = {kcp_params.nbnd - nbands_occ}\n'
-                                     f' number of empty Wannier functions = {nbands_emp}\n'
-                                     'If you have provided `nbnd` explicitly to the `kcp` calculator, check that it '
-                                     'matches with the number of empty projections/bands in your system.')
-
-            # Populating self.parameters.orbital_groups if needed
-            # N.B. self.bands.groups is guaranteed to be 2 x num_wann, but self.parameters.orbital_groups
-            # is either 1- or 2- long, depending on if we are spin-polarized or not
-            if self.parameters.orbital_groups is None:
-                orbital_groups: List[List[int]] = []
-                i_start = 0
-                for nelec in nelecs:
-                    i_end = i_start + kcp_params.get('nbnd', nelec) - 1
-                    orbital_groups.append(list(range(i_start, i_end + 1)))
-                    i_start = i_end + 1
-                self.parameters.orbital_groups = orbital_groups
-
-            if not self.kpoints.gamma_only:
-                # Update the KCP settings to correspond to a supercell (leaving self.atoms unchanged for the moment)
-                self.convert_kcp_to_supercell()
-
-                # Expanding self.parameters.orbital_groups to account for the supercell, grouping equivalent wannier
-                # functions together
-                for i_spin, nelec in enumerate(nelecs):
-                    assert self.kpoints.grid is not None
-                    self.parameters.orbital_groups[i_spin] = [i for _ in range(np.prod(self.kpoints.grid))
-                                                              for i in self.parameters.orbital_groups[i_spin][:nelec]] \
-                        + [i for _ in range(np.prod(self.kpoints.grid)) for i in
-                           self.parameters.orbital_groups[i_spin][nelec:]]
-
-        # Check the shape of self.parameters.orbital_groups is as expected
-        if self.parameters.spin_polarized:
-            target_length = 2
-        else:
-            target_length = 1
-        if self.parameters.orbital_groups is not None:
-            assert len(self.parameters.orbital_groups) == target_length
-
-        # Constructing the arrays required to initialize a VariationalOrbitals object
-        if self.parameters.spin_polarized:
-            if 'nbnd' in kcp_params:
-                n_emp_up = kcp_params.nbnd - kcp_params.nelup
-                n_emp_dw = kcp_params.nbnd - kcp_params.neldw
-            else:
-                n_emp_up = 0
-                n_emp_dw = 0
-            filling = [[True for _ in range(kcp_params.nelup)] + [False for _ in range(n_emp_up)],
-                       [True for _ in range(kcp_params.neldw)] + [False for _ in range(n_emp_dw)]]
-            groups = self.parameters.orbital_groups
-        else:
-            if 'nbnd' in kcp_params:
-                n_emp = kcp_params.nbnd - kcp_params.nelec // 2
-            else:
-                n_emp = 0
-            filling = [[True for _ in range(kcp_params.nelec // 2)]
-                       + [False for _ in range(n_emp)] for _ in range(2)]
-            # self.parameters.orbital_groups does not have a spin index
-            if self.parameters.orbital_groups is None:
-                groups = None
-            else:
-                groups = [self.parameters.orbital_groups[0] for _ in range(2)]
-
-        # Checking groups and filling are the same dimensions
-        if groups is not None:
-            for g, f in zip(groups, filling):
-                assert len(g) == len(f), 'orbital_groups is the wrong dimension; its length should match the number ' \
-                    'of variational orbitals'
-
-        # Initialize the variational_orbitals object
-        tols: Dict[str, float] = {}
-        for key in ['self_hartree', 'spread']:
-            val = self.parameters.get(f'orbital_groups_{key}_tol', None)
-            if val is not None:
-                tols[key] = val
-        self.variational_orbitals = VariationalOrbitals.empty(spin_polarized=self.parameters.spin_polarized,
-                                                              filling=filling, groups=groups, tolerances=tols)
-
-        assert self.variational_orbitals is not None
-        if self.parameters.alpha_from_file:
-            # Reading alpha values from file
-            self.variational_orbitals.alphas = self.read_alphas_from_file()
-        else:
-            # Initializing alpha with a guess
-            self.variational_orbitals.alphas = self.parameters.alpha_guess
-
-        # Raise errors if any UI keywords are provided but will be overwritten by the workflow
-        for ui_keyword in ['kc_ham_file', 'wannier90_seedname', 'dft_ham_file', 'dft_smooth_ham_file']:
-            for ui_kind in ['occ', 'emp']:
-                value = getattr(self.calculator_parameters[f'ui_{ui_kind}'], ui_keyword)
-                [default_value] = [s.default for s in self.calculator_parameters['ui'].settings if s.name == ui_keyword]
-                if value != default_value:
-                    raise ValueError(f'UI keyword `{ui_keyword}` has been set in the input file, but this will be '
-                                     'automatically set by the Koopmans workflow. Remove this keyword from the input '
-                                     'file')
-
-        # Check self.init_empty_orbitals
-        if self.parameters.init_empty_orbitals != self.parameters.init_orbitals:
-            raise NotImplementedError(f'The combination `init_orbitals` = {self.parameters.init_orbitals} '
-                                      f'and `init_empty_orbitals` = {self.parameters.init_empty_orbitals} '
-                                      'has not yet been implemented')
-
-    def convert_kcp_to_supercell(self):
-        """Convert the KCP settings to correspond to a supercell calculation.
-
-        Multiply all extensive KCP settings by the appropriate prefactor
-        """
-        assert self.kpoints.grid is not None
-        prefactor = np.prod(self.kpoints.grid)
-        for attr in ['nelec', 'nelup', 'neldw', 'nbnd', 'conv_thr', 'esic_conv_thr', 'tot_charge', 'tot_magnetization']:
-            value = getattr(self.calculator_parameters['kcp'], attr, None)
-            if value is not None:
-                setattr(self.calculator_parameters['kcp'], attr, prefactor * value)
-
     def read_alphas_from_file(self, directory: Path = Path()):
         """Read the contents of `file_alpharef.txt` and `file_alpharef_empty.txt`.
 
@@ -249,17 +155,28 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFInputs, KoopmansDSCFOutputs]):
 
     def _run(self) -> None:
         """Run the workflow."""
+        convert_to_supercell(self.inputs)
+
+        variational_orbitals = self.inputs.variational_orbitals
+        if self.inputs.config.alpha_from_file:
+            # Reading alpha values from file
+            variational_orbitals.alphas = self.read_alphas_from_file()
+        else:
+            # Initializing alpha with a guess
+            variational_orbitals.alphas = self.inputs.config.alpha_guess
+
         init_wf: Optional[InitializationWorkflow] = None
-        if self._initial_variational_orbital_files is None:
+        if self.inputs.initial_variational_orbital_files is None:
             init_wf = InitializationWorkflow.fromparent(self)
             init_wf.proceed()
             if init_wf.status != Status.COMPLETED:
                 return
-            self._initial_variational_orbital_files = init_wf.outputs.variational_orbital_files
+            initial_variational_orbital_files = init_wf.outputs.variational_orbital_files
             initial_cp_calculation = init_wf.outputs.final_calc
         else:
-            assert self._previous_cp_calc is not None
-            initial_cp_calculation = self._previous_cp_calc
+            assert self.inputs.previous_cp_calc is not None
+            initial_variational_orbital_files = self.inputs.initial_variational_orbital_files
+            initial_cp_calculation = self.inputs.previous_cp_calc
 
         self.primitive_to_supercell()
 
@@ -1212,13 +1129,13 @@ class InitializationWorkflow(Workflow[WorkflowInput, KoopmansDSCFOutputs]):
     def _run(self) -> None:
         wannier_hamiltonian_files: Dict[BlockID, File] | None = None
 
-        if self.parameters.init_orbitals in ['mlwfs', 'projwfs'] or \
-                (all(self.atoms.pbc) and self.parameters.init_orbitals == 'kohn-sham'):
+        if self.inputs.config.init_orbitals in [VariationalOrbital.MLWFS, VariationalOrbital.PROJWFS] or \
+                (all(self.atoms.pbc) and self.parameters.init_orbitals == VariationalOrbital.KOHN_SHAM):
             # Wannier functions using pw.x, wannier90.x and pw2wannier90.x (pw.x only for Kohn-Sham states)
             wannier_workflow = WannierizeWorkflow.fromparent(self, files_to_merge=[MergeableFile.HR])
-            if wannier_workflow.parameters.calculate_bands:
-                wannier_workflow.parameters.calculate_bands = \
-                    not self.calculator_parameters['ui'].do_smooth_interpolation
+
+            # Don't calculate bands if we are going to do smooth interpolation later
+            wannier_workflow.inputs.config.calculate_bands &= not self.inputs.calculator_parameters.ui.do_smooth_interpolation
 
             # Perform the wannierization workflow
             wannier_workflow.proceed()
@@ -1226,7 +1143,7 @@ class InitializationWorkflow(Workflow[WorkflowInput, KoopmansDSCFOutputs]):
                 return
 
             # Store the Hamitonian files
-            if self.parameters.spin_polarized:
+            if self.inputs.config.spin_polarized:
                 hr_file_ids = [BlockID(filled=True, spin=Spin.UP),
                                BlockID(filled=False, spin=Spin.UP),
                                BlockID(filled=True, spin=Spin.DOWN),
@@ -1417,3 +1334,89 @@ def print_alpha_history(wf: Workflow):
         else:
             wf.print(wf.variational_orbitals.error_history().to_markdown(), wrap=False)
     wf.print('')
+
+
+def convert_to_supercell(inputs: WorkflowInput) -> None:
+    """If periodic, convert the kcp calculation into a Γ-only supercell calculation."""
+    if not all(inputs.atoms.pbc):
+        return
+
+    kcp_system = inputs.calculator_parameters.kcp.system
+    pw_system = inputs.calculator_parameters.pw.system
+    spin_polarized = inputs.config.spin_polarized
+    projections = inputs.projections
+    orbital_groups = inputs.config.orbital_groups
+    if spin_polarized:
+        spins = [Spin.UP, Spin.DOWN]
+        nelecs = [kcp_system.nelup, kcp_system.neldw]
+    else:
+        spins = [Spin.NONE]
+        nelecs = [kcp_system.nelec // 2]
+
+    for spin, nelec in zip(spins, nelecs):
+        # Check that we have Wannierized every filled orbital
+        nbands_occ = nelec
+        if projections:
+            label = 'wannier90'
+            if spin != Spin.NONE:
+                label += f'_{spin}'
+            nbands_excl = len(get(inputs.calculator_parameters, f'{label}.exclude_bands', []))
+            if nbands_excl > 0:
+                raise ValueError(
+                    'Excluding bands is incompatible with `method == "dscf"`. Please provide '
+                    'projections for every band and remove the `exclude_bands` `Wannier90` keyword.'
+                )
+
+            nwann = projections.num_wann(spin=spin)
+
+            if nwann < nelec:
+                raise ValueError(
+                    'You have configured this calculation to only wannierize a subset of the '
+                    'occupied bands:\n'
+                    f' number of occupied bands = {nbands_occ}\n'
+                    f' number of Wannier functions = {nwann}\n'
+                    'This is incompatible with the subsequent Koopmans '
+                    'calculation.\nPlease modify the `Wannier90` settings in order to wannierize '
+                    'all of the occupied bands.'
+                )
+
+            nbands_emp = nwann - nbands_occ
+        else:
+            nbands_emp = pw_system.nbnd - nbands_occ
+
+        # Check the number of empty states has been correctly configured
+        spin_info = f'spin {spin} ' if spin_polarized else ''
+        if kcp_system.nbnd is None:
+            if nbands_emp != 0:
+                kcp_system.nbnd = nbands_occ + nbands_emp
+        elif nbands_occ > kcp_system.nbnd:
+            import ipdb
+            ipdb.set_trace()
+            raise ValueError(f'The value you have provided for `nbnd` is less than the number of {spin_info}'
+                             f'electrons. Please increase `nbnd` to at least {nbands_occ}')
+        elif kcp_system.nbnd != nbands_occ + nbands_emp:
+            raise ValueError(f'The number of {spin_info}empty states are inconsistent:\n'
+                             f' number of empty bands = {kcp_system.nbnd - nbands_occ}\n'
+                             f' number of empty Wannier functions = {nbands_emp}\n'
+                             'If you have provided `nbnd` explicitly to the `kcp` calculator, check that it '
+                             'matches with the number of empty projections/bands in your system.')
+
+    # Populating orbital_groups if needed
+    # N.B. variational_orbitals.groups is guaranteed to be 2 x num_wann, but orbital_groups
+    # is either 1- or 2- long, depending on if we are spin-polarized or not
+    if orbital_groups is None:
+        orbital_groups = [range(1, kcp_system.nbnd + 1) for _ in spins]
+
+    if not inputs.kpoints.gamma_only:
+        # Update all extensive KCP settingso correspond to a supercell (leaving self.atoms unchanged for the moment)
+        prefactor = np.prod(inputs.kpoints.grid)
+        for attr in ['nelec', 'nelup', 'neldw', 'nbnd', 'conv_thr', 'esic_conv_thr', 'tot_charge', 'tot_magnetization']:
+            value = getattr(kcp_system, attr, None)
+            if value is not None:
+                setattr(kcp_system, attr, prefactor * value)
+
+        # Expanding orbital_groups to account for the supercell, grouping equivalent wannier
+        # functions together
+        orbital_groups = [[i for _ in range(prefactor) for i in spin_channel] for spin_channel in orbital_groups]
+
+    inputs.config.orbital_groups = orbital_groups

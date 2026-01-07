@@ -9,6 +9,7 @@ import numpy as np
 from ase import Atoms
 from ase.cell import Cell
 from pydantic import Field, field_validator, model_validator
+from pydantic_core import ErrorDetails
 from pydash import get
 from upf_tools.pydantic import UPFModel
 from wannier90_input.models.parameters import Projection
@@ -23,7 +24,7 @@ from koopmans.parameters.kcp import KCPInputParameters
 from koopmans.parameters.pw import PWInputParameters
 from koopmans.parameters.pw2wannier90 import PW2Wannier90InputParameters
 from koopmans.parameters.ui import UnfoldAndInterpolateConfig
-from koopmans.parameters.wannier90 import Wannier90InputParameters
+from koopmans.parameters.wannier90 import RestrictedWannier90InputParameters
 from koopmans.plotting import PlottingConfig
 from koopmans.projections import ExplicitProjections, ImplicitProjections
 from koopmans.pydantic import BaseModel
@@ -95,17 +96,29 @@ class SpinSpecificWannierInput(BaseModel):
     auto_projections: bool = False
     projections: list[list[Projection]] = Field(default_factory=list)
 
+    @field_validator('projections', mode='before')
+    @classmethod
+    def convert_strings_to_projections(cls, value: Any) -> list[list[Projection]]:
+        return [[Projection.from_string(proj) if isinstance(proj, str) else proj for proj in block] for block in value]
 
-class Wannier90InputParametersWithUpDown(Wannier90InputParameters):
-    up: SpinSpecificWannierInput = Field(default_factory=lambda: SpinSpecificWannierInput())
-    down: SpinSpecificWannierInput = Field(default_factory=lambda: SpinSpecificWannierInput())
+
+class Wannier90InputParametersWithUpDown(RestrictedWannier90InputParameters):
+    up: SpinSpecificWannierInput | None = None
+    down: SpinSpecificWannierInput | None = None
     # In the input file, projections are specified as a list of lists to separate each block
     projections: list[list[Projection]] = Field(default_factory=list)
+
+    @model_validator(mode='after')
+    def check_up_down_exclusivity(self) -> Wannier90InputParametersWithUpDown:
+        if (self.up is None) != (self.down is None):
+            raise ValueError("Both 'up' and 'down' must be specified together.")
+        return self
 
 
 class CalculatorParametersInput(BaseModel):
     ecutwfc: float | None = None
     nbnd: float | None = None
+    tot_magnetization: float | None = None
     pw: PWInputParameters = Field(default_factory=lambda: PWInputParameters())
     pw2wannier90: PW2Wannier90InputParameters = Field(default_factory=lambda: PW2Wannier90InputParameters())
     wannier90: Wannier90InputParametersWithUpDown = Field(default_factory=lambda: Wannier90InputParametersWithUpDown())
@@ -116,39 +129,38 @@ class CalculatorParametersInput(BaseModel):
         dct = self.model_dump()
         ecutwfc = dct.pop('ecutwfc')
         nbnd = dct.pop('nbnd')
+        tot_magnetization = dct.pop('tot_magnetization')
         if ecutwfc is not None:
             dct['pw']['system']['ecutwfc'] = ecutwfc
         if nbnd is not None:
             dct['pw']['system']['nbnd'] = nbnd
+        if tot_magnetization is not None:
+            dct['pw']['system']['tot_magnetization'] = tot_magnetization
 
         # Split wannier90 up and down into their own blocks
-        up_dct = dct['wannier90'].pop('up')
-        down_dct = dct['wannier90'].pop('down')
-        dct['wannier90_up'] = dct['wannier90'].copy()
-        dct['wannier90_down'] = dct['wannier90'].copy()
-        dct['wannier90_up'].update(up_dct)
-        dct['wannier90_down'].update(down_dct)
+        up_dct = dct['wannier90'].pop('up', None)
+        down_dct = dct['wannier90'].pop('down', None)
+        if up_dct is not None and down_dct is not None:
+            wannier90 = dct.pop('wannier90')
+            dct['wannier90_up'] = wannier90.copy()
+            dct['wannier90_down'] = wannier90.copy()
+            dct['wannier90_up'].update(up_dct)
+            dct['wannier90_down'].update(down_dct)
 
         for key in ['wannier90_up', 'wannier90_down', 'wannier90']:
             # Projections are excluded from the CalculatorsInputParameters object
-            dct[key].pop('projections')
+            if key in dct:
+                dct[key].pop('projections')
 
         return dct
 
 
-class EngineInput(BaseModel):
-    from_scratch: bool = True
-    keep_tmpdirs: bool = True
-    commands: CommandConfigs = Field(default_factory=lambda: CommandConfigs)
-
-
 class KoopmansInput(BaseModel):
     workflow: WorkflowConfig
-    engine: EngineInput = Field(default_factory=lambda: EngineInput)
     atoms: AtomsInput
-    kpoints: KpointsInput
+    kpoints: KpointsInput = Field(default_factory=lambda: KpointsInput(gamma_only=True))
     calculator_parameters: CalculatorParametersInput
-    plotting: PlottingConfig
+    plotting: PlottingConfig = Field(default_factory=lambda: PlottingConfig())
 
     @classmethod
     def from_file(cls, filename: str | Path) -> KoopmansInput:
@@ -235,3 +247,33 @@ class KoopmansInput(BaseModel):
             inputs=inputs,
             engine=engine,
         )
+
+
+CUSTOM_MESSAGES = {
+    'type': 'is the wrong type (should be "{expected_type}", not "{given_type}")',
+    'extra_forbidden': 'is not a valid keyword.',
+    'missing': 'was not provided.',
+}
+
+
+def convert_errors(e: ValidationError) -> list[ErrorDetails]:
+    """Make the validation errors more user-friendly"""
+    new_errors: list[ErrorDetails] = []
+    for error in e.errors():
+        custom_message = CUSTOM_MESSAGES.get(error['type'], None)
+        if custom_message:
+            ctx = error.get('ctx')
+            error['msg'] = custom_message.format(**ctx) if ctx else custom_message
+        new_errors.append(error)
+    return new_errors
+
+
+def prettify_errors(e: ValidationError) -> str:
+    """Return a prettified string of validation errors."""
+    errors = convert_errors(e)
+    error_lines = []
+    for error in errors:
+        loc = '.'.join(str(l) for l in error['loc'])
+        msg = error['msg']
+        error_lines.append(f' `{loc}` {msg}')
+    return '\n'.join(error_lines)

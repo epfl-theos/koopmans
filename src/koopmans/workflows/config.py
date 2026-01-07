@@ -117,8 +117,17 @@ class WorkflowConfig(BaseModel):
         return v
 
     @model_validator(mode="before")
+    @classmethod
     def empty_variational_orbitals_default_to_same_as_filled(cls, values: dict[str, Any]) -> dict[str, Any]:
         """If init_empty_orbitals is not specified, set it to the same value as init_orbitals."""
         if values.get("init_empty_orbitals", None) is None:
             values["init_empty_orbitals"] = values.get("init_orbitals", VariationalOrbital.PZ)
         return values
+
+    @model_validator(mode="after")
+    def check_orbital_groups_length(self):
+        if self.orbital_groups is not None:
+            target_length = 2 if self.spin_polarized else 1
+            if len(self.orbital_groups) != target_length:
+                raise ValueError(f"'orbital_groups' should be of length {target_length}")
+        return self

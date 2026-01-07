@@ -104,12 +104,12 @@ def nwfcs_from_projectors(atoms: Atoms, wannoer90_projector_files: OrderedDict[s
     return quantity_from_pseudos(atoms, wannoer90_projector_files, extract_nwfc_from_projector_file)
 
 
-def expected_subshells(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFModel]) -> Dict[str, List[str]]:
+def expected_subshells(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFModel]) -> dict[str, list[str]]:
     """Determine which subshells will make up the valences of a set of pseudopotentials.
 
     Returns
     -------
-    OrderedDict[str, List[str]]
+    dict[str, list[str]]
         a dict mapping element names to a corresponding list of suborbitals that *might* be in the pseudopotential
         valence (depending on how many bands are included)
     """
@@ -121,7 +121,7 @@ def expected_subshells(atoms: Atoms, pseudopotentials: OrderedDict[str, UPFModel
         label = atom.symbol + str(atom.tag) if atom.tag > 0 else atom.symbol
         if label in expected_orbitals:
             continue
-        z_core = atom.number - int(pseudopotentials[label].content['header']['z_valence'])
+        z_core = int(atom.number) - int(pseudopotentials[label].content['header']['z_valence'])
         if z_core in z_core_to_first_orbital:
             first_orbital = z_core_to_first_orbital[z_core]
         else:

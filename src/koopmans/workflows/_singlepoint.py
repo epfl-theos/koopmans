@@ -22,6 +22,7 @@ from ._dft import DFTCPWorkflow, DFTPhWorkflow
 from ._koopmans_dfpt import KoopmansDFPTWorkflow
 from ._koopmans_dscf import KoopmansDSCFWorkflow
 from ._workflow import Workflow, WorkflowInput
+from .config import CalculateScreeningMethod, Correction
 
 load_results_from_output = True
 
@@ -76,41 +77,41 @@ class SinglepointWorkflow(Workflow[WorkflowInput, SinglepointOutputs]):
         dos_dict = {}
 
         # Import it like this so if they have been monkey-patched, we will get the monkey-patched version
-        if self.parameters.eps_inf == 'auto':
+        if self.inputs.config.eps_inf == 'auto':
             eps_workflow = DFTPhWorkflow.fromparent(self)
             eps_workflow.proceed()
             if eps_workflow.status != Status.COMPLETED:
                 return
             self.parameters.eps_inf = np.trace(eps_workflow.calculations[-1].results['dielectric tensor']) / 3
 
-        if self.parameters.method == 'dfpt':
+        if self.inputs.config.screening_method == CalculateScreeningMethod.DFPT:
             workflow = KoopmansDFPTWorkflow.fromparent(self)
             workflow.proceed()
             if workflow.status != Status.COMPLETED:
                 return
 
-            bs_dict[self.parameters.functional] = workflow.outputs.band_structure
+            bs_dict[self.inputs.config.correction] = workflow.outputs.band_structure
 
-        elif self.parameters.functional == 'all':
+        elif self.inputs.config.correction == Correction.ALL:
             # if 'all', create subdirectories and run
-            functionals = ['ki', 'pkipz', 'kipz']
+            functionals = [Correction.KI, Correction.PKIPZ, Correction.KIPZ]
 
-            if self.parameters.alpha_from_file:
+            if self.inputs.config.alpha_from_file:
                 raise NotImplementedError('Need to make sure alpharef files are copied over')
 
             ki_workflow = None
             for functional in functionals:
                 # For pKIPZ the screening parameters should not be recalculated
-                if self.parameters.calculate_alpha:
-                    calculate_alpha = (functional != 'pkipz')
+                if self.inputs.config.calculate_alpha:
+                    calculate_alpha = (functional != Correction.PKIPZ)
                 else:
-                    calculate_alpha = self.parameters.calculate_alpha
+                    calculate_alpha = self.inputs.config.calculate_alpha
 
-                # Create a KC workflow for this particular functional
+                # Create a workflow for this particular functional
                 variational_orbital_files: Optional[Dict[str, File]] = None
                 previous_cp_calc: Optional[KCPCalculator] = None
                 smooth_dft_ham_files: Optional[Dict[BlockID, File]] = None
-                if functional != 'ki':
+                if functional != Correction.KI:
                     assert ki_workflow is not None
                     variational_orbital_files = ki_workflow.outputs.variational_orbital_files
                     previous_cp_calc = ki_workflow.outputs.final_calc
@@ -123,14 +124,14 @@ class SinglepointWorkflow(Workflow[WorkflowInput, SinglepointOutputs]):
                     previous_cp_calc=previous_cp_calc,
                     calculate_alpha=calculate_alpha
                 )
-                kc_workflow.name += ' ' + functional.upper().replace("PKIPZ", "pKIPZ")
+                kc_workflow.name += ' ' + functional.value.upper().replace("PKIPZ", "pKIPZ")
 
-                if functional == 'ki':
+                if functional == Correction.KI:
                     # Save the KI workflow for later
                     ki_workflow = kc_workflow
 
                 # Transform to the supercell
-                if functional == 'kipz':
+                if functional == Correction.KIPZ:
                     kc_workflow.primitive_to_supercell()
 
                 # Run the workflow
@@ -144,7 +145,7 @@ class SinglepointWorkflow(Workflow[WorkflowInput, SinglepointOutputs]):
 
         else:
             # self.functional != all and self.method != 'dfpt'
-            if self.parameters.functional in ['ki', 'pkipz', 'kipz']:
+            if self.inputs.config.correction in [Correction.KI, Correction.PKIPZ, Correction.KIPZ]:
                 dscf_workflow = KoopmansDSCFWorkflow.fromparent(self)
                 dscf_workflow.proceed()
                 if dscf_workflow.status != Status.COMPLETED:

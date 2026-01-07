@@ -72,7 +72,7 @@ from koopmans.pydantic import BaseModel
 from koopmans.references import bib_data
 from koopmans.status import Status
 from koopmans.utils import Spin
-from koopmans.utils.warnings import warn
+from koopmans.utils.warnings import ImageCorrectionWarning, warn
 from koopmans.variational_orbitals import VariationalOrbitals
 from koopmans.workflows.config import (CalculateScreeningMethod, Correction,
                                        Task, VariationalOrbital,
@@ -87,6 +87,7 @@ class WorkflowInput(BaseModel):
         description='a dictionary mapping atom labels to pseudopotential objects')
     kpoints: Kpoints
     projections: ExplicitProjections | ImplicitProjections | None = None
+    variational_orbitals: VariationalOrbitals | None = None
     calculator_parameters: CalculatorsInputParameters = Field(default_factory=CalculatorsInputParameters)
     plotting_config: PlottingConfig = Field(default_factory=PlottingConfig)
     ml_config: MLConfig = Field(default_factory=lambda: MLConfig())
@@ -200,6 +201,8 @@ class WorkflowInput(BaseModel):
     @model_validator(mode='after')
     def ensure_wannier90_config_and_spin_polarization_are_consistent(self) -> Self:
         if self.config.spin_polarized != (self.calculator_parameters.wannier90 is None):
+            import ipdb
+            ipdb.set_trace()
             raise ValueError("Inconsistent spin polarization settings: for spin-polarized calculations, "
                              "both 'wannier90_up' and 'wannier90_down' must be specified; for non-spin-polarized calculations, "
                              "'wannier90' must be specified.")
@@ -334,22 +337,22 @@ class WorkflowInput(BaseModel):
             if self.config.screening_method == CalculateScreeningMethod.DFPT:
                 if not self.config.gb_correction:
                     warn('Gygi-Baldereschi corrections are not being used; do this with '
-                         'caution for periodic systems')
+                         'caution for periodic systems', ImageCorrectionWarning)
 
             elif self.config.screening_method == CalculateScreeningMethod.DSCF:
                 if not self.config.mp_correction:
                     warn('Makov-Payne corrections are not being used; do this with '
-                         'caution for periodic systems')
+                         'caution for periodic systems', ImageCorrectionWarning)
 
             if self.config.mt_correction:
                 raise ValueError('Do not use Martyna-Tuckerman corrections for periodic systems')
 
             # Check symmetry of the system
             dataset = symmetrize.check_symmetry(self.atoms, 1e-6, verbose=False)
-            if dataset is None or dataset['number'] not in range(195, 231):
+            if dataset is None or dataset.number not in range(195, 231):
                 warn('This system is not cubic and will therefore not have a uniform dielectric tensor. However, '
                      'the image-correction schemes that are currently implemented assume a uniform dielectric. '
-                     'Proceed with caution')
+                     'Proceed with caution', ImageCorrectionWarning)
         else:
             if self.config.gb_correction:
                 raise ValueError('Do not use Gygi-Baldereschi corrections for aperiodic systems')
@@ -359,7 +362,7 @@ class WorkflowInput(BaseModel):
 
             if not self.config.mt_correction:
                 warn('Martyna-Tuckerman corrections not applied for an aperiodic calculation; do this with '
-                     'caution')
+                     'caution', ImageCorrectionWarning)
 
         return self
 
@@ -425,7 +428,6 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
     step_counter: int = 0
     print_indent: int = 0
     status: Status = Status.NOT_STARTED
-    processes: List[Process[Any, Any]] = Field(default_factory=list)
     _variational_orbitals: VariationalOrbitals | None
 
     @model_validator(mode='before')
@@ -530,7 +532,7 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
                 if isinstance(block, KCPInputParameters) and k == 'nbnd':
                     continue
 
-                if k in block.system.model_fields:
+                if k in type(block.system).model_fields:
                     setattr(block.system, k, v)
 
         return data
@@ -582,7 +584,7 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
             self.print(bf + self.name + bf)
             self.print(bf + '-' * len(self.name) + bf)
             if self.engine.from_scratch:
-                self._remove_tmpdirs()
+                self.engine.remove_tmpdirs()
 
         start_time = time.time()
 
@@ -599,7 +601,7 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
                     self.status = Status.FAILED
                     raise ValueError('Workflow failed to complete within the specified time')
 
-        if not self.parent_process and self.status == Status.COMPLETED:
+        if self.parent_process_uid is None and self.status == Status.COMPLETED:
             self._teardown()
 
         self.status = Status.COMPLETED
@@ -634,11 +636,7 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
 
         self._pre_run()
 
-        if self.parent_process_uid:
-            with self._parent_context():
-                self._run()
-        else:
-            self._run()
+        self._run()
 
         self._post_run()
 
@@ -671,7 +669,8 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         e.g.
         >>> new_wf = Workflow.fromother(other_wf)
         """
-        inputs_dct = {k: v for k, v in other_wf.inputs.model_dump().items() if k in cls.input_model.model_fields}
+        inputs_dct = {k: getattr(other_wf.inputs, k)
+                      for k in other_wf.inputs.model_fields if k in cls.input_model.model_fields}
         inputs_dct.update(kwargs)
         inputs = cls.input_model.model_validate(inputs_dct)
         return cls(inputs=inputs, engine=other_wf.engine)
@@ -683,8 +682,19 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         e.g.
         >>> sub_wf = Workflow.fromparent(self)
         """
-        wf = cls.from_other(other_wf=parent_wf, **kwargs)
+        parent_wf.step_counter += 1
+
+        wf = cls.from_other(
+            other_wf=parent_wf,
+            **kwargs
+        )
+        wf.print_indent = parent_wf.print_indent + 2
         wf.parent_process_uid = parent_wf.uid
+
+        subdirectory_str = wf.name.replace(' ', '-').lower()
+        subdirectory_path = Path(f'{parent_wf.step_counter:02}-{subdirectory_str}')
+        wf.directory = parent_wf.directory / subdirectory_path if parent_wf.directory else subdirectory_path
+
         return wf
 
     def new_calculator(self,
@@ -694,14 +704,28 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
                        override: dict[str, Any] = {},
                        kpts: Optional[Union[List[int], BandPath]] = None,
                        **kwargs) -> CalcType:
-        """Create a new calculator of a given type."""
+        """Create a new calculator of a given type.
+
+        Additional calculator keywords can be provided via `override`
+        and additional workflow input parameters as keyword arguments."""
         calc_id = calc_class.id
 
         calc_type = f'{calc_id}_{spin.value}' if spin != Spin.NONE else calc_id
 
+        if calc_class.input_model is None:
+            raise ValueError(
+                f'Calculator class {calc_class.__name__} does not have an input model defined. Please report this bug.')
+
         parameters = getattr(self.inputs.calculator_parameters, calc_type).model_copy(deep=True)
-        for k, v in override.items():
-            set_(parameters, k, v)
+        parameters_class = calc_class.input_model.model_fields['parameters'].annotation
+
+        if not type(parameters) is parameters_class:
+            dct = parameters.model_dump()
+            dct.update(override)
+            parameters = parameters_class.model_validate(dct)
+        else:
+            for k, v in override.items():
+                set_(parameters, k, v)
 
         # For the k-points, the Workflow has two options: self.kpoints.grid and self.kpoints.path. A calculator should
         # only ever have one of these two. By default, use the grid.
@@ -726,9 +750,6 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         #             val = getattr(self, kw)
         #         kwargs[kw] = val
 
-        if calc_class.input_model is None:
-            raise ValueError(
-                f'Calculator class {calc_class.__name__} does not have an input model defined. Please report this bug.')
         if 'pseudopotentials' in calc_class.input_model.model_fields:
             kwargs['pseudopotentials'] = OrderedDict(
                 **{k: v.filename.name for k, v in self.inputs.pseudopotentials.items() if v.filename is not None})
@@ -827,11 +848,6 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
                 logger.info(f'Loading the results for {process.directory} ({process.__class__.__name__})')
                 self.engine.load_results(process)
 
-                # Store the results of the step
-                # for step in steps:
-                #     if step not in self.processes:
-                #         self.processes.append(step)
-
         # If any of the processes are running, return RUNNING
         for process in processes:
             if self.engine.get_status(process) == Status.RUNNING:
@@ -843,41 +859,9 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
     def processes_are_running(self) -> bool:
         """Return True if any processes have status RUNNING."""
         assert self.engine is not None
-        for process in self.processes:
-            if self.engine.get_status(process) == Status.RUNNING:
-                return True
+        if self.engine.processes_are_running():
+            return True
         return False
-
-    @contextmanager
-    def _parent_context(self) -> Generator[None, None, None]:
-        """Provide context for running a subworkflow within a parent workflow.
-
-        This is the context for calling self._run(), within which self inherits relevant information from
-        the parent_process, runs, and then passes back relevant information to self.parent_process.
-        """
-        parent = self.engine.workflows[self.parent_process_uid]
-        assert isinstance(parent, Workflow)
-
-        # Increase the indent level
-        self.print_indent = parent.print_indent + 2
-
-        # Copy the processes
-        self.processes = [p for p in parent.processes]
-
-        # Store the current length of the lists so we can tell how many calculations are new
-        n_processes = len(self.processes)
-
-        # Prepend the step counter to the subdirectory name
-        subdirectory_str = self.name.replace(' ', '-').lower()
-        parent.step_counter += 1
-        subdirectory_path = Path(f'{parent.step_counter:02}-{subdirectory_str}')
-        self.directory = parent.directory / subdirectory_path if parent.directory else subdirectory_path
-
-        # Run the workflow
-        yield
-
-        # Afterwards, pass back any new calculations to the parent
-        parent.processes += self.processes[n_processes:]
 
     def print(self, *args, **kwargs) -> None:
         """Print information in a tidy way."""
@@ -1016,8 +1000,6 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         """Print the preamble of the workflow."""
         if self.parent_process_uid:
             return
-
-        self.print(header())
 
         self.print_bib()
 
@@ -1182,7 +1164,8 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
             ax_dos = None
 
         # Plot the band structure
-        defaults = {'colors': colors, 'emin': self.plotting.Emin, 'emax': self.plotting.Emax}
+        defaults = {'colors': colors, 'emin': self.inputs.plotting_config.emin,
+                    'emax': self.inputs.plotting_config.emax}
         for b, kwargs in zip(bs, bsplot_kwargs):
             for k, v in defaults.items():
                 if k not in kwargs:
@@ -1190,7 +1173,8 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
             ax_bs = b.plot(ax=ax_bs, **kwargs)
 
         # Move the legend (if there is one)
-        if ax_bs.get_legend():
+        _, labels = ax_bs.get_legend_handles_labels()
+        if len(labels) > 0:
             ax_bs.legend(loc='lower left', bbox_to_anchor=(0, 1), frameon=False, ncol=min((2, len(bs))))
 
         if dos is None:
@@ -1198,7 +1182,7 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         else:
             # Assemble the densities of state
             dos_summed = dos.sum_by('symbol', 'n', 'l', 'spin')
-            if self.parameters.spin_polarized:
+            if self.inputs.config.spin_polarized:
                 dos_up = dos_summed.select(spin='up')
                 dos_down = dos_summed.select(spin='down')
                 dos_down._weights *= -1
@@ -1217,20 +1201,20 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
                     sorted_dos = dos
 
                 for d in sorted_dos:
-                    if (not self.parameters.spin_polarized or d.info.get('spin') == 'up') \
+                    if (not self.inputs.config.spin_polarized or d.info.get('spin') == 'up') \
                             and all([key in d.info for key in ['symbol', 'n', 'l']]):
                         label = f'{d.info["symbol"]} {d.info["n"]}{d.info["l"]}'
                     else:
                         label = None
-                    d.plot_dos(ax=ax_dos, xmin=xmin, xmax=xmax, orientation='vertical', mplargs={'label': label},
-                               **dosplot_kwargs)
+                    d.plot(ax=ax_dos, xmin=xmin, xmax=xmax, vertical=True, mplargs={'label': label},
+                           **dosplot_kwargs)
 
                 # Reset color cycle so the colors of spin-up match those of spin-down
                 ax_dos.set_prop_cycle(None)
 
             # Tweaking the DOS figure aesthetics
             maxval = 1.1 * dos_summed._weights[:, [e >= xmin and e <= xmax for e in dos_summed._energies]].max()
-            if self.parameters.spin_polarized:
+            if self.inputs.config.spin_polarized:
                 ax_dos.set_xlim([maxval, -maxval])
                 ax_dos.text(0.25, 0.10, 'up', ha='center', va='top', transform=ax_dos.transAxes)
                 ax_dos.text(0.75, 0.10, 'down', ha='center', va='top', transform=ax_dos.transAxes)
@@ -1248,21 +1232,12 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         workflow_name = self.name
         workflow_name = workflow_name.replace('workflow', '').replace(' ', '_')
         filename = filename if filename is not None else f'{workflow_name}_bandstructure'
+        filepath = self.directory / filename if self.directory is not None else filename
         legends = [ax.get_legend() for ax in axes if ax.get_legend() is not None]
-        utils.savefig(fname=f'{self.directory}/{filename}.png', bbox_extra_artists=legends, bbox_inches='tight')
+        utils.savefig(fname=f'{filepath}.png', bbox_extra_artists=legends, bbox_inches='tight')
 
         # Close the figure
         plt.close()
-
-    def _remove_tmpdirs(self):
-        """Remove temporary directories created during the workflow."""
-        for process in self.processes:
-            outdir_path = get(process, 'parameters.control.outdir', None)
-            if outdir_path is None:
-                continue
-            outdir = File(parent_process=process, relative_path=outdir_path)
-            if outdir.exists():
-                outdir.unlink()
 
     def _teardown(self):
         """Perform final tasks before the workflow completes."""
@@ -1275,13 +1250,13 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         write(self, self.name + '.pkl')
 
         # Save the ML model to a separate file
-        if self.ml.train:
-            assert self.ml_model is not None
-            write(self.ml_model, self.name + '_ml_model.pkl')
+        if self.inputs.ml_config.train:
+            assert self.inputs.ml_model is not None
+            write(self.inputs.ml_model, self.name + '_ml_model.pkl')
 
         # Removing tmpdirs
         if not self.engine.keep_tmpdirs:
-            self._remove_tmpdirs()
+            self.engine.remove_tmpdirs()
 
         # Engine-dependent teardown
         self.engine._teardown()
@@ -1325,29 +1300,6 @@ def read_atoms_dict(dct: Dict[str, Any]) -> Tuple[Atoms, List[Atoms]]:
             raise ValueError(f'Unrecognized subblock `atoms: {block}`')
 
     return atoms, snapshots
-
-
-def header():
-    """Print the output header."""
-    from koopmans import __version__
-
-    bf = '**' if sys.stdout.isatty() else ''
-
-    header = ["",
-              bf + "koopmans" + bf,
-              bf + "========" + bf,
-              "",
-              "*Koopmans spectral functional calculations with `Quantum ESPRESSO`*",
-              "",
-              f"📦 **Version:** {__version__}  ",
-              "🧑 **Authors:** Edward Linscott, Nicola Colonna, Riccardo De Gennaro, Ngoc Linh Nguyen, Giovanni "
-              "Borghi, Andrea Ferretti, Ismaila Dabo, and Nicola Marzari  ",
-              "📚 **Documentation:** https://koopmans-functionals.org  ",
-              "❓ **Support:** https://groups.google.com/g/koopmans-users  ",
-              "🐛 **Report a bug:** https://github.com/epfl-theos/koopmans/issues/new"
-              ]
-
-    return '\n'.join(header)
 
 
 def spin_symmetrize(wf: Workflow, master_calc: calculators.Calc) -> Status:

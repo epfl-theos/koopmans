@@ -22,11 +22,14 @@ from koopmans.status import Status
 
 if TYPE_CHECKING:
     from koopmans.calculators.calculator import CalculatorProcess
+    from koopmans.calculators.projwfc import ProjwfcInputs, ProjwfcOutputs
     from koopmans.calculators.pw import PWInputs, PWOutputs
     from koopmans.calculators.pw2wannier90 import (PW2Wannier90Inputs,
                                                    PW2Wannier90Outputs)
     from koopmans.calculators.wannier90 import (Wannier90Inputs,
-                                                Wannier90Outputs)
+                                                Wannier90Outputs,
+                                                Wannier90PreprocInputs,
+                                                Wannier90PreprocOutputs)
 
 
 class Engine(BaseModel, ABC):
@@ -326,21 +329,38 @@ class Engine(BaseModel, ABC):
         """Perform any necessary engine-specific cleanup actions when the workflow is completed."""
         ...
 
+    def remove_tmpdirs(self):
+        """Remove temporary directories created during the workflow."""
+        for process in self.processes:
+            outdir_path = get(process, 'parameters.control.outdir', None)
+            if outdir_path is None:
+                continue
+            outdir = File(parent_process=process, relative_path=outdir_path)
+            if outdir.exists():
+                outdir.unlink()
+
     def run_calculator(self, calc: CalculatorProcess[Any, Any], **kwargs):
         """Run a calculator.
 
         The command used to run the calculator can be modified by providing additional keyword arguments
         """
+        from koopmans.calculators.projwfc import ProjwfcCalculator
         from koopmans.calculators.pw import PWCalculator
         from koopmans.calculators.pw2wannier90 import PW2Wannier90Calculator
-        from koopmans.calculators.wannier90 import Wannier90Calculator
+        from koopmans.calculators.wannier90 import (Wannier90Calculator,
+                                                    Wannier90PreprocCalculator)
 
         if isinstance(calc, PWCalculator):
             caller = self.run_pw_calculator
+        elif isinstance(calc, Wannier90PreprocCalculator):
+            kwargs['pp'] = True
+            caller = self.run_wannier90_pp_calculator
         elif isinstance(calc, Wannier90Calculator):
             caller = self.run_wannier90_calculator
         elif isinstance(calc, PW2Wannier90Calculator):
             caller = self.run_pw2wannier90_calculator
+        elif isinstance(calc, ProjwfcCalculator):
+            caller = self.run_projwfc_calculator
         else:
             raise NotImplementedError(
                 f'Engine {self.__class__.__name__} does not implement running calculator of type '
@@ -376,9 +396,21 @@ class Engine(BaseModel, ABC):
         ...
 
     @abstractmethod
+    def run_wannier90_pp_calculator(self, uid: str, inputs: Wannier90PreprocInputs, directory: Path,
+                                    command: str) -> Response[Wannier90PreprocOutputs]:
+        """Run a wannier90.x -pp calculation."""
+        ...
+
+    @abstractmethod
     def run_pw2wannier90_calculator(self, uid: str, inputs: PW2Wannier90Inputs, directory: Path,
                                     command: str) -> Response[PW2Wannier90Outputs]:
         """Run a pw2wannier90.x calculation."""
+        ...
+
+    @abstractmethod
+    def run_projwfc_calculator(self, uid: str, inputs: ProjwfcInputs, directory: Path,
+                               command: str) -> Response[ProjwfcOutputs]:
+        """Run a projwfc.x calculation."""
         ...
 
 

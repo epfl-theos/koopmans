@@ -12,14 +12,15 @@ import traceback
 from pathlib import Path
 
 import yaml
+from pydantic import ValidationError
 
 import koopmans.mpl_config  # noqa: F401
-from koopmans.cli.input_schema.input_file import KoopmansInput
+from koopmans.cli.input_schema.input_file import KoopmansInput, prettify_errors
 from koopmans.engines.ase import LocalASEEngine
 from koopmans.engines.engine import Engine
 from koopmans.io import read
 from koopmans.logging_config import setup_logging
-from koopmans.utils import print_alert
+from koopmans.utils import indented_print, print_alert
 from koopmans.utils.warnings import configure_warnings
 
 # Disabling the auto-loading of the juliacall ipython extension prior to loading ipdb
@@ -49,7 +50,12 @@ def _pdb_exception_hook(exception_type, exception_value, exception_traceback):
 def initialize_engine(engine_arg: str, engine_config: str | None) -> Engine:
     """Initialize the engine based on the command line arguments."""
     if engine_arg == 'localhost':
-        engine = LocalASEEngine()
+        if Path(engine_config).exists():
+            with open(engine_config, 'r') as f:
+                engine_config = json.load(f)
+        else:
+            engine_config = {}
+        engine = LocalASEEngine.model_validate(engine_config)
     elif engine_arg == 'aiida':
         # raise NotImplementedError("AiiDA engine is not yet implemented")
         # Uncomment the following lines once aiida-koopmans is available
@@ -99,10 +105,9 @@ class UninstallPseudoAction(argparse.Action):
 
 def run_workflow(namespace: argparse.Namespace):
     """Run a Koopmans workflow based on the provided JSON file."""
+
     # Create the engine
-    engine = None
-    if namespace.engine:
-        engine = initialize_engine(namespace.engine, getattr(namespace, 'engine_config', None))
+    engine = initialize_engine(namespace.engine, namespace.engine_config)
 
     # If requested, set up logging
     if namespace.log:
@@ -112,14 +117,44 @@ def run_workflow(namespace: argparse.Namespace):
     # Configure the warnings
     configure_warnings()
 
+    # Print the header
+    indented_print(header(), indent=0)
+
     # Reading in input file
-    koopmans_input = KoopmansInput.from_file(namespace.system)
-    workflow = koopmans_input.to_workflow()
+    try:
+        koopmans_input = KoopmansInput.from_file(namespace.system)
+    except ValidationError as e:
+        raise ValueError(
+            f"Errors found in the input file: \n\n{prettify_errors(e)}\n\n For more information, see URL_HERE.")
+    workflow = koopmans_input.to_workflow(engine=engine)
 
     # Run workflow
     workflow.run()
 
     print("Workflow complete 🎉")
+
+
+def header():
+    """Print the output header."""
+    from koopmans import __version__
+
+    bf = '**' if sys.stdout.isatty() else ''
+
+    header = ["",
+              bf + "koopmans" + bf,
+              bf + "========" + bf,
+              "",
+              "*Koopmans spectral functional calculations with `Quantum ESPRESSO`*",
+              "",
+              f"📦 **Version:** {__version__}  ",
+              "🧑 **Authors:** Edward Linscott, Nicola Colonna, Riccardo De Gennaro, Ngoc Linh Nguyen, Giovanni "
+              "Borghi, Andrea Ferretti, Ismaila Dabo, and Nicola Marzari  ",
+              "📚 **Documentation:** https://koopmans-functionals.org  ",
+              "❓ **Support:** https://groups.google.com/g/koopmans-users  ",
+              "🐛 **Report a bug:** https://github.com/epfl-theos/koopmans/issues/new"
+              ]
+
+    return '\n'.join(header)
 
 
 def main():

@@ -1,15 +1,19 @@
 """pw calculator module for koopmans."""
 
+from typing import Annotated, Any
+
 import numpy as np
 import numpy.typing as npt
 from ase.dft.kpoints import BandPath
 from ase.spectrum.band_structure import BandStructure
-from pydantic import model_validator
+from pydantic import BeforeValidator, field_validator, model_validator
 
 from koopmans.cell import cell_follows_qe_conventions, cell_to_parameters
 from koopmans.files import File, FileViaCopy
 from koopmans.kpoints import GammaOnlyKpoints, Kpoints
 from koopmans.parameters.pw import PWInputParameters
+from koopmans.serialization import (deserialize_ase_bandstructure,
+                                    deserialize_numpy)
 
 from .calculator import CalculatorInputs, CalculatorOutputs, CalculatorProcess
 
@@ -19,7 +23,7 @@ class PWInputs(CalculatorInputs):
 
     parameters: PWInputParameters
     pseudopotentials: dict[str, str]
-    kpoints: Kpoints | GammaOnlyKpoints
+    kpoints: Kpoints
     pseudo_family: str
     outdir: FileViaCopy | None = None
 
@@ -35,9 +39,9 @@ class PWOutputs(CalculatorOutputs):
     """Outputs of calculations with pw.x."""
 
     total_energy: float | None = None
-    eigenvalues: npt.NDArray[np.float64]
+    eigenvalues: Annotated[npt.NDArray[np.float64], BeforeValidator(deserialize_numpy)] | None = None
     fermi_level: list[float]
-    band_structure: BandStructure | None = None
+    band_structure: Annotated[BandStructure, BeforeValidator(deserialize_ase_bandstructure)] | None = None
     outdir: File
 
 

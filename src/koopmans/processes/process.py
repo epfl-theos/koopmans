@@ -86,7 +86,6 @@ class Process(BaseModel, Generic[InputModel, OutputModel]):
         super().model_post_init(context)
         logger = logging.getLogger(__name__)
         logger.info(f'Creating an instance of {self.__class__.__name__}')
-        logger.info(f'with inputs={self.inputs.model_dump()}')
 
     @property
     def outputs(self) -> OutputModel:
@@ -100,7 +99,7 @@ class Process(BaseModel, Generic[InputModel, OutputModel]):
     @outputs.setter
     def outputs(self, value: OutputModel):
         logger = logging.getLogger(__name__)
-        logger.info(f'Setting outputs of {self.directory}', stacklevel=2)
+        logger.info(f'Setting outputs of {self.directory}', stacklevel=5)
         self._outputs = value
 
     def _pre_run(self):
@@ -137,16 +136,11 @@ class Process(BaseModel, Generic[InputModel, OutputModel]):
 
     def write_to_file(self, file: File | LocalFile | Path | str, content: str | bytes) -> None:
         """Write text to a file."""
-        if isinstance(file, str):
-            file = Path(file)
-        if isinstance(file, Path):
-            if Path.is_absolute(file):
-                # Interpret absolute paths as local files
-                file = LocalFile(path=file)
-            else:
-                # Interpret relative paths as files relative to this process
-                file = File(parent_process_uid=self.uid, path=file)
-        self.engine.write_to_file(file, content)
+        self.engine.write_to_file(sanitize_file_argument(file, parent_process_uid=self.uid), content)
+
+    def read_from_file(self, file: File | LocalFile | Path | str) -> str:
+        """Read text from a file."""
+        return self.engine.read_file(sanitize_file_argument(file, parent_process_uid=self.uid))
 
     def dump_inputs(self):
         """Dump the inputs of the process to the file system."""
@@ -156,22 +150,19 @@ class Process(BaseModel, Generic[InputModel, OutputModel]):
     def dump_outputs(self):
         """Dump the outputs of the process to the file system."""
         self.write_to_file(f'outputs.json', self.outputs.model_dump_json(
-            indent=2, exclude_defaults=True, exclude_none=True))
+            indent=2, exclude_none=True))
 
     def load_outputs(self):
         """Load the outputs of the process from the file system."""
-        from koopmans.files import File
         if self.directory is None:
             raise ValueError('Process directory must be set before attempting to load outputs')
-        src = File(self, f'{self.name}_outputs.pkl')
-        content = src.read_bytes()
-        self.outputs = dill.loads(content)
+        self.outputs = self.output_model.model_validate_json(self.read_from_file(f'outputs.json'))
 
     def is_complete(self):
         """Return True if the process has been run and the outputs have been saved."""
         if self.directory is None:
             raise ValueError('Process directory must be set before checking if it is complete')
-        return (self.directory / f'{self.name}_outputs.pkl').exists()
+        return (self.directory / 'outputs.json').exists()
 
     def __truediv__(self, other):
         from koopmans.files import File
@@ -195,3 +186,19 @@ class Process(BaseModel, Generic[InputModel, OutputModel]):
         if self.base_directory is None:
             return None
         return self.base_directory / self.directory
+
+
+def sanitize_file_argument(file: File | LocalFile | Path | str, parent_process_uid: str | None = None) -> File | LocalFile:
+    """Sanitize a file argument to ensure it is a File or LocalFile."""
+    if isinstance(file, str):
+        file = Path(file)
+    if isinstance(file, Path):
+        if Path.is_absolute(file):
+            # Interpret absolute paths as local files
+            file = LocalFile(path=file)
+        else:
+            # Interpret relative paths as files relative to the parent process
+            if parent_process_uid is None:
+                raise ValueError('parent_process_uid must be provided when sanitizing a relative file path')
+            file = File(parent_process_uid=parent_process_uid, path=file)
+    return file

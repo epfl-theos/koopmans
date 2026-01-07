@@ -7,6 +7,7 @@ Written by Edward Linscott, July 2022
 from __future__ import annotations
 
 import copy
+import itertools
 from abc import ABC, abstractmethod
 from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
@@ -14,6 +15,7 @@ import numpy as np
 from ase.cell import Cell
 from ase.dft.kpoints import (BandPath, kpoint_convert, parse_path_string,
                              resolve_kpt_path_string)
+from numpy.typing import NDArray
 from pydantic import Field, field_validator
 from typing_extensions import Self
 
@@ -67,6 +69,25 @@ class NonGammaKpoints(KpointsBase):
             value['cell'] = Cell(**value['cell'])
             return BandPath(**value)
         return value
+
+    @property
+    def explicit_grid(self) -> NDArray[np.float64]:
+        pts = []
+        for i, j, k in itertools.product(*[range(x) for x in self.grid]):
+            pt = (
+                (i + 0.5 * self.offset[0]) / self.grid[0],
+                (j + 0.5 * self.offset[1]) / self.grid[1],
+                (k + 0.5 * self.offset[2]) / self.grid[2],
+            )
+            pts.append(pt)
+        # Wrap to (-0.5, 0.5])
+        pts_array = np.array(pts, dtype=np.float64)
+        pts_array[pts_array > 0.5] -= 1.0
+
+        # Add weights as a fourth column
+        weights = np.ones((len(pts_array), 1)) / len(pts_array)
+        pts_array = np.concatenate([pts_array, weights], axis=1)
+        return pts_array
 
     def __eq__(self, other: object) -> bool:
         raise NotImplementedError()

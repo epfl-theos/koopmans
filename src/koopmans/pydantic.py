@@ -17,6 +17,7 @@ default_config = ConfigDict(extra="forbid",
                             arbitrary_types_allowed=True,
                             strict=False,
                             validate_assignment=True,
+                            revalidate_instances='never',
                             json_encoders=json_encoders,
                             )
 

@@ -1,32 +1,26 @@
 from typing import Any, ClassVar
 
-from pydantic import model_validator
+from pydantic import create_model
 from wannier90_input.models.latest import Wannier90Input
 from wannier90_input.models.parameters import (Coordinate,
                                                FractionalCoordinate,
                                                Projection)
 
+from koopmans.pydantic import BaseModel
 
-class Wannier90InputParameters(Wannier90Input):
-    """A class that represents input parameters unique to Wannier90
+fields = {field_name: (field_info.annotation, field_info)
+          for field_name, field_info in Wannier90Input.model_fields.items()}
 
-    We obscure Wannier90 input parameters (such as k-points) that are stored centrally"""
-    num_wann: ClassVar[int] = -1
-    num_bands: ClassVar[int | None] = -1
-    exclude_bands: ClassVar[list[int]] = []
-    unit_cell_cart: ClassVar[list[Coordinate]] = []
-    mp_grid: ClassVar[tuple[int, int, int]] = (1, 1, 1)
-    kpoints: ClassVar[list[FractionalCoordinate]] = []
-    projections: ClassVar[list[Projection]] = []
+# A modified input class which removes input parameters (such as k-points) that are stored centrally in a workflow rather than as calculator parameters
+Wannier90InputParameters = create_model(
+    "Wannier90InputParameters",
+    __base__=BaseModel,
+    **{k: v for k, v in fields.items() if k not in ['unit_cell_cart', 'mp_grid', 'kpoints']}
+)
 
-    @model_validator(mode="before")
-    @classmethod
-    def set_default_num_bands(cls, values: dict[str, Any]) -> dict[str, Any]:
-        """Skip default num_bands setting."""
-        return values
-
-    @model_validator(mode="before")
-    @classmethod
-    def atoms_frac_xor_cart(cls, values: dict[str, Any]) -> dict[str, Any]:
-        """Skip atoms_frac/atoms_cart check."""
-        return values
+# As above, but also excludes auto-generated keywords
+RestrictedWannier90InputParameters = create_model(
+    "RestrictedWannier90InputParameters",
+    __base__=BaseModel,
+    **{k: v for k, v in fields.items() if k not in ['num_wann', 'num_bands', 'exclude_bands', 'unit_cell_cart', 'mp_grid', 'kpoints', 'projections']}
+)

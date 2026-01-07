@@ -1,13 +1,19 @@
 from abc import ABC, abstractmethod
-from typing import Literal
+from typing import Annotated, Literal
 
 import numpy as np
 from ase_koopmans.cell import Cell
 from ase_koopmans.units import Bohr
-from pydantic import field_validator, model_validator
+from pydantic import BeforeValidator, field_validator, model_validator
 
 from koopmans.cell import parameters_to_cell
 from koopmans.pydantic import BaseModel
+
+
+def tidy_units(value: str) -> str:
+    value = value.lower()
+    value = value.replace("angstrom", "ang")
+    return value
 
 
 class CellParametersABC(BaseModel, ABC):
@@ -30,12 +36,7 @@ class CellParametersViaIbrav(CellParametersABC):
 class CellParametersViaAlat(CellParametersABC):
     celldms: dict[int, float]
     vectors: list[tuple[float, float, float]]
-    units: Literal['alat'] = 'alat'
-
-    @field_validator('units', mode='before')
-    @classmethod
-    def lower(cls, v: str) -> str:
-        return v.lower()
+    units: Annotated[Literal['alat'], BeforeValidator(tidy_units)] = 'alat'
 
     def to_cell(self) -> Cell:
         alat = self.celldms.get(1, None)
@@ -48,12 +49,7 @@ class CellParametersViaAlat(CellParametersABC):
 class CellParametersViaVectors(CellParametersABC):
 
     vectors: list[tuple[float, float, float]]
-    units: Literal['bohr', 'ang'] = 'ang'
-
-    @field_validator('units', mode='before')
-    @classmethod
-    def lower(cls, v: str) -> str:
-        return v.lower()
+    units: Annotated[Literal['bohr', 'ang'], BeforeValidator(tidy_units)] = 'ang'
 
     def to_cell(self) -> Cell:
         conversion_factor = 1.0 if self.units == 'ang' else Bohr
@@ -66,7 +62,7 @@ class CellParametersInput(BaseModel):
     ibrav: int | None = None
     celldms: dict[int, float] | None = None
     vectors: list[tuple[float, float, float]] | None = None
-    units: Literal['bohr', 'ang', 'alat'] = 'ang'
+    units: Annotated[Literal['bohr', 'ang', 'alat'], BeforeValidator(tidy_units)] = 'ang'
 
     @model_validator(mode="after")
     def check_ibrav_and_celldms_xor_vectors(self):

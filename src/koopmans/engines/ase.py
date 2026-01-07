@@ -16,18 +16,25 @@ from ase.calculators.espresso import Espresso as ASEPWCalculator
 from ase.calculators.espresso import EspressoProfile
 from ase.io.formats import register_external_io_formats
 from ase.spectrum.band_structure import BandStructure
+from ase.spectrum.doscollection import GridDOSCollection
+from ase_projwfc_plugin.calculator import Projwfc as ASEProjwfcCalculator
+from ase_projwfc_plugin.calculator import ProjwfcProfile
 from ase_pw2wannier90_plugin.calculator import \
     PW2Wannier90 as ASEPW2Wannier90Calculator
 from ase_pw2wannier90_plugin.calculator import PW2Wannier90Profile
 from ase_wannier90_plugin.calculator import Wannier90 as ASEWannier90Calculator
 from ase_wannier90_plugin.calculator import Wannier90Profile
 from upf_tools.pydantic import UPFModel
+from wannier90_input.models.parameters import Projection
 
 from koopmans import utils
 from koopmans.calculators.calculator import CalcType
+from koopmans.calculators.projwfc import ProjwfcInputs, ProjwfcOutputs
 from koopmans.calculators.pw2wannier90 import (PW2Wannier90Inputs,
                                                PW2Wannier90Outputs)
-from koopmans.calculators.wannier90 import Wannier90Inputs, Wannier90Outputs
+from koopmans.calculators.wannier90 import (Wannier90Inputs, Wannier90Outputs,
+                                            Wannier90PreprocInputs,
+                                            Wannier90PreprocOutputs)
 from koopmans.files import File, LocalFile
 from koopmans.pseudopotentials import (element_from_pseudo_filename,
                                        local_libraries)
@@ -79,6 +86,7 @@ class LocalASEEngine(Engine):
         # Register the required ASE plugins
         register_external_io_formats('ase_wannier90_plugin.formats')
         register_external_io_formats('ase_pw2wannier90_plugin.formats')
+        register_external_io_formats('ase_projwfc_plugin.formats')
 
     def load_old_calculator(self, calc: CalcType):
         """Load a calculation that has already run."""
@@ -93,33 +101,19 @@ class LocalASEEngine(Engine):
 
     def _get_status(self, process: Process) -> Status:
         """Get the status of a process."""
+
+        if process.uid not in self.processes:
+            self.processes[process.uid] = process
+
         if not self.from_scratch:
-            raise NotImplementedError(
-                'Need to replace this with new functionality now that Process covers more classes')
-            # to_run = True
-            # if isinstance(process, ImplementedCalc):
-            #     assert process.directory is not None
-            #     calc_file = process.directory / process.prefix
-
-            #     if calc_file.with_suffix(process.ext_out).is_file():
-            #         loaded_process = self.load_old_calculator(process)
-
-            #         if loaded_process.is_complete():
-            #             to_run = False
-            # elif isinstance(process, Process):
-            #     if process.is_complete():
-            #         to_run = False
-            #         process.load_outputs()
-            # else:
-            #     raise ValueError(f'Unknown process type: {type(process)}')
-
-            # if to_run:
-            #     # This and subsequent calculations should be performed from scratch
-            #     self.from_scratch = True
-            # else:
-            #     if process.uid not in self.statuses:
-            #         self._process_skipped_message(process)
-            #     self.set_status(process, Status.COMPLETED)
+            if process.is_complete():
+                if process.uid not in self.statuses:
+                    self._process_skipped_message(process)
+                process.load_outputs()
+                self.set_status(process, Status.COMPLETED)
+            else:
+                # This and subsequent calculations should be performed from scratch
+                self.from_scratch = True
 
         if process.uid not in self.statuses:
             return Status.NOT_STARTED
@@ -246,10 +240,9 @@ class LocalASEEngine(Engine):
 
     def read_file(self, file: File, binary: bool = False) -> bytes | str:
         """Read the contents of a file."""
-        assert file.parent_process.absolute_directory is not None
-        full_path = file.parent_process.absolute_directory / file.relative_path
+        path = self._file_to_path(file)
         fstring = 'rb' if binary else 'r'
-        with open(full_path, fstring) as f:
+        with open(path, fstring) as f:
             flines = f.read()
         return flines
 
@@ -358,6 +351,9 @@ class LocalASEEngine(Engine):
         # Set up the k-points
         if inputs.parameters.control.calculation == 'bands':
             ase_calc.parameters['kpts'] = inputs.kpoints.path
+        elif inputs.parameters.system.nosym:
+            # Make sure we follow specific ordering
+            ase_calc.parameters['kpts'] = inputs.kpoints.explicit_grid
         else:
             ase_calc.parameters['kpts'] = inputs.kpoints.grid
 
@@ -409,21 +405,17 @@ class LocalASEEngine(Engine):
 
         return Response(status=status, outputs=outputs, error_message=error_message, error_type=error_type)
 
-    def run_wannier90_calculator(self,
-                                 uid: str,
-                                 inputs: Wannier90Inputs,
-                                 directory: Path,
-                                 command: str) -> Response[Wannier90Outputs]:
-        """Run a Wannier90 calculation."""
-        from koopmans.calculators.wannier90 import Wannier90Outputs
-
+    def _run_ase_wannier90_calculator(self, command: str, directory: Path, inputs: Wannier90Inputs | Wannier90PreprocInputs,
+                                      ase_to_output: Callable[[dict], Wannier90Outputs | Wannier90PreprocOutputs]) -> Response:
         command = command.split('PREFIX')[0]
         profile = Wannier90Profile(command=command)
 
         ase_calc = ASEWannier90Calculator(directory=directory, profile=profile)
 
         dct = inputs.parameters.model_dump(exclude_none=True, exclude_defaults=True)
-        dct.update(inputs.projections.wannier90_kwargs)
+        # Avoid serialization of projections
+        dct['projections'] = [Projection(**p) for p in dct.get('projections', [])]
+
         dct['mp_grid'] = inputs.kpoints.grid
         if dct.get('bands_plot', False):
             dct['kpoint_path'] = inputs.kpoints.path
@@ -442,12 +434,56 @@ class LocalASEEngine(Engine):
             error_type = type(error)
 
         if status == Status.COMPLETED:
-            nnkp_file = ase_calc.results.pop('nnkp_file', None)
-            nnkp_file_obj = File(parent_process_uid=uid, path=nnkp_file) if nnkp_file is not None else None
-
-            outputs = Wannier90Outputs(nnkp_file=nnkp_file_obj, **ase_calc.results)
+            outputs = ase_to_output(ase_calc.results)
 
         return Response(status=status, outputs=outputs, error_message=error_message, error_type=error_type)
+
+    def run_wannier90_pp_calculator(self,
+                                    uid: str,
+                                    inputs: Wannier90PreprocInputs,
+                                    directory: Path,
+                                    command: str) -> Response[Wannier90PreprocOutputs]:
+        """Run a Wannier90 preprocessing calculation."""
+        from koopmans.calculators.wannier90 import Wannier90PreprocOutputs
+
+        def ase_to_output(results: dict) -> Wannier90PreprocOutputs:
+            nnkp_file = results.pop('nnkp_file')
+            nnkp_file_obj = File(parent_process_uid=uid, path=nnkp_file)
+
+            # Remove empty values
+            results = {k: v for k, v in results.items() if v and k not in ['job_done', 'converged']}
+
+            return Wannier90PreprocOutputs(nnkp_file=nnkp_file_obj, **results)
+
+        return self._run_ase_wannier90_calculator(command=command, directory=directory, inputs=inputs,
+                                                  ase_to_output=ase_to_output)
+
+    def run_wannier90_calculator(self,
+                                 uid: str,
+                                 inputs: Wannier90Inputs,
+                                 directory: Path,
+                                 command: str) -> Response[Wannier90Outputs]:
+        """Run a Wannier90 calculation."""
+        from koopmans.calculators.wannier90 import Wannier90Outputs
+
+        def ase_to_output(results: dict) -> Wannier90Outputs:
+            results = {k: v for k, v in results.items() if v and k not in ['job_done', 'converged']}
+
+            # Record the files that were generated
+            exts = {
+                'hr_file': '_hr.dat',
+                'u_file': '_u.mat',
+                'centers_file': '_centres.xyz',
+                'u_dis_file': '_u_dis.dat',
+                'chk_file': '.chk',
+            }
+            filenames = {key: 'wannier90' + ext for key, ext in exts.items()}
+            files = {key: File(parent_process_uid=uid, path=path) for key, path in filenames.items()}
+            files_that_exist = {key: val for key, val in files.items() if self._file_exists(val)}
+            return Wannier90Outputs(**files_that_exist, **results)
+
+        return self._run_ase_wannier90_calculator(command=command, directory=directory, inputs=inputs,
+                                                  ase_to_output=ase_to_output)
 
     def run_pw2wannier90_calculator(self,
                                     uid: str,
@@ -476,36 +512,62 @@ class LocalASEEngine(Engine):
             error_type = type(error)
 
         if status == Status.COMPLETED:
-            outputs = PW2Wannier90Outputs(**ase_calc.results)
+            results = ase_calc.results
+            results.pop('job_done')
+            if results.pop('mmn_calculated'):
+                results['mmn_file'] = File(parent_process_uid=uid, path=inputs.parameters.seedname + '.mmn')
+            if results.pop('amn_calculated'):
+                results['amn_file'] = File(parent_process_uid=uid, path=inputs.parameters.seedname + '.amn')
+            results['eig_file'] = File(parent_process_uid=uid, path=inputs.parameters.seedname + '.eig')
+
+            outputs = PW2Wannier90Outputs(**results)
 
         return Response(status=status, outputs=outputs, error_message=error_message, error_type=error_type)
 
+    def run_projwfc_calculator(self, uid: str, inputs: ProjwfcInputs, directory: Path,
+                               command: str) -> Response[ProjwfcOutputs]:
+        """Run a projwfc.x calculation."""
+        from koopmans.calculators.projwfc import ProjwfcOutputs
 
-def load_old_calculator(calc: Generic[CalcType]) -> CalcType:
-    """Load a calculation that has already run."""
-    # This is a separate function so that it can be imported by other engines
-    loaded_calc = calc.__class__.fromfile(calc.directory / calc.prefix)
+        command = command.split('PREFIX')[0]
+        profile = ProjwfcProfile(command=command)
+        ase_calc = ASEProjwfcCalculator(directory=directory, profile=profile)
+        dct = inputs.parameters.model_dump(exclude_none=True, exclude_defaults=True)
+        ase_calc.parameters = dct
 
-    if loaded_calc.is_complete():
-        # If it is complete, load the results
-        calc.results = loaded_calc.results
+        error_message = None
+        error_type = None
+        outputs = None
+        try:
+            ase_calc.calculate(atoms=inputs.atoms, properties=[], system_changes=None)
+            status = Status.COMPLETED
+        except CalculationFailed as error:
+            status = Status.FAILED
+            self._process_failed_message_by_id(uid)
+            error_message = str(error)
+            error_type = type(error)
 
-        # Check the convergence of the calculation
-        calc.check_convergence()
+        if status == Status.COMPLETED:
+            results = ase_calc.results
+            is_complete = results.pop('job_done')
 
-        raise NotImplementedError('Need to revisit')
+            pdos_dict = results.pop('pdos_dict')
+            pdos_list = []
+            for atom in inputs.atoms:
+                # pdos filenames do not encode the principal quantum number n. In order to recover this number, we compare
+                # the reported angular momentum quantum number l against the list of expected orbitals, and infer n
+                # assuming only that the file corresponding to nl will come before (n+1)l
+                label = atom.symbol + str(atom.tag) if atom.tag > 0 else atom.symbol
+                filenames = sorted([f for f in pdos_dict if f"pdos_atm#{atom.index + 1}(" in f])
+                orbitals = inputs.expected_subshells[label].copy()
+                for filename in filenames:
+                    ang_mtm = filename[-2]
+                    orbital = [o for o in orbitals if o[1] == ang_mtm][0]
+                    orbitals.remove(orbital)
+                    for pdos in pdos_dict[filename]:
+                        pdos.info['n'] = int(orbital[0])
+                        pdos_list.append(pdos)
 
-        # # Load k-points if relevant
-        # if hasattr(loaded_calc, 'kpts'):
-        #     calc.kpts = loaded_calc.kpts
+            outputs = ProjwfcOutputs(dos=GridDOSCollection(pdos_list), **results)
 
-        # if isinstance(calc, ReturnsBandStructure):
-        #     calc.generate_band_structure()
-
-        # if isinstance(calc, ProjwfcCalculator):
-        #     calc.generate_dos()
-
-        # if isinstance(calc, PhCalculator):
-        #     calc.read_dynG()
-
-    return loaded_calc
+        return Response(status=status, outputs=outputs, error_message=error_message, error_type=error_type)
