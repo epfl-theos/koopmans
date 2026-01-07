@@ -1,0 +1,8 @@
+{
+    "from_scratch": false,
+    "commands": {
+        "pw": {
+            "npool": 4
+        }
+    }
+}

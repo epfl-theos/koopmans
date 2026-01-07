@@ -10,14 +10,6 @@
         "pseudo_library": "PseudoDojo/0.4/LDA/SR/standard/upf",
         "calculate_bands": true
     },
-    "engine": {
-        "from_scratch": true,
-        "commands": {
-            "pw": {
-                "npool": 4
-            }
-        }
-    },
     "atoms": {
         "cell_parameters": {
             "periodic": true,
@@ -54,8 +46,8 @@
         }
     },
     "plotting": {
-        "Emin": -15,
-        "Emax": 10,
+        "emin": -15,
+        "emax": 10,
         "degauss": 0.2
     }
 }
