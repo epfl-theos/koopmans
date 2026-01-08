@@ -8,7 +8,7 @@ from pint import Quantity
 from pydantic import Field, model_validator
 from pydantic_pint import PydanticPintQuantity
 
-from koopmans.files import File, FileViaSymlink
+from koopmans.files import File, FileViaSymlink, LinkedFile
 from koopmans.parameters.pw2wannier90 import PW2Wannier90InputParameters
 
 from .calculator import CalculatorInputs, CalculatorOutputs, CalculatorProcess
@@ -25,14 +25,16 @@ class PW2Wannier90Inputs(CalculatorInputs):
     @classmethod
     def match_seedname_and_prefix(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Ensure that the seedname and prefix match the corresponding filenames."""
-        data['parameters'].seedname = data['nnkp_file'].stem
+        nnkp_file = data['nnkp_file']
+        seedname = nnkp_file.dest.stem if isinstance(nnkp_file, LinkedFile) else nnkp_file.stem
+        data['parameters'].seedname = seedname
         return data
 
     @model_validator(mode='before')
     @classmethod
     def set_outdir(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Set the outdir parameter based on the pw_outdir file."""
-        data['parameters'].outdir = data['pw_outdir'].path
+        data['parameters'].outdir = data['pw_outdir'].dest
         return data
 
 

@@ -7,7 +7,7 @@ from koopmans.utils import chdir
 
 from ._calculators import read_calculator
 from ._dill import read_pkl, write_pkl
-from ._json import read_json, write_json
+from .input_schema.input_file import read_input_file
 
 
 def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Any:
@@ -25,8 +25,7 @@ def read(filename: Union[str, Path, List[str], List[Path]], **kwargs) -> Any:
         return out
     elif isinstance(filename, Path) and filename.suffix == '.json':
         with chdir(filename.parent):
-            with open(filename.name, 'r') as fd:
-                out = read_json(fd, **kwargs)
+            out = read_input_file(filename, **kwargs)
         return out
     else:
         try:
@@ -45,6 +44,6 @@ def write(obj: Any, filename: Union[str, Path]):
     if filename.suffix == '.pkl':
         write_pkl(obj, filename)
     elif filename.suffix == '.json':
-        write_json(obj, filename)
+        raise ValueError('Writing to JSON is no longer supported.')
     else:
         raise ValueError(f'Unrecognized file type for `{filename}`')

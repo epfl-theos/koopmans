@@ -27,6 +27,7 @@ from koopmans.parameters.ui import UnfoldAndInterpolateConfig
 from koopmans.parameters.wannier90 import RestrictedWannier90InputParameters
 from koopmans.plotting import PlottingConfig
 from koopmans.projections import ExplicitProjections, ImplicitProjections
+from koopmans.pseudopotentials import nwfcs_from_projectors, nwfcs_from_pseudos
 from koopmans.pydantic import BaseModel
 from koopmans.utils import Spin
 from koopmans.workflows import (DFTBandsWorkflow, DFTPhWorkflow,
@@ -125,27 +126,31 @@ class CalculatorParametersInput(BaseModel):
     ui: UnfoldAndInterpolateConfig = Field(default_factory=lambda: UnfoldAndInterpolateConfig())
     kcp: KCPInputParameters = Field(default_factory=lambda: KCPInputParameters())
 
-    def to_obj(self) -> dict[str, Any]:
+    def to_obj(self, spin_polarized: bool = False) -> dict[str, Any]:
         dct = self.model_dump()
         ecutwfc = dct.pop('ecutwfc')
         nbnd = dct.pop('nbnd')
         tot_magnetization = dct.pop('tot_magnetization')
         if ecutwfc is not None:
             dct['pw']['system']['ecutwfc'] = ecutwfc
+            dct['kcp']['system']['ecutwfc'] = ecutwfc
         if nbnd is not None:
             dct['pw']['system']['nbnd'] = nbnd
         if tot_magnetization is not None:
             dct['pw']['system']['tot_magnetization'] = tot_magnetization
+            dct['kcp']['system']['tot_magnetization'] = tot_magnetization
 
         # Split wannier90 up and down into their own blocks
-        up_dct = dct['wannier90'].pop('up', None)
-        down_dct = dct['wannier90'].pop('down', None)
-        if up_dct is not None and down_dct is not None:
+        up_dct = dct['wannier90'].pop('up')
+        down_dct = dct['wannier90'].pop('down')
+        if spin_polarized:
             wannier90 = dct.pop('wannier90')
             dct['wannier90_up'] = wannier90.copy()
             dct['wannier90_down'] = wannier90.copy()
-            dct['wannier90_up'].update(up_dct)
-            dct['wannier90_down'].update(down_dct)
+            if up_dct:
+                dct['wannier90_up'].update(up_dct)
+            if down_dct:
+                dct['wannier90_down'].update(down_dct)
 
         for key in ['wannier90_up', 'wannier90_down', 'wannier90']:
             # Projections are excluded from the CalculatorsInputParameters object
@@ -178,33 +183,34 @@ class KoopmansInput(BaseModel):
         return cls.model_validate(input_dict)
 
     def get_projections(self, atoms: Atoms, pseudopotentials: OrderedDict[str, UPFModel]) -> ExplicitProjections | ImplicitProjections:
+        spins = [Spin.UP, Spin.DOWN] if self.workflow.spin_polarized else [Spin.NONE]
+        if self.workflow.automated_wannierization:
+            return self.get_implicit_projections(atoms, pseudopotentials, spins)
+        else:
+            return self.get_explicit_projections(atoms, pseudopotentials, spins)
+
+    def get_implicit_projections(self, atoms: Atoms, pseudopotentials: OrderedDict[str, UPFModel], spins: list[Spin]) -> ImplicitProjections:
+        if self.calculator_parameters.pw2wannier90.atom_proj_ext:
+            proj_dir = self.calculator_parameters.pw2wannier90.atom_proj_dir
+            if proj_dir is None:
+                raise ValueError("When `atom_proj_ext` is True, `atom_proj_dir` must be specified.")
+            projectors = OrderedDict([(k, proj_dir / p.filename.with_suffix('.dat').name)
+                                      for k, p in pseudopotentials.items()])
+            num_wann = [nwfcs_from_projectors(atoms, projectors) for _ in spins]
+        else:
+            num_wann = [nwfcs_from_pseudos(atoms, pseudopotentials) for _ in spins]
+        return ImplicitProjections.from_block_lengths(num_wann, spins, atoms)
+
+    def get_explicit_projections(self, atoms: Atoms, pseudopotentials: OrderedDict[str, UPFModel], spins: list[Spin]) -> ExplicitProjections:
         if self.workflow.spin_polarized:
             projs_by_spin = [self.calculator_parameters.wannier90.up.projections,
                              self.calculator_parameters.wannier90.down.projections]
-            spins = [Spin.UP, Spin.DOWN]
         else:
             projs_by_spin = [self.calculator_parameters.wannier90.projections]
-            spins = [Spin.NONE]
-
-        auto = any([self.calculator_parameters.wannier90.auto_projections,
-                    self.calculator_parameters.wannier90.up.auto_projections,
-                    self.calculator_parameters.wannier90.down.auto_projections])
-        if auto:
-            if self.calculator_parameters.pw2wannier90.atom_proj_ext:
-                proj_dir = self.calculator_parameters.pw2wannier90.atom_proj_dir
-                if proj_dir is None:
-                    raise ValueError("When `atom_proj_ext` is True, `atom_proj_dir` must be specified.")
-                projectors = OrderedDict([(k, proj_dir / p.filename.with_suffix('.dat').name)
-                                          for k, p in pseudopotentials.items()])
-                num_wann = [nwfcs_from_projectors(atoms, projectors) for _ in spins]
-            else:
-                num_wann = [nwfcs_from_pseudos(atoms, pseudopotentials) for _ in spins]
-            return ImplicitProjections.from_block_lengths(num_wann, spins, atoms)
-        else:
-            blocks = []
-            for spin, projs in zip(spins, projs_by_spin):
-                blocks += [{'spin': spin, 'projections': proj_block} for proj_block in projs]
-            return ExplicitProjections(blocks=blocks, atoms=atoms)
+        blocks = []
+        for spin, projs in zip(spins, projs_by_spin):
+            blocks += [{'spin': spin, 'projections': proj_block} for proj_block in projs]
+        return ExplicitProjections(blocks=blocks, atoms=atoms)
 
     def to_workflow(self, engine: Engine | None = None) -> Workflow[Any]:
         """Generate a Workflow object from the input data."""
@@ -224,14 +230,14 @@ class KoopmansInput(BaseModel):
             raise NotImplementedError(f'Need to implement `{self.workflow.task.value}`')
 
         if engine is None:
-            engine = LocalASEEngine.model_validate(self.engine.model_dump())
+            engine = LocalASEEngine()
 
         # Here need to define the logic constructing the workflow properly
         atoms = self.atoms.to_atoms_obj()
         kpoints = self.kpoints.to_kpoints_obj(cell=atoms.cell)
         pseudopotentials = get_pseudopotentials(atoms, engine, self.workflow.pseudo_library)
         projections = self.get_projections(atoms, pseudopotentials)
-        calculator_parameters = self.calculator_parameters.to_obj()
+        calculator_parameters = self.calculator_parameters.to_obj(spin_polarized=self.workflow.spin_polarized)
 
         inputs = WorkflowInput(
             config=self.workflow,
@@ -240,6 +246,7 @@ class KoopmansInput(BaseModel):
             pseudopotentials=pseudopotentials,
             projections=projections,
             calculator_parameters=calculator_parameters,
+            plotting_config=self.plotting,
         )
 
         return workflow_cls(
@@ -277,3 +284,12 @@ def prettify_errors(e: ValidationError) -> str:
         msg = error['msg']
         error_lines.append(f' `{loc}` {msg}')
     return '\n'.join(error_lines)
+
+
+def read_input_file(filename: str | Path, engine: Engine | None = None) -> Workflow[Any]:
+    try:
+        koopmans_input = KoopmansInput.from_file(filename)
+    except ValidationError as e:
+        raise ValueError(
+            f"Errors found in the input file: \n\n{prettify_errors(e)}\n\n For more information, see URL_HERE.")
+    return koopmans_input.to_workflow(engine=engine)

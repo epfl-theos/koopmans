@@ -13,8 +13,8 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict
 from contextlib import contextmanager
 from pathlib import Path
-from typing import (Any, Callable, Dict, Generator, Generic, List, Optional,
-                    Sequence, Tuple, Type, TypeVar, Union)
+from typing import (Annotated, Any, Callable, Dict, Generator, Generic, List,
+                    Optional, Sequence, Tuple, Type, TypeVar, Union)
 
 import dill
 import numpy as np
@@ -86,7 +86,7 @@ class WorkflowInput(BaseModel):
     pseudopotentials: OrderedDict[str, UPFModel] = Field(
         description='a dictionary mapping atom labels to pseudopotential objects')
     kpoints: Kpoints
-    projections: ExplicitProjections | ImplicitProjections | None = None
+    projections: ImplicitProjections | ExplicitProjections | None = None
     variational_orbitals: VariationalOrbitals | None = None
     calculator_parameters: CalculatorsInputParameters = Field(default_factory=CalculatorsInputParameters)
     plotting_config: PlottingConfig = Field(default_factory=PlottingConfig)
@@ -98,19 +98,17 @@ class WorkflowInput(BaseModel):
     @classmethod
     def setup_implicit_projections(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Set up the projections if they are implicit."""
-        calculator_parameters = get(data, 'calculator_parameters')
-        auto = [get(calculator_parameters, f'wannier90{key}.auto_projections')
-                for key in ['', '_up', '_down']]
-        if any(auto):
-            raise NotImplementedError()
-            # Also override various pw2wannier and wannier90 settings
-            calculator_parameters['pw2wannier'].atom_proj = True
+        calculator_parameters = data['calculator_parameters']
+        if get(data, 'config.automated_wannierization'):
+            set_(calculator_parameters, "pw2wannier90.atom_proj", True)
             for spin in Spin:
                 label = 'wannier90' if spin == Spin.NONE else f'wannier90_{spin.value}'
-                calculator_parameters[label].guiding_centres = False
-                calculator_parameters[label].dis_froz_proj = True
-                if calculator_parameters[label].dis_proj_max is None:
-                    calculator_parameters[label].dis_proj_max = 0.95
+                if getattr(calculator_parameters, label, None) is None:
+                    continue
+                set_(calculator_parameters, f"{label}.guiding_centres", False)
+                set_(calculator_parameters, f"{label}.dis_froz_proj", True)
+                if get(calculator_parameters, f"{label}.dis_proj_max", None) is None:
+                    set_(calculator_parameters, f"{label}.dis_proj_max", 0.95)
             data['calculator_parameters'] = calculator_parameters
         return data
 
@@ -176,7 +174,7 @@ class WorkflowInput(BaseModel):
 
     @model_validator(mode='before')
     @classmethod
-    def add_excluded_bands_info_to_projections(cls, data: dict[str, Any]) -> dict[str, Any]:
+    def add_exclude_bands_info_to_projections(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Add excluded_bands info to the Projections"""
         projections = get(data, 'projections', None)
         calculator_parameters = get(data, 'calculator_parameters')
@@ -201,41 +199,10 @@ class WorkflowInput(BaseModel):
     @model_validator(mode='after')
     def ensure_wannier90_config_and_spin_polarization_are_consistent(self) -> Self:
         if self.config.spin_polarized != (self.calculator_parameters.wannier90 is None):
-            import ipdb
-            ipdb.set_trace()
             raise ValueError("Inconsistent spin polarization settings: for spin-polarized calculations, "
                              "both 'wannier90_up' and 'wannier90_down' must be specified; for non-spin-polarized calculations, "
                              "'wannier90' must be specified.")
         return self
-
-    @model_validator(mode='before')
-    @classmethod
-    def extract_projections(cls, data: dict[str, Any]) -> dict[str, Any]:
-        """Adding the projections to the workflow kwargs.
-
-        This is unusual in that this is an attribute of the workflow but can be specified within the wannier90 block
-        """
-        calc_configs = get(data, 'calculator_parameters')
-        atoms = get(data, 'atoms')
-        projections = get(data, 'projections', None)
-        spin_polarized = get(data, 'config.spin_polarized')
-
-        if projections is None:
-            raise NotImplementedError('Need to check the following code')
-            wannier90_block_projs: list[dict[str, Any]] = []
-
-            spins = [Spin.UP, Spin.DOWN] if spin_polarized else [Spin.NONE]
-            suffixes = ['up', 'down'] if spin_polarized else ['']
-            for spin, suffix in zip(spins, suffixes):
-                projs = get(calc_configs, f'wannier90{suffix}.projections', [[]])
-
-                # Add the spin information
-                wannier90_block_projs += [{'spin': spin, 'projections': proj_block} for proj_block in projs]
-
-            # Suppress type-checking because mypy does not understand that pydantic will cast blocks appropriately
-            # to the desired type
-            set_(data, 'projections', ExplicitProjections(blocks=wannier90_block_projs, atoms=atoms))
-        return data
 
     @model_validator(mode='before')
     @classmethod
@@ -489,7 +456,8 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         kcp_params = get(calculator_parameters, 'kcp', {})
         atoms = get(data, 'inputs.atoms')
         pseudopotentials = get(data, 'inputs.pseudopotentials')
-        spin_polarized = get(data, 'config.spin_polarized', False)
+        spin_polarized = get(data, 'inputs.config.spin_polarized')
+        nspin = 2 if spin_polarized else 1
         nelec = _number_of_electrons(atoms, pseudopotentials, spin_polarized, kcp_params, Spin.NONE)
         nelup = _number_of_electrons(atoms, pseudopotentials, spin_polarized, kcp_params, Spin.UP)
         neldw = _number_of_electrons(atoms, pseudopotentials, spin_polarized, kcp_params, Spin.DOWN)
@@ -523,7 +491,7 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         nbnd = get(calculator_parameters, 'pw.system.nbnd', get(
             calculator_parameters, 'kcp.system.nbnd', nelec // 2 + nelec % 2))
         generated_keywords = {'nelec': nelec, 'tot_charge': tot_charge, 'tot_magnetization': tot_mag,
-                              'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd}
+                              'nelup': nelup, 'neldw': neldw, 'nbnd': nbnd, 'nspin': nspin}
 
         for block in [calculator_parameters.pw, calculator_parameters.kcp]:
             # Apply auto-generated keywords
@@ -676,7 +644,7 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         return cls(inputs=inputs, engine=other_wf.engine)
 
     @classmethod
-    def fromparent(cls: Type[W], parent_wf: Workflow[Any, Any], **kwargs) -> W:
+    def fromparent(cls: Type[W], parent_wf: Workflow[Any, Any], name: str | None = None, **kwargs) -> W:
         """Create a subworkflow with the same configuration as the parent workflow.
 
         e.g.
@@ -690,6 +658,9 @@ class Workflow(Process[InputModel, OutputModel], ABC, Generic[InputModel, Output
         )
         wf.print_indent = parent_wf.print_indent + 2
         wf.parent_process_uid = parent_wf.uid
+
+        if name is not None:
+            wf.name = name
 
         subdirectory_str = wf.name.replace("workflow", "").replace(' ', '-').lower().replace('_', '-').strip("-")
         subdirectory_path = Path(f'{parent_wf.step_counter:02}-{subdirectory_str}')

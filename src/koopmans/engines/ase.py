@@ -417,6 +417,7 @@ class LocalASEEngine(Engine):
         dct['projections'] = [Projection(**p) for p in dct.get('projections', [])]
 
         dct['mp_grid'] = inputs.kpoints.grid
+        dct['kpoints'] = inputs.kpoints.explicit_grid[:, :3]
         if dct.get('bands_plot', False):
             dct['kpoint_path'] = inputs.kpoints.path
         ase_calc.parameters = dct

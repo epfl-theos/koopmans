@@ -3,13 +3,18 @@
 from pathlib import Path
 from typing import Dict
 
-from koopmans.files import File
+from koopmans.files import File, FileViaSymlink
 from koopmans.processes.merge_evc import MergeEVCProcess
 from koopmans.projections import BlockID
 from koopmans.pydantic import BaseModel
 from koopmans.status import Status
 
-from ._workflow import Workflow
+from ._workflow import Workflow, WorkflowInput
+
+
+class FoldToSupercellInputs(WorkflowInput):
+    nscf_outdir: FileViaSymlink
+    hr_files: Dict[str, FileViaSymlink]
 
 
 class FoldToSupercellOutputs(BaseModel):
@@ -18,21 +23,14 @@ class FoldToSupercellOutputs(BaseModel):
     kcp_files: Dict[str, File]
 
 
-class FoldToSupercellWorkflow(Workflow):
+class FoldToSupercellWorkflow(Workflow[FoldToSupercellInputs, FoldToSupercellOutputs]):
     """Workflow that folds Wannier/Kohn-Sham orbitals from the primitive to the supercell.
 
     The output is in a `kcp.x` friendly format.
     """
 
-    output_model = FoldToSupercellOutputs  # type: ignore
-
-    def __init__(self, nscf_outdir: File, hr_files: Dict[str, File], wannier90_calculations,
-                 wannier90_pp_calculations, **kwargs):
-        super().__init__(**kwargs)
-        self._nscf_outdir = nscf_outdir
-        self._hr_files = hr_files
-        self._wannier90_calculations = wannier90_calculations
-        self._wannier90_pp_calculations = wannier90_pp_calculations
+    input_model = FoldToSupercellInputs
+    output_model = FoldToSupercellOutputs
 
     def _run(self) -> None:
         """Run the workflow."""

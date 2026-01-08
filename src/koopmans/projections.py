@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import (TYPE_CHECKING, Any, Dict, Generic, List, Optional,
+from typing import (TYPE_CHECKING, Any, Dict, Generic, List, Literal, Optional,
                     Sequence, TypeVar, cast)
 
 from ase import Atoms
 from ase_koopmans.io.wannier90 import num_wann_from_projections
 from pydantic import Field, model_validator
+from pydash import get, set_
 from wannier90_input.models.parameters import Projection
 
 from koopmans.pydantic import BaseModel
@@ -16,9 +17,9 @@ from koopmans.utils import Spin
 
 def _set_label_from_filled_or_unique(cls: BaseModel, data: dict[str, Any]) -> dict[str, Any]:
     """Set `label` if either (a) `filled` is set or (b) `unique` is True."""
-    if data.get('label', None) is None:
-        filled = data.get('filled', None)
-        unique = data.get('unique', cls.model_fields['unique'].default)
+    if get(data, 'label', None) is None:
+        filled = get(data, 'filled', None)
+        unique = get(data, 'unique', cls.model_fields['unique'].default)
         if unique:
             label = 'all'
         elif filled is not None:
@@ -26,7 +27,7 @@ def _set_label_from_filled_or_unique(cls: BaseModel, data: dict[str, Any]) -> di
         else:
             label = None
 
-        data['label'] = label
+        set_(data, 'label', label)
 
     return data
 
@@ -69,7 +70,7 @@ class ProjectionsBlock(BaseModel):
     num_bands: Optional[int] = None
     unique: bool = False
     include_bands: Optional[List[int]] = None
-    exclude_bands: Optional[List[int]] = None
+    exclude_bands: List[int] = Field(default_factory=list)
 
     @model_validator(mode="before")
     def _set_label(cls, data: dict[str, Any]):
@@ -322,6 +323,8 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
                 elif min(block.include_bands) > n_occ_bands:
                     filled = False
                 else:
+                    import ipdb
+                    ipdb.set_trace()
                     raise ValueError('Block spans both occupied and empty manifolds')
             block_id = BlockID(filled=filled, spin=block.spin)
             if block_id in dct:
@@ -333,6 +336,8 @@ class Projections(BaseModel, ABC, Generic[ProjectionsBlockType]):
 
 class ExplicitProjections(Projections[ExplicitProjectionsBlock]):
     """A set of projections with explicitly specified projections."""
+
+    projection_type: Literal['explicit'] = 'explicit'
 
     @model_validator(mode="before")
     @classmethod
@@ -369,6 +374,8 @@ class ExplicitProjections(Projections[ExplicitProjectionsBlock]):
 
 class ImplicitProjections(Projections[ImplicitProjectionsBlock]):
     """A set of projections with the projections specified only via num_wann."""
+
+    projection_type: Literal['implicit'] = 'implicit'
 
     @classmethod
     def from_block_lengths(cls, lengths: List[int], spins: List[Spin], atoms: Atoms):

@@ -119,6 +119,8 @@ class Process(BaseModel, Generic[InputModel, OutputModel]):
 
         This involves either copying or symlinking the file to the process directory."""
         dest_file = File(parent_process_uid=self.uid, path=dest)
+        if not self.engine.file_exists(src):
+            raise FileNotFoundError(f'Source file {src} does not exist')
         if symlink:
             self.engine.link_file(src, dest_file, overwrite=overwrite, recursive=recursive_symlink)
         else:

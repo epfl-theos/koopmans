@@ -4,10 +4,10 @@ from functools import lru_cache
 
 from pydantic import field_validator
 
-from koopmans.files import File
+from koopmans.files import File, FileViaSymlink
 from koopmans.pydantic import BaseModel
 
-from .process import Process
+from .pythonprocess import PythonProcess
 
 WANNIER_JL_UUID = "2b19380a-1f7e-4d7d-b1b8-8aa60b3321c9"
 WANNIER_JL_REV = "65245c59"
@@ -48,11 +48,11 @@ def load_wannierjl():
 class WannierJLCheckNeighborsInput(BaseModel):
     """Input model for the WannierJLCheckNeighborsProcess."""
 
-    wannier90_input_file: File
-    chk_file: File
-    mmn_file: File
-    amn_file: File
-    eig_file: File
+    wannier90_input_file: FileViaSymlink
+    chk_file: FileViaSymlink
+    mmn_file: FileViaSymlink
+    amn_file: FileViaSymlink
+    eig_file: FileViaSymlink
 
 
 class WannierJLCheckNeighborsOutput(BaseModel):
@@ -62,7 +62,7 @@ class WannierJLCheckNeighborsOutput(BaseModel):
     julia_stdio: File
 
 
-class WannierJLCheckNeighborsProcess(Process[WannierJLCheckNeighborsInput, WannierJLCheckNeighborsOutput]):
+class WannierJLCheckNeighborsProcess(PythonProcess[WannierJLCheckNeighborsInput, WannierJLCheckNeighborsOutput]):
     """Process for checking if the default set of b-vectors contains six cubic nearest neighbors."""
 
     input_model = WannierJLCheckNeighborsInput
@@ -72,24 +72,17 @@ class WannierJLCheckNeighborsProcess(Process[WannierJLCheckNeighborsInput, Wanni
         # Load the Wannier julia module
         jl = load_wannierjl()
 
-        # Link the files locally
-        File(self, 'wannier90.win').symlink_to(self.inputs.wannier90_input_file)
-        File(self, 'wannier90.chk').symlink_to(self.inputs.chk_file)
-        File(self, 'wannier90.mmn').symlink_to(self.inputs.mmn_file)
-        File(self, 'wannier90.amn').symlink_to(self.inputs.amn_file)
-        File(self, 'wannier90.eig').symlink_to(self.inputs.eig_file)
-
         # Read the Wannier files
-        model = jl.capture_stdio(jl.read_wannier90_with_chk,
+        model = jl.capture_stdio(jl.read_w90_with_chk,
                                  str(self.directory / "julia.out"),
-                                 str(self.inputs.wannier90_input_file.with_suffix("")), str(self.inputs.chk_file))
+                                 str(self.directory / self.inputs.wannier90_input_file.dest.with_suffix("")))
 
         # Check if the default set of b-vectors contains six cubic nearest neighbors
         has_cubic_neighbors = jl.Wannier.has_cubic_neighbors(model.kstencil)
 
         # Save the output
         self.outputs = self.output_model(has_cubic_neighbors=has_cubic_neighbors,
-                                         julia_stdio=File(self, "julia.out"))
+                                         julia_stdio=File(parent_process_uid=self.uid, path="julia.out"))
 
 
 class WannierJLGenerateNeighborsInput(BaseModel):
@@ -104,7 +97,7 @@ class WannierJLGenerateNeighborsOutput(BaseModel):
     nnkp_file: File
 
 
-class WannierJLGenerateNeighborsProcess(Process[WannierJLGenerateNeighborsInput, WannierJLGenerateNeighborsOutput]):
+class WannierJLGenerateNeighborsProcess(PythonProcess[WannierJLGenerateNeighborsInput, WannierJLGenerateNeighborsOutput]):
     """Process for generating a nnkp file with six cubic nearest neighbors."""
 
     input_model = WannierJLGenerateNeighborsInput
@@ -129,22 +122,12 @@ class WannierJLSplitInput(BaseModel):
 
     indices: list[list[int]]
     outdirs: list[str]
-    wannier90_input_file: File
-    chk_file: File
-    mmn_file: File
-    amn_file: File
-    eig_file: File
-    cubic_nnkp_file: File | None = None
-    cubic_mmn_file: File | None = None
-
-    @field_validator("wannier90_input_file", "chk_file", "mmn_file", "amn_file", "eig_file", "cubic_nnkp_file",
-                     "cubic_mmn_file", mode="after")
-    @classmethod
-    def exists(cls, value: File | None) -> File | None:
-        """Ensure the Wannier90 input file exists."""
-        if value is not None and not value.exists():
-            raise FileNotFoundError(f"{value} does not exist.")
-        return value
+    wannier90_input_file: FileViaSymlink
+    chk_file: FileViaSymlink
+    mmn_file: FileViaSymlink
+    amn_file: FileViaSymlink
+    eig_file: FileViaSymlink
+    cubic_mmn_file: FileViaSymlink | None = None
 
 
 class WannierJLSplitBlockOutput(BaseModel):
@@ -156,14 +139,6 @@ class WannierJLSplitBlockOutput(BaseModel):
     u_file: File
     win_file: File
 
-    @field_validator("amn_file", "eig_file", "mmn_file", "u_file", mode="after")
-    @classmethod
-    def exists(cls, value: File | None) -> File | None:
-        """Ensure the Wannier90 input file exists."""
-        if value is not None and not value.exists():
-            raise FileNotFoundError(f"{value} does not exist.")
-        return value
-
 
 class WannierJLSplitOutput(BaseModel):
     """Output model for the WannierJLSplitProcess."""
@@ -172,7 +147,7 @@ class WannierJLSplitOutput(BaseModel):
     julia_stdio: File
 
 
-class WannierJLSplitProcess(Process[WannierJLSplitInput, WannierJLSplitOutput]):
+class WannierJLSplitProcess(PythonProcess[WannierJLSplitInput, WannierJLSplitOutput]):
     """Process for splitting a Wannier manifold into multiple blocks using WannierJL."""
 
     input_model = WannierJLSplitInput
@@ -190,19 +165,19 @@ class WannierJLSplitProcess(Process[WannierJLSplitInput, WannierJLSplitOutput]):
         cubic_mmn_file = str(self.inputs.cubic_mmn_file) if self.inputs.cubic_mmn_file else None
         jl.capture_stdio(jl.Wannier.Tools.mrwf,
                          str(self.directory / "julia.out"),
-                         str(self.inputs.wannier90_input_file.with_suffix("")),
+                         str(self.directory / self.inputs.wannier90_input_file.dest.with_suffix("")),
                          julia_indices,
                          julia_outdirs,
                          cubic_mmn_file)
 
         # Save the output
-        prefix = str(self.inputs.wannier90_input_file.with_suffix("").relative_path)
+        prefix = str(self.inputs.wannier90_input_file.dest.with_suffix(""))
         self.outputs = WannierJLSplitOutput(
-            blocks=[{'amn_file': File(self, d) / (prefix + ".amn"),
-                     'eig_file': File(self, d) / (prefix + ".eig"),
-                     'mmn_file': File(self, d) / (prefix + ".mmn"),
-                     'u_file': File(self, d) / (prefix + "_split.amn"),
-                     'win_file': File(self, d) / (prefix + ".win")}
+            blocks=[{'amn_file': File(parent_process_uid=self.uid, path=d) / (prefix + ".amn"),
+                     'eig_file': File(parent_process_uid=self.uid, path=d) / (prefix + ".eig"),
+                     'mmn_file': File(parent_process_uid=self.uid, path=d) / (prefix + ".mmn"),
+                     'u_file': File(parent_process_uid=self.uid, path=d) / (prefix + "_split.amn"),
+                     'win_file': File(parent_process_uid=self.uid, path=d) / (prefix + ".win")}
                     for d in self.inputs.outdirs],
-            julia_stdio=File(self, "julia.out"),
+            julia_stdio=File(parent_process_uid=self.uid, path="julia.out"),
         )

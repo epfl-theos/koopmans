@@ -155,7 +155,6 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFInputs, KoopmansDSCFOutputs]):
 
     def _run(self) -> None:
         """Run the workflow."""
-        convert_to_supercell(self.inputs)
 
         variational_orbitals = self.inputs.variational_orbitals
         if self.inputs.config.alpha_from_file:
@@ -178,6 +177,7 @@ class KoopmansDSCFWorkflow(Workflow[KoopmansDSCFInputs, KoopmansDSCFOutputs]):
             initial_variational_orbital_files = self.inputs.initial_variational_orbital_files
             initial_cp_calculation = self.inputs.previous_cp_calc
 
+        convert_to_supercell(self.inputs)
         self.primitive_to_supercell()
 
         if self.parameters.calculate_alpha:
@@ -1158,12 +1158,10 @@ class InitializationWorkflow(Workflow[WorkflowInput, KoopmansDSCFOutputs]):
                 wannier_hamiltonian_files[b_id] = hr_file
 
             # Convert the files over from wannier90 format to kcp format
-            nscf_calc = wannier_workflow.outputs.nscf_calculation
-            nscf_outdir = File(nscf_calc, nscf_calc.parameters.outdir)
+            nscf_outdir = wannier_workflow.outputs.nscf_outdir
             fold_workflow = FoldToSupercellWorkflow.fromparent(
                 self, nscf_outdir=nscf_outdir,
                 hr_files=wannier_workflow.outputs.hr_files,
-                wannier90_calculations=wannier_workflow.outputs.wannier90_calculations,
                 wannier90_nnkp_files=wannier_workflow.outputs.nnkp_files
             )
             fold_workflow.proceed()

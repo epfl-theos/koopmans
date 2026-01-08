@@ -15,7 +15,6 @@ import yaml
 from pydantic import ValidationError
 
 import koopmans.mpl_config  # noqa: F401
-from koopmans.cli.input_schema.input_file import KoopmansInput, prettify_errors
 from koopmans.engines.ase import LocalASEEngine
 from koopmans.engines.engine import Engine
 from koopmans.io import read
@@ -121,12 +120,7 @@ def run_workflow(namespace: argparse.Namespace):
     indented_print(header(), indent=0)
 
     # Reading in input file
-    try:
-        koopmans_input = KoopmansInput.from_file(namespace.system)
-    except ValidationError as e:
-        raise ValueError(
-            f"Errors found in the input file: \n\n{prettify_errors(e)}\n\n For more information, see URL_HERE.")
-    workflow = koopmans_input.to_workflow(engine=engine)
+    workflow = read(namespace.system, engine=engine)
 
     # Run workflow
     workflow.run()

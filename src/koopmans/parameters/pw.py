@@ -1,6 +1,6 @@
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field, field_validator
 from pydantic_espresso.models.qe_7_4.pw import \
@@ -17,6 +17,12 @@ class ControlNamelist(_ControlNamelist):
     @classmethod
     def enforce_outdir_is_tmp(cls, v: Any) -> Path:
         return Path('tmp')
+
+    @field_validator('verbosity', mode='before')
+    @classmethod
+    def enforce_high_verbosity(cls, v: Any) -> Literal['high']:
+        """High verbosity is required to guarantee that all bands will be printed."""
+        return 'high'
 
 
 class PWInputParameters(BaseModel):

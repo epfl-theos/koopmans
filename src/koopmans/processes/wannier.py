@@ -9,8 +9,9 @@ from ase_koopmans import Atoms
 
 from koopmans import utils
 from koopmans.files import File
+from koopmans.pydantic import BaseModel
 
-from .process import BaseModel, Process
+from .pythonprocess import PythonProcess
 
 
 def merge_wannier_hr_file_contents(filecontents: List[str]) -> str:
@@ -133,26 +134,23 @@ class MergeOutputModel(BaseModel):
     dst_file: File
 
 
-class MergeProcess(Process[MergeInputModel, MergeOutputModel]):
+class MergeProcess(PythonProcess[MergeInputModel, MergeOutputModel]):
     """Generic process for merging the contents of multiple Wannier files (e.g. hr, u, centers)."""
 
     input_model = MergeInputModel
     output_model = MergeOutputModel
-
-    def __init__(self, merge_function: Callable[[List[str]], str], **kwargs):
-        self.merge_function = merge_function
-        super().__init__(**kwargs)
+    merge_function: Callable[[List[str]], str]
 
     def _run(self):
         if len(self.inputs.src_files) == 0:
             raise ValueError('No input files provided to merge.')
 
-        filecontents = [f.read_text() for f in self.inputs.src_files]
+        filecontents = [self.engine.read_file(f) for f in self.inputs.src_files]
 
         merged_filecontents = self.merge_function(filecontents)
 
-        dst_file = File(self, self.inputs.dst_file)
-        dst_file.write_text(merged_filecontents)
+        dst_file = File(parent_process_uid=self.uid, path=self.inputs.dst_file)
+        self.engine.write_to_file(dst_file, merged_filecontents)
 
         self.outputs = self.output_model(dst_file=dst_file)
 
@@ -170,7 +168,7 @@ class ExtendOutputModel(BaseModel):
     dst_file: File
 
 
-class ExtendProcess(Process):
+class ExtendProcess(PythonProcess):
     """Generic process for extending the contents of a Wannier file (usually a u_dis file)."""
 
     input_model = ExtendInputModel

@@ -57,8 +57,8 @@ class WorkflowConfig(BaseModel):
         default=VariationalOrbital.PZ, description="which orbitals to use as an initial guess for the variational orbitals")
     init_empty_orbitals: VariationalOrbital = Field(
         default=None, description="which orbitals to use as an initial guess for the empty variational orbitals")
-    frozen_orbitals: bool = Field(
-        default=False, description="if True, freeze the variational orbitals for the duration of the calculation once they've been initialized")
+    frozen_orbitals: bool | None = Field(
+        default=None, description="if True, freeze the variational orbitals for the duration of the calculation once they've been initialized")
     calculate_bands: bool = Field(default=False, description="Calculate the band structure of the system (if relevant)")
     spin_polarized: bool = Field(
         default=False, description="if True, the system will be allowed to break spin symmetry i.e. n^{up}(r) != n^{down}(r)")
@@ -100,6 +100,8 @@ class WorkflowConfig(BaseModel):
         default=None, description="maximum time in seconds to wait for the workflow to complete; if None, no timeout is applied")
     wait_time: int | float = Field(
         default=5, description="time in seconds to wait between checking the status of in-progress calculations")
+    automated_wannierization: bool = Field(
+        default=False, description="if True, perform automated Wannierization")
 
     @field_validator('task', 'correction', 'screening_method', 'init_orbitals', 'init_empty_orbitals', mode='before')
     @classmethod
