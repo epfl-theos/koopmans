@@ -266,11 +266,12 @@ class ProjwfcConfig(ParallelCommandConfig):
     stderr: str | None = None
     stdin_redirection_string: ClassVar[str] = "-in"
     ase_env_var: ClassVar[str] = "ASE_PROJWFC_COMMAND"
+    pd: bool = Field(False, description="Use pencil decomposition.")
 
     @property
     def options_str(self) -> str:
         """Return the string of options to provide to the executable."""
-        return ''
+        return f"-pd {self.pd}" if self.pd else ''
 
 
 class Wann2KCPConfig(ParallelCommandConfig):
