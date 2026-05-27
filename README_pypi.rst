@@ -17,7 +17,7 @@ Calculations are run with the command
 
 .. code-block:: bash
 
-   koopmans <seed>.json
+   koopmans run <seed>.json
 
 where <seed>.json is the ``koopmans`` input file. For more details, refer to the `online documentation <https://koopmans-functionals.org>`_.
 

@@ -4,7 +4,7 @@ To run a calculation from the command line, all that is required is
 
 .. code-block:: bash
 
-  $ koopmans <seed>.json
+  $ koopmans run <seed>.json
 
 where ``<seed>.json`` is a ``koopmans`` input file. The format of the input file is documented :ref:`here <input_file:The input file>`.
 

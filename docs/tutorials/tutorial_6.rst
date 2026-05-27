@@ -35,7 +35,7 @@ The rest of the input file contains the atomic coordinates and :math:`k`-point c
 Running the calculation
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Running ``koopmans cri3.json`` should produce an output with several sections printing information on the different steps: after the header, the Wannierization is performed for the two spin channels, one at the time:
+Running ``koopmans run cri3.json`` should produce an output with several sections printing information on the different steps: after the header, the Wannierization is performed for the two spin channels, one at the time:
 
 ----
 

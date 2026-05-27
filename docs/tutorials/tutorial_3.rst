@@ -25,7 +25,7 @@ The rest of the file contains the atomic coordinates, k-point configuration, and
 Running the calculation
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Running ``koopmans zno.json`` should produce an output with each of the steps of the workflow. In particular, there is the Wannierization:
+Running ``koopmans run zno.json`` should produce an output with each of the steps of the workflow. In particular, there is the Wannierization:
 
 ----
 
@@ -118,7 +118,7 @@ But what if you need to come up with your own Wannier projections? In this bonus
 Configuring the Wannierization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To determine a good choice for the Wannier projections, we can first calculate a projected density of states (pDOS). Take your input file and change the ``task`` from ``singlepoint`` to ``dft_bands``, and then run ``koopmans zno.json`` (for the sake of tidiness, this input file can be found in the ``02-dft_bands`` directory). This will run the DFT bandstructure workflow, which will produce various files, including a ``png`` of the bandstructure and pDOS. If you look at this file, you will see that the DFT band structure of ZnO consists of several sets of bands, each well-separated in energy space:
+To determine a good choice for the Wannier projections, we can first calculate a projected density of states (pDOS). Take your input file and change the ``task`` from ``singlepoint`` to ``dft_bands``, and then run ``koopmans run zno.json`` (for the sake of tidiness, this input file can be found in the ``02-dft_bands`` directory). This will run the DFT bandstructure workflow, which will produce various files, including a ``png`` of the bandstructure and pDOS. If you look at this file, you will see that the DFT band structure of ZnO consists of several sets of bands, each well-separated in energy space:
 
 .. figure:: ../../tutorials/tutorial_3/02-dft_bands/zno_bandstructure.png
   :width: 600
@@ -174,7 +174,7 @@ Based on this figure, choose values for these two keywords and add them to your 
 Testing the Wannierization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To test your wannierization, you can now switch to the ``wannierize`` task and once again run ``koopmans zno.json`` (or move to ``03-wannierize``). This will generate various directories containing calculations, and ultimately band structure plot, this time with the interpolated band structure plotted on top of the explicitly evaluated band structure. Ideally, the interpolated band structure should lie on top of the explicit one. Play around with the values of ``dis_froz_max`` and ``dis_win_max`` until you are happy with the resulting band structure.
+To test your wannierization, you can now switch to the ``wannierize`` task and once again run ``koopmans run zno.json`` (or move to ``03-wannierize``). This will generate various directories containing calculations, and ultimately band structure plot, this time with the interpolated band structure plotted on top of the explicitly evaluated band structure. Ideally, the interpolated band structure should lie on top of the explicit one. Play around with the values of ``dis_froz_max`` and ``dis_win_max`` until you are happy with the resulting band structure.
 
 .. hint::
 

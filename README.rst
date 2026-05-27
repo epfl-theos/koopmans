@@ -32,20 +32,14 @@ Detailed installation
 Setting up a virtual environment
 """"""""""""""""""""""""""""""""
 
-You are encouraged (but it is not necessary) to first create and activate a virtual environment as follows:
+``koopmans`` requires python v3.10 or later. You are encouraged (but it is not necessary) to first create and activate a virtual environment:
 
 .. code-block:: bash
 
-   sudo apt-get install python3-pip
-   pip3 install virtualenv
-   virtualenv ~/venvs/koopmans
+   python3 -m venv ~/venvs/koopmans
    source ~/venvs/koopmans/bin/activate
 
-Note that ``koopmans`` requires python v3.7 or later. If your computer's version of python3 corresponds to an earlier version, install python v3.7 or later, and then direct ``virtualenv`` to create the virtual environment using that specific installation of python via
-
-.. code-block:: bash
-
-   virtualenv ~/venvs/koopmans -p /usr/bin/python3.x
+If your default ``python3`` is older than v3.10, invoke a newer interpreter explicitly (e.g. ``python3.10 -m venv ...``). On an HPC cluster, load a suitable python module first (e.g. ``module load python/3.10``).
 
 Fetching the submodules
 """""""""""""""""""""""
@@ -95,7 +89,7 @@ Calculations are run with the command
 
 .. code-block:: bash
 
-   koopmans <seed>.json
+   koopmans run <seed>.json
 
 where <seed>.json is the ``koopmans`` input file. For more details, refer to the `online documentation <https://koopmans-functionals.org>`_.
 

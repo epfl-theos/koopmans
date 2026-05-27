@@ -38,7 +38,7 @@ In order to run the calculation, simply run
 
 .. code-block:: bash
 
-  koopmans ozone.json | tee ozone.md
+  koopmans run ozone.json | tee ozone.md
 
 .. tip::
   In order to run in parallel, set the ``PARA_PREFIX`` environment variable to ``mpirun -np 4`` (or similar)
