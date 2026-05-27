@@ -80,7 +80,7 @@ We run this calculation as per usual:
 
 .. code-block:: bash
 
-  koopmans si.json | tee si_wannierize.md
+  koopmans run si.json | tee si_wannierize.md
 
 After the usual header, you should see something like the following:
 
