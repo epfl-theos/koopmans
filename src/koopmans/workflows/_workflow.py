@@ -798,7 +798,7 @@ class Workflow(utils.HasDirectory, ABC, Generic[OutputModel]):
         """Convert from a primitive cell to a supercell, as given by a 3x3 transformation matrix."""
         if matrix is None:
             if self.kpoints.gamma_only:
-                matrix = np.identity(3, dtype=float)
+                matrix = np.identity(3, dtype=int)
             else:
                 assert self.kpoints.grid is not None
                 matrix = np.diag(self.kpoints.grid)
