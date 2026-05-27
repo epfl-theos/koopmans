@@ -1,5 +1,6 @@
 """Hypothesis strategies for generating objects (cells, kpoints, etc) for testing purposes."""
 
+from decimal import Decimal
 from typing import Callable, List, Optional
 
 import numpy as np
@@ -18,7 +19,12 @@ def ase_cells(draw: Callable) -> Cell:
     """Generate ASE cells."""
     # Define the strategies for drawing lengths and angles
     def lengths(min_value: float = 1.0):
-        return decimals(min_value=min_value, max_value=min_value + 5.0, places=3).map(float)
+        # Quantize the bounds to 3 decimal places so they are exactly representable as
+        # decimals with places=3 (passing raw floats triggers a HypothesisDeprecationWarning)
+        three_dp = Decimal("0.001")
+        lo = Decimal(str(min_value)).quantize(three_dp)
+        hi = Decimal(str(min_value + 5.0)).quantize(three_dp)
+        return decimals(min_value=lo, max_value=hi, places=3).map(float)
 
     # For the lengths, we will impose a < b < c
     delta = 0.1

@@ -117,7 +117,7 @@ def fetch_result_default(wf: Workflow, observable: str) -> float:
 def fetch_eps_inf(wf: Workflow) -> float:
     """Fetch the static dielectric constant from a workflow."""
     calc = wf.calculations[-1]
-    return np.mean(np.diag(calc.results['dielectric tensor']))
+    return float(np.mean(np.diag(calc.results['dielectric tensor'])))
 
 
 def ObservableFactory(obs_str: str) -> Callable[[Workflow], float]:
