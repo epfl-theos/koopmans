@@ -13,12 +13,12 @@ jobs:
       runs-on: ubuntu-latest
       steps:
          - name: Checkout
-           uses: actions/checkout@v3
+           uses: actions/checkout@v6
          - name: Get branch name
            id: branch-name
-           uses: tj-actions/branch-names@v8
+           uses: tj-actions/branch-names@v9
          - name: Set up Python
-           uses: actions/setup-python@v4
+           uses: actions/setup-python@v6
            with:
               python-version: '3.x'
          - name: Install dependencies
@@ -30,11 +30,11 @@ jobs:
            run: |
               python bin/update_cff.py
          - name: Validate CITATION.cff
-           uses: dieghernan/cff-validator@v4
+           uses: dieghernan/cff-validator@v5
            with:
              install-r: true
          - name: Commit changes
-           uses: test-room-7/action-update-file@v1
+           uses: test-room-7/action-update-file@v2
            with:
              branch: ${{ steps.branch-name.outputs.current_branch }}
              file-path: 'CITATION.cff'
