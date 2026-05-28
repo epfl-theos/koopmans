@@ -30,7 +30,7 @@ dependencies = [
     "pybtex>=0.24",
     "spglib>=2.5",
     "upf-tools>=0.1.9",
-    "ase-koopmans==0.1.11",
+    "ase-koopmans==0.1.13",
     "scikit-learn>=1.0",
     "deepdiff>=5.8.1",
     "pydantic>=2.7.0",
