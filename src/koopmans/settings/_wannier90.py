@@ -22,7 +22,7 @@ class Wannier90SettingsDict(SettingsDict):
                                 'bands_plot', 'mp_grid', 'kpoint_path', 'projections', 'write_hr',
                                 'write_u_matrices', 'write_xyz', 'wannier_plot', 'wannier_plot_list',
                                 'gamma_only', 'spin', 'use_ws_distance', 'translate_home_cell',
-                                'translation_centre_frac', 'write_tb'],
+                                'translation_centre_frac', 'write_tb', 'wannier_plot_supercell'],
                          defaults={'num_iter': 10000, 'conv_tol': 1.e-10, 'conv_window': 5,
                                    'write_hr': True, 'guiding_centres': True, 'gamma_only': False},
                          **kwargs)
@@ -84,6 +84,15 @@ class Wannier90SettingsDict(SettingsDict):
         else:
             if key == 'wannier_plot_list':
                 assert isinstance(value, str), 'wannier_plot_list must be a string, e.g. "1,3-5"'
+            if key == 'wannier_plot_supercell':
+                assert isinstance(value, str), 'wannier_plot_supercell must be a string, e.g. "2 2 2"'
+                assert len(value.split()) in (1, 3), 'wannier_plot_supercell must be provided as either one integer \
+                            or a vector of three integers, e.g. "2" or "2 2 2"'
+                try:
+                    assert all(int(p) > 0 for p in value.split()), 'wannier_plot_supercell elements must be \
+                            greater than zero'
+                except ValueError:
+                    raise AssertionError('wannier_plot_supercell must be provided as a list of integers only')
             if key == 'kpoint_path':
                 assert self.bands_plot, 'Do not try and set a kpoint_path for a Wannier90 calculation which does ' \
                     'not have bands_plot = True'
