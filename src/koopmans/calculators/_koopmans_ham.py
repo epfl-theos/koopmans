@@ -8,6 +8,7 @@ from ase_koopmans.calculators.espresso import KoopmansHam
 from ase_koopmans.dft.kpoints import BandPath
 
 from koopmans import settings, utils
+from koopmans.utils.warnings import warn
 
 from ._calculator import CalculatorABC, KCWannCalculator, ReturnsBandStructure
 
@@ -51,7 +52,7 @@ class KoopmansHamCalculator(KCWannCalculator, KoopmansHam, ReturnsBandStructure,
 
     def get_k_point_weights(self):
         """Return the k-point weights for the calculation."""
-        utils.warn('Need to properly define k-point weights')
+        warn('Need to properly define k-point weights')
         return np.ones(len(self.parameters['kpath'].kpts))
 
     def get_number_of_spins(self):

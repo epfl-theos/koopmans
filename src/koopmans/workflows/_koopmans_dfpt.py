@@ -3,26 +3,30 @@
 from typing import Dict, List, Optional
 
 import numpy as np
+from ase_koopmans.spectrum.band_structure import BandStructure
 
 from koopmans import pseudopotentials, utils
-from koopmans.bands import Bands
 from koopmans.calculators import (KoopmansHamCalculator, PWCalculator,
                                   Wann2KCCalculator, Wannier90Calculator)
 from koopmans.files import File, LocalFile
 from koopmans.process_io import IOModel
-from koopmans.projections import BlockID
+from koopmans.projections import BlockID, ImplicitProjections
 from koopmans.status import Status
+from koopmans.utils import Spin
+from koopmans.variational_orbitals import VariationalOrbitals
 
 from ._dft import DFTPWWorkflow
 from ._unfold_and_interp import UnfoldAndInterpolateWorkflow
-from ._wannierize import WannierizeWorkflow
+from ._wannierize import MergeableFile, WannierizeWorkflow
 from ._workflow import Workflow
 
 
 class KoopmansDFPTOutputs(IOModel):
     """Pydantic model for the outputs of a `KoopmansDFPTWorkflow`."""
 
-    pass
+    band_structure: BandStructure | None = None
+
+    model_config = {'arbitrary_types_allowed': True}
 
 
 class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
@@ -93,7 +97,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                                 f'`assume_isolated = {params.assume_isolated}` is incompatible with '
                                 '`mt_correction = True`')
 
-        # Initialize the bands
+        # Initialize the variational orbitals
         tols: Dict[str, float] = {}
         if self.parameters.spin_polarized:
             nelec = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials)
@@ -102,6 +106,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
             nocc_dw = (nelec - tot_mag) // 2
             if all(self.atoms.pbc):
                 # Using Wannier functions
+                assert self.projections is not None
                 ntot_up = self.projections.num_wann(spin='up')
                 ntot_dw = self.projections.num_wann(spin='down')
             else:
@@ -115,19 +120,13 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
             if self.parameters.orbital_groups is None:
                 self.parameters.orbital_groups = [
                     list(range(nocc_up + nemp_up)), list(range(nocc_dw + nemp_dw))]
-            for key in ['self_hartree', 'spread']:
-                val = self.parameters.get(f'orbital_groups_{key}_tol', None)
-                if val is not None:
-                    tols[key] = val
-            self.bands = Bands(n_bands=[len(f) for f in filling], n_spin=2,
-                               spin_polarized=self.parameters.spin_polarized,
-                               filling=filling, groups=self.parameters.orbital_groups, tolerances=tols)
         else:
             nocc = pseudopotentials.nelec_from_pseudos(self.atoms, self.pseudopotentials) // 2
             if all(self.atoms.pbc):
                 exclude_bands: List[int] = self.calculator_parameters['w90'].get(
                     'exclude_bands', [])
                 nocc -= len(exclude_bands)
+                assert self.projections is not None
                 ntot = self.projections.num_wann()
             else:
                 ntot = self.calculator_parameters['pw'].nbnd
@@ -135,12 +134,14 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
             filling = [[True] * nocc + [False] * nemp]
             if self.parameters.orbital_groups is None:
                 self.parameters.orbital_groups = [list(range(nocc + nemp))]
-            for key in ['self_hartree', 'spread']:
-                val = self.parameters.get(f'orbital_groups_{key}_tol', None)
-                if val is not None:
-                    tols[key] = val
-            self.bands = Bands(n_bands=nocc + nemp, filling=filling,
-                               groups=self.parameters.orbital_groups, tolerances=tols)
+        for key in ['self_hartree', 'spread']:
+            val = self.parameters.get(f'orbital_groups_{key}_tol', None)
+            if val is not None:
+                tols[key] = val
+        self.variational_orbitals = VariationalOrbitals.empty(filling=filling,
+                                                              groups=self.parameters.orbital_groups,
+                                                              spin_polarized=self.parameters.spin_polarized,
+                                                              tolerances=tols)
 
         # Populating kpoints if absent
         if not all(self.atoms.pbc):
@@ -172,7 +173,11 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                 if key.startswith('w90'):
                     self.calculator_parameters[key].write_u_matrices = True
                     self.calculator_parameters[key].write_xyz = True
-            wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True, scf_kgrid=self._scf_kgrid)
+            wf_workflow = WannierizeWorkflow.fromparent(self, force_nspin2=True, scf_kgrid=self._scf_kgrid,
+                                                        files_to_merge=[MergeableFile.U,
+                                                                        MergeableFile.HR,
+                                                                        MergeableFile.U_DIS,
+                                                                        MergeableFile.CENTERS])
             wf_workflow.proceed()
             if wf_workflow.status != Status.COMPLETED:
                 return
@@ -182,28 +187,44 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                 c, PWCalculator) and c.parameters.calculation == 'nscf'][-1]
 
             # Populate a list of files to link to subsequent calculations
-            spins = ['up', 'down'] if self.parameters.spin_polarized else [None]
+            spins = [Spin.UP, Spin.DOWN] if self.parameters.spin_polarized else [Spin.NONE]
             for spin in spins:
                 wannier_files_to_link_by_spin.append({})
-                for filled in [True, False]:
-                    block_id = BlockID(filled=filled, spin=spin)
-                    for f in [wf_workflow.outputs.u_matrices_files[block_id],
-                              wf_workflow.outputs.hr_files[block_id],
+                if isinstance(self.projections, ImplicitProjections):
+                    fillings = [None]
+                    unique = True
+                    emp_str = ""
+                else:
+                    fillings = [True, False]
+                    unique = False
+                    emp_str = "_emp"
+
+                for filled in fillings:
+                    block_id = BlockID(filled=filled, spin=spin, unique=unique)
+                    for f in [wf_workflow.outputs.u_files[block_id],
                               wf_workflow.outputs.centers_files[block_id]]:
                         assert f is not None
 
-                        if filled:
+                        if filled in [True, None]:
                             wannier_files_to_link_by_spin[-1][f.name] = f
                         else:
                             wannier_files_to_link_by_spin[-1]['wannier90_emp' + str(f.name)[9:]] = f
 
                     dft_ham_files[block_id] = wf_workflow.outputs.hr_files[block_id]
 
-                # Empty blocks might also have a disentanglement file than we need to copy
+                # Empty/unique manifolds might also have a disentanglement file than we need to copy
                 if wf_workflow.outputs.u_dis_files[block_id] is not None:
-                    wannier_files_to_link_by_spin[-1]['wannier90_emp_u_dis.mat'] = \
+                    u_dis_file = f"wannier90_{emp_str}u_dis.mat"
+                    wannier_files_to_link_by_spin[-1][u_dis_file] = \
                         wf_workflow.outputs.u_dis_files[block_id]
 
+                if unique:
+                    # Also add the separated occupied and empty Hamiltonian files to dft_ham_files
+                    for filled in [True, False]:
+                        block_id = BlockID(filled=filled, spin=spin, unique=False)
+                        dft_ham_files[block_id] = wf_workflow.outputs.hr_files[block_id]
+
+            blocks = [p.include_bands for p in wf_workflow.outputs.projections]
         else:
             # Run PW
             self.print('Initialization of density and variational orbitals', style='heading')
@@ -222,6 +243,7 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
 
             init_pw = pw_workflow.calculations[0]
             wannier_files_to_link_by_spin = [{}, {}] if self.parameters.spin_polarized else [{}]
+            blocks = []
 
         spin_components = [1, 2] if self.parameters.spin_polarized else [1]
 
@@ -251,18 +273,19 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
             if self.parameters.calculate_alpha:
                 if self.parameters.dfpt_coarse_grid is None:
                     screen_wf = ComputeScreeningViaDFPTWorkflow.fromparent(
-                        self, wannier_files_to_link=wannier_files_to_link, spin_component=spin_component)
+                        self, wannier_files_to_link=wannier_files_to_link, spin_component=spin_component,
+                        blocks=blocks)
                     screen_wf.name += spin_suffix
                     screen_wfs.append(screen_wf)
             else:
                 # Load the alphas
                 if self.parameters.alpha_from_file:
                     alpha_file_occ = LocalFile("file_alpharef.txt")
-                    alpha_file_empty = LocalFile("file_alpharef.txt")
-                    self.bands.alphas = [utils.read_alpha_file(alpha_file_occ)
-                                         + utils.read_alpha_file(alpha_file_empty)]
+                    alpha_file_empty = LocalFile("file_alpharef_empty.txt")
+                    self.variational_orbitals.alphas = [utils.read_alpha_file(alpha_file_occ)
+                                                        + utils.read_alpha_file(alpha_file_empty)]
                 else:
-                    self.bands.alphas = self.parameters.alpha_guess
+                    self.variational_orbitals.alphas = self.parameters.alpha_guess
 
         for wf in screen_wfs:
             wf.proceed()
@@ -332,6 +355,8 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
                 if ui_workflow.status != Status.COMPLETED:
                     return
 
+        self.outputs = KoopmansDFPTOutputs()
+
         # Plotting
         if self._perform_ham_calc:
             self.plot_bandstructure()
@@ -360,6 +385,8 @@ class KoopmansDFPTWorkflow(Workflow[KoopmansDFPTOutputs]):
 
         super().plot_bandstructure(bs_to_plot)
 
+        self.outputs.band_structure = bs_to_plot
+
     def new_calculator(self, calc_presets, **kwargs):
         """Create a new calculator for the workflow."""
         return internal_new_calculator(self, calc_presets, **kwargs)
@@ -376,17 +403,19 @@ class ComputeScreeningViaDFPTWorkflow(Workflow[ComputeScreeningViaDFPTOutputs]):
 
     output_model = ComputeScreeningViaDFPTOutputs
 
-    def __init__(self, *args, spin_component: int, wannier_files_to_link: Dict[str, File], **kwargs):
+    def __init__(self, *args, spin_component: int, wannier_files_to_link: Dict[str, File],
+                 blocks: list[list[int]] | None = None, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._wannier_files_to_link = wannier_files_to_link
         self._spin_component = spin_component
+        self._blocks = blocks
 
     def _run(self):
-        # Group the bands by spread
-        self.bands.assign_groups(sort_by='spread', allow_reassignment=True)
+        # Group the variational orbitals by spread
+        self.variational_orbitals.assign_groups(sort_by='spread', blocks=self._blocks)
 
-        if len(self.bands.to_solve) == len(self.bands):
+        if len(self.variational_orbitals.to_solve) == len(self.variational_orbitals):
             # If there is no orbital grouping, do all orbitals in one calculation
 
             # 1) Create the calculator
@@ -398,18 +427,19 @@ class ComputeScreeningViaDFPTWorkflow(Workflow[ComputeScreeningViaDFPTOutputs]):
                 return
 
             # 3) Store the computed screening parameters
-            self.bands.alphas = kc_screen_calc.results['alphas']
+            self.variational_orbitals.alphas = kc_screen_calc.results['alphas']
         else:
             # If there is orbital grouping, do the orbitals one-by-one
-            assert self.bands is not None
-            bands_to_solve = [b for b in self.bands.to_solve if b.spin == self._spin_component - 1]
+            assert self.variational_orbitals is not None
+            spin = self.variational_orbitals.spin_channels[self._spin_component - 1]
+            orbitals_to_solve = [o for o in self.variational_orbitals.to_solve if o.spin == spin]
 
             # 1) Create the calculators
             kc_screen_calcs = []
-            for band in bands_to_solve:
-                kc_screen_calc = self.new_calculator('kcw_screen', i_orb=band.index,
+            for orbital in orbitals_to_solve:
+                kc_screen_calc = self.new_calculator('kcw_screen', i_orb=orbital.index,
                                                      spin_component=self._spin_component)
-                kc_screen_calc.prefix += f'_orbital_{band.index}_spin_{self._spin_component}'
+                kc_screen_calc.prefix += f'_orbital_{orbital.index}_spin_{self._spin_component}'
                 kc_screen_calcs.append(kc_screen_calc)
 
             # 2) Run the calculators (possibly in parallel)
@@ -418,11 +448,11 @@ class ComputeScreeningViaDFPTWorkflow(Workflow[ComputeScreeningViaDFPTOutputs]):
                 return
 
             # 3) Store the computed screening parameters (accounting for band groupings)
-            for band, kc_screen_calc in zip(bands_to_solve, kc_screen_calcs):
-                for b in self.bands:
-                    if b.group == band.group:
+            for orbital, kc_screen_calc in zip(orbitals_to_solve, kc_screen_calcs):
+                for o in self.variational_orbitals:
+                    if o.group == orbital.group:
                         [[alpha]] = kc_screen_calc.results['alphas']
-                        b.alpha = alpha
+                        o.alpha = alpha
 
         self.status = Status.COMPLETED
 
@@ -466,6 +496,9 @@ def internal_new_calculator(workflow, calc_presets, **kwargs):
     calc.parameters.kcw_at_ks = not all(workflow.atoms.pbc)
     calc.parameters.read_unitary_matrix = all(workflow.atoms.pbc)
 
+    if isinstance(workflow.projections, ImplicitProjections):
+        calc.parameters.l_unique_manifold = True
+
     if calc_presets == 'kcw_wannier':
         pass
     elif calc_presets == 'kcw_screen':
@@ -475,9 +508,9 @@ def internal_new_calculator(workflow, calc_presets, **kwargs):
             calc.parameters.eps_inf = workflow.parameters.eps_inf
     else:
         calc.parameters.do_bands = all(workflow.atoms.pbc)
-        if not workflow.parameters.spin_polarized and len(workflow.bands.alphas) != 1:
+        if not workflow.parameters.spin_polarized and len(workflow.variational_orbitals.alphas) != 1:
             raise ValueError('The list of screening parameters should be length 1 for spin-unpolarized calculations')
-        calc.alphas = workflow.bands.alphas[calc.parameters.spin_component - 1]
+        calc.alphas = workflow.variational_orbitals.alphas[calc.parameters.spin_component - 1]
 
     if all(workflow.atoms.pbc):
         if workflow.parameters.spin_polarized:
@@ -488,8 +521,8 @@ def internal_new_calculator(workflow, calc_presets, **kwargs):
                 nocc = workflow.calculator_parameters['kcp'].neldw
                 nemp = workflow.projections.num_wann(spin='down') - nocc
         else:
-            nocc = workflow.bands.num(filled=True)
-            nemp = workflow.bands.num(filled=False)
+            nocc = workflow.variational_orbitals.num(filled=True)
+            nemp = workflow.variational_orbitals.num(filled=False)
         nemp_pw = workflow.calculator_parameters['pw'].nbnd - nocc
         have_empty = (nemp > 0)
         has_disentangle = (nemp != nemp_pw)

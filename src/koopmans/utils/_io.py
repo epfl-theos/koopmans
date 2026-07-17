@@ -216,8 +216,8 @@ def _indented_print(text: str = '', indent: int = 0, sep: str = ' ', end: str = 
     previous_indent = indent
 
 
-def print_alert(kind, message, header=None, indent=-1, **kwargs):
-    """Print an alert message with a specific kind following markdown Github alerts."""
+def create_alert(kind: str, message: str, header: str | None = None, indent: int = -1) -> str:
+    """Create an alert message with a specific kind following markdown Github alerts."""
     allowed_kinds = {'note': "ℹ️ ", 'tip': "💡", 'important': "❕", 'warning': "🚨", 'caution': "❗"}
     if kind not in allowed_kinds:
         raise ValueError('`kind` must be one of ' + '/'.join(allowed_kinds.keys()))
@@ -225,7 +225,7 @@ def print_alert(kind, message, header=None, indent=-1, **kwargs):
         if indent < 0:
             indent = previous_indent
         header = "" if header is None else header + ': ' if message else header
-        indented_print('\n' + allowed_kinds[kind] + ' ' + header + message + '\n', indent, **kwargs)
+        return '\n' + allowed_kinds[kind] + ' ' + header + message + '\n'
     else:
         if indent >= 0:
             width = 120 - indent
@@ -237,7 +237,12 @@ def print_alert(kind, message, header=None, indent=-1, **kwargs):
                              textwrap.fill(str(message), width=width, initial_indent='> ', subsequent_indent='> '),
                              ""
                              ])
-        indented_print(message, indent=indent)
+        return message
+
+
+def print_alert(kind: str, message: str, header: str | None = None, indent: int = -1, **kwargs):
+    """Print an alert message with a specific kind following markdown Github alerts."""
+    indented_print(create_alert(kind, message, header, indent), indent=indent, **kwargs)
 
 
 def generate_wannier_hr_file_contents(ham: np.ndarray, rvect: List[List[int]], weights: List[int]) -> str:
@@ -335,6 +340,22 @@ def parse_wannier_u_file_contents(content: str) -> Tuple[npt.NDArray[np.complex1
                                      for line in lines[i + 4:i + 4 + m * n]], (m, n))
 
     return umat, kpts, nk
+
+
+def parse_wannier_amn_file_contents(content: str, check_square: bool = True) -> npt.NDArray[np.complex128]:
+    """Parse the contents of a wannier amn file."""
+    lines = content.split('\n')
+    nw, nk, nw2 = [int(x) for x in lines[1].split()]
+    if nw != nw2 and check_square:
+        raise ValueError("Malformed wannier amn file (A^k is not square)")
+
+    amn = np.empty((nk, nw, nw2), dtype=complex)
+
+    for line in lines[2:-1]:
+        [i, j, k, re, im] = line.split()
+        amn[int(k) - 1, int(i) - 1, int(j) - 1] = complex(float(re), float(im))
+
+    return amn
 
 
 def generate_wannier_u_file_contents(umat: npt.NDArray[np.complex128], kpts: npt.NDArray[np.float64]) -> str:

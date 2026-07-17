@@ -37,6 +37,5 @@ def test_write_then_read_trajectory_json(tmpdir):
         # will override the atoms and snapshots with the same object
         workflow_out.atoms = workflow_in.atoms
         workflow_out.snapshots = workflow_in.snapshots
-        workflow_in.projections._atoms = workflow_out.projections._atoms
 
         assert workflow_out == workflow_in

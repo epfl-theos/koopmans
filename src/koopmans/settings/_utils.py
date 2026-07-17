@@ -130,7 +130,7 @@ class SettingsDict(UserDict):
                 value = Path(value)
             elif not isinstance(value, Path):
                 raise ValueError(f'`{key}` must be either a string or a Path')
-            if value.is_absolute() and key not in ['pseudo_dir', 'pseudo_directory']:
+            if value.is_absolute() and key not in ['pseudo_dir', 'pseudo_directory', 'atom_proj_dir']:
                 raise ValueError(f'`{key}` must be a relative path')
 
         # Parse any units provided

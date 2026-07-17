@@ -36,6 +36,8 @@ class FoldToSupercellWorkflow(Workflow):
 
     def _run(self) -> None:
         """Run the workflow."""
+        if self.projections is None:
+            raise ValueError(f'{self.__class__.__name__} requires projections but none were provided.')
         if self.parameters.init_orbitals in ['mlwfs', 'projwfs']:
             # Loop over the various subblocks that we have wannierized separately
             converted_files = {}
@@ -44,7 +46,7 @@ class FoldToSupercellWorkflow(Workflow):
                                                     self.projections):
                 # Create the calculator
                 calc_w2k = self.new_calculator('wann2kcp', spin_component=block.spin, wan_mode='wannier2kcp')
-                calc_w2k.prefix = f'convert_{block.name}_to_supercell'
+                calc_w2k.prefix = f'convert_{block.id}_to_supercell'
 
                 # Checking that gamma_trick is consistent with gamma_only
                 if calc_w2k.parameters.gamma_trick and not self.kpoints.gamma_only:
@@ -78,8 +80,9 @@ class FoldToSupercellWorkflow(Workflow):
                                                  File(calc_w2k, Path("evcw2.dat"))]
 
             # Merging evcw files
+            raise NotImplementedError("Need to make sure self.projections.to_merge() still makes sense")
             merged_files = {}
-            for merged_id, subset in self.projections.to_merge.items():
+            for merged_id, subset in self.projections.to_merge().items():
                 if len(subset) == 1:
                     for f in converted_files[subset[0].id]:
                         dest_file = _construct_dest_filename(f.name, merged_id)

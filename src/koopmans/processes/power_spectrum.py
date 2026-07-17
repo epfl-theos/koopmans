@@ -6,8 +6,8 @@ import numpy as np
 from ase_koopmans.cell import Cell
 
 from koopmans import ml
-from koopmans.bands import Band
 from koopmans.files import File
+from koopmans.variational_orbitals import VariationalOrbital
 
 from ._process import IOModel, Process
 
@@ -24,7 +24,7 @@ class ExtractCoefficientsFromXMLInput(IOModel):
     total_density_xml: File
     cell: Cell
     orbital_densities_xml: List[File]
-    bands: List[Band]
+    bands: List[VariationalOrbital]
 
 
 class ExtractCoefficientsFromXMLOutput(IOModel):

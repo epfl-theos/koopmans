@@ -10,8 +10,8 @@ from sklearn.dummy import DummyRegressor
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
 
-from koopmans.bands import Band
 from koopmans.engines import Engine
+from koopmans.variational_orbitals import VariationalOrbital
 
 
 class WrappedEstimator(ABC):
@@ -127,9 +127,11 @@ def estimator_factory(estimator: str) -> WrappedEstimator:
 class AbstractMLModel(ABC):
     """An abstract class for ML models that predict the screening parameters of Bands."""
 
-    def __init__(self, estimator_type: str = 'ridge_regression', descriptor='orbital_density', is_trained: bool = False,
+    def __init__(self, estimator_type: str = 'ridge_regression', descriptor='orbital_density',
+                 is_trained: bool = False,
                  estimator: WrappedEstimator | None = None,
-                 descriptor_from_band: Callable[[Band], np.ndarray] | None = None, engine: Engine | None = None):
+                 descriptor_from_band: Callable[[VariationalOrbital], np.ndarray] | None = None,
+                 engine: Engine | None = None):
         self.estimator_type = estimator_type
         self.estimator = estimator_factory(estimator_type) if estimator is None else estimator
         self.estimator.is_trained = is_trained
@@ -146,7 +148,7 @@ class AbstractMLModel(ABC):
         self.descriptor_type = descriptor
 
     @abstractmethod
-    def add_training_data(self, bands: List[Band]) -> None:
+    def add_training_data(self, bands: List[VariationalOrbital]) -> None:
         """Add training data to the estimator."""
         ...
 
@@ -162,7 +164,7 @@ class AbstractMLModel(ABC):
         ...
 
     @abstractmethod
-    def predict(self, band: Band) -> float:
+    def predict(self, band: VariationalOrbital) -> float:
         """Predict the screening parameter of the provided Band."""
         ...
 
@@ -200,26 +202,27 @@ class AbstractMLModel(ABC):
         return f'{self.__class__.__name__}({self._repr_fields()})'
 
 
-def power_spectrum_from_band(band: Band, engine: Engine) -> np.ndarray:
+def power_spectrum_from_band(orb: VariationalOrbital, engine: Engine) -> np.ndarray:
     """Return the power spectrum of a band."""
-    assert band.power_spectrum is not None
-    assert band.power_spectrum.parent_process is not None
-    binary_content = engine.read_file(band.power_spectrum, binary=True)
+    assert orb.power_spectrum is not None
+    assert orb.power_spectrum.parent_process is not None
+    binary_content = engine.read_file(orb.power_spectrum, binary=True)
     assert isinstance(binary_content, bytes)
     return np.frombuffer(binary_content)
 
 
-def self_hartree_from_band(band: Band) -> np.ndarray:
+def self_hartree_from_band(band: VariationalOrbital) -> np.ndarray:
     """Return the self-Hartree energy of a band."""
     return np.array([band.self_hartree])
 
 
-def dummy_from_band(band: Band) -> np.ndarray:
+def dummy_from_band(band: VariationalOrbital) -> np.ndarray:
     """Return a dummy descriptor (for use in the MeanEstimator)."""
     return np.array([np.nan])
 
 
-def descriptor_from_band_factory(descriptor: str, engine: Engine | None = None) -> Callable[[Band], np.ndarray]:
+def descriptor_from_band_factory(descriptor: str,
+                                 engine: Engine | None = None) -> Callable[[VariationalOrbital], np.ndarray]:
     """Create a descriptor function from a string."""
     if descriptor == 'orbital_density':
         assert engine is not None
@@ -252,7 +255,7 @@ class MLModel(AbstractMLModel):
             out += f", shape(Y_train)={self.Y_train.shape}"
         return out
 
-    def predict(self, band: Band) -> float:
+    def predict(self, band: VariationalOrbital) -> float:
         """Make a prediction using the trained estimator."""
         if not self.is_trained:
             raise ValueError(f'`{self.__class__.__name__}` must be trained before calling `predict()`')
@@ -266,10 +269,10 @@ class MLModel(AbstractMLModel):
         self.estimator = estimator_factory(self.estimator_type)
         self.estimator.fit(self.X_train, self.Y_train)
 
-    def add_training_data(self, bands: List[Band]):  # x_train: np.ndarray, y_train: Union[float, np.ndarray]):
+    def add_training_data(self, orbs: List[VariationalOrbital]):
         """Add training data to the estimator."""
-        x_train = np.atleast_2d([self.descriptor_from_band(b) for b in bands])
-        y_train = np.atleast_1d([b.alpha for b in bands])
+        x_train = np.atleast_2d([self.descriptor_from_band(o) for o in orbs])
+        y_train = np.atleast_1d([o.alpha for o in orbs])
 
         if self.X_train is None or self.Y_train is None:
             self.X_train = x_train
@@ -286,7 +289,8 @@ class OccEmpMLModels(AbstractMLModel):
                  X_train_occ: Optional[np.ndarray] = None, Y_train_occ: Optional[np.ndarray] = None,
                  X_train_emp: Optional[np.ndarray] = None, Y_train_emp: Optional[np.ndarray] = None,
                  estimator_occ=None, estimator_emp=None,
-                 descriptor_from_band: Callable[[Band], np.ndarray] | None = None, engine: Engine | None = None):
+                 descriptor_from_band: Callable[[VariationalOrbital], np.ndarray] | None = None,
+                 engine: Engine | None = None):
 
         self.model_occ = MLModel(estimator_type=estimator_type, descriptor=descriptor, is_trained=is_trained,
                                  X_train=X_train_occ, Y_train=Y_train_occ, estimator=estimator_occ,
@@ -297,13 +301,13 @@ class OccEmpMLModels(AbstractMLModel):
         self.estimator_type = estimator_type
         self.descriptor_type = descriptor
 
-    def add_training_data(self, bands: List[Band]) -> None:
+    def add_training_data(self, orbs: List[VariationalOrbital]) -> None:
         """Add training data to the sub-models."""
-        for band in bands:
-            if band.filled:
-                self.model_occ.add_training_data([band])
+        for orb in orbs:
+            if orb.filled:
+                self.model_occ.add_training_data([orb])
             else:
-                self.model_emp.add_training_data([band])
+                self.model_emp.add_training_data([orb])
 
     def train(self) -> None:
         """Train both sub-models."""
@@ -315,12 +319,12 @@ class OccEmpMLModels(AbstractMLModel):
         """Return whether both sub-models are trained."""
         return self.model_occ.is_trained and self.model_emp.is_trained
 
-    def predict(self, band: Band) -> float:
-        """Predict the screening parameter of a given band."""
-        if band.filled:
-            return self.model_occ.predict(band)
+    def predict(self, orbital: VariationalOrbital) -> float:
+        """Predict the screening parameter of a given orbital."""
+        if orbital.filled:
+            return self.model_occ.predict(orbital)
         else:
-            return self.model_emp.predict(band)
+            return self.model_emp.predict(orbital)
 
     def _repr_fields(self):
         out = f"estimator='{self.model_occ.__class__.__name__}(...)', is_trained={self.is_trained}"

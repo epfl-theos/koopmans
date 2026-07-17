@@ -5,11 +5,13 @@ from koopmans.io import read
 # Load the workflow object
 wf = read('si.pkl')
 
-# Access the band structure from the bands calculation
-results = wf.calculations[-2].results
-bs = results['band structure']
+# Access the band structure from the outputs of the workflow
+bs = wf.outputs.band_structures['ki']
 
-# Print the band strucutre to file
+# Shift the band structure so that the VBM is at 0 eV
+bs = bs.subtract_reference()
+
+# Print the band structure to file
 bs.plot(filename='si_bandstructure.png')
 
 # Extract the band gap

@@ -389,6 +389,22 @@ class Wannier90Config(CommandConfig):
         return f"{self.stdin}"
 
 
+class WannierJLConfig(CommandConfig):
+    """Configuration for the wannierjl command."""
+
+    executable: str = "wjl"
+    stdin: str = "PREFIX.wjli"
+    stdout: str | None = "PREFIX.wjlo"
+    stderr: str | None = None
+    stdin_redirection_string: ClassVar[str] = ">"
+    ase_env_var: ClassVar[str] = "ASE_WANNIERJL_COMMAND"
+
+    @property
+    def options_str(self) -> str:
+        """Return the string of options to provide to the executable."""
+        return ''
+
+
 class CommandConfigs(BaseModel):
     """Collection of command configurations.
 
@@ -444,8 +460,13 @@ class CommandConfigs(BaseModel):
         default_factory=lambda: Wannier90Config(),  # type: ignore
         description="Configuration for the wannier90.x code; defaults to `ASE_WANNIER90_COMMAND` if set."
     )
+    wannierjl: WannierJLConfig = Field(
+        default_factory=lambda: WannierJLConfig(),  # type: ignore
+        description="Configuration for the WannierJL code; defaults to `ASE_WANNIERJL_COMMAND` if set."
+    )
 
     @model_validator(mode="before")
+    @classmethod
     def default_mpi_executable(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Use the provided `mpi_executable` for all codes."""
         # The default value
@@ -483,6 +504,7 @@ class CommandConfigs(BaseModel):
         return data
 
     @model_validator(mode="before")
+    @classmethod
     def get_env_vars(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Set the configurations based on the corresponding environment variables, if present."""
         for name, field in cls.model_fields.items():

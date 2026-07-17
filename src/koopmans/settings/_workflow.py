@@ -53,6 +53,10 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
             Setting('spin_polarized',
                     'if True, the system will be allowed to break spin symmetry i.e. n^{up}(r) != n^{down}(r)',
                     bool, False, (True, False)),
+            Setting('initialize_with_smearing',
+                    'if True, the first step of the workflow will use smearing. This can help convergence in some '
+                    'difficult cases.',
+                    bool, False, (True, False)),
             Setting('fix_spin_contamination',
                     'if True, steps will be taken to try and avoid spin contamination. This is only sensible when '
                     'performing a non-spin-polarized calculation, and is turned on by default for such calculations',
@@ -113,7 +117,16 @@ class WorkflowSettingsDict(SettingsDictWithChecks):
                     list, None, None),
             Setting('eps_cavity',
                     'a list of epsilon_infinity values for the cavity in dscf calculations',
-                    list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None)]
+                    list, [1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], None),
+            Setting('block_wannierization_threshold',
+                    'blocks of bands separated by this threshold will be Wannierized separately',
+                    float, None, None),
+            Setting('max_time',
+                    'maximum time in seconds to wait for the workflow to complete; if None, no timeout is applied',
+                    (int, float), None, None),
+            Setting('wait_time',
+                    'time in seconds to wait between checking the status of in-progress calculations',
+                    (int, float), 5, None)]
 
         # Defer storing init_empty_orbitals...
         init_empty_orbitals = kwargs.pop('init_empty_orbitals', 'same')

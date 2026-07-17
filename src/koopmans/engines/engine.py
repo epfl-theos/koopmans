@@ -1,5 +1,6 @@
 """Abstract base class for any engine that wants to run a workflow."""
 
+import logging
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -37,8 +38,8 @@ class Engine(BaseModel, ABC):
     def _step_failed_message(self, step):
         self._step_failed_message_by_uid(step.uid)
 
-    def _step_running_message(self, step):
-        self._step_running_message_by_uid(step.uid)
+    def _step_running_message(self, step, end: str = '\r'):
+        self._step_running_message_by_uid(step.uid, end=end)
 
     def _step_skipped_message(self, step):
         self._step_skipped_message_by_uid(step.uid)
@@ -49,9 +50,9 @@ class Engine(BaseModel, ABC):
     def _step_failed_message_by_uid(self, uid):
         self._step_message(uid, '❌', 'failed     ')
 
-    def _step_running_message_by_uid(self, uid):
+    def _step_running_message_by_uid(self, uid, end: str = '\r'):
         if sys.stdout.isatty():
-            self._step_message(uid, '🖥️ ', 'running...', end='\r', flush=True)
+            self._step_message(uid, '🖥️ ', 'running...', end=end, flush=True)
 
     def _step_skipped_message_by_uid(self, uid):
         self._step_message(uid, '⏭️ ', 'already complete  ')
@@ -62,23 +63,60 @@ class Engine(BaseModel, ABC):
         ...
 
     @abstractmethod
-    def get_status(self, step: ProcessProtocol) -> Status:
+    def _get_status(self, step: ProcessProtocol) -> Status:
         """Get the status of a step."""
         ...
 
+    def get_status(self, step: ProcessProtocol) -> Status:
+        """Get the status of a step with logging."""
+        status = self._get_status(step)
+        logger = logging.getLogger(__name__)
+        logger.debug(""f"Fetching status of step {step.uid}; it is {status.name}")
+        return status
+
     @abstractmethod
-    def set_status(self, step: ProcessProtocol, status: Status):
+    def _set_status(self, step: ProcessProtocol, status: Status):
         """Set the status of a step."""
         ...
 
+    def set_status(self, step: ProcessProtocol, status: Status) -> None:
+        """Set the status of a step with logging."""
+        logger = logging.getLogger(__name__)
+        logger.debug(f"Setting status of step {step.uid} to {status.name}")
+        self._set_status(step, status)
+        return
+
     @abstractmethod
-    def update_statuses(self) -> None:
+    def _update_statuses(self) -> None:
         """Check the statuses of all steps and update them if necessary."""
-        ...
+
+    def update_statuses(self) -> None:
+        """Check the statuses of all steps and update them if necessary with logging."""
+        logger = logging.getLogger(__name__)
+        logger.debug("Updating statuses of all steps")
+        self._update_statuses()
 
     @abstractmethod
     def load_results(self, step: ProcessProtocol) -> None:
         """Load the results of a completed step."""
+        ...
+
+    def steps_are_running(self) -> bool:
+        """Check if any steps are currently running.
+
+        Implementations of this function must update the statuses of all steps before checking.
+        """
+        logger = logging.getLogger(__name__)
+        are_running = self._steps_are_running()
+        logger.debug(f"Checking if any steps are running: {are_running}")
+        return are_running
+
+    @abstractmethod
+    def _steps_are_running(self) -> bool:
+        """Check if any steps are currently running.
+
+        Implementations of this function must update the statuses of all steps before checking.
+        """
         ...
 
     @abstractmethod
@@ -105,6 +143,11 @@ class Engine(BaseModel, ABC):
     @abstractmethod
     def available_pseudo_libraries(self) -> set[str]:
         """Return a set of available pseudopotential libraries."""
+        ...
+
+    @abstractmethod
+    def link_pseudopotential(self, step, src: Path, dest: Path) -> None:
+        """Link a pseudopotential file to the provided step."""
         ...
 
     @overload
@@ -179,4 +222,19 @@ class Engine(BaseModel, ABC):
     @abstractmethod
     def rmdir(self, directory: File) -> None:
         """Remove a directory; should mimic Path.rmdir."""
+        ...
+
+    @abstractmethod
+    def rename_file(self, src: File, dst: File) -> None:
+        """Rename a file; should mimic Path.rename."""
+        ...
+
+    @abstractmethod
+    def wait(self, seconds: float) -> None:
+        """Wait for a specified amount of time, possibly performing background tasks while doing so."""
+        ...
+
+    @abstractmethod
+    def _teardown(self) -> None:
+        """Perform any necessary engine-specific cleanup actions when the workflow is completed."""
         ...
